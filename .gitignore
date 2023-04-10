@@ -1,0 +1,17 @@
+build.sh
+.DS_Store
+*.pyc
+.*.swp
+__pycache__
+/dist/
+/*.egg-info
+/build/
+.idea
+tests/__pycache__
+.coverage
+.vscode
+venv
+fixtures/*
+!fixtures/.keep
+*.sedbck
+tmp

@@ -1,0 +1,10 @@
+# Import from setup.py
+-e .
+# Minimal requirements for committing
+# Versioning omitted (leave this up to HA-core)
+coverage
+ruff
+mypy
+pre-commit
+pylint
+pylint_strict_informational==0.1
