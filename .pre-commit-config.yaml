@@ -38,7 +38,7 @@ repos:
         args:
           - --safe
           - --quiet
-        files: ^((plugwise|tests)/.+)?[^/]+\.py$
+        files: ^((plugwise_usb|tests)/.+)?[^/]+\.py$
   #  Moved codespell configuration to setup.cfg as per 'all-files' issues not reading args
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.4
@@ -53,7 +53,7 @@ repos:
           - --quiet
           - --format=custom
           - --configfile=tests/bandit.yaml
-        files: ^(plugwise|tests)/.+\.py$
+        files: ^(plugwise_usb|tests)/.+\.py$
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.30.0
     hooks:
@@ -74,7 +74,7 @@ repos:
           - --py39-plus
           - --force
           - --keep-updates
-        files: ^(plugwise|tests)/.+\.py$
+        files: ^(plugwise_usb|tests)/.+\.py$
   - repo: local
     hooks:
       # Run mypy through our wrapper script in order to get the possible
@@ -93,13 +93,13 @@ repos:
         language: script
         types: [python]
         require_serial: true
-        files: ^plugwise/$
+        files: ^plugwise_usb/$
       - id: pylint
         name: pylint
         entry: scripts/run-in-env.sh pylint -j 0
         language: script
         types: [python]
-        files: ^plugwise/.+\.py$
+        files: ^plugwise_usb/.+\.py$
       - id: testing
         name: "Local Testing - Performing Tests"
         # yamllint disable-line rule:line-length
