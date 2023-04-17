@@ -207,7 +207,22 @@ no_implicit_optional = true
 warn_return_any = true
 warn_unreachable = true
 exclude = [
-    "plugwise_usb/*",
+    "plugwise_usb/__init__.py",
+    "plugwise_usb/connections/__init__.py",
+    "plugwise_usb/connections/serial.py",
+    "plugwise_usb/connections/socket.py",
+    "plugwise_usb/controller.py",
+    "plugwise_usb/messages/__init__.py",
+    "plugwise_usb/messages/requests.py",
+    "plugwise_usb/messages/responses.py",
+    "plugwise_usb/nodes/__init__.py",
+    "plugwise_usb/nodes/circle.py",
+    "plugwise_usb/nodes/circle_plus.py",
+    "plugwise_usb/nodes/scan.py",
+    "plugwise_usb/nodes/sed.py",
+    "plugwise_usb/nodes/sense.py",
+    "plugwise_usb/nodes/switch.py",
+    "plugwise_usb/parser.py",
 ]
 
 [tool.coverage.run]
