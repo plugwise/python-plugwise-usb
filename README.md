@@ -52,6 +52,7 @@ Module providing interfacing with the Plugwise devices:
   The devices listed below have **NOT** been tested and are therefore unknown for their correct operation
     - [x] Sense
     - [x] Switch
+
 - [x] [Home-Assistant](https://home-assistant.io) via
   - [x] Native supporting networked Plugwise products
   - [ ] Native supporting USB Plugwise products (in progress)
@@ -63,6 +64,7 @@ As per the origins we have retained the appropriate licensing and including the 
 
 Origins (from newest to oldest):
 
+- USB module and integration is supported by @brefra (Frank), ssupported and helped by @bouwew (Bouwe) and @CoMPaTech (Tom) where possible.
 - 'All' available Plugwise support by @bouwew (Bouwe), @brefra (Frank) and @CoMPaTech (Tom)
 - Upstreamed haanna/HA-core Anna, including all later products - 'Plugwise-Smile/Plugwise-HA/plugwise-beta` by @bouwew (Bouwe) & @CoMPaTech (Tom)
 - Networked Plugwise Anna module with custom_module - `haanna/anna-ha` via <https://github.com/laetificat> (Kevin)
