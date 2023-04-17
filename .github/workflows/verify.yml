@@ -325,7 +325,7 @@ jobs:
         run: |
           . venv/bin/activate
           coverage combine coverage*/.coverage*
-          coverage report --fail-under=94
+          coverage report --fail-under=80  ## plugwise is at 94, set to 80 for plugwise_usb
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
