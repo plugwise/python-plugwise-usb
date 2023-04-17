@@ -2,8 +2,6 @@
 from datetime import datetime
 import logging
 
-from ..util import validate_mac, version_to_model
-
 from ..constants import (
     FEATURE_AVAILABLE,
     FEATURE_PING,
@@ -21,6 +19,7 @@ from ..messages.responses import (
     NodeJoinAckResponse,
     NodePingResponse,
 )
+from ..util import validate_mac, version_to_model
 
 _LOGGER = logging.getLogger(__name__)
 
