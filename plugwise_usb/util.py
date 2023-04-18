@@ -18,7 +18,7 @@ crc_fun = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0x0000, xorOut=0x0000)
 
 
 # NOTE: this function version_to_model is shared between Smile and USB
-def version_to_model(version: str) -> str | None:
+def version_to_model(version: str | None) -> str | None:
     """Translate hardware_version to device type."""
 
     if version is None:  # pragma: no cover via python-plugwise 294
