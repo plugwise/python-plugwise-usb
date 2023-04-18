@@ -4,8 +4,8 @@
 # Versioning omitted (leave this up to HA-core)
 black
 coverage
-ruff
 mypy
 pre-commit
 pylint
 pylint_strict_informational==0.1
+ruff
