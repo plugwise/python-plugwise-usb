@@ -21,6 +21,9 @@ crc_fun = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0x0000, xorOut=0x0000)
 def version_to_model(version: str) -> str | None:
     """Translate hardware_version to device type."""
 
+    if version is None:  # pragma: no cover via python-plugwise 294
+        return version
+
     model = HW_MODELS.get(version)
     if model is None:
         model = HW_MODELS.get(version[4:10])
