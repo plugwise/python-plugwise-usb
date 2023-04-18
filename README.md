@@ -1,6 +1,6 @@
-# Plugwise python module
+# Plugwise USB python module
 
-This module is the USB backend for the upcoming [`plugwise_usb` component](https://github.com/home-assistant/core/tree/dev/homeassistant/components/plugwise_usb) which we maintain as co-code owners Home Assistant Core.
+This module is the USB backend for the upcoming [`plugwise_usb` component](https://github.com/home-assistant/core/tree/dev/homeassistant/components/plugwise_usb) which we will maintain as co-code owners Home Assistant Core.
 
 Our main usage for this module is supporting [Home Assistant](https://www.home-assistant.io) / [home-assistant](http://github.com/home-assistant/core/)
 
