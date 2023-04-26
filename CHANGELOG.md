@@ -1,5 +1,9 @@
 # Changelog
 
+## Ongoing
+
+- CI improvements
+
 ## v0.31 refactoring (alpha only, effectively refactored version release): Logic separation between USB and non-USB
 
 - USB component (suggested `python-plugwise-usb` for USB (or stick-standalone) route)
