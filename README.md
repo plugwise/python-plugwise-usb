@@ -10,6 +10,7 @@ Our main usage for this module is supporting [Home Assistant](https://www.home-a
 [![Latest release](https://github.com/plugwise/python-plugwise-usb/workflows/Latest%20release/badge.svg)](https://github.com/plugwise/python-plugwise-usb/actions)
 [![Newest commit](https://github.com/plugwise/python-plugwise-usb/workflows/Latest%20commit/badge.svg)](https://github.com/plugwise/python-plugwise-usb/actions)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/plugwise/python-plugwise-usb/main.svg)](https://results.pre-commit.ci/latest/github/plugwise/python-plugwise-usb/main)
+[![renovate maintained](https://img.shields.io/badge/maintained%20with-renovate-blue?logo=renovatebot)](https://github.com/plugwise/python-plugwise-usb/issues/2)
 
 ## Integration
 
