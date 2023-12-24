@@ -3,6 +3,7 @@
 ## Ongoing
 
 - CI improvements
+- Add python3.12 generation
 
 ## v0.31 refactoring (alpha only, effectively refactored version release): Logic separation between USB and non-USB
 
