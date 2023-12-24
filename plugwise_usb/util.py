@@ -1,5 +1,4 @@
-"""
-Use of this source code is governed by the MIT license found in the LICENSE file.
+"""Use of this source code is governed by the MIT license found in the LICENSE file.
 
 Plugwise protocol helpers
 """
@@ -41,8 +40,7 @@ def validate_mac(mac: str) -> bool:
 
 
 def inc_seq_id(seq_id: str | None, value: int = 1) -> bytearray | bytes:
-    """
-    Increment sequence id by value
+    """Increment sequence id by value
 
     :return: 4 bytes
     """
@@ -63,7 +61,7 @@ def inc_seq_id(seq_id: str | None, value: int = 1) -> bytearray | bytes:
 
 # octals (and hex) type as int according to https://docs.python.org/3/library/stdtypes.html
 def uint_to_int(val: int, octals: int) -> int:
-    """compute the 2's compliment of int value val for negative values"""
+    """Compute the 2's compliment of int value val for negative values"""
     bits = octals << 2
     if (val & (1 << (bits - 1))) != 0:
         val = val - (1 << bits)
@@ -72,7 +70,7 @@ def uint_to_int(val: int, octals: int) -> int:
 
 # octals (and hex) type as int according to https://docs.python.org/3/library/stdtypes.html
 def int_to_uint(val: int, octals: int) -> int:
-    """compute the 2's compliment of int value val for negative values"""
+    """Compute the 2's compliment of int value val for negative values"""
     bits = octals << 2
     if val < 0:
         val = val + (1 << bits)
@@ -140,7 +138,7 @@ class SInt(BaseType):
 
     @staticmethod
     def negative(val, octals):  # type: ignore[no-untyped-def]
-        """compute the 2's compliment of int value val for negative values"""
+        """Compute the 2's compliment of int value val for negative values"""
         bits = octals << 2
         if (val & (1 << (bits - 1))) != 0:
             val = val - (1 << bits)

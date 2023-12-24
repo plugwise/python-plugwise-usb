@@ -44,8 +44,7 @@ class PlugwiseSense(NodeSED):
         return self._temperature
 
     def message_for_sense(self, message):
-        """
-        Process received message
+        """Process received message
         """
         if isinstance(message, SenseReportResponse):
             self._process_sense_report(message)
@@ -57,7 +56,7 @@ class PlugwiseSense(NodeSED):
             )
 
     def _process_sense_report(self, message):
-        """process sense report message to extract current temperature and humidity values."""
+        """Process sense report message to extract current temperature and humidity values."""
         if message.temperature.value != 65535:
             new_temperature = int(
                 SENSE_TEMPERATURE_MULTIPLIER * (message.temperature.value / 65536)
