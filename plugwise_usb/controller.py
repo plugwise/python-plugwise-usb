@@ -1,5 +1,4 @@
-"""
-Message controller for USB-Stick
+"""Message controller for USB-Stick
 
 The controller will:
 - handle the connection (connect/disconnect) to the USB-Stick
@@ -84,8 +83,7 @@ class StickMessageController:
         return self._send_message_thread.is_alive()
 
     def connect_to_stick(self, callback=None) -> bool:
-        """
-        Connect to USB-Stick and startup all worker threads
+        """Connect to USB-Stick and startup all worker threads
 
         Return: True when connection is successful.
         """
@@ -263,7 +261,7 @@ class StickMessageController:
         _LOGGER.debug("Send message loop stopped")
 
     def message_handler(self, message):
-        """handle received message from Plugwise Zigbee network."""
+        """Handle received message from Plugwise Zigbee network."""
 
         # only save last seq_id and skip special ID's FFFD, FFFE, FFFF
         if self.last_seq_id:

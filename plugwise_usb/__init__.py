@@ -1,5 +1,4 @@
-"""
-Use of this source code is governed by the MIT license found in the LICENSE file.
+"""Use of this source code is governed by the MIT license found in the LICENSE file.
 
 Main stick object to control associated plugwise plugs
 """
@@ -13,7 +12,6 @@ from .constants import (
     ACCEPT_JOIN_REQUESTS,
     CB_JOIN_REQUEST,
     CB_NEW_NODE,
-    HW_MODELS,
     MESSAGE_TIME_OUT,
     NODE_TYPE_CELSIUS_NR,
     NODE_TYPE_CELSIUS_SED,
@@ -232,8 +230,7 @@ class Stick:
             self._stick_callbacks[callback_type].remove(callback)
 
     def allow_join_requests(self, enable: bool, accept: bool):
-        """
-        Enable or disable Plugwise network
+        """Enable or disable Plugwise network
         Automatically accept new join request
         """
         self.msg_controller.send(NodeAllowJoiningRequest(enable))
@@ -475,8 +472,7 @@ class Stick:
             self._pass_message_to_node(node_info_response, mac)
 
     def _process_node_join_request(self, node_join_request, mac):
-        """
-        Process NodeJoinAvailableResponse message from a node that
+        """Process NodeJoinAvailableResponse message from a node that
         is not part of a plugwise network yet and wants to join
         """
         if self._device_nodes.get(mac):
@@ -501,8 +497,7 @@ class Stick:
                 self.do_callback(CB_JOIN_REQUEST, mac)
 
     def _process_node_remove(self, node_remove_response):
-        """
-        Process NodeRemoveResponse message with confirmation
+        """Process NodeRemoveResponse message with confirmation
         if node is is removed from the Plugwise network.
         """
         unjoined_mac = node_remove_response.node_mac_id.value
@@ -525,8 +520,7 @@ class Stick:
             )
 
     def _pass_message_to_node(self, message, mac, discover=True):
-        """
-        Pass message to node class to take action on message
+        """Pass message to node class to take action on message
 
         Returns True if message has passed onto existing known node
         """
@@ -544,8 +538,7 @@ class Stick:
         return False
 
     def _watchdog_loop(self):
-        """
-        Main worker loop to watch all other worker threads
+        """Main worker loop to watch all other worker threads
         """
         time.sleep(5)
         circle_plus_retry_counter = 0
@@ -600,8 +593,7 @@ class Stick:
         _LOGGER.debug("watchdog loop stopped")
 
     def _update_loop(self):
-        """
-        When node has not received any message during
+        """When node has not received any message during
         last 2 update polls, reset availability
         """
         self._run_update_thread = True

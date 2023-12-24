@@ -8,7 +8,6 @@ from ..constants import (
     FEATURE_RELAY,
     FEATURE_RSSI_IN,
     FEATURE_RSSI_OUT,
-    HW_MODELS,
     PRIORITY_LOW,
     UTF8_DECODE,
 )

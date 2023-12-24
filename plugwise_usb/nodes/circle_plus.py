@@ -26,8 +26,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         self.get_real_time_clock(self.sync_realtime_clock)
 
     def message_for_circle_plus(self, message):
-        """
-        Process received message
+        """Process received message
         """
         if isinstance(message, CirclePlusRealTimeClockResponse):
             self._response_realtime_clock(message)
@@ -86,7 +85,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                 self._plugwise_nodes = {}
 
     def get_real_time_clock(self, callback=None):
-        """get current datetime of internal clock of CirclePlus."""
+        """Get current datetime of internal clock of CirclePlus."""
         self.message_sender(
             CirclePlusRealTimeClockGetRequest(self._mac),
             callback,
@@ -117,7 +116,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         )
 
     def set_real_time_clock(self, callback=None):
-        """set internal clock of CirclePlus."""
+        """Set internal clock of CirclePlus."""
         self.message_sender(
             CirclePlusRealTimeClockSetRequest(self._mac, datetime.utcnow()),
             callback,

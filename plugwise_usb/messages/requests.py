@@ -32,8 +32,7 @@ class NodeNetworkInfoRequest(NodeRequest):
 
 
 class CirclePlusConnectRequest(NodeRequest):
-    """
-    Request to connect a Circle+ to the Stick
+    """Request to connect a Circle+ to the Stick
 
     Response message: CirclePlusConnectResponse
     """
@@ -50,8 +49,7 @@ class CirclePlusConnectRequest(NodeRequest):
 
 
 class NodeAddRequest(NodeRequest):
-    """
-    Inform node it is added to the Plugwise Network it to memory of Circle+ node
+    """Inform node it is added to the Plugwise Network it to memory of Circle+ node
 
     Response message: [acknowledge message]
     """
@@ -73,8 +71,7 @@ class NodeAddRequest(NodeRequest):
 
 
 class NodeAllowJoiningRequest(NodeRequest):
-    """
-    Enable or disable receiving joining request of unjoined nodes.
+    """Enable or disable receiving joining request of unjoined nodes.
     Circle+ node will respond with an acknowledge message
 
     Response message: NodeAckLargeResponse
@@ -90,8 +87,7 @@ class NodeAllowJoiningRequest(NodeRequest):
 
 
 class NodeResetRequest(NodeRequest):
-    """
-    TODO: Some kind of reset request
+    """TODO: Some kind of reset request
 
     Response message: ???
     """
@@ -107,8 +103,7 @@ class NodeResetRequest(NodeRequest):
 
 
 class StickInitRequest(NodeRequest):
-    """
-    Initialize USB-Stick
+    """Initialize USB-Stick
 
     Response message: StickInitResponse
     """
@@ -116,14 +111,13 @@ class StickInitRequest(NodeRequest):
     ID = b"000A"
 
     def __init__(self):
-        """message for that initializes the Stick"""
+        """Message for that initializes the Stick"""
         # init is the only request message that doesn't send MAC address
         super().__init__("")
 
 
 class NodeImagePrepareRequest(NodeRequest):
-    """
-    TODO: PWEswImagePrepareRequestV1_0
+    """TODO: PWEswImagePrepareRequestV1_0
 
     Response message: TODO:
     """
@@ -132,8 +126,7 @@ class NodeImagePrepareRequest(NodeRequest):
 
 
 class NodePingRequest(NodeRequest):
-    """
-    Ping node
+    """Ping node
 
     Response message: NodePingResponse
     """
@@ -142,8 +135,7 @@ class NodePingRequest(NodeRequest):
 
 
 class CirclePowerUsageRequest(NodeRequest):
-    """
-    Request current power usage
+    """Request current power usage
 
     Response message: CirclePowerUsageResponse
     """
@@ -152,8 +144,7 @@ class CirclePowerUsageRequest(NodeRequest):
 
 
 class CircleClockSetRequest(NodeRequest):
-    """
-    Set internal clock of node
+    """Set internal clock of node
 
     Response message: [Acknowledge message]
     """
@@ -173,8 +164,7 @@ class CircleClockSetRequest(NodeRequest):
 
 
 class CircleSwitchRelayRequest(NodeRequest):
-    """
-    switches relay on/off
+    """switches relay on/off
 
     Response message: NodeAckLargeResponse
     """
@@ -188,8 +178,7 @@ class CircleSwitchRelayRequest(NodeRequest):
 
 
 class CirclePlusScanRequest(NodeRequest):
-    """
-    Get all linked Circle plugs from Circle+
+    """Get all linked Circle plugs from Circle+
     a Plugwise network can have 64 devices the node ID value has a range from 0 to 63
 
     Response message: CirclePlusScanResponse
@@ -204,8 +193,7 @@ class CirclePlusScanRequest(NodeRequest):
 
 
 class NodeRemoveRequest(NodeRequest):
-    """
-    Request node to be removed from Plugwise network by
+    """Request node to be removed from Plugwise network by
     removing it from memory of Circle+ node.
 
     Response message: NodeRemoveResponse
@@ -219,8 +207,7 @@ class NodeRemoveRequest(NodeRequest):
 
 
 class NodeInfoRequest(NodeRequest):
-    """
-    Request status info of node
+    """Request status info of node
 
     Response message: NodeInfoResponse
     """
@@ -229,8 +216,7 @@ class NodeInfoRequest(NodeRequest):
 
 
 class CircleCalibrationRequest(NodeRequest):
-    """
-    Request power calibration settings of node
+    """Request power calibration settings of node
 
     Response message: CircleCalibrationResponse
     """
@@ -239,8 +225,7 @@ class CircleCalibrationRequest(NodeRequest):
 
 
 class CirclePlusRealTimeClockSetRequest(NodeRequest):
-    """
-    Set real time clock of CirclePlus
+    """Set real time clock of CirclePlus
 
     Response message: [Acknowledge message]
     """
@@ -256,8 +241,7 @@ class CirclePlusRealTimeClockSetRequest(NodeRequest):
 
 
 class CirclePlusRealTimeClockGetRequest(NodeRequest):
-    """
-    Request current real time clock of CirclePlus
+    """Request current real time clock of CirclePlus
 
     Response message: CirclePlusRealTimeClockResponse
     """
@@ -266,8 +250,7 @@ class CirclePlusRealTimeClockGetRequest(NodeRequest):
 
 
 class CircleClockGetRequest(NodeRequest):
-    """
-    Request current internal clock of node
+    """Request current internal clock of node
 
     Response message: CircleClockResponse
     """
@@ -276,8 +259,7 @@ class CircleClockGetRequest(NodeRequest):
 
 
 class CircleEnableScheduleRequest(NodeRequest):
-    """
-    Request to switch Schedule on or off
+    """Request to switch Schedule on or off
 
     Response message: TODO:
     """
@@ -293,8 +275,7 @@ class CircleEnableScheduleRequest(NodeRequest):
 
 
 class NodeAddToGroupRequest(NodeRequest):
-    """
-    Add node to group
+    """Add node to group
 
     Response message: TODO:
     """
@@ -310,8 +291,7 @@ class NodeAddToGroupRequest(NodeRequest):
 
 
 class NodeRemoveFromGroupRequest(NodeRequest):
-    """
-    Remove node from group
+    """Remove node from group
 
     Response message: TODO:
     """
@@ -325,8 +305,7 @@ class NodeRemoveFromGroupRequest(NodeRequest):
 
 
 class NodeBroadcastGroupSwitchRequest(NodeRequest):
-    """
-    Broadcast to group to switch
+    """Broadcast to group to switch
 
     Response message: TODO:
     """
@@ -340,8 +319,7 @@ class NodeBroadcastGroupSwitchRequest(NodeRequest):
 
 
 class CircleEnergyCountersRequest(NodeRequest):
-    """
-    Request energy usage counters storaged a given memory address
+    """Request energy usage counters storaged a given memory address
 
     Response message: CircleEnergyCountersResponse
     """
@@ -354,8 +332,7 @@ class CircleEnergyCountersRequest(NodeRequest):
 
 
 class NodeSleepConfigRequest(NodeRequest):
-    """
-    Configure timers for SED nodes to minimize battery usage
+    """Configure timers for SED nodes to minimize battery usage
 
     stay_active             : Duration in seconds the SED will be awake for receiving commands
     sleep_for               : Duration in minutes the SED will be in sleeping mode and not able to respond any command
@@ -395,8 +372,7 @@ class NodeSleepConfigRequest(NodeRequest):
 
 
 class NodeSelfRemoveRequest(NodeRequest):
-    """
-    <command number="0051" vnumber="1.0" implementation="Plugwise.IO.Commands.V20.PWSelfRemovalRequestV1_0">
+    """<command number="0051" vnumber="1.0" implementation="Plugwise.IO.Commands.V20.PWSelfRemovalRequestV1_0">
       <arguments>
         <argument name="macId" length="16"/>
       </arguments>
@@ -408,8 +384,7 @@ class NodeSelfRemoveRequest(NodeRequest):
 
 
 class NodeMeasureIntervalRequest(NodeRequest):
-    """
-    Configure the logging interval of power measurement in minutes
+    """Configure the logging interval of power measurement in minutes
 
     Response message: TODO:
     """
@@ -423,9 +398,7 @@ class NodeMeasureIntervalRequest(NodeRequest):
 
 
 class NodeClearGroupMacRequest(NodeRequest):
-    """
-    TODO:
-
+    """TODO:
     Response message: ????
     """
 
@@ -437,8 +410,7 @@ class NodeClearGroupMacRequest(NodeRequest):
 
 
 class CircleSetScheduleValueRequest(NodeRequest):
-    """
-    Send chunk of On/Off/StandbyKiller Schedule to Circle(+)
+    """Send chunk of On/Off/StandbyKiller Schedule to Circle(+)
 
     Response message: TODO:
     """
@@ -451,8 +423,7 @@ class CircleSetScheduleValueRequest(NodeRequest):
 
 
 class NodeFeaturesRequest(NodeRequest):
-    """
-    Request feature set node supports
+    """Request feature set node supports
 
     Response message: NodeFeaturesResponse
     """
@@ -461,8 +432,7 @@ class NodeFeaturesRequest(NodeRequest):
 
 
 class ScanConfigureRequest(NodeRequest):
-    """
-    Configure a Scan node
+    """Configure a Scan node
 
     reset_timer : Delay in minutes when signal is send when no motion is detected
     sensitivity : Sensitivity of Motion sensor (High, Medium, Off)
@@ -489,8 +459,7 @@ class ScanConfigureRequest(NodeRequest):
 
 
 class ScanLightCalibrateRequest(NodeRequest):
-    """
-    Calibrate light sensitivity
+    """Calibrate light sensitivity
 
     Response message: [Acknowledge message]
     """
@@ -499,8 +468,7 @@ class ScanLightCalibrateRequest(NodeRequest):
 
 
 class SenseReportIntervalRequest(NodeRequest):
-    """
-    Sets the Sense temperature and humidity measurement report interval in minutes.
+    """Sets the Sense temperature and humidity measurement report interval in minutes.
     Based on this interval, periodically a 'SenseReportResponse' message is sent by the Sense node
 
     Response message: [Acknowledge message]
@@ -514,8 +482,7 @@ class SenseReportIntervalRequest(NodeRequest):
 
 
 class CircleInitialRelaisStateRequest(NodeRequest):
-    """
-    Get or set initial Relais state
+    """Get or set initial Relais state
 
     Response message: CircleInitialRelaisStateResponse
     """
