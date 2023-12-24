@@ -114,7 +114,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Check commit
     needs:
-      - black
+      - ruff
       - shellcheck
       - dependencies_check
     steps:
