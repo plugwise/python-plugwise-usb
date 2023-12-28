@@ -23,8 +23,7 @@ from ..util import (
 
 
 class NodeResponse(PlugwiseMessage):
-    """
-    Base class for response messages received by USB-Stick.
+    """Base class for response messages received by USB-Stick.
     """
 
     def __init__(self, format_size=None):
@@ -93,8 +92,7 @@ class NodeResponse(PlugwiseMessage):
 
 
 class NodeAckSmallResponse(NodeResponse):
-    """
-    Acknowledge message without source MAC
+    """Acknowledge message without source MAC
 
     Response to: Any message
     """
@@ -106,8 +104,7 @@ class NodeAckSmallResponse(NodeResponse):
 
 
 class NodeAckLargeResponse(NodeResponse):
-    """
-    Acknowledge message with source MAC
+    """Acknowledge message with source MAC
 
     Response to: Any message
     """
@@ -119,9 +116,7 @@ class NodeAckLargeResponse(NodeResponse):
 
 
 class CirclePlusQueryResponse(NodeResponse):
-    """
-    TODO:
-
+    """TODO:
     Response to : ???
     """
 
@@ -157,8 +152,7 @@ class CirclePlusQueryResponse(NodeResponse):
 
 
 class CirclePlusQueryEndResponse(NodeResponse):
-    """
-    TODO:
+    """TODO:
         PWAckReplyV1_0
         <argument name="code" length="2"/>
 
@@ -178,8 +172,7 @@ class CirclePlusQueryEndResponse(NodeResponse):
 
 
 class CirclePlusConnectResponse(NodeResponse):
-    """
-    CirclePlus connected to the network
+    """CirclePlus connected to the network
 
     Response to : CirclePlusConnectRequest
     """
@@ -198,8 +191,7 @@ class CirclePlusConnectResponse(NodeResponse):
 
 
 class NodeJoinAvailableResponse(NodeResponse):
-    """
-    Message from an unjoined node to notify it is available to join a plugwise network
+    """Message from an unjoined node to notify it is available to join a plugwise network
 
     Response to : <nothing>
     """
@@ -208,8 +200,7 @@ class NodeJoinAvailableResponse(NodeResponse):
 
 
 class StickInitResponse(NodeResponse):
-    """
-    Returns the configuration and status of the USB-Stick
+    """Returns the configuration and status of the USB-Stick
 
     Optional:
     - circle_plus_mac
@@ -241,8 +232,7 @@ class StickInitResponse(NodeResponse):
 
 
 class NodePingResponse(NodeResponse):
-    """
-    Ping response from node
+    """Ping response from node
 
     - incomingLastHopRssiTarget (received signal strength indicator)
     - lastHopRssiSource
@@ -266,8 +256,7 @@ class NodePingResponse(NodeResponse):
 
 
 class CirclePowerUsageResponse(NodeResponse):
-    """
-    Returns power usage as impulse counters for several different timeframes
+    """Returns power usage as impulse counters for several different timeframes
 
     Response to : CirclePowerUsageRequest
     """
@@ -291,8 +280,7 @@ class CirclePowerUsageResponse(NodeResponse):
 
 
 class CirclePlusScanResponse(NodeResponse):
-    """
-    Returns the MAC of a registered node at the specified memory address
+    """Returns the MAC of a registered node at the specified memory address
 
     Response to: CirclePlusScanRequest
     """
@@ -307,8 +295,7 @@ class CirclePlusScanResponse(NodeResponse):
 
 
 class NodeRemoveResponse(NodeResponse):
-    """
-    Returns conformation (or not) if node is removed from the Plugwise network
+    """Returns conformation (or not) if node is removed from the Plugwise network
     by having it removed from the memory of the Circle+
 
     Response to: NodeRemoveRequest
@@ -324,8 +311,7 @@ class NodeRemoveResponse(NodeResponse):
 
 
 class NodeInfoResponse(NodeResponse):
-    """
-    Returns the status information of Node
+    """Returns the status information of Node
 
     Response to: NodeInfoRequest
     """
@@ -355,8 +341,7 @@ class NodeInfoResponse(NodeResponse):
 
 
 class CircleCalibrationResponse(NodeResponse):
-    """
-    returns the calibration settings of node
+    """returns the calibration settings of node
 
     Response to: CircleCalibrationRequest
     """
@@ -373,8 +358,7 @@ class CircleCalibrationResponse(NodeResponse):
 
 
 class CirclePlusRealTimeClockResponse(NodeResponse):
-    """
-    returns the real time clock of CirclePlus node
+    """returns the real time clock of CirclePlus node
 
     Response to: CirclePlusRealTimeClockGetRequest
     """
@@ -391,8 +375,7 @@ class CirclePlusRealTimeClockResponse(NodeResponse):
 
 
 class CircleClockResponse(NodeResponse):
-    """
-    Returns the current internal clock of Node
+    """Returns the current internal clock of Node
 
     Response to: CircleClockGetRequest
     """
@@ -409,8 +392,7 @@ class CircleClockResponse(NodeResponse):
 
 
 class CircleEnergyCountersResponse(NodeResponse):
-    """
-    Returns historical energy usage of requested memory address
+    """Returns historical energy usage of requested memory address
     Each response contains 4 energy counters at specified 1 hour timestamp
 
     Response to: CircleEnergyCountersRequest
@@ -443,8 +425,7 @@ class CircleEnergyCountersResponse(NodeResponse):
 
 
 class NodeAwakeResponse(NodeResponse):
-    """
-    A sleeping end device (SED: Scan, Sense, Switch) sends
+    """A sleeping end device (SED: Scan, Sense, Switch) sends
     this message to announce that is awake. Awake types:
     - 0 : The SED joins the network for maintenance
     - 1 : The SED joins a network for the first time
@@ -465,8 +446,7 @@ class NodeAwakeResponse(NodeResponse):
 
 
 class NodeSwitchGroupResponse(NodeResponse):
-    """
-    A sleeping end device (SED: Scan, Sense, Switch) sends
+    """A sleeping end device (SED: Scan, Sense, Switch) sends
     this message to switch groups on/off when the configured
     switching conditions have been met.
 
@@ -486,8 +466,7 @@ class NodeSwitchGroupResponse(NodeResponse):
 
 
 class NodeFeaturesResponse(NodeResponse):
-    """
-    Returns supported features of node
+    """Returns supported features of node
     TODO: FeatureBitmask
 
     Response to: NodeFeaturesRequest
@@ -502,8 +481,7 @@ class NodeFeaturesResponse(NodeResponse):
 
 
 class NodeJoinAckResponse(NodeResponse):
-    """
-    Notification message when node (re)joined existing network again.
+    """Notification message when node (re)joined existing network again.
     Sent when a SED (re)joins the network e.g. when you reinsert the battery of a Scan
 
     Response to: <nothing> or NodeAddRequest
@@ -517,8 +495,7 @@ class NodeJoinAckResponse(NodeResponse):
 
 
 class NodeAckResponse(NodeResponse):
-    """
-    Acknowledge message in regular format
+    """Acknowledge message in regular format
     Sent by nodes supporting plugwise 2.4 protocol version
 
     Response to:
@@ -532,8 +509,7 @@ class NodeAckResponse(NodeResponse):
 
 
 class SenseReportResponse(NodeResponse):
-    """
-    Returns the current temperature and humidity of a Sense node.
+    """Returns the current temperature and humidity of a Sense node.
     The interval this report is sent is configured by the 'SenseReportIntervalRequest' request
 
     Response to: <nothing>
@@ -549,8 +525,7 @@ class SenseReportResponse(NodeResponse):
 
 
 class CircleInitialRelaisStateResponse(NodeResponse):
-    """
-    Returns the initial relais state.
+    """Returns the initial relais state.
 
     Response to: CircleInitialRelaisStateRequest
     """
@@ -586,8 +561,7 @@ id_to_message = {
 
 
 def get_message_response(message_id, length, seq_id):
-    """
-    Return message class based on sequence ID, Length of message or message ID.
+    """Return message class based on sequence ID, Length of message or message ID.
     """
     # First check for known sequence ID's
     if seq_id == b"FFFD":

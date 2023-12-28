@@ -106,8 +106,7 @@ class PlugwiseCircle(PlugwiseNode):
 
     @property
     def current_power_usage(self):
-        """
-        Returns power usage during the last second in Watts
+        """Returns power usage during the last second in Watts
         Based on last received power usage information
         """
         if self._pulses_1s is not None:
@@ -116,8 +115,7 @@ class PlugwiseCircle(PlugwiseNode):
 
     @property
     def current_power_usage_8_sec(self):
-        """
-        Returns power usage during the last 8 second in Watts
+        """Returns power usage during the last 8 second in Watts
         Based on last received power usage information
         """
         if self._pulses_8s is not None:
@@ -138,8 +136,7 @@ class PlugwiseCircle(PlugwiseNode):
 
     @property
     def power_consumption_current_hour(self):
-        """
-        Returns the power usage during this running hour in kWh
+        """Returns the power usage during this running hour in kWh
         Based on last received power usage information
         """
         if self._energy_pulses_current_hour is not None:
@@ -169,8 +166,7 @@ class PlugwiseCircle(PlugwiseNode):
 
     @property
     def power_production_current_hour(self):
-        """
-        Returns the power production during this running hour in kWh
+        """Returns the power production during this running hour in kWh
         Based on last received power usage information
         """
         if self._pulses_produced_1h is not None:
@@ -179,8 +175,7 @@ class PlugwiseCircle(PlugwiseNode):
 
     @property
     def relay_state(self) -> bool:
-        """
-        Return last known relay state or the new switch state by anticipating
+        """Return last known relay state or the new switch state by anticipating
         the acknowledge for new state is getting in before message timeout.
         """
         if self._new_relay_stamp + timedelta(seconds=MESSAGE_TIME_OUT) > datetime.now():
@@ -232,8 +227,7 @@ class PlugwiseCircle(PlugwiseNode):
                 self.request_energy_counters()
 
     def message_for_circle(self, message):
-        """
-        Process received message
+        """Process received message
         """
         if isinstance(message, CirclePowerUsageResponse):
             if self.calibration:
@@ -368,8 +362,7 @@ class PlugwiseCircle(PlugwiseNode):
         self.calibration = True
 
     def pulses_to_kws(self, pulses, seconds=1):
-        """
-        converts the amount of pulses to kWs using the calaboration offsets
+        """Converts the amount of pulses to kWs using the calaboration offsets
         """
         if pulses is None:
             return None
@@ -686,8 +679,7 @@ class PlugwiseCircle(PlugwiseNode):
                     )
 
     def _response_energy_counters(self, message: CircleEnergyCountersResponse):
-        """
-        Save historical energy information in local counters
+        """Save historical energy information in local counters
         Each response message contains 4 log counters (slots)
         of the energy pulses collected during the previous hour of given timestamp
         """
@@ -824,7 +816,7 @@ class PlugwiseCircle(PlugwiseNode):
         )
 
     def get_clock(self, callback=None):
-        """get current datetime of internal clock of Circle."""
+        """Get current datetime of internal clock of Circle."""
         self.message_sender(
             CircleClockGetRequest(self._mac),
             callback,
@@ -833,7 +825,7 @@ class PlugwiseCircle(PlugwiseNode):
         )
 
     def set_clock(self, callback=None):
-        """set internal clock of CirclePlus."""
+        """Set internal clock of CirclePlus."""
         self.message_sender(
             CircleClockSetRequest(self._mac, datetime.utcnow()),
             callback,

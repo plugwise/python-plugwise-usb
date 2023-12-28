@@ -27,8 +27,7 @@ class PlugwiseSwitch(NodeSED):
         return self._switch_state
 
     def message_for_switch(self, message):
-        """
-        Process received message
+        """Process received message
         """
         if isinstance(message, NodeSwitchGroupResponse):
             _LOGGER.debug(

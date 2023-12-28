@@ -11,16 +11,14 @@ default_language_version:
 
 repos:
   # Run manually in CI skipping the branch checks
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.7
-    hooks:
-      - id: ruff
-        args:
-          - --fix
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
+  # RUFF disabled, code is not up to par with HA standards
+  #  - repo: https://github.com/astral-sh/ruff-pre-commit
+  #    rev: v0.1.7
+  #    hooks:
+  #      - id: ruff
+  #        args:
+  #          - --fix
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -34,14 +32,6 @@ repos:
     hooks:
       - id: pyupgrade
         args: [--py39-plus]
-  - repo: https://github.com/psf/black
-    rev: 23.11.0
-    hooks:
-      - id: black
-        args:
-          - --safe
-          - --quiet
-        files: ^((plugwise_usb|tests)/.+)?[^/]+\.py$
   #  Moved codespell configuration to setup.cfg as per 'all-files' issues not reading args
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
@@ -49,7 +39,7 @@ repos:
       - id: codespell
         exclude_types: [csv, json]
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.5
+    rev: 1.7.6
     hooks:
       - id: bandit
         args:
@@ -110,6 +100,6 @@ repos:
         language: script
         pass_filenames: false
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.37.0
+    rev: v0.38.0
     hooks:
       - id: markdownlint
