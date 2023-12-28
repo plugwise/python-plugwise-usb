@@ -628,8 +628,8 @@ class PlugwiseCircle(PlugwiseNode):
                     self._request_info(self.request_energy_counters)
                 else:
                     # Request new energy counters
-					self._energy_history_collecting = True
-					self._energy_history_collecting_timestamp = datetime.now()
+                    self._energy_history_collecting = True
+                    self._energy_history_collecting_timestamp = datetime.now()
                     if self._energy_memory.get(log_address, 0) < 4:
                         self.message_sender(
                             CircleEnergyCountersRequest(self._mac, log_address),
