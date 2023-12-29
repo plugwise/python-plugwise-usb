@@ -413,7 +413,11 @@ class PlugwiseCircle(PlugwiseNode):
                     str(self._energy_last_populated_slot),
                     str(self._energy_last_collected_timestamp),
                 )
-                self.request_energy_counters(_mem_address)
+                #Rate limit repeat request of failed answer until hour rollover
+                if self._energy_last_collected_timestamp < datetime.utcnow().replace(
+                    minute=0, second=0, microsecond=0
+                ):
+                    self.request_energy_counters(_mem_address)
                 _energy_history_failed = True
 
         # Validate all history values where present
@@ -628,8 +632,6 @@ class PlugwiseCircle(PlugwiseNode):
                     self._request_info(self.request_energy_counters)
                 else:
                     # Request new energy counters
-                    self._energy_history_collecting = True
-                    self._energy_history_collecting_timestamp = datetime.now()
                     if self._energy_memory.get(log_address, 0) < 4:
                         self.message_sender(
                             CircleEnergyCountersRequest(self._mac, log_address),
