@@ -12,6 +12,12 @@ Our main usage for this module is supporting [Home Assistant](https://www.home-a
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/plugwise/python-plugwise-usb/main.svg)](https://results.pre-commit.ci/latest/github/plugwise/python-plugwise-usb/main)
 [![renovate maintained](https://img.shields.io/badge/maintained%20with-renovate-blue?logo=renovatebot)](https://github.com/plugwise/python-plugwise-usb/issues/2)
 
+[![CodeFactor](https://www.codefactor.io/repository/github/plugwise/python-plugwise-usb/badge)](https://www.codefactor.io/repository/github/plugwise/python-plugwise-usb)
+[![codecov](https://codecov.io/gh/plugwise/python-plugwise-usb/branch/main/graph/badge.svg)](https://codecov.io/gh/plugwise/python-plugwise-usb)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=plugwise_python-plugwise-usb&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=plugwise_python-plugwise-usb)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=plugwise_python-plugwise-usb&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=plugwise_python-plugwise-usb)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=plugwise_python-plugwise-usb&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=plugwise_python-plugwise-usb)
+
 ## Integration
 
 ### Home-Assistant Integration
