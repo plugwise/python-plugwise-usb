@@ -222,9 +222,15 @@ class PlugwiseCircle(PlugwiseNode):
                     minute=0, second=0, microsecond=0
                 ):
                     self.request_energy_counters()
+                    self._energy_last_collected_timestamp = datetime.utcnow().replace(
+                       second=0, microsecond=0
+                    )
             else:
                 # No history collected yet, request energy history
                 self.request_energy_counters()
+                self._energy_last_collected_timestamp = datetime.utcnow().replace(
+                    second=0, microsecond=0
+                )
 
     def message_for_circle(self, message):
         """Process received message
@@ -413,12 +419,6 @@ class PlugwiseCircle(PlugwiseNode):
                     str(self._energy_last_populated_slot),
                     str(self._energy_last_collected_timestamp),
                 )
-                #Rate limit repeat request of failed answer until hour rollover
-                if self._energy_last_collected_timestamp < datetime.utcnow().replace(
-                    minute=0, second=0, microsecond=0
-                ):
-                    self.request_energy_counters(_mem_address)
-                _energy_history_failed = True
 
         # Validate all history values where present
         if not _energy_history_failed:
@@ -609,6 +609,12 @@ class PlugwiseCircle(PlugwiseNode):
         _LOGGER.debug(
             "request_energy_counters for %s of address %s", self.mac, str(log_address)
         )
+        if not self._available:
+            _LOGGER.debug(
+                    "Skip request_energy_counters for % is unavailable",
+                    self.mac,
+            )
+            return
         if log_address is None:
             log_address = self._last_log_address
         if log_address is not None:
@@ -657,7 +663,7 @@ class PlugwiseCircle(PlugwiseNode):
                         self.message_sender(
                             CircleEnergyCountersRequest(self._mac, req_log_address),
                             None,
-                            0,
+                            3,
                             PRIORITY_LOW,
                         )
                     else:
@@ -670,7 +676,7 @@ class PlugwiseCircle(PlugwiseNode):
                     self.message_sender(
                         CircleEnergyCountersRequest(self._mac, log_address),
                         callback,
-                        0,
+                        3,
                         PRIORITY_LOW,
                     )
                 else:
