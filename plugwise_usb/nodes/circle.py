@@ -453,7 +453,7 @@ class PlugwiseCircle(PlugwiseNode):
             if self._energy_pulses_current_hour != _pulses_cur_hour:
                 if ( 
                     self._energy_pulses_current_hour > _pulses_cur_hour
-                    and math.floor((self._energy_pulses_current_hour-_pulses_cur_hour)/self._energy_pulses_current_hour*100) > 1
+                    and ((self._energy_pulses_current_hour-_pulses_cur_hour)/self._energy_pulses_current_hour*100) > 1
                 ):
                     _hour_rollover = True
                 self._energy_pulses_current_hour = _pulses_cur_hour
