@@ -438,7 +438,10 @@ class PlugwiseCircle(PlugwiseNode):
             self.do_callback(FEATURE_POWER_CONSUMPTION_CURRENT_HOUR["id"])
         else:
             if self._energy_pulses_current_hour != _pulses_cur_hour:
-                if self._energy_pulses_current_hour > _pulses_cur_hour:
+                if ( 
+                    self._energy_pulses_current_hour > _pulses_cur_hour
+                    and (self._energy_pulses_current_hour-_pulses_cur_hour) > 2
+                ):
                     _hour_rollover = True
                 self._energy_pulses_current_hour = _pulses_cur_hour
                 self.do_callback(FEATURE_POWER_CONSUMPTION_CURRENT_HOUR["id"])
