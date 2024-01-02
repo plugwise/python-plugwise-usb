@@ -71,6 +71,7 @@ class PlugwiseCircle(PlugwiseNode):
         self._energy_history_collecting_timestamp = datetime.now()
         self._energy_history = {}
         self._energy_last_collected_timestamp = datetime(2000, 1, 1)
+        self._energy_ratelimit_startup_collection_timestamp = datetime(2000, 1, 1)
         self._energy_last_rollover_timestamp = datetime(2000, 1, 1)
         self._energy_last_local_hour = datetime.now().hour
         self._energy_last_populated_slot = 0
@@ -222,15 +223,13 @@ class PlugwiseCircle(PlugwiseNode):
                     minute=0, second=0, microsecond=0
                 ):
                     self.request_energy_counters()
-                    self._energy_last_collected_timestamp = datetime.utcnow().replace(
-                       second=0, microsecond=0
-                    )
             else:
                 # No history collected yet, request energy history
-                self.request_energy_counters()
-                self._energy_last_collected_timestamp = datetime.utcnow().replace(
+                if self._energy_ratelimit_startup_collection_timestamp <  datetime.utcnow().replace(
                     second=0, microsecond=0
-                )
+                ):
+                    self._energy_ratelimit_startup_collection_timestamp = datetime.utcnow()
+                    self.request_energy_counters()
 
     def message_for_circle(self, message):
         """Process received message
