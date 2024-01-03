@@ -431,7 +431,7 @@ class PlugwiseCircle(PlugwiseNode):
                 )
 
         # Validate all history values where present
-        if len(self._energy_history_failed_address) != 0
+        if len(self._energy_history_failed_address) != 0:
             return _energy_pulses
         return None
 
