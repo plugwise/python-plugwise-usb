@@ -522,6 +522,19 @@ class PlugwiseCircle(PlugwiseNode):
                     )
 
         if _pulses_today_now is None:
+            if (
+                    self._energy_pulses_today_hourly is None
+                    or self._energy_rollover_history_started
+            ):
+                _utc_hour_timestamp = datetime.utcnow().replace(
+                        minute=0, second=0, microsecond=0
+                )
+                _local_hour = datetime.now().hour
+                _utc_midnight_timestamp = _utc_hour_timestamp - timedelta(hours=_local_hour)
+                self._update_energy_today_hourly(
+                    _utc_midnight_timestamp + timedelta(hours=1),
+                    _utc_hour_timestamp,
+                )
             _LOGGER.info(
                 "_update_energy_today_now for %s | skip update, hour: %s=%s=%s, history: %s=%s=%s, day: %s=%s=%s",
                 self.mac,
