@@ -70,6 +70,8 @@ class PlugwiseCircle(PlugwiseNode):
         self._energy_history_collecting = False
         self._energy_history_collecting_timestamp = datetime.now()
         self._energy_history = {}
+        self._energy_history_failed = False
+        self._energy_history_failed_address = []
         self._energy_last_collected_timestamp = datetime(2000, 1, 1)
         self._energy_ratelimit_collection_timestamp = datetime(2000, 1, 1)
         self._energy_last_rollover_timestamp = datetime(2000, 1, 1)
@@ -98,7 +100,6 @@ class PlugwiseCircle(PlugwiseNode):
         self._off_tot = None
         self._measures_power = True
         self._last_log_collected = False
-        self._last_log_address_failed = False
         self.timezone_delta = datetime.now().replace(
             minute=0, second=0, microsecond=0
         ) - datetime.utcnow().replace(minute=0, second=0, microsecond=0)
@@ -225,13 +226,16 @@ class PlugwiseCircle(PlugwiseNode):
                 ):
                     self.request_energy_counters()
                 elif (
-                        self._last_log_address_failed
+                        self._energy_history_failed
+                        and len(self._energy_history_failed_address) > 0
                         and self._energy_ratelimit_collection_timestamp <  
                             datetime.utcnow().replace( 
                                                       second=0, microsecond=0
                                                     )
                 ):
-                    self.request_energy_counters()
+                    for _mem_address in self._energy_history_failed_address:
+                        self.request_energy_counters(_mem_address)
+                        self._energy_history_failed_address.remove(_mem_address)
             else:
                 # No history collected yet, request energy history
                 if self._energy_ratelimit_collection_timestamp <  datetime.utcnow().replace(
@@ -403,8 +407,7 @@ class PlugwiseCircle(PlugwiseNode):
             hours = 0
         else:
             hours = int((end_utc - start_utc).seconds / 3600)
-        self._last_log_address_failed = False
-        _energy_history_failed = False
+        self._energy_history_failed = False
         _energy_pulses = 0
         for hour in range(0, hours + 1):
             _log_timestamp = start_utc + timedelta(hours=hour)
@@ -419,9 +422,8 @@ class PlugwiseCircle(PlugwiseNode):
                 )
             else:
                 _mem_address = self._energy_timestamp_memory_address(_log_timestamp)
-                _energy_history_failed = True
-                if _mem_address == self._last_log_address:
-                    self._last_log_address_failed = True
+                self._energy_history_failed_address.append(_mem_address)
+                self._energy_history_failed = True
                 _LOGGER.info(
                     "_collect_energy_pulses for %s at %s not found, request counter from memory %s (from mem=%s, slot=%s, timestamp=%s)",
                     self.mac,
@@ -433,7 +435,7 @@ class PlugwiseCircle(PlugwiseNode):
                 )
 
         # Validate all history values where present
-        if not _energy_history_failed:
+        if not self._energy_history_failed:
             return _energy_pulses
         return None
 
