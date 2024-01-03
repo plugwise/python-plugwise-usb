@@ -128,8 +128,9 @@ class StickMessageController:
     ):
         """Queue request message to be sent into Plugwise Zigbee network."""
         _LOGGER.debug(
-            "Queue %s to be send with retry counter %s and priority %s",
+            "Queue %s to be send to %s with retry counter %s and priority %s",
             request.__class__.__name__,
+            request.mac,
             str(retry_counter),
             str(priority),
         )
