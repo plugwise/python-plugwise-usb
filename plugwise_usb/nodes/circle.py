@@ -70,8 +70,9 @@ class PlugwiseCircle(PlugwiseNode):
         self._energy_history_collecting = False
         self._energy_history_collecting_timestamp = datetime.now()
         self._energy_history = {}
+        self._energy_history_failed_address = []
         self._energy_last_collected_timestamp = datetime(2000, 1, 1)
-        self._energy_ratelimit_startup_collection_timestamp = datetime(2000, 1, 1)
+        self._energy_ratelimit_collection_timestamp = datetime(2000, 1, 1)
         self._energy_last_rollover_timestamp = datetime(2000, 1, 1)
         self._energy_last_local_hour = datetime.now().hour
         self._energy_last_populated_slot = 0
@@ -223,12 +224,22 @@ class PlugwiseCircle(PlugwiseNode):
                     minute=0, second=0, microsecond=0
                 ):
                     self.request_energy_counters()
+                elif (
+                        len(self._energy_history_failed_address) != 0
+                        and self._energy_ratelimit_collection_timestamp <  
+                            datetime.utcnow().replace( 
+                                                      second=0, microsecond=0
+                                                    )
+                ):
+                    for _mem_address in self._energy_history_failed_address:
+                        self.request_energy_counters(_mem_address)
+                        self._energy_history_failed_address.remove(_mem_address)
             else:
                 # No history collected yet, request energy history
-                if self._energy_ratelimit_startup_collection_timestamp <  datetime.utcnow().replace(
+                if self._energy_ratelimit_collection_timestamp <  datetime.utcnow().replace(
                     second=0, microsecond=0
                 ):
-                    self._energy_ratelimit_startup_collection_timestamp = datetime.utcnow()
+                    self._energy_ratelimit_collection_timestamp = datetime.utcnow()
                     self.request_energy_counters()
 
     def message_for_circle(self, message):
@@ -394,7 +405,6 @@ class PlugwiseCircle(PlugwiseNode):
             hours = 0
         else:
             hours = int((end_utc - start_utc).seconds / 3600)
-        _energy_history_failed = False
         _energy_pulses = 0
         for hour in range(0, hours + 1):
             _log_timestamp = start_utc + timedelta(hours=hour)
@@ -409,6 +419,7 @@ class PlugwiseCircle(PlugwiseNode):
                 )
             else:
                 _mem_address = self._energy_timestamp_memory_address(_log_timestamp)
+                self._energy_history_failed_address.append(_mem_address)
                 _LOGGER.info(
                     "_collect_energy_pulses for %s at %s not found, request counter from memory %s (from mem=%s, slot=%s, timestamp=%s)",
                     self.mac,
@@ -420,7 +431,7 @@ class PlugwiseCircle(PlugwiseNode):
                 )
 
         # Validate all history values where present
-        if not _energy_history_failed:
+        if len(self._energy_history_failed_address) == 0:
             return _energy_pulses
         return None
 
@@ -438,7 +449,10 @@ class PlugwiseCircle(PlugwiseNode):
             self.do_callback(FEATURE_POWER_CONSUMPTION_CURRENT_HOUR["id"])
         else:
             if self._energy_pulses_current_hour != _pulses_cur_hour:
-                if self._energy_pulses_current_hour > _pulses_cur_hour:
+                if ( 
+                    self._energy_pulses_current_hour > _pulses_cur_hour
+                    and int((self._energy_pulses_current_hour-_pulses_cur_hour)/self._energy_pulses_current_hour*100) > 1
+                ):
                     _hour_rollover = True
                 self._energy_pulses_current_hour = _pulses_cur_hour
                 self.do_callback(FEATURE_POWER_CONSUMPTION_CURRENT_HOUR["id"])
@@ -508,6 +522,19 @@ class PlugwiseCircle(PlugwiseNode):
                     )
 
         if _pulses_today_now is None:
+            if (
+                    self._energy_pulses_today_hourly is None
+                    or self._energy_rollover_history_started
+            ):
+                _utc_hour_timestamp = datetime.utcnow().replace(
+                        minute=0, second=0, microsecond=0
+                )
+                _local_hour = datetime.now().hour
+                _utc_midnight_timestamp = _utc_hour_timestamp - timedelta(hours=_local_hour)
+                self._update_energy_today_hourly(
+                    _utc_midnight_timestamp + timedelta(hours=1),
+                    _utc_hour_timestamp,
+                )
             _LOGGER.info(
                 "_update_energy_today_now for %s | skip update, hour: %s=%s=%s, history: %s=%s=%s, day: %s=%s=%s",
                 self.mac,
