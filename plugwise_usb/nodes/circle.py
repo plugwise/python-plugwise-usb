@@ -1,6 +1,7 @@
 """Plugwise Circle node object."""
 from datetime import datetime, timedelta
 import logging
+import math
 
 from ..constants import (
     FEATURE_ENERGY_CONSUMPTION_TODAY,
@@ -681,7 +682,16 @@ class PlugwiseCircle(PlugwiseNode):
                 # TODO: validate range of log_addresses
                 self._energy_history_collecting = True
                 self._energy_history_collecting_timestamp = datetime.now()
-                for req_log_address in range(log_address - 13, log_address):
+                _log_delta = datetime.utcnow().replace(
+                     minute=0, second=0, microsecond=0
+                ) - ( 
+                        _yesterday_timestamp = datetime.utcnow().replace(
+                            hour=0, minute=0, second=0, microsecond=0
+                        ) - timedelta(days=1)
+                )
+                _log_count = math.ceil(_log_delta.total_seconds()/60/60/4)
+
+                for req_log_address in range(log_address - _log_count, log_address):
                     if self._energy_memory.get(req_log_address, 0) < 4:
                         self.message_sender(
                             CircleEnergyCountersRequest(self._mac, req_log_address),
