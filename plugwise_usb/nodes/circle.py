@@ -685,7 +685,7 @@ class PlugwiseCircle(PlugwiseNode):
                 _log_delta = datetime.utcnow().replace(
                      minute=0, second=0, microsecond=0
                 ) - ( 
-                        _yesterday_timestamp = datetime.utcnow().replace(
+                        datetime.utcnow().replace(
                             hour=0, minute=0, second=0, microsecond=0
                         ) - timedelta(days=1)
                 )
