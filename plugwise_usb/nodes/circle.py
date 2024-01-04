@@ -417,13 +417,15 @@ class PlugwiseCircle(PlugwiseNode):
                     str(self._energy_history[_log_timestamp]),
                     str(_energy_pulses),
                 )
-            elif self._energy_history_failed_address.count(_mem_address) == 0:
-                self._energy_history_failed_address.append(_mem_address)
-                _LOGGER.info(
-                    "_collect_energy_pulses for %s at %s not found",
-                    self.mac,
-                    str(_log_timestamp),
-                )
+            else:
+                _mem_address = self._energy_timestamp_memory_address(_log_timestamp)
+                if self._energy_history_failed_address.count(_mem_address) == 0:
+                    self._energy_history_failed_address.append(_mem_address)
+                    _LOGGER.info(
+                        "_collect_energy_pulses for %s at %s not found",
+                        self.mac,
+                        str(_log_timestamp),
+                    )
 
         # Validate all history values where present
         if len(self._energy_history_failed_address) == 0:
