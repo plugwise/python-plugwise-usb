@@ -816,12 +816,12 @@ class PlugwiseCircle(PlugwiseNode):
             )
             _LOGGER.info(logstring)
 
-        # Cleanup energy history for more than 8 day's ago
-        _8_days_ago = datetime.utcnow().replace(
+        # Cleanup energy history for more than 48 hours 
+        _48_hours_ago = datetime.utcnow().replace(
             minute=0, second=0, microsecond=0
-        ) - timedelta(days=8)
+        ) - timedelta(hours=48)
         for log_timestamp in list(self._energy_history.keys()):
-            if log_timestamp < _8_days_ago:
+            if log_timestamp < _48_hours_ago:
                 del self._energy_history[log_timestamp]
 
     def _response_clock(self, message: CircleClockResponse):
