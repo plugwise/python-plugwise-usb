@@ -1,7 +1,6 @@
 """Plugwise Circle node object."""
 from datetime import datetime, timedelta
 import logging
-import math
 
 from ..constants import (
     FEATURE_ENERGY_CONSUMPTION_TODAY,
@@ -689,7 +688,8 @@ class PlugwiseCircle(PlugwiseNode):
                             hour=0, minute=0, second=0, microsecond=0
                         ) - timedelta(days=1)
                 )
-                _log_count = math.ceil(_log_delta.total_seconds()/60/60/4)
+                _log_count = _log_delta.total_seconds()/60/60/4
+                _log_count = int(_log_count) + (1 if _log_count - int(_log_count) > 0 else 0)
 
                 for req_log_address in range(log_address - _log_count, log_address):
                     if self._energy_memory.get(req_log_address, 0) < 4:
