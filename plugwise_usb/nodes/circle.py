@@ -422,13 +422,9 @@ class PlugwiseCircle(PlugwiseNode):
                 if self._energy_history_failed_address.count(_mem_address) == 0:
                     self._energy_history_failed_address.append(_mem_address)
                 _LOGGER.info(
-                    "_collect_energy_pulses for %s at %s not found, request counter from memory %s (from mem=%s, slot=%s, timestamp=%s)",
+                    "_collect_energy_pulses for %s at %s not found",
                     self.mac,
                     str(_log_timestamp),
-                    str(_mem_address),
-                    str(self._last_log_address),
-                    str(self._energy_last_populated_slot),
-                    str(self._energy_last_collected_timestamp),
                 )
 
         # Validate all history values where present
