@@ -681,7 +681,17 @@ class PlugwiseCircle(PlugwiseNode):
                 # TODO: validate range of log_addresses
                 self._energy_history_collecting = True
                 self._energy_history_collecting_timestamp = datetime.now()
-                for req_log_address in range(log_address - 13, log_address):
+                _log_delta = datetime.utcnow().replace(
+                     minute=0, second=0, microsecond=0
+                ) - ( 
+                        datetime.utcnow().replace(
+                            hour=0, minute=0, second=0, microsecond=0
+                        ) - timedelta(days=1)
+                )
+                _log_count = _log_delta.total_seconds()/60/60/4
+                _log_count = int(_log_count) + (1 if _log_count - int(_log_count) > 0 else 0)
+
+                for req_log_address in range(log_address - _log_count, log_address):
                     if self._energy_memory.get(req_log_address, 0) < 4:
                         self.message_sender(
                             CircleEnergyCountersRequest(self._mac, req_log_address),
@@ -816,12 +826,12 @@ class PlugwiseCircle(PlugwiseNode):
             )
             _LOGGER.info(logstring)
 
-        # Cleanup energy history for more than 8 day's ago
-        _8_days_ago = datetime.utcnow().replace(
+        # Cleanup energy history for more than 48 hours 
+        _48_hours_ago = datetime.utcnow().replace(
             minute=0, second=0, microsecond=0
-        ) - timedelta(days=8)
+        ) - timedelta(hours=48)
         for log_timestamp in list(self._energy_history.keys()):
-            if log_timestamp < _8_days_ago:
+            if log_timestamp < _48_hours_ago:
                 del self._energy_history[log_timestamp]
 
     def _response_clock(self, message: CircleClockResponse):
