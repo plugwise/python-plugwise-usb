@@ -652,7 +652,7 @@ class PlugwiseCircle(PlugwiseNode):
                     self.mac,
                     str(log_address),
                 )
-            elif len(self._energy_history) > 48:
+            elif len(self._energy_history) > 24:
                 # Energy history already collected
                 if (
                     log_address == self._last_log_address
@@ -793,7 +793,7 @@ class PlugwiseCircle(PlugwiseNode):
         # Reset energy collection progress
         if (
             self._energy_history_collecting
-            and len(self._energy_history) > 48
+            and len(self._energy_history) > 24 
             and self._energy_last_collected_timestamp == _utc_hour_timestamp
         ):
             self._energy_last_rollover_timestamp = self._energy_last_collected_timestamp
