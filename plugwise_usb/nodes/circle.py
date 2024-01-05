@@ -522,6 +522,8 @@ class PlugwiseCircle(PlugwiseNode):
             if (
                     self._energy_pulses_today_hourly is None
                     or self._energy_rollover_history_started
+                    or ( self._energy_rollover_hour_started
+                         and not self._energy_rollover_history_started )
             ):
                 _utc_hour_timestamp = datetime.utcnow().replace(
                         minute=0, second=0, microsecond=0
