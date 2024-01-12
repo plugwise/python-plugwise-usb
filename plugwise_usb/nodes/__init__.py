@@ -289,7 +289,7 @@ class PlugwiseNode(NodePublisher, ABC):
 
     async def reconnect(self) -> None:
         """Reconnect node to Plugwise Zigbee network."""
-        if await self.async_ping_update() is not None:
+        if await self.ping_update() is not None:
             self._connected = True
 
     async def disconnect(self) -> None:
@@ -307,8 +307,8 @@ class PlugwiseNode(NodePublisher, ABC):
         """
         raise NotImplementedError()
 
-    async def async_relay_init(self, state: bool) -> None:
-        """Request to configure relay states at startup/power-up."""
+    async def relay_init_set(self, state: bool) -> bool | None:
+        """Configure relay init state."""
         raise NotImplementedError()
 
     async def scan_calibrate_light(self) -> bool:
@@ -327,11 +327,11 @@ class PlugwiseNode(NodePublisher, ABC):
         """Configure Scan device settings. Returns True if successful."""
         raise NotImplementedError()
 
-    async def async_load(self) -> bool:
+    async def load(self) -> bool:
         """Load and activate node features."""
         raise NotImplementedError()
 
-    async def _async_load_cache_file(self) -> bool:
+    async def _load_cache_file(self) -> bool:
         """Load states from previous cached information."""
         if self._loaded:
             return True
@@ -349,26 +349,26 @@ class PlugwiseNode(NodePublisher, ABC):
                 self.mac,
             )
             return False
-        return await self._node_cache.async_restore_cache()
+        return await self._node_cache.restore_cache()
 
-    async def async_clear_cache(self) -> None:
+    async def clear_cache(self) -> None:
         """Clear current cache."""
         if self._node_cache is not None:
-            await self._node_cache.async_clear_cache()
+            await self._node_cache.clear_cache()
 
-    async def _async_load_from_cache(self) -> bool:
+    async def _load_from_cache(self) -> bool:
         """
         Load states from previous cached information.
         Return True if successful.
         """
         if self._loaded:
             return True
-        if not await self._async_load_cache_file():
+        if not await self._load_cache_file():
             _LOGGER.debug("Node %s failed to load cache file", self.mac)
             return False
 
         # Node Info
-        if not await self._async_node_info_load_from_cache():
+        if not await self._node_info_load_from_cache():
             _LOGGER.debug(
                 "Node %s failed to load node_info from cache",
                 self.mac
@@ -377,7 +377,7 @@ class PlugwiseNode(NodePublisher, ABC):
         self._load_features()
         return True
 
-    async def async_initialize(self) -> bool:
+    async def initialize(self) -> bool:
         """Initialize node."""
         raise NotImplementedError()
 
@@ -398,7 +398,7 @@ class PlugwiseNode(NodePublisher, ABC):
         self._available = False
         create_task(self.publish_event(NodeFeature.AVAILABLE, False))
 
-    async def async_node_info_update(
+    async def node_info_update(
         self, node_info: NodeInfoResponse | None = None
     ) -> bool:
         """Update Node hardware information."""
@@ -429,7 +429,7 @@ class PlugwiseNode(NodePublisher, ABC):
         )
         return True
 
-    async def _async_node_info_load_from_cache(self) -> bool:
+    async def _node_info_load_from_cache(self) -> bool:
         """Load node info settings from cache."""
         firmware: datetime | None = None
         node_type: int | None = None
@@ -514,10 +514,10 @@ class PlugwiseNode(NodePublisher, ABC):
             self._node_info.type = NodeType(node_type)
             self._set_cache("node_type", self._node_info.type.value)
         if self._loaded and self._initialized:
-            create_task(self.async_save_cache())
+            create_task(self.save_cache())
         return complete
 
-    async def async_is_online(self) -> bool:
+    async def is_online(self) -> bool:
         """Check if node is currently online."""
         try:
             ping_response: NodePingResponse | None = await self._send(
@@ -547,10 +547,10 @@ class PlugwiseNode(NodePublisher, ABC):
             )
             self._available_update_state(False)
             return False
-        await self.async_ping_update(ping_response)
+        await self.ping_update(ping_response)
         return True
 
-    async def async_ping_update(
+    async def ping_update(
         self, ping_response: NodePingResponse | None = None, retries: int = 0
     ) -> NetworkStatistics | None:
         """Update ping statistics."""
@@ -573,11 +573,11 @@ class PlugwiseNode(NodePublisher, ABC):
         create_task(self.publish_event(NodeFeature.PING, self._ping))
         return self._ping
 
-    async def async_relay(self, state: bool) -> bool | None:
+    async def switch_relay(self, state: bool) -> bool | None:
         """Switch relay state."""
         raise NodeError(f"Relay control is not supported for node {self.mac}")
 
-    async def async_get_state(
+    async def get_state(
         self, features: tuple[NodeFeature]
     ) -> dict[NodeFeature, Any]:
         """
@@ -597,7 +597,7 @@ class PlugwiseNode(NodePublisher, ABC):
             elif feature == NodeFeature.AVAILABLE:
                 states[NodeFeature.AVAILABLE] = self.available
             elif feature == NodeFeature.PING:
-                states[NodeFeature.PING] = await self.async_ping_update()
+                states[NodeFeature.PING] = await self.ping_update()
             else:
                 raise NodeError(
                     f"Update of feature '{feature.name}' is "
@@ -605,7 +605,7 @@ class PlugwiseNode(NodePublisher, ABC):
                 )
         return states
 
-    async def async_unload(self) -> None:
+    async def unload(self) -> None:
         """Deactivate and unload node features."""
         raise NotImplementedError()
 
@@ -637,7 +637,7 @@ class PlugwiseNode(NodePublisher, ABC):
         else:
             self._node_cache.add_state(setting, str(value))
 
-    async def async_save_cache(self) -> None:
+    async def save_cache(self) -> None:
         """Save current cache to cache file."""
         if not self._cache_enabled:
             return
@@ -648,7 +648,7 @@ class PlugwiseNode(NodePublisher, ABC):
             )
             return
         _LOGGER.debug("Save cache file for node %s", self.mac)
-        await self._node_cache.async_save_cache()
+        await self._node_cache.save_cache()
 
     @staticmethod
     def skip_update(data_class: Any, seconds: int) -> bool:

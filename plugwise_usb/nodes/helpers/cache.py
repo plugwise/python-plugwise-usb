@@ -60,7 +60,7 @@ class NodeCache:
         """Return current value for state"""
         return self._states.get(state, None)
 
-    async def async_save_cache(self) -> None:
+    async def save_cache(self) -> None:
         """Save the node configuration to file."""
         async with aiofiles.open(
             file=self._cache_file,
@@ -76,12 +76,12 @@ class NodeCache:
             str(self._cache_file),
         )
 
-    async def async_clear_cache(self) -> None:
+    async def clear_cache(self) -> None:
         """Clear current cache."""
         self._states = {}
         await self.async_delete_cache_file()
 
-    async def async_restore_cache(self) -> bool:
+    async def restore_cache(self) -> bool:
         """Load the previously store state information."""
         try:
             async with aiofiles.open(

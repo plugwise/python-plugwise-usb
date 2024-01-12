@@ -55,7 +55,7 @@ class PlugwiseSwitch(NodeSED):
     _switch_subscription: Callable[[], None] | None = None
     _switch_state: bool | None = None
 
-    async def async_load(self) -> bool:
+    async def load(self) -> bool:
         """Load and activate Switch node features."""
         if self._loaded:
             return True
@@ -64,7 +64,7 @@ class PlugwiseSwitch(NodeSED):
             _LOGGER.debug(
                 "Load Switch node %s from cache", self._node_info.mac
             )
-            if await self._async_load_from_cache():
+            if await self._load_from_cache():
                 self._loaded = True
                 self._load_features()
                 return True
@@ -73,11 +73,11 @@ class PlugwiseSwitch(NodeSED):
         return False
 
     @raise_not_loaded
-    async def async_initialize(self) -> bool:
+    async def initialize(self) -> bool:
         """Initialize Switch node."""
         if self._initialized:
             return True
-        if not await super().async_initialize():
+        if not await super().initialize():
             return False
         self._switch_subscription = self._message_subscribe(
             b"0056",
@@ -94,11 +94,11 @@ class PlugwiseSwitch(NodeSED):
         self._features += SWITCH_FEATURES
         self._node_info.features = self._features
 
-    async def async_unload(self) -> None:
+    async def unload(self) -> None:
         """Unload node."""
         if self._switch_subscription is not None:
             self._switch_subscription()
-        await super().async_unload()
+        await super().unload()
 
     async def _switch_group(self, message: NodeSwitchGroupResponse) -> None:
         """Switch group request from Switch."""

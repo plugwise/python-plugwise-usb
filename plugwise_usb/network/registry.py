@@ -65,7 +65,7 @@ class StickNetworkRegister():
         elif not enable and self._cache_enabled:
             if self._network_cache is not None:
                 create_task(
-                    self._network_cache.async_delete_cache_file()
+                    self._network_cache.delete_cache_file()
                 )
             _LOGGER.debug("Cache is disabled")
         self._cache_enabled = enable
@@ -114,7 +114,7 @@ class StickNetworkRegister():
             )
             return
         if not self._cache_restored:
-            await self._network_cache.async_restore_cache()
+            await self._network_cache.restore_cache()
         self._cache_restored = True
 
     async def load_registry_from_cache(self) -> None:
@@ -256,7 +256,7 @@ class StickNetworkRegister():
         for address, registration in self._registry.items():
             mac, node_type = registration
             self._network_cache.update_registration(address, mac, node_type)
-        await self._network_cache.async_save_cache()
+        await self._network_cache.save_cache()
         _LOGGER.debug(
             "save_registry_to_cache finished"
         )
@@ -309,7 +309,7 @@ class StickNetworkRegister():
     async def clear_register_cache(self) -> None:
         """Clear current cache."""
         if self._network_cache is not None:
-            await self._network_cache.async_clear_cache()
+            await self._network_cache.clear_cache()
             self._cache_restored = False
 
     async def stop(self) -> None:

@@ -71,7 +71,7 @@ class PlugwiseSense(NodeSED):
 
     _sense_subscription: Callable[[], None] | None = None
 
-    async def async_load(self) -> bool:
+    async def load(self) -> bool:
         """Load and activate Sense node features."""
         if self._loaded:
             return True
@@ -80,7 +80,7 @@ class PlugwiseSense(NodeSED):
             _LOGGER.debug(
                 "Load Sense node %s from cache", self._node_info.mac
             )
-            if await self._async_load_from_cache():
+            if await self._load_from_cache():
                 self._loaded = True
                 self._load_features()
                 return True
@@ -89,11 +89,11 @@ class PlugwiseSense(NodeSED):
         return False
 
     @raise_not_loaded
-    async def async_initialize(self) -> bool:
+    async def initialize(self) -> bool:
         """Initialize Sense node."""
         if self._initialized:
             return True
-        if not await super().async_initialize():
+        if not await super().initialize():
             return False
         self._sense_subscription = self._message_subscribe(
             self._sense_report,
@@ -109,11 +109,11 @@ class PlugwiseSense(NodeSED):
         self._features += SENSE_FEATURES
         self._node_info.features = self._features
 
-    async def async_unload(self) -> None:
+    async def unload(self) -> None:
         """Unload node."""
         if self._sense_subscription is not None:
             self._sense_subscription()
-        await super().async_unload()
+        await super().unload()
 
     async def _sense_report(self, message: SenseReportResponse) -> None:
         """
@@ -141,12 +141,12 @@ class PlugwiseSense(NodeSED):
                 self.publish_event(NodeFeature.HUMIDITY, self._humidity)
             )
 
-    async def async_get_state(
+    async def get_state(
         self, features: tuple[NodeFeature]
     ) -> dict[NodeFeature, Any]:
         """Update latest state for given feature."""
         if not self._loaded:
-            if not await self.async_load():
+            if not await self.load():
                 _LOGGER.warning(
                     "Unable to update state because load node %s failed",
                     self.mac
@@ -168,9 +168,9 @@ class PlugwiseSense(NodeSED):
             elif feature == NodeFeature.HUMIDITY:
                 states[NodeFeature.HUMIDITY] = self._humidity
             elif feature == NodeFeature.PING:
-                states[NodeFeature.PING] = await self.async_ping_update()
+                states[NodeFeature.PING] = await self.ping_update()
             else:
-                state_result = await super().async_get_state([feature])
+                state_result = await super().get_state([feature])
                 states[feature] = state_result[feature]
 
         return states
