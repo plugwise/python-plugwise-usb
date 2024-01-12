@@ -1,137 +1,182 @@
 """Plugwise Circle+ node object."""
-from datetime import datetime
-import logging
 
-from ..constants import MAX_TIME_DRIFT, PRIORITY_LOW, UTF8_DECODE
+from __future__ import annotations
+
+from datetime import datetime, UTC
+import logging
+from typing import Final
+
+from .helpers import raise_not_loaded
+from ..api import NodeFeature
+from ..constants import MAX_TIME_DRIFT
 from ..messages.requests import (
     CirclePlusRealTimeClockGetRequest,
     CirclePlusRealTimeClockSetRequest,
-    CirclePlusScanRequest,
 )
-from ..messages.responses import CirclePlusRealTimeClockResponse, CirclePlusScanResponse
-from ..nodes.circle import PlugwiseCircle
+from ..messages.responses import (
+    CirclePlusRealTimeClockResponse,
+    NodeResponse,
+    NodeResponseType,
+)
+from .circle import CIRCLE_FEATURES, PlugwiseCircle
 
 _LOGGER = logging.getLogger(__name__)
+
+# Minimum and maximum supported (custom) zigbee protocol version based
+# on utc timestamp of firmware
+# Extracted from "Plugwise.IO.dll" file of Plugwise source installation
+CIRCLE_PLUS_FIRMWARE: Final = {
+    datetime(2008, 8, 26, 15, 46, tzinfo=UTC): ("1.0", "1.1"),
+    datetime(2009, 9, 8, 14, 0, 32, tzinfo=UTC): ("2.0", "2.4"),
+    datetime(2010, 4, 27, 11, 54, 15, tzinfo=UTC): ("2.0", "2.4"),
+    datetime(2010, 8, 4, 12, 56, 59, tzinfo=UTC): ("2.0", "2.4"),
+    datetime(2010, 8, 17, 7, 37, 57, tzinfo=UTC): ("2.0", "2.4"),
+    datetime(2010, 8, 31, 10, 9, 18, tzinfo=UTC): ("2.0", "2.4"),
+    datetime(2010, 10, 7, 14, 49, 29, tzinfo=UTC): ("2.0", "2.4"),
+    datetime(2010, 11, 1, 13, 24, 49, tzinfo=UTC): ("2.0", "2.4"),
+    datetime(2011, 3, 25, 17, 37, 55, tzinfo=UTC): ("2.0", "2.5"),
+    datetime(2011, 5, 13, 7, 17, 7, tzinfo=UTC): ("2.0", "2.5"),
+    datetime(2011, 6, 27, 8, 47, 37, tzinfo=UTC): ("2.0", "2.5"),
+    # Legrand
+    datetime(2011, 11, 3, 12, 55, 23, tzinfo=UTC): ("2.0", "2.6"),
+    # Radio Test
+    datetime(2012, 4, 19, 14, 3, 55, tzinfo=UTC): ("2.0", "2.5"),
+    # SMA firmware 2015-06-16
+    datetime(2015, 6, 18, 14, 42, 54, tzinfo=UTC): (
+        "2.0",
+        "2.6",
+    ),
+    # New Flash Update
+    datetime(2017, 7, 11, 16, 5, 57, tzinfo=UTC): (
+        "2.0",
+        "2.6",
+    ),
+}
 
 
 class PlugwiseCirclePlus(PlugwiseCircle):
     """provides interface to the Plugwise Circle+ nodes"""
 
-    def __init__(self, mac, address, message_sender):
-        super().__init__(mac, address, message_sender)
-        self._plugwise_nodes = {}
-        self._scan_response = {}
-        self._scan_for_nodes_callback = None
-        self._realtime_clock_offset = None
-        self.get_real_time_clock(self.sync_realtime_clock)
-
-    def message_for_circle_plus(self, message):
-        """Process received message"""
-        if isinstance(message, CirclePlusRealTimeClockResponse):
-            self._response_realtime_clock(message)
-        elif isinstance(message, CirclePlusScanResponse):
-            self._process_scan_response(message)
-        else:
-            _LOGGER.waning(
-                "Unsupported message type '%s' received from circle with mac %s",
-                str(message.__class__.__name__),
-                self.mac,
-            )
-
-    def scan_for_nodes(self, callback=None):
-        """Scan for registered nodes."""
-        self._scan_for_nodes_callback = callback
-        for node_address in range(0, 64):
-            self.message_sender(CirclePlusScanRequest(self._mac, node_address))
-            self._scan_response[node_address] = False
-
-    def _process_scan_response(self, message):
-        """Process scan response message."""
-        _LOGGER.debug(
-            "Process scan response for address %s", message.node_address.value
-        )
-        if message.node_mac.value != b"FFFFFFFFFFFFFFFF":
+    async def async_load(self) -> bool:
+        """Load and activate Circle+ node features."""
+        if self._loaded:
+            return True
+        if self._cache_enabled:
             _LOGGER.debug(
-                "Linked plugwise node with mac %s found",
-                message.node_mac.value.decode(UTF8_DECODE),
+                "Load Circle node %s from cache", self._node_info.mac
             )
-            #  TODO: 20220206 is there 'mac' in the dict? Otherwise it can be rewritten to just if message... in
-            if not self._plugwise_nodes.get(message.node_mac.value.decode(UTF8_DECODE)):
-                self._plugwise_nodes[
-                    message.node_mac.value.decode(UTF8_DECODE)
-                ] = message.node_address.value
-        if self._scan_for_nodes_callback:
-            # Check if scan is complete before execute callback
-            scan_complete = False
-            self._scan_response[message.node_address.value] = True
-            for node_address in range(0, 64):
-                if not self._scan_response[node_address]:
-                    if node_address < message.node_address.value:
-                        # Apparently missed response so send new scan request if it's not in queue yet
-                        _LOGGER.debug(
-                            "Resend missing scan request for address %s",
-                            str(node_address),
-                        )
-                        self.message_sender(
-                            CirclePlusScanRequest(self._mac, node_address)
-                        )
-                    break
-                if node_address == 63:
-                    scan_complete = True
-            if scan_complete and self._scan_for_nodes_callback:
-                self._scan_for_nodes_callback(self._plugwise_nodes)
-                self._scan_for_nodes_callback = None
-                self._plugwise_nodes = {}
-
-    def get_real_time_clock(self, callback=None):
-        """Get current datetime of internal clock of CirclePlus."""
-        self.message_sender(
-            CirclePlusRealTimeClockGetRequest(self._mac),
-            callback,
-            0,
-            PRIORITY_LOW,
-        )
-
-    def _response_realtime_clock(self, message):
-        realtime_clock_dt = datetime(
-            datetime.now().year,
-            datetime.now().month,
-            datetime.now().day,
-            message.time.value.hour,
-            message.time.value.minute,
-            message.time.value.second,
-        )
-        realtime_clock_offset = message.timestamp.replace(microsecond=0) - (
-            realtime_clock_dt + self.timezone_delta
-        )
-        if realtime_clock_offset.days == -1:
-            self._realtime_clock_offset = realtime_clock_offset.seconds - 86400
+            if await self._async_load_from_cache():
+                self._loaded = True
+                self._load_features()
+                return await self.async_initialize()
+            _LOGGER.warning(
+                "Load Circle+ node %s from cache failed",
+                self._node_info.mac,
+            )
         else:
-            self._realtime_clock_offset = realtime_clock_offset.seconds
-        _LOGGER.debug(
-            "Realtime clock of node %s has drifted %s sec",
-            self.mac,
-            str(self._clock_offset),
-        )
+            _LOGGER.debug("Load Circle+ node %s", self._node_info.mac)
 
-    def set_real_time_clock(self, callback=None):
-        """Set internal clock of CirclePlus."""
-        self.message_sender(
-            CirclePlusRealTimeClockSetRequest(self._mac, datetime.utcnow()),
-            callback,
-        )
+        # Check if node is online
+        if not self._available and not await self.async_is_online():
+            _LOGGER.warning(
+                "Failed to load Circle+ node %s because it is not online",
+                self._node_info.mac
+            )
+            return False
 
-    def sync_realtime_clock(self, max_drift=0):
-        """Sync real time clock of node if time has drifted more than max drifted."""
-        if self._realtime_clock_offset is not None:
-            if max_drift == 0:
-                max_drift = MAX_TIME_DRIFT
-            if (self._realtime_clock_offset > max_drift) or (
-                self._realtime_clock_offset < -(max_drift)
-            ):
-                _LOGGER.info(
-                    "Reset realtime clock of node %s because time has drifted %s sec",
-                    self.mac,
-                    str(self._clock_offset),
-                )
-                self.set_real_time_clock()
+        # Get node info
+        if not await self.async_node_info_update():
+            _LOGGER.warning(
+                "Failed to load Circle+ node %s because it is not responding"
+                + " to information request",
+                self._node_info.mac
+            )
+            return False
+        self._loaded = True
+        self._load_features()
+        return await self.async_initialize()
+
+    @raise_not_loaded
+    async def async_initialize(self) -> bool:
+        """Initialize node."""
+        if self._initialized:
+            return True
+        self._initialized = True
+        if not self._available:
+            self._initialized = False
+            return False
+        if not self._calibration and not await self.async_calibration_update():
+            self._initialized = False
+            return False
+        if not await self.async_realtime_clock_synchronize():
+            self._initialized = False
+            return False
+        if (
+            NodeFeature.RELAY_INIT in self._features and
+            self._relay_init_state is None and
+            not await self.async_relay_init_update()
+        ):
+            self._initialized = False
+            return False
+        self._initialized = True
+        return True
+
+    def _load_features(self) -> None:
+        """Enable additional supported feature(s)"""
+        self._setup_protocol(CIRCLE_PLUS_FIRMWARE)
+        self._features += CIRCLE_FEATURES
+        if (
+            self._node_protocols is not None and
+            "2.6" in self._node_protocols
+        ):
+            self._features += (NodeFeature.RELAY_INIT,)
+        self._node_info.features = self._features
+
+    async def async_realtime_clock_synchronize(self) -> bool:
+        """Synchronize realtime clock."""
+        clock_response: CirclePlusRealTimeClockResponse | None = (
+            await self._send(
+                CirclePlusRealTimeClockGetRequest(self._mac_in_bytes)
+            )
+        )
+        if clock_response is None:
+            _LOGGER.debug(
+                "No response for async_realtime_clock_synchronize() for %s",
+                self.mac
+            )
+            self._available_update_state(False)
+            return False
+        self._available_update_state(True)
+
+        _dt_of_circle: datetime = datetime.utcnow().replace(
+            hour=clock_response.time.value.hour,
+            minute=clock_response.time.value.minute,
+            second=clock_response.time.value.second,
+            microsecond=0,
+            tzinfo=UTC,
+        )
+        clock_offset = (
+            clock_response.timestamp.replace(microsecond=0) - _dt_of_circle
+        )
+        if (clock_offset.seconds < MAX_TIME_DRIFT) or (
+            clock_offset.seconds > -(MAX_TIME_DRIFT)
+        ):
+            return True
+        _LOGGER.info(
+            "Reset realtime clock of node %s because time has drifted"
+            + " %s seconds while max drift is set to %s seconds)",
+            self._node_info.mac,
+            str(clock_offset.seconds),
+            str(MAX_TIME_DRIFT),
+        )
+        node_response: NodeResponse | None = await self._send(
+            CirclePlusRealTimeClockSetRequest(
+                self._mac_in_bytes,
+                datetime.utcnow()
+            ),
+        )
+        if node_response is None:
+            return False
+        if node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED:
+            return True
+        return False

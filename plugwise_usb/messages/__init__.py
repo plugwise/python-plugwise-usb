@@ -1,30 +1,50 @@
 """Plugwise messages."""
 
-from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER, UTF8_DECODE
+from __future__ import annotations
+from typing import Any
+
+from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER, UTF8
 from ..util import crc_fun
 
 
 class PlugwiseMessage:
-    """Plugwise message base."""
+    """Plugwise message base class."""
 
-    ID = b"0000"
+    def __init__(self, identifier: bytes) -> None:
+        """Initialize a plugwise message"""
+        self._identifier = identifier
+        self._mac: bytes | None = None
+        self._checksum: bytes | None = None
+        self._args: list[Any] = []
 
-    def __init__(self):
-        self.mac = ""
-        self.checksum = None
-        self.args = []
+    @property
+    def identifier(self) -> bytes:
+        """Return the message ID"""
+        return self._identifier
 
-    def serialize(self):
-        """Return message in a serialized format that can be sent out on wire."""
-        _args = b"".join(a.serialize() for a in self.args)
-        msg = self.ID
-        if self.mac != "":
-            msg += self.mac
-        msg += _args
-        self.checksum = self.calculate_checksum(msg)
-        return MESSAGE_HEADER + msg + self.checksum + MESSAGE_FOOTER
+    @property
+    def mac(self) -> bytes:
+        """Return mac in bytes"""
+        return self._mac
+
+    @property
+    def mac_decoded(self) -> str:
+        """Return mac in decoded string format."""
+        if self._mac is None:
+            return "not defined"
+        return self._mac.decode(UTF8)
+
+    def serialize(self) -> bytes:
+        """Return message in a serialized format that can be sent out."""
+        data = bytes()
+        data += self._identifier
+        if self._mac is not None:
+            data += self._mac
+        data += b"".join(a.serialize() for a in self._args)
+        self._checksum = self.calculate_checksum(data)
+        return MESSAGE_HEADER + data + self._checksum + MESSAGE_FOOTER
 
     @staticmethod
-    def calculate_checksum(something):
+    def calculate_checksum(data: bytes) -> bytes:
         """Calculate crc checksum."""
-        return bytes("%04X" % crc_fun(something), UTF8_DECODE)
+        return bytes("%04X" % crc_fun(data), UTF8)

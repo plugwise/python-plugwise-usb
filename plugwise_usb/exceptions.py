@@ -5,37 +5,37 @@ class PlugwiseException(Exception):
     """Base error class for this Plugwise library."""
 
 
-class PortError(PlugwiseException):
-    """Connection to USBstick failed."""
+class CacheError(PlugwiseException):
+    """Cache error."""
 
 
-class StickInitError(PlugwiseException):
-    """Initialization of USBstick failed."""
+class EnergyError(PlugwiseException):
+    """Energy error."""
 
 
-class NetworkDown(PlugwiseException):
-    """Zigbee network not online."""
+class MessageError(PlugwiseException):
+    """Message errors."""
 
 
-class CirclePlusError(PlugwiseException):
-    """Connection to Circle+ node failed."""
+class NodeError(PlugwiseException):
+    """Node failed to execute request."""
 
 
-class InvalidMessageLength(PlugwiseException):
-    """Invalid message length."""
+class NodeTimeout(PlugwiseException):
+    """No response from node."""
 
 
-class InvalidMessageHeader(PlugwiseException):
-    """Invalid message header."""
+class StickError(PlugwiseException):
+    """Error at USB stick connection."""
 
 
-class InvalidMessageFooter(PlugwiseException):
-    """Invalid message footer."""
+class StickFailed(PlugwiseException):
+    """USB stick failed to accept request."""
 
 
-class InvalidMessageChecksum(PlugwiseException):
-    """Invalid data checksum."""
+class StickTimeout(PlugwiseException):
+    """Response timed out from USB-Stick."""
 
 
-class TimeoutException(PlugwiseException):
-    """Timeout expired while waiting for response from node."""
+class SubscriptionError(PlugwiseException):
+    """Subscription Errors."""
