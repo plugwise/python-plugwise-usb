@@ -37,7 +37,6 @@ class StickSender():
         self._loop = get_running_loop()
         self._receiver = stick_receiver
         self._transport = transport
-        self._expected_seq_id: bytes = b"FFFF"
         self._stick_response: Future[bytes] | None = None
         self._stick_lock = Lock()
         self._current_request: None | PlugwiseRequest = None
@@ -86,7 +85,6 @@ class StickSender():
         else:
             # Update request with session id
             request.seq_id = seq_id
-            self._expected_seq_id = self._next_seq_id(self._expected_seq_id)
         finally:
             self._stick_response = None
             self._stick_lock.release()
@@ -95,20 +93,6 @@ class StickSender():
 
     async def _process_stick_response(self, response: StickResponse) -> None:
         """Process stick response."""
-        if self._expected_seq_id == b"FFFF":
-            # First response, so accept current sequence id
-            self._expected_seq_id = response.seq_id
-
-        if self._expected_seq_id != response.seq_id:
-            _LOGGER.warning(
-                "Stick response (ack_id=%s) received with invalid seq id, " +
-                "expected %s received %s",
-                str(response.ack_id),
-                str(self._expected_seq_id),
-                str(response.seq_id),
-            )
-            return
-
         if (
             self._stick_response is None
             or self._stick_response.done()
@@ -146,20 +130,3 @@ class StickSender():
     def stop(self) -> None:
         """Stop sender"""
         self._unsubscribe_stick_response()
-
-    @staticmethod
-    def _next_seq_id(seq_id: bytes) -> bytes:
-        """Increment sequence id by one, return 4 bytes."""
-        # Max seq_id = b'FFFB'
-        # b'FFFC' reserved for <unknown> message
-        # b'FFFD' reserved for 'NodeJoinAckResponse' message
-        # b'FFFE' reserved for 'NodeAwakeResponse' message
-        # b'FFFF' reserved for 'NodeSwitchGroupResponse' message
-        if seq_id == b"FFFF":
-            return b"FFFF"
-        if (temp_int := int(seq_id, 16) + 1) >= 65532:
-            temp_int = 0
-        temp_str = str(hex(temp_int)).lstrip("0x").upper()
-        while len(temp_str) < 4:
-            temp_str = "0" + temp_str
-        return temp_str.encode()
