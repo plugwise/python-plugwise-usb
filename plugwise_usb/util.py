@@ -1,4 +1,6 @@
-"""Use of this source code is governed by the MIT license found in the LICENSE file.
+"""
+Use of this source code is governed by the MIT license found
+in the LICENSE file.
 
 Plugwise protocol helpers
 """
@@ -6,27 +8,32 @@ from __future__ import annotations
 
 import binascii
 import datetime
+import os
 import re
 import struct
+from typing import Any
 
 import crcmod
 
-from .constants import HW_MODELS, LOGADDR_OFFSET, PLUGWISE_EPOCH, UTF8_DECODE
+from .constants import (
+    CACHE_DIR,
+    HW_MODELS,
+    LOGADDR_OFFSET,
+    PLUGWISE_EPOCH,
+    UTF8,
+)
+
+
+def get_writable_cache_dir(root_directory: str = "") -> str:
+    """Put together the default caching directory based on the OS."""
+    if root_directory != "":
+        return root_directory
+    if os.name == "nt" and (data_dir := os.getenv("APPDATA")) is not None:
+        return os.path.join(data_dir, CACHE_DIR)
+    return os.path.join(os.path.expanduser("~"), CACHE_DIR)
+
 
 crc_fun = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0x0000, xorOut=0x0000)
-
-
-# NOTE: this function version_to_model is shared between Smile and USB
-def version_to_model(version: str) -> str:
-    """Translate hardware_version to device type."""
-    model = HW_MODELS.get(version)
-    if model is None:
-        model = HW_MODELS.get(version[4:10])
-    if model is None:
-        # Try again with reversed order
-        model = HW_MODELS.get(version[-2:] + version[-4:-2] + version[-6:-4])
-
-    return model if model is not None else "Unknown"
 
 
 def validate_mac(mac: str) -> bool:
@@ -39,27 +46,23 @@ def validate_mac(mac: str) -> bool:
     return True
 
 
-def inc_seq_id(seq_id: str | None, value: int = 1) -> bytearray | bytes:
-    """Increment sequence id by value
+def version_to_model(version: str | None) -> str | None:
+    """Translate hardware_version to device type."""
+    if version is None:
+        return None
 
-    :return: 4 bytes
-    """
-    if seq_id is None:
-        return b"0000"
-    # Max seq_id = b'FFFB'
-    # b'FFFC' reserved for <unknown> message
-    # b'FFFD' reserved for 'NodeJoinAckResponse' message
-    # b'FFFE' reserved for 'NodeSwitchGroupResponse' message
-    # b'FFFF' reserved for 'NodeAwakeResponse' message
-    if (temp_int := int(seq_id, 16) + value) >= 65532:
-        temp_int = 0
-    temp_str = str(hex(temp_int)).lstrip("0x").upper()
-    while len(temp_str) < 4:
-        temp_str = "0" + temp_str
-    return temp_str.encode()
+    model = HW_MODELS.get(version)
+    if model is None:
+        model = HW_MODELS.get(version[4:10])
+    if model is None:
+        # Try again with reversed order
+        model = HW_MODELS.get(version[-2:] + version[-4:-2] + version[-6:-4])
+
+    return model if model is not None else "Unknown"
 
 
-# octals (and hex) type as int according to https://docs.python.org/3/library/stdtypes.html
+# octals (and hex) type as int according to
+# https://docs.python.org/3/library/stdtypes.html
 def uint_to_int(val: int, octals: int) -> int:
     """Compute the 2's compliment of int value val for negative values"""
     bits = octals << 2
@@ -68,7 +71,8 @@ def uint_to_int(val: int, octals: int) -> int:
     return val
 
 
-# octals (and hex) type as int according to https://docs.python.org/3/library/stdtypes.html
+# octals (and hex) type as int according to
+# https://docs.python.org/3/library/stdtypes.html
 def int_to_uint(val: int, octals: int) -> int:
     """Compute the 2's compliment of int value val for negative values"""
     bits = octals << 2
@@ -78,37 +82,34 @@ def int_to_uint(val: int, octals: int) -> int:
 
 
 class BaseType:
-    def __init__(self, value, length) -> None:  # type: ignore[no-untyped-def]
+    def __init__(self, value: Any, length: int) -> None:
         self.value = value
         self.length = length
 
-    def serialize(self):  # type: ignore[no-untyped-def]
-        return bytes(self.value, UTF8_DECODE)
+    def serialize(self) -> bytes:
+        return bytes(self.value, UTF8)
 
-    def deserialize(self, val):  # type: ignore[no-untyped-def]
+    def deserialize(self, val: bytes) -> None:
         self.value = val
 
-    def __len__(self):  # type: ignore[no-untyped-def]
+    def __len__(self) -> int:
         return self.length
 
 
 class CompositeType:
     def __init__(self) -> None:
         self.contents: list = []
-        # datetime because of DateTime and Time and RealClockDate
-        self.value: datetime.datetime | datetime.time | datetime.date | None = None
 
-    def serialize(self):  # type: ignore[no-untyped-def]
+    def serialize(self) -> bytes:
         return b"".join(a.serialize() for a in self.contents)
 
-    def deserialize(self, val):  # type: ignore[no-untyped-def]
+    def deserialize(self, val: bytes) -> None:
         for content in self.contents:
             myval = val[: len(content)]
             content.deserialize(myval)
-            val = val[len(myval) :]
-        return val
+            val = val[len(myval):]
 
-    def __len__(self):  # type: ignore[no-untyped-def]
+    def __len__(self) -> int:
         return sum(len(x) for x in self.contents)
 
 
@@ -117,15 +118,17 @@ class String(BaseType):
 
 
 class Int(BaseType):
-    def __init__(self, value, length=2, negative: bool = True) -> None:  # type: ignore[no-untyped-def]
+    def __init__(
+        self, value: int, length: int = 2, negative: bool = True
+    ) -> None:
         super().__init__(value, length)
         self.negative = negative
 
-    def serialize(self):  # type: ignore[no-untyped-def]
+    def serialize(self) -> bytes:
         fmt = "%%0%dX" % self.length
-        return bytes(fmt % self.value, UTF8_DECODE)
+        return bytes(fmt % self.value, UTF8)
 
-    def deserialize(self, val):  # type: ignore[no-untyped-def]
+    def deserialize(self, val: bytes) -> None:
         self.value = int(val, 16)
         if self.negative:
             mask = 1 << (self.length * 4 - 1)
@@ -133,42 +136,41 @@ class Int(BaseType):
 
 
 class SInt(BaseType):
-    def __init__(self, value, length=2) -> None:  # type: ignore[no-untyped-def]
+    def __init__(self, value: int, length: int = 2) -> None:
         super().__init__(value, length)
 
     @staticmethod
-    def negative(val, octals):  # type: ignore[no-untyped-def]
-        """Compute the 2's compliment of int value val for negative values"""
+    def negative(val: int, octals: int) -> int:
+        """compute the 2's compliment of int value val for negative values"""
         bits = octals << 2
         if (val & (1 << (bits - 1))) != 0:
             val = val - (1 << bits)
         return val
 
-    def serialize(self):  # type: ignore[no-untyped-def]
+    def serialize(self) -> bytes:
         fmt = "%%0%dX" % self.length
-        return fmt % int_to_uint(self.value, self.length)
+        return bytes(fmt % int_to_uint(self.value, self.length), UTF8)
 
-    def deserialize(self, val):  # type: ignore[no-untyped-def]
+    def deserialize(self, val: bytes) -> None:
         # TODO: negative is not initialized! 20220405
-        self.value = self.negative(int(val, 16), self.length)  # type: ignore [no-untyped-call]
+        self.value = self.negative(int(val, 16), self.length)
 
 
 class UnixTimestamp(Int):
-    def __init__(self, value, length=8) -> None:  # type: ignore[no-untyped-def]
-        Int.__init__(self, value, length, False)
+    def __init__(self, value: float, length: int = 8) -> None:
+        Int.__init__(self, int(value), length, False)
 
-    def deserialize(self, val):  # type: ignore[no-untyped-def]
-        # TODO: Solution, fix Int 20220405
-        Int.deserialize(self, val)  # type: ignore[no-untyped-call]
-        self.value = datetime.datetime.fromtimestamp(self.value)
+    def deserialize(self, val: bytes) -> None:
+        self.value = datetime.datetime.fromtimestamp(
+            int(val, 16), datetime.UTC
+        )
 
 
 class Year2k(Int):
     """year value that is offset from the year 2000"""
 
-    def deserialize(self, val):  # type: ignore[no-untyped-def]
-        # TODO: Solution, fix Int 20220405
-        Int.deserialize(self, val)  # type: ignore[no-untyped-call]
+    def deserialize(self, val: bytes) -> None:
+        Int.deserialize(self, val)
         self.value += PLUGWISE_EPOCH
 
 
@@ -179,19 +181,21 @@ class DateTime(CompositeType):
     and last four bytes are offset from the beginning of the month in minutes
     """
 
-    def __init__(self, year: int = 0, month: int = 1, minutes: int = 0) -> None:
+    def __init__(
+        self, year: int = 0, month: int = 1, minutes: int = 0
+    ) -> None:
         CompositeType.__init__(self)
         self.year = Year2k(year - PLUGWISE_EPOCH, 2)
         self.month = Int(month, 2, False)
         self.minutes = Int(minutes, 4, False)
         self.contents += [self.year, self.month, self.minutes]
+        self.value: datetime.datetime | None = None
 
-    def deserialize(self, val: int) -> None:
-        # TODO: Solution, fix Int 20220405
-        CompositeType.deserialize(self, val)  # type: ignore[no-untyped-call]
-        if self.minutes.value == 65535:
+    def deserialize(self, val: bytes) -> None:
+        if val == b"FFFFFFFF":
             self.value = None
         else:
+            CompositeType.deserialize(self, val)
             self.value = datetime.datetime(
                 year=self.year.value, month=self.month.value, day=1
             ) + datetime.timedelta(minutes=self.minutes.value)
@@ -200,46 +204,50 @@ class DateTime(CompositeType):
 class Time(CompositeType):
     """time value as used in the clock info response"""
 
-    def __init__(self, hour: int = 0, minute: int = 0, second: int = 0) -> None:
+    def __init__(
+        self, hour: int = 0, minute: int = 0, second: int = 0
+    ) -> None:
         CompositeType.__init__(self)
         self.hour = Int(hour, 2, False)
         self.minute = Int(minute, 2, False)
         self.second = Int(second, 2, False)
         self.contents += [self.hour, self.minute, self.second]
+        self.value: datetime.time | None = None
 
-    def deserialize(self, val) -> None:  # type: ignore[no-untyped-def]
-        # TODO: Solution, fix Int 20220405
-        CompositeType.deserialize(self, val)  # type: ignore[no-untyped-call]
+    def deserialize(self, val: bytes) -> None:
+        CompositeType.deserialize(self, val)
         self.value = datetime.time(
             self.hour.value, self.minute.value, self.second.value
         )
 
 
 class IntDec(BaseType):
-    def __init__(self, value, length=2) -> None:  # type: ignore[no-untyped-def]
+    def __init__(self, value: int, length: int = 2) -> None:
         super().__init__(value, length)
 
-    def serialize(self):  # type: ignore[no-untyped-def]
+    def serialize(self) -> bytes:
         fmt = "%%0%dd" % self.length
-        return bytes(fmt % self.value, UTF8_DECODE)
+        return bytes(fmt % self.value, UTF8)
 
-    def deserialize(self, val):  # type: ignore[no-untyped-def]
-        self.value = val.decode(UTF8_DECODE)
+    def deserialize(self, val: bytes) -> None:
+        self.value = val.decode(UTF8)
 
 
 class RealClockTime(CompositeType):
     """time value as used in the realtime clock info response"""
 
-    def __init__(self, hour: int = 0, minute: int = 0, second: int = 0) -> None:
+    def __init__(
+        self, hour: int = 0, minute: int = 0, second: int = 0
+    ) -> None:
         CompositeType.__init__(self)
         self.hour = IntDec(hour, 2)
         self.minute = IntDec(minute, 2)
         self.second = IntDec(second, 2)
         self.contents += [self.second, self.minute, self.hour]
+        self.value: datetime.time | None = None
 
-    def deserialize(self, val):  # type: ignore[no-untyped-def]
-        # TODO: Solution, fix Int 20220405
-        CompositeType.deserialize(self, val)  # type: ignore[no-untyped-call]
+    def deserialize(self, val: bytes) -> None:
+        CompositeType.deserialize(self, val)
         self.value = datetime.time(
             int(self.hour.value),
             int(self.minute.value),
@@ -256,10 +264,10 @@ class RealClockDate(CompositeType):
         self.month = IntDec(month, 2)
         self.year = IntDec(year - PLUGWISE_EPOCH, 2)
         self.contents += [self.day, self.month, self.year]
+        self.value: datetime.date | None = None
 
-    def deserialize(self, val):  # type: ignore[no-untyped-def]
-        # TODO: Solution, fix Int 20220405
-        CompositeType.deserialize(self, val)  # type: ignore[no-untyped-call]
+    def deserialize(self, val: bytes) -> None:
+        CompositeType.deserialize(self, val)
         self.value = datetime.date(
             int(self.year.value) + PLUGWISE_EPOCH,
             int(self.month.value),
@@ -268,19 +276,18 @@ class RealClockDate(CompositeType):
 
 
 class Float(BaseType):
-    def __init__(self, value, length=4):  # type: ignore[no-untyped-def]
+    def __init__(self, value: float, length: int = 4) -> None:
         super().__init__(value, length)
 
-    def deserialize(self, val):  # type: ignore[no-untyped-def]
+    def deserialize(self, val: bytes) -> None:
         hexval = binascii.unhexlify(val)
-        self.value = struct.unpack("!f", hexval)[0]
+        self.value = float(struct.unpack("!f", hexval)[0])
 
 
 class LogAddr(Int):
-    def serialize(self):  # type: ignore[no-untyped-def]
-        return bytes("%08X" % ((self.value * 32) + LOGADDR_OFFSET), UTF8_DECODE)
+    def serialize(self) -> bytes:
+        return bytes("%08X" % ((self.value * 32) + LOGADDR_OFFSET), UTF8)
 
-    def deserialize(self, val):  # type: ignore[no-untyped-def]
-        # TODO: Solution, fix Int 20220405
-        Int.deserialize(self, val)  # type: ignore[no-untyped-call]
+    def deserialize(self, val: bytes) -> None:
+        Int.deserialize(self, val)
         self.value = (self.value - LOGADDR_OFFSET) // 32

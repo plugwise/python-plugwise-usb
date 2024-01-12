@@ -1,295 +1,670 @@
-"""Plugwise nodes."""
-from datetime import datetime
-import logging
+"""Plugwise devices linked to USB-stick."""
 
-from ..constants import (
-    FEATURE_AVAILABLE,
-    FEATURE_PING,
-    FEATURE_RELAY,
-    FEATURE_RSSI_IN,
-    FEATURE_RSSI_OUT,
-    PRIORITY_LOW,
-    UTF8_DECODE,
+from __future__ import annotations
+
+from abc import ABC
+from asyncio import create_task, sleep
+from collections.abc import Callable
+from datetime import datetime, timedelta, UTC
+import logging
+from typing import Any
+
+from ..api import (
+    EnergyStatistics,
+    MotionState,
+    NetworkStatistics,
+    NodeFeature,
+    NodeInfo,
+    NodeType,
+    PowerStatistics,
+    RelayState,
 )
-from ..messages.requests import NodeFeaturesRequest, NodeInfoRequest, NodePingRequest
-from ..messages.responses import (
-    NodeFeaturesResponse,
-    NodeInfoResponse,
-    NodeJoinAckResponse,
-    NodePingResponse,
+from ..connection import StickController
+from ..constants import UTF8, MotionSensitivity
+from ..exceptions import NodeError, StickError
+from ..messages.requests import (
+    NodeInfoRequest,
+    NodePingRequest,
 )
-from ..util import validate_mac, version_to_model
+from ..messages.responses import NodeInfoResponse, NodePingResponse
+from ..util import version_to_model
+from .helpers.cache import NodeCache
+from .helpers.counter import EnergyCalibration, EnergyCounters
+from .helpers.subscription import NodePublisher
 
 _LOGGER = logging.getLogger(__name__)
+NODE_FEATURES = (
+    NodeFeature.AVAILABLE,
+    NodeFeature.INFO,
+    NodeFeature.PING,
+)
 
 
-class PlugwiseNode:
-    """Base class for a Plugwise node."""
+class PlugwiseNode(NodePublisher, ABC):
+    """Abstract Base Class for a Plugwise node."""
 
-    def __init__(self, mac, address, message_sender):
-        mac = mac.upper()
-        if not validate_mac(mac):
-            _LOGGER.warning(
-                "MAC address is in unexpected format: %s",
-                str(mac),
-            )
-        self._mac = bytes(mac, encoding=UTF8_DECODE)
-        self.message_sender = message_sender
-        self._features = ()
-        self._address = address
-        self._callbacks = {}
-        self._last_update = None
-        self._available = False
-        self._battery_powered = False
-        self._measures_power = False
-        self._rssi_in = None
-        self._rssi_out = None
-        self._ping = None
-        self._node_type = None
-        self._hardware_version = None
-        self._firmware_version = None
-        self._relay_state = False
-        self._last_log_address = None
-        self._device_features = None
+    def __init__(
+        self,
+        mac: str,
+        address: int,
+        controller: StickController,
+    ):
+        self._features = NODE_FEATURES
+        self._last_update = datetime.now(UTC)
+        self._node_info = NodeInfo(mac, address)
+        self._ping = NetworkStatistics()
+        self._power = PowerStatistics()
+
+        self._mac_in_bytes = bytes(mac, encoding=UTF8)
+        self._mac_in_str = mac
+        self._send = controller.send
+        self._node_cache: NodeCache | None = None
+        self._cache_enabled: bool = False
+        self._cache_folder: str = ""
+
+        # Sensors
+        self._available: bool = False
+        self._humidity: float | None = None
+        self._motion: bool | None = None
+
+        self._switch: bool | None = None
+        self._temperature: float | None = None
+
+        self._connected: bool = False
+        self._initialized: bool = False
+        self._loaded: bool = False
+        self._node_protocols: tuple[str, str] | None = None
+        self._node_last_online: datetime | None = None
+
+        # Motion
+        self._motion = False
+        self._motion_state = MotionState()
+        self._motion_reset_timer: int | None = None
+        self._scan_subscription: Callable[[], None] | None = None
+        self._motion_reset_timer = None
+        self._daylight_mode: bool | None = None
+        self._sensitivity_level: MotionSensitivity | None = None
+        self._new_motion_reset_timer: int | None = None
+        self._new_daylight_mode: bool | None = None
+        self._new_sensitivity: MotionSensitivity | None = None
+
+        # Node info
+        self._last_log_address: int | None = None
+
+        # Relay
+        self._relay: bool | None = None
+        self._relay_state = RelayState()
+        self._relay_init_state: bool | None = None
+
+        # Local power & energy
+        self._calibration: EnergyCalibration | None = None
+        self._next_power: datetime | None = None
+
+        # Energy
+        self._energy_counters = EnergyCounters(mac)
+
+    def update_registry_address(self, address: int) -> None:
+        """Update network registration address"""
+        self._node_info.zigbee_address = address
+
+    @property
+    def cache_folder(self) -> str:
+        """Return path to cache folder."""
+        return self._cache_folder
+
+    @cache_folder.setter
+    def cache_folder(self, cache_folder: str) -> None:
+        """Set path to cache folder"""
+        if cache_folder == self._cache_folder:
+            return
+        self._cache_folder = cache_folder
+        if self._cache_enabled:
+            if self._node_cache is None:
+                self._node_cache = NodeCache(self._cache_folder)
+            else:
+                self._node_cache.cache_root_directory = cache_folder
+
+    @property
+    def cache_enabled(self) -> bool:
+        """Return usage of cache."""
+        return self._cache_enabled
+
+    @cache_enabled.setter
+    def cache_enabled(self, enable: bool) -> None:
+        """Enable or disable usage of cache."""
+        if enable == self._cache_enabled:
+            return
+        if enable:
+            if self._node_cache is None:
+                self._node_cache = NodeCache(self.mac, self._cache_folder)
+            else:
+                self._node_cache.cache_root_directory = self._cache_folder
+        else:
+            self._node_cache = None
+        self._cache_enabled = enable
 
     @property
     def available(self) -> bool:
-        """Current network state of plugwise node."""
+        """Return network availability state"""
         return self._available
 
-    @available.setter
-    def available(self, state: bool):
-        """Set current network availability state of plugwise node."""
-        if state:
-            if not self._available:
-                self._available = True
-                _LOGGER.info(
-                    "Marking node %s available",
-                    self.mac,
-                )
-                self.do_callback(FEATURE_AVAILABLE["id"])
-        else:
-            if self._available:
-                self._available = False
-                _LOGGER.info(
-                    "Marking node %s unavailable",
-                    self.mac,
-                )
-                self.do_callback(FEATURE_AVAILABLE["id"])
+    @property
+    def energy(self) -> EnergyStatistics | None:
+        """"Return energy statistics."""
+        raise NotImplementedError()
 
     @property
-    def battery_powered(self) -> bool:
-        """Return True if node is a SED (battery powered) device."""
-        return self._battery_powered
-
-    @property
-    def hardware_model(self) -> str:
-        """Return hardware model."""
-        if self._hardware_version:
-            return version_to_model(self._hardware_version)
-        return None
-
-    @property
-    def hardware_version(self) -> str:
-        """Return hardware version."""
-        if self._hardware_version is not None:
-            return self._hardware_version
-        return "Unknown"
-
-    @property
-    def features(self) -> tuple:
-        """Return the abstracted features supported by this plugwise device."""
+    def features(self) -> tuple[NodeFeature, ...]:
+        """"Return tuple with all supported feature types."""
         return self._features
 
     @property
-    def firmware_version(self) -> str:
-        """Return firmware version."""
-        if self._firmware_version is not None:
-            return str(self._firmware_version)
-        return "Unknown"
+    def node_info(self) -> NodeInfo:
+        """"Return node information"""
+        return self._node_info
+
+    @property
+    def humidity(self) -> float | None:
+        """"Return humidity state."""
+        if NodeFeature.HUMIDITY not in self._features:
+            raise NodeError(
+                f"Humidity state is not supported for node {self.mac}"
+            )
+        return self._humidity
 
     @property
     def last_update(self) -> datetime:
-        """Return datetime of last received update."""
+        """"Return timestamp of last update."""
         return self._last_update
 
     @property
+    def loaded(self) -> bool:
+        """Return load status. """
+        return self._loaded
+
+    @property
     def mac(self) -> str:
-        """Return the MAC address in string."""
-        return self._mac.decode(UTF8_DECODE)
+        """Return mac address of node."""
+        return self._mac_in_str
 
     @property
-    def measures_power(self) -> bool:
-        """Return True if node can measure power usage."""
-        return self._measures_power
-
-    @property
-    def name(self) -> str:
-        """Return unique name."""
-        return self.hardware_model + " (" + str(self._address) + ")"
-
-    @property
-    def ping(self) -> int:
-        """Return ping roundtrip in ms."""
-        if self._ping is not None:
-            return self._ping
-        return 0
-
-    @property
-    def rssi_in(self) -> int:
-        """Return inbound RSSI level."""
-        if self._rssi_in is not None:
-            return self._rssi_in
-        return 0
-
-    @property
-    def rssi_out(self) -> int:
-        """Return outbound RSSI level, based on inbound RSSI level of neighbor node."""
-        if self._rssi_out is not None:
-            return self._rssi_out
-        return 0
-
-    def do_ping(self, callback=None):
-        """Send network ping message to node."""
-        self._request_ping(callback, True)
-
-    def _request_info(self, callback=None):
-        """Request info from node."""
-        self.message_sender(
-            NodeInfoRequest(self._mac),
-            callback,
-            0,
-            PRIORITY_LOW,
-        )
-
-    def _request_features(self, callback=None):
-        """Request supported features for this node."""
-        self.message_sender(
-            NodeFeaturesRequest(self._mac),
-            callback,
-        )
-
-    def _request_ping(self, callback=None, ignore_sensor=True):
-        """Ping node."""
-        if ignore_sensor or FEATURE_PING["id"] in self._callbacks:
-            self.message_sender(
-                NodePingRequest(self._mac),
-                callback,
+    def motion(self) -> bool | None:
+        """Return motion detection state."""
+        if NodeFeature.MOTION not in self._features:
+            raise NodeError(
+                f"Motion state is not supported for node {self.mac}"
             )
+        return self._motion
 
-    def message_for_node(self, message):
-        """Process received message."""
-        if message.mac == self._mac:
-            if message.timestamp is not None:
-                _LOGGER.debug(
-                    "Previous update %s of node %s, last message %s",
-                    str(self._last_update),
-                    self.mac,
-                    str(message.timestamp),
+    @property
+    def motion_state(self) -> MotionState:
+        """Return last known state of motion sensor"""
+        if NodeFeature.MOTION not in self._features:
+            raise NodeError(
+                f"Motion state is not supported for node {self.mac}"
+            )
+        return self._motion_state
+
+    @property
+    def ping(self) -> NetworkStatistics:
+        return self._ping
+
+    @property
+    def power(self) -> PowerStatistics:
+        if NodeFeature.POWER not in self._features:
+            raise NodeError(
+                f"Power state is not supported for node {self.mac}"
+            )
+        return self._power
+
+    @property
+    def switch(self) -> bool | None:
+        if NodeFeature.SWITCH not in self._features:
+            raise NodeError(
+                f"Switch state is not supported for node {self.mac}"
+            )
+        return self._switch
+
+    @property
+    def relay_state(self) -> RelayState:
+        """Return last known state of relay"""
+        if NodeFeature.RELAY not in self._features:
+            raise NodeError(
+                f"Relay state is not supported for node {self.mac}"
+            )
+        return self._relay_state
+
+    @property
+    def relay(self) -> bool:
+        """Return state of relay"""
+        if NodeFeature.RELAY not in self._features:
+            raise NodeError(
+                f"Relay state is not supported for node {self.mac}"
+            )
+        if self._relay is None:
+            raise NodeError(f"Relay state is unknown for node {self.mac}")
+        return self._relay
+
+    @relay.setter
+    def relay(self, state: bool) -> None:
+        """Request the relay to switch state."""
+        raise NotImplementedError()
+
+    @property
+    def temperature(self) -> float | None:
+        """Temperature sensor"""
+        if NodeFeature.TEMPERATURE not in self._features:
+            raise NodeError(
+                f"Temperature state is not supported for node {self.mac}"
+            )
+        return self._temperature
+
+    @property
+    def relay_init(
+        self,
+    ) -> bool | None:
+        """Request the relay states at startup/power-up."""
+        raise NotImplementedError()
+
+    @relay_init.setter
+    def relay_init(self, state: bool) -> None:
+        """Request to configure relay states at startup/power-up."""
+        raise NotImplementedError()
+
+    def _setup_protocol(
+        self, firmware: dict[datetime, tuple[str, str]]
+    ) -> None:
+        """Extract protocol version from firmware version"""
+        if self._node_info.firmware is not None:
+            self._node_protocols = firmware.get(self._node_info.firmware, None)
+            if self._node_protocols is None:
+                _LOGGER.warning(
+                    "Failed to determine the protocol version for node %s (%s)"
+                    + " based on firmware version %s of list %s",
+                    self._node_info.mac,
+                    self.__class__.__name__,
+                    self._node_info.firmware,
+                    str(firmware.keys()),
                 )
-                self._last_update = message.timestamp
-            if not self._available:
-                self.available = True
-                self._request_info()
-            if isinstance(message, NodePingResponse):
-                self._process_ping_response(message)
-            elif isinstance(message, NodeInfoResponse):
-                self._process_info_response(message)
-            elif isinstance(message, NodeFeaturesResponse):
-                self._process_features_response(message)
-            elif isinstance(message, NodeJoinAckResponse):
-                self._process_join_ack_response(message)
-            else:
-                self.message_for_circle(message)
-                self.message_for_sed(message)
-        else:
-            _LOGGER.debug(
-                "Skip message, mac of node (%s) != mac at message (%s)",
-                message.mac.decode(UTF8_DECODE),
+
+    async def reconnect(self) -> None:
+        """Reconnect node to Plugwise Zigbee network."""
+        if await self.async_ping_update() is not None:
+            self._connected = True
+
+    async def disconnect(self) -> None:
+        """Disconnect node from Plugwise Zigbee network."""
+        self._connected = False
+        if self._available:
+            self._available = False
+            await self.publish_event(NodeFeature.AVAILABLE, False)
+
+    @property
+    def maintenance_interval(self) -> int | None:
+        """
+        Return the maintenance interval (seconds)
+        a battery powered node sends it heartbeat.
+        """
+        raise NotImplementedError()
+
+    async def async_relay_init(self, state: bool) -> None:
+        """Request to configure relay states at startup/power-up."""
+        raise NotImplementedError()
+
+    async def scan_calibrate_light(self) -> bool:
+        """
+        Request to calibration light sensitivity of Scan device.
+        Returns True if successful.
+        """
+        raise NotImplementedError()
+
+    async def scan_configure(
+        self,
+        motion_reset_timer: int,
+        sensitivity_level: MotionSensitivity,
+        daylight_mode: bool,
+    ) -> bool:
+        """Configure Scan device settings. Returns True if successful."""
+        raise NotImplementedError()
+
+    async def async_load(self) -> bool:
+        """Load and activate node features."""
+        raise NotImplementedError()
+
+    async def _async_load_cache_file(self) -> bool:
+        """Load states from previous cached information."""
+        if self._loaded:
+            return True
+        if not self._cache_enabled:
+            _LOGGER.warning(
+                "Unable to load node %s from cache " +
+                "because caching is disabled",
                 self.mac,
             )
+            return False
+        if self._node_cache is None:
+            _LOGGER.warning(
+                "Unable to load node %s from cache " +
+                "because cache configuration is not loaded",
+                self.mac,
+            )
+            return False
+        return await self._node_cache.async_restore_cache()
 
-    def message_for_circle(self, message):
-        """Pass messages to PlugwiseCircle class"""
+    async def async_clear_cache(self) -> None:
+        """Clear current cache."""
+        if self._node_cache is not None:
+            await self._node_cache.async_clear_cache()
 
-    def message_for_sed(self, message):
-        """Pass messages to NodeSED class"""
+    async def _async_load_from_cache(self) -> bool:
+        """
+        Load states from previous cached information.
+        Return True if successful.
+        """
+        if self._loaded:
+            return True
+        if not await self._async_load_cache_file():
+            _LOGGER.debug("Node %s failed to load cache file", self.mac)
+            return False
 
-    def subscribe_callback(self, callback, sensor) -> bool:
-        """Subscribe callback to execute when state change happens."""
-        if sensor in self._features:
-            if sensor not in self._callbacks:
-                self._callbacks[sensor] = []
-            self._callbacks[sensor].append(callback)
+        # Node Info
+        if not await self._async_node_info_load_from_cache():
+            _LOGGER.debug(
+                "Node %s failed to load node_info from cache",
+                self.mac
+            )
+            return False
+        self._load_features()
+        return True
+
+    async def async_initialize(self) -> bool:
+        """Initialize node."""
+        raise NotImplementedError()
+
+    def _load_features(self) -> None:
+        """Enable additional supported feature(s)"""
+        raise NotImplementedError()
+
+    def _available_update_state(self, available: bool) -> None:
+        """Update the node availability state."""
+        if self._available == available:
+            return
+        if available:
+            _LOGGER.info("Mark node %s to be available", self.mac)
+            self._available = True
+            create_task(self.publish_event(NodeFeature.AVAILABLE, True))
+            return
+        _LOGGER.info("Mark node %s to be NOT available", self.mac)
+        self._available = False
+        create_task(self.publish_event(NodeFeature.AVAILABLE, False))
+
+    async def async_node_info_update(
+        self, node_info: NodeInfoResponse | None = None
+    ) -> bool:
+        """Update Node hardware information."""
+        if node_info is None:
+            node_info = await self._send(
+                NodeInfoRequest(self._mac_in_bytes)
+            )
+        if node_info is None:
+            _LOGGER.debug(
+                "No response for async_node_info_update() for %s",
+                self.mac
+            )
+            self._available_update_state(False)
+            return False
+        if node_info.mac_decoded != self.mac:
+            raise NodeError(
+                f"Incorrect node_info {node_info.mac_decoded} " +
+                f"!= {self.mac}, id={node_info}"
+            )
+
+        self._available_update_state(True)
+
+        self._node_info_update_state(
+            firmware=node_info.fw_ver.value,
+            hardware=node_info.hw_ver.value.decode(UTF8),
+            node_type=node_info.node_type.value,
+            timestamp=node_info.timestamp,
+        )
+        return True
+
+    async def _async_node_info_load_from_cache(self) -> bool:
+        """Load node info settings from cache."""
+        firmware: datetime | None = None
+        node_type: int | None = None
+        hardware: str | None = self._get_cache("hardware")
+        timestamp: datetime | None = None
+        if (firmware_str := self._get_cache("firmware")) is not None:
+            data = firmware_str.split("-")
+            if len(data) == 6:
+                firmware = datetime(
+                    year=int(data[0]),
+                    month=int(data[1]),
+                    day=int(data[2]),
+                    hour=int(data[3]),
+                    minute=int(data[4]),
+                    second=int(data[5]),
+                    tzinfo=UTC
+                )
+        if (node_type_str := self._get_cache("node_type")) is not None:
+            node_type = int(node_type_str)
+        if (
+            timestamp_str := self._get_cache("node_info_timestamp")
+        ) is not None:
+            data = timestamp_str.split("-")
+            if len(data) == 6:
+                timestamp = datetime(
+                    year=int(data[0]),
+                    month=int(data[1]),
+                    day=int(data[2]),
+                    hour=int(data[3]),
+                    minute=int(data[4]),
+                    second=int(data[5]),
+                    tzinfo=UTC
+                )
+        return self._node_info_update_state(
+            firmware=firmware,
+            hardware=hardware,
+            node_type=node_type,
+            timestamp=timestamp,
+        )
+
+    def _node_info_update_state(
+        self,
+        firmware: datetime | None,
+        hardware: str | None,
+        node_type: int | None,
+        timestamp: datetime | None,
+    ) -> bool:
+        """
+        Process new node info and return true if
+        all fields are updated.
+        """
+        complete = True
+        if firmware is None:
+            complete = False
+        else:
+            self._node_info.firmware = firmware
+            self._set_cache("firmware", firmware)
+        if hardware is None:
+            complete = False
+        else:
+            if self._node_info.version != hardware:
+                self._node_info.version = hardware
+                # Generate modelname based on hardware version
+                hardware_model = version_to_model(hardware)
+                if hardware_model == "Unknown":
+                    _LOGGER.warning(
+                        "Failed to detect hardware model for %s based on '%s'",
+                        self.mac,
+                        hardware,
+                    )
+                self._node_info.model = hardware_model
+                if hardware_model is not None:
+                    self._node_info.name = str(self._node_info.mac[-5:])
+            self._set_cache("hardware", hardware)
+        if timestamp is None:
+            complete = False
+        else:
+            self._node_info.timestamp = timestamp
+            self._set_cache("node_info_timestamp", timestamp)
+        if node_type is None:
+            complete = False
+        else:
+            self._node_info.type = NodeType(node_type)
+            self._set_cache("node_type", self._node_info.type.value)
+        if self._loaded and self._initialized:
+            create_task(self.async_save_cache())
+        return complete
+
+    async def async_is_online(self) -> bool:
+        """Check if node is currently online."""
+        try:
+            ping_response: NodePingResponse | None = await self._send(
+                NodePingRequest(
+                    self._mac_in_bytes, retries=0
+                )
+            )
+        except StickError:
+            _LOGGER.warning(
+                "StickError for async_is_online() for %s",
+                self.mac
+            )
+            self._available_update_state(False)
+            return False
+        except NodeError:
+            _LOGGER.warning(
+                "NodeError for async_is_online() for %s",
+                self.mac
+            )
+            self._available_update_state(False)
+            return False
+        else:
+            if ping_response is None:
+                _LOGGER.info(
+                    "No response to ping for %s",
+                    self.mac
+                )
+                self._available_update_state(False)
+                return False
+            await self.async_ping_update(ping_response)
+            return True
+
+    async def async_ping_update(
+        self, ping_response: NodePingResponse | None = None, retries: int = 0
+    ) -> NetworkStatistics | None:
+        """Update ping statistics."""
+        if ping_response is None:
+            ping_response = await self._send(
+                NodePingRequest(
+                    self._mac_in_bytes, retries
+                )
+            )
+        if ping_response is None:
+            self._available_update_state(False)
+            return None
+        self._available_update_state(True)
+
+        self._ping.timestamp = ping_response.timestamp
+        self._ping.rssi_in = ping_response.rssi_in
+        self._ping.rssi_out = ping_response.rssi_out
+        self._ping.rtt = ping_response.rtt
+
+        create_task(self.publish_event(NodeFeature.PING, self._ping))
+        return self._ping
+
+    async def async_relay(self, state: bool) -> bool | None:
+        """Switch relay state."""
+        raise NodeError(f"Relay control is not supported for node {self.mac}")
+
+    async def async_get_state(
+        self, features: tuple[NodeFeature]
+    ) -> dict[NodeFeature, Any]:
+        """
+        Retrieve latest state for given feature
+
+        Return dict with values per feature."""
+        states: dict[NodeFeature, Any] = {}
+        for feature in features:
+            await sleep(0)
+            if feature not in self._features:
+                raise NodeError(
+                    f"Update of feature '{feature.name}' is "
+                    + f"not supported for {self.mac}"
+                )
+            if feature == NodeFeature.INFO:
+                states[NodeFeature.INFO] = self._node_info
+            elif feature == NodeFeature.AVAILABLE:
+                states[NodeFeature.AVAILABLE] = self.available
+            elif feature == NodeFeature.PING:
+                states[NodeFeature.PING] = await self.async_ping_update()
+            else:
+                raise NodeError(
+                    f"Update of feature '{feature.name}' is "
+                    + f"not supported for {self.mac}"
+                )
+        return states
+
+    async def async_unload(self) -> None:
+        """Deactivate and unload node features."""
+        raise NotImplementedError()
+
+    def _get_cache(self, setting: str) -> str | None:
+        """Retrieve value of specified setting from cache memory."""
+        if not self._cache_enabled or self._node_cache is None:
+            return None
+        return self._node_cache.get_state(setting)
+
+    def _set_cache(self, setting: str, value: Any) -> None:
+        """Store setting with value in cache memory."""
+        if not self._cache_enabled:
+            return
+        if self._node_cache is None:
+            _LOGGER.warning(
+                "Failed to update '%s' in cache " +
+                "because cache is not initialized yet",
+                setting
+            )
+            return
+        if isinstance(value, datetime):
+            self._node_cache.add_state(
+                setting,
+                f"{value.year}-{value.month}-{value.day}-{value.hour}" +
+                f"-{value.minute}-{value.second}"
+            )
+        elif isinstance(value, str):
+            self._node_cache.add_state(setting, value)
+        else:
+            self._node_cache.add_state(setting, str(value))
+
+    async def async_save_cache(self) -> None:
+        """Save current cache to cache file."""
+        if not self._cache_enabled:
+            return
+        if self._node_cache is None:
+            _LOGGER.warning(
+                "Failed to save cache to disk " +
+                "because cache is not initialized yet"
+            )
+            return
+        _LOGGER.debug("Save cache file for node %s", self.mac)
+        await self._node_cache.async_save_cache()
+
+    @staticmethod
+    def skip_update(data_class: Any, seconds: int) -> bool:
+        """
+        Return True if timestamp attribute of given dataclass
+        is less than given seconds old.
+        """
+        if data_class is None:
+            return False
+        if not hasattr(data_class, "timestamp"):
+            return False
+        if data_class.timestamp is None:
+            return False
+        if data_class.timestamp + timedelta(
+            seconds=seconds
+        ) > datetime.now(UTC):
             return True
         return False
-
-    def unsubscribe_callback(self, callback, sensor):
-        """Unsubscribe callback to execute when state change happens."""
-        if sensor in self._callbacks:
-            self._callbacks[sensor].remove(callback)
-
-    def do_callback(self, sensor):
-        """Execute callbacks registered for specified callback type."""
-        if sensor in self._callbacks:
-            for callback in self._callbacks[sensor]:
-                try:
-                    callback(None)
-                # TODO: narrow exception
-                except Exception as err:  # pylint: disable=broad-except
-                    _LOGGER.error(
-                        "Error while executing all callback : %s",
-                        err,
-                    )
-
-    def _process_join_ack_response(self, message):
-        """Process join acknowledge response message"""
-        _LOGGER.info(
-            "Node %s has (re)joined plugwise network",
-            self.mac,
-        )
-
-    def _process_ping_response(self, message):
-        """Process ping response message."""
-        if self._rssi_in != message.rssi_in.value:
-            self._rssi_in = message.rssi_in.value
-            self.do_callback(FEATURE_RSSI_IN["id"])
-        if self._rssi_out != message.rssi_out.value:
-            self._rssi_out = message.rssi_out.value
-            self.do_callback(FEATURE_RSSI_OUT["id"])
-        if self._ping != message.ping_ms.value:
-            self._ping = message.ping_ms.value
-            self.do_callback(FEATURE_PING["id"])
-
-    def _process_info_response(self, message):
-        """Process info response message."""
-        _LOGGER.debug(
-            "Response info message for node %s, last log address %s",
-            self.mac,
-            str(message.last_logaddr.value),
-        )
-        if message.relay_state.serialize() == b"01":
-            if not self._relay_state:
-                self._relay_state = True
-                self.do_callback(FEATURE_RELAY["id"])
-        else:
-            if self._relay_state:
-                self._relay_state = False
-                self.do_callback(FEATURE_RELAY["id"])
-        self._hardware_version = message.hw_ver.value.decode(UTF8_DECODE)
-        self._firmware_version = message.fw_ver.value
-        self._node_type = message.node_type.value
-        if self._last_log_address != message.last_logaddr.value:
-            self._last_log_address = message.last_logaddr.value
-        _LOGGER.debug("Node type        = %s", self.hardware_model)
-        if not self._battery_powered:
-            _LOGGER.debug("Relay state      = %s", str(self._relay_state))
-        _LOGGER.debug("Hardware version = %s", str(self._hardware_version))
-        _LOGGER.debug("Firmware version = %s", str(self._firmware_version))
-
-    def _process_features_response(self, message):
-        """Process features message."""
-        _LOGGER.warning(
-            "Node %s supports features %s", self.mac, str(message.features.value)
-        )
-        self._device_features = message.features.value
