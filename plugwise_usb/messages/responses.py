@@ -145,12 +145,11 @@ class PlugwiseResponse(PlugwiseMessage):
         response = response[:-2]
 
         # Checksum
-        calculated_checksum = self.calculate_checksum(response[:-4])
-        if calculated_checksum != response[-4:]:
+        if (check := self.calculate_checksum(response[:-4])) != response[-4:]:
             raise MessageError(
-                f"Invalid checksum for {self.__class__.__name__}, "
-                + "expected {calculated_checksum} got "
-                + str(response[-4:]),
+                f"Invalid checksum for {self.__class__.__name__}, " +
+                f"expected {check} got " +
+                str(response[-4:]),
             )
         response = response[:-4]
 
@@ -411,7 +410,7 @@ class StickInitResponse(PlugwiseResponse):
     @property
     def network_online(self) -> bool:
         """Return state of network."""
-        return True if self._network_online.value == 1 else False
+        return self._network_online.value == 1
 
 
 class CirclePowerUsageResponse(PlugwiseResponse):
@@ -549,7 +548,6 @@ class NodeInfoResponse(PlugwiseResponse):
 
         self.last_logaddress = LogAddr(0, length=8)
         if protocol_version == "1.0":
-            pass
             # FIXME: Define "absoluteHour" variable
             self.datetime = DateTime()
             self.relay_state = Int(0, length=2)

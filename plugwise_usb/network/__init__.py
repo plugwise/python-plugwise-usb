@@ -197,17 +197,17 @@ class StickNetwork():
 
     async def node_awake_message(self, response: NodeAwakeResponse) -> None:
         """Handle NodeAwakeResponse message."""
-        mac = response.mac_decoded
-        if mac in self._nodes:
+        if response.mac_decoded in self._nodes:
             return
-        address: int | None = self._register.network_address(mac)
-        if address is None:
+        mac = response.mac_decoded
+        if self._register.network_address(mac) is None:
             _LOGGER.warning(
                 "Skip node awake message for %s because network " +
                 "registry address is unknown",
                 mac
             )
             return
+        address: int | None = self._register.network_address(mac)
         if self._awake_discovery.get(mac) is None:
             _LOGGER.info(
                 "Node Awake Response from undiscovered node with mac %s" +
