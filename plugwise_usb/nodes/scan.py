@@ -63,7 +63,7 @@ SCAN_FEATURES: Final = (NodeFeature.INFO, NodeFeature.MOTION)
 class PlugwiseScan(NodeSED):
     """provides interface to the Plugwise Scan nodes"""
 
-    async def async_load(self) -> bool:
+    async def load(self) -> bool:
         """Load and activate Scan node features."""
         if self._loaded:
             return True
@@ -72,21 +72,21 @@ class PlugwiseScan(NodeSED):
             _LOGGER.debug(
                 "Load Scan node %s from cache", self._node_info.mac
             )
-            if await self._async_load_from_cache():
+            if await self._load_from_cache():
                 self._loaded = True
                 self._load_features()
-                return await self.async_initialize()
+                return await self.initialize()
 
         _LOGGER.debug("Load of Scan node %s failed", self._node_info.mac)
         return False
 
     @raise_not_loaded
-    async def async_initialize(self) -> bool:
+    async def initialize(self) -> bool:
         """Initialize Scan node."""
         if self._initialized:
             return True
         self._initialized = True
-        if not await super().async_initialize():
+        if not await super().initialize():
             self._initialized = False
             return False
         self._scan_subscription = self._message_subscribe(
@@ -97,11 +97,11 @@ class PlugwiseScan(NodeSED):
         self._initialized = True
         return True
 
-    async def async_unload(self) -> None:
+    async def unload(self) -> None:
         """Unload node."""
         if self._scan_subscription is not None:
             self._scan_subscription()
-        await super().async_unload()
+        await super().unload()
 
     async def _switch_group(self, message: NodeSwitchGroupResponse) -> None:
         """Switch group request from Scan."""
@@ -142,7 +142,7 @@ class PlugwiseScan(NodeSED):
                 )
             )
             if self.cache_enabled and self._loaded and self._initialized:
-                create_task(self.async_save_cache())
+                create_task(self.save_cache())
 
     async def scan_configure(
         self,
@@ -205,12 +205,12 @@ class PlugwiseScan(NodeSED):
         self._features += SCAN_FEATURES
         self._node_info.features = self._features
 
-    async def async_get_state(
+    async def get_state(
         self, features: tuple[NodeFeature]
     ) -> dict[NodeFeature, Any]:
         """Update latest state for given feature."""
         if not self._loaded:
-            if not await self.async_load():
+            if not await self.load():
                 _LOGGER.warning(
                     "Unable to update state because load node %s failed",
                     self.mac
@@ -230,6 +230,6 @@ class PlugwiseScan(NodeSED):
             if feature == NodeFeature.MOTION:
                 states[NodeFeature.MOTION] = self._motion_state
             else:
-                state_result = await super().async_get_state([feature])
+                state_result = await super().get_state([feature])
                 states[feature] = state_result[feature]
         return states
