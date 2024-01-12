@@ -8,31 +8,19 @@ Main stick object to control associated plugwise plugs
 from __future__ import annotations
 
 from asyncio import get_running_loop
-from collections.abc import Callable, Coroutine
+from collections.abc import Awaitable, Callable
 from functools import wraps
 import logging
 from typing import Any, TypeVar, cast
 
-from .api import StickEvent
+from .api import NodeEvent, StickEvent
 from .connection import StickController
-from .network import NETWORK_EVENTS, StickNetwork
-from .network.subscription import StickSubscription
-from .exceptions import StickError, SubscriptionError
+from .network import StickNetwork
+from .exceptions import StickError
 from .nodes import PlugwiseNode
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
-STICK_EVENTS = [
-    StickEvent.CONNECTED,
-    StickEvent.DISCONNECTED,
-    StickEvent.MESSAGE_RECEIVED,
-    StickEvent.NODE_AWAKE,
-    StickEvent.NODE_LOADED,
-    StickEvent.NODE_DISCOVERED,
-    StickEvent.NODE_JOIN,
-    StickEvent.NETWORK_OFFLINE,
-    StickEvent.NETWORK_ONLINE,
-]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -83,7 +71,6 @@ class Stick:
         self._network: StickNetwork | None = None
         self._cache_enabled = cache_enabled
         self._port = port
-        self._events_supported = STICK_EVENTS
         self._cache_folder: str = ""
 
     @property
@@ -232,52 +219,38 @@ class Stick:
             )
         self._network.accept_join_request = state
 
-    async def async_clear_cache(self) -> None:
+    async def clear_cache(self) -> None:
         """Clear current cache."""
         if self._network is not None:
             await self._network.clear_cache()
 
-    def subscribe_to_event(
+    def subscribe_to_stick_events(
         self,
-        event: StickEvent,
-        callback: Callable[[Any], Coroutine[Any, Any, None]]
-        | Callable[[], Coroutine[Any, Any, None]],
-    ) -> int:
-        """Add subscription and returns the id to unsubscribe later."""
-
-        # Forward subscriptions for controller
-        if event in CONTROLLER_EVENTS:
-            return self._controller.subscribe_to_stick_events(
-                StickSubscription(event, callback)
-            )
-
-        # Forward subscriptions for network
-        if event in NETWORK_EVENTS:
-            if (
-                not self._controller.is_connected
-                or self._network is None
-            ):
-                raise SubscriptionError(
-                    "Unable to subscribe for stick event."
-                    + " Connect to USB-stick first."
-                )
-            return self._network.subscribe(
-                StickSubscription(event, callback)
-            )
-
-        raise SubscriptionError(
-            f"Unable to subscribe to unsupported {event} stick event."
+        stick_event_callback: Callable[[StickEvent], Awaitable[None]],
+        events: tuple[StickEvent],
+    ) -> Callable[[], None]:
+        """
+        Subscribe callback when specified StickEvent occurs.
+        Returns the function to be called to unsubscribe later.
+        """
+        return self._controller.subscribe_to_stick_events(
+            stick_event_callback,
+            events,
         )
 
-    def unsubscribe(self, subscribe_id: int) -> bool:
-        """Remove subscription."""
-        if self._controller.unsubscribe(subscribe_id):
-            return True
-        if self._network is not None and self._network.unsubscribe(
-            subscribe_id
-        ):
-            return True
-        return False
+    def subscribe_to_network_events(
+        self,
+        node_event_callback: Callable[[NodeEvent, str], Awaitable[None]],
+        events: tuple[NodeEvent],
+    ) -> Callable[[], None]:
+        """
+        Subscribe callback when specified NodeEvent occurs.
+        Returns the function to be called to unsubscribe later.
+        """
+        return self._network.subscribe_to_network_events(
+            node_event_callback,
+            events,
+        )
 
     def _validate_node_discovery(self) -> None:
         """
@@ -287,16 +260,16 @@ class Stick:
         if self._network is None or not self._network.is_running:
             raise StickError("Plugwise network node discovery is not active.")
 
-    async def async_setup(
+    async def setup(
         self, discover: bool = True, load: bool = True
     ) -> None:
         """Setup connection to USB-Stick."""
-        await self.async_connect()
-        await self.async_initialize()
+        await self.connect_to_stick()
+        await self.initialize_stick()
         if discover:
-            await self.async_start()
+            await self.start_network()
         if load:
-            await self.async_load_nodes()
+            await self.load_nodes()
 
     async def connect_to_stick(self, port: str | None = None) -> None:
         """
@@ -335,7 +308,7 @@ class Stick:
 
     @raise_not_connected
     @raise_not_initialized
-    async def async_start(self) -> None:
+    async def start_network(self) -> None:
         """Start zigbee network."""
         if self._network is None:
             self._network = StickNetwork(self._controller)
@@ -345,7 +318,7 @@ class Stick:
 
     @raise_not_connected
     @raise_not_initialized
-    async def async_load_nodes(self) -> bool:
+    async def load_nodes(self) -> bool:
         """Load all discovered nodes."""
         if self._network is None:
             raise StickError(
@@ -359,7 +332,7 @@ class Stick:
 
     @raise_not_connected
     @raise_not_initialized
-    async def async_discover_coordinator(self, load: bool = False) -> None:
+    async def discover_coordinator(self, load: bool = False) -> None:
         """Setup connection to Zigbee network coordinator."""
         if self._network is None:
             raise StickError(
@@ -369,7 +342,7 @@ class Stick:
 
     @raise_not_connected
     @raise_not_initialized
-    async def async_register_node(self, mac: str) -> bool:
+    async def register_node(self, mac: str) -> bool:
         """Add node to plugwise network."""
         if self._network is None:
             return False
@@ -377,7 +350,7 @@ class Stick:
 
     @raise_not_connected
     @raise_not_initialized
-    async def async_unregister_node(self, mac: str) -> None:
+    async def unregister_node(self, mac: str) -> None:
         """Remove node to plugwise network."""
         if self._network is None:
             return
