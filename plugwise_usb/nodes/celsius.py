@@ -57,22 +57,19 @@ CELSIUS_FEATURES: Final = (
 class PlugwiseCelsius(NodeSED):
     """provides interface to the Plugwise Celsius nodes"""
 
-    async def async_load(
-        self, lazy_load: bool = False, from_cache: bool = False
-    ) -> bool:
+    async def async_load(self) -> bool:
         """Load and activate node features."""
         if self._loaded:
             return True
-        if lazy_load:
+        self._node_info.battery_powered = True
+        if self._cache_enabled:
             _LOGGER.debug(
-                "Lazy loading Celsius node %s...",
-                self._node_info.mac
+                "Load Celsius node %s from cache", self._node_info.mac
             )
-        else:
-            _LOGGER.debug("Loading Celsius node %s...", self._node_info.mac)
+            if await self._async_load_from_cache():
+                self._loaded = True
+                self._load_features()
+                return await self.async_initialize()
 
-        self._setup_protocol(FIRMWARE_CELSIUS)
-        self._features += CELSIUS_FEATURES
-        self._node_info.features = self._features
-
-        return await super().async_load(lazy_load, from_cache)
+        _LOGGER.debug("Load of Celsius node %s failed", self._node_info.mac)
+        return False
