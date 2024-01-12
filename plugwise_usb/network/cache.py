@@ -51,7 +51,7 @@ class NetworkRegistrationCache:
         """Cached network information"""
         return self._registrations
 
-    async def async_save_cache(self) -> None:
+    async def save_cache(self) -> None:
         """Save the node information to file."""
         _LOGGER.debug("Save network cache %s", str(self._cache_file))
         counter = 0
@@ -78,12 +78,12 @@ class NetworkRegistrationCache:
             str(self._cache_file)
         )
 
-    async def async_clear_cache(self) -> None:
+    async def clear_cache(self) -> None:
         """Clear current cache."""
         self._registrations = {}
-        await self.async_delete_cache_file()
+        await self.delete_cache_file()
 
-    async def async_restore_cache(self) -> bool:
+    async def restore_cache(self) -> bool:
         """Load the previously stored information."""
         if self._cache_file is None:
             raise CacheError(
@@ -145,7 +145,7 @@ class NetworkRegistrationCache:
             )
         return True
 
-    async def async_delete_cache_file(self) -> None:
+    async def delete_cache_file(self) -> None:
         """Delete cache file"""
         if self._cache_file is None:
             return
