@@ -359,8 +359,9 @@ class PlugwiseCircle(PlugwiseNode):
             if await self.node_info_update():
                 await self.energy_log_update(self._last_log_address)
 
-        missing_addresses = self._energy_counters.log_addresses_missing
-        if missing_addresses is not None:
+        if (
+            missing_addresses := self._energy_counters.log_addresses_missing
+        ) is not None:
             if len(missing_addresses) == 0:
                 await self.power_update()
                 _LOGGER.debug(
@@ -399,8 +400,9 @@ class PlugwiseCircle(PlugwiseNode):
     async def get_missing_energy_logs(self) -> None:
         """Task to retrieve missing energy logs"""
         self._energy_counters.update()
-        missing_addresses = self._energy_counters.log_addresses_missing
-        if missing_addresses is None:
+        if (
+            missing_addresses := self._energy_counters.log_addresses_missing
+        ) is None:
             _LOGGER.debug(
                 "Start with initial energy request for the last 10 log"
                 + " addresses for node %s.",
@@ -497,17 +499,14 @@ class PlugwiseCircle(PlugwiseNode):
 
     async def _energy_log_records_load_from_cache(self) -> bool:
         """Load energy_log_record from cache."""
-        cached_energy_log_data = self._get_cache("energy_collection")
-        if cached_energy_log_data is None:
+        if self._get_cache("energy_collection") is None:
             _LOGGER.info(
                 "Failed to restore energy log records from cache for node %s",
                 self.mac
             )
             return False
-
         restored_logs: dict[int, list[int]] = {}
-
-        log_data = cached_energy_log_data.split("|")
+        log_data = self._get_cache("energy_collection").split("|")
         for log_record in log_data:
             log_fields = log_record.split(":")
             if len(log_fields) == 4:
@@ -594,23 +593,23 @@ class PlugwiseCircle(PlugwiseNode):
         log_cache_record += f"-{timestamp.month}-{timestamp.day}"
         log_cache_record += f"-{timestamp.hour}-{timestamp.minute}"
         log_cache_record += f"-{timestamp.second}:{pulses}"
-        cached_logs = self._get_cache("energy_collection")
-        if cached_logs is None:
+        if (cached_logs := self._get_cache('energy_collection')) is not None:
+            if log_cache_record not in cached_logs:
+                _LOGGER.info(
+                    "Add logrecord (%s, %s) to log cache of %s",
+                    str(address),
+                    str(slot),
+                    self.mac
+                )
+                self._set_cache(
+                    "energy_collection", cached_logs + "|" + log_cache_record
+                )
+        else:
             _LOGGER.debug(
                 "No existing energy collection log cached for %s",
                 self.mac
             )
             self._set_cache("energy_collection", log_cache_record)
-        elif log_cache_record not in cached_logs:
-            _LOGGER.info(
-                "Add logrecord (%s, %s) to log cache of %s",
-                str(address),
-                str(slot),
-                self.mac
-            )
-            self._set_cache(
-                "energy_collection", cached_logs + "|" + log_cache_record
-            )
 
     async def switch_relay(self, state: bool) -> bool | None:
         """
@@ -1028,17 +1027,19 @@ class PlugwiseCircle(PlugwiseNode):
             )
             + self._calibration.off_tot
         )
-        calc_value = corrected_pulses / PULSES_PER_KW_SECOND / seconds * 1000
-        # Fix minor miscalculations
-        if calc_value < 0.0:
-            _LOGGER.debug(
-                "FIX negative power miscalc from %s to 0.0 for %s",
-                str(calc_value),
-                self.mac
-            )
-            calc_value = 0.0
 
-        return calc_value
+        if (
+            calc_value := corrected_pulses / PULSES_PER_KW_SECOND / seconds * (
+                1000
+            )
+        ) >= 0.0:
+            return calc_value
+        # Fix minor miscalculations
+        _LOGGER.debug(
+            "FIX negative power miscalc from %s to 0.0 for %s",
+            str(corrected_pulses / PULSES_PER_KW_SECOND / seconds * 1000),
+            self.mac
+        )
 
     def _correct_power_pulses(self, pulses: int, offset: int) -> float:
         """Correct pulses based on given measurement time offset (ns)"""
