@@ -101,17 +101,17 @@ class NodeSED(PlugwiseNode):
             return True
         return False
 
-    async def async_unload(self) -> None:
+    async def unload(self) -> None:
         """Deactivate and unload node features."""
         if self._maintenance_future is not None:
             self._maintenance_future.cancel()
         if self._awake_subscription is not None:
             self._awake_subscription()
-        await self.async_save_cache()
+        await self.save_cache()
         self._loaded = False
 
     @raise_not_loaded
-    async def async_initialize(self) -> bool:
+    async def initialize(self) -> bool:
         """Initialize SED node."""
         if self._initialized:
             return True
@@ -142,7 +142,7 @@ class NodeSED(PlugwiseNode):
         ):
             if self._ping_at_awake:
                 ping_response: NodePingResponse | None = (
-                    await self.async_ping_update()  # type: ignore [assignment]
+                    await self.ping_update()  # type: ignore [assignment]
                 )
                 if ping_response is not None:
                     self._ping_at_awake = False
