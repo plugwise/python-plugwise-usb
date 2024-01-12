@@ -57,7 +57,7 @@ CIRCLE_PLUS_FIRMWARE: Final = {
 class PlugwiseCirclePlus(PlugwiseCircle):
     """provides interface to the Plugwise Circle+ nodes"""
 
-    async def async_load(self) -> bool:
+    async def load(self) -> bool:
         """Load and activate Circle+ node features."""
         if self._loaded:
             return True
@@ -65,10 +65,10 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             _LOGGER.debug(
                 "Load Circle node %s from cache", self._node_info.mac
             )
-            if await self._async_load_from_cache():
+            if await self._load_from_cache():
                 self._loaded = True
                 self._load_features()
-                return await self.async_initialize()
+                return await self.initialize()
             _LOGGER.warning(
                 "Load Circle+ node %s from cache failed",
                 self._node_info.mac,
@@ -77,7 +77,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             _LOGGER.debug("Load Circle+ node %s", self._node_info.mac)
 
         # Check if node is online
-        if not self._available and not await self.async_is_online():
+        if not self._available and not await self.is_online():
             _LOGGER.warning(
                 "Failed to load Circle+ node %s because it is not online",
                 self._node_info.mac
@@ -85,7 +85,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             return False
 
         # Get node info
-        if not await self.async_node_info_update():
+        if not await self.node_info_update():
             _LOGGER.warning(
                 "Failed to load Circle+ node %s because it is not responding"
                 + " to information request",
@@ -94,10 +94,10 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             return False
         self._loaded = True
         self._load_features()
-        return await self.async_initialize()
+        return await self.initialize()
 
     @raise_not_loaded
-    async def async_initialize(self) -> bool:
+    async def initialize(self) -> bool:
         """Initialize node."""
         if self._initialized:
             return True
@@ -105,16 +105,16 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         if not self._available:
             self._initialized = False
             return False
-        if not self._calibration and not await self.async_calibration_update():
+        if not self._calibration and not await self.calibration_update():
             self._initialized = False
             return False
-        if not await self.async_realtime_clock_synchronize():
+        if not await self.realtime_clock_synchronize():
             self._initialized = False
             return False
         if (
             NodeFeature.RELAY_INIT in self._features and
             self._relay_init_state is None and
-            not await self.async_relay_init_update()
+            not await self.relay_init_update()
         ):
             self._initialized = False
             return False
@@ -132,7 +132,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             self._features += (NodeFeature.RELAY_INIT,)
         self._node_info.features = self._features
 
-    async def async_realtime_clock_synchronize(self) -> bool:
+    async def realtime_clock_synchronize(self) -> bool:
         """Synchronize realtime clock."""
         clock_response: CirclePlusRealTimeClockResponse | None = (
             await self._send(

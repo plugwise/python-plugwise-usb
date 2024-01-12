@@ -147,7 +147,7 @@ class StickNetwork():
     async def unregister_node(self, mac: str) -> None:
         """Unregister node from current Plugwise network."""
         await self._register.unregister_node(mac)
-        await self._nodes[mac].async_unload()
+        await self._nodes[mac].unload()
         self._nodes.pop(mac)
 
 # region - Handle stick connect/disconnect events
@@ -431,9 +431,9 @@ class StickNetwork():
         self._create_node_object(mac, address, node_type)
 
         # Forward received NodeInfoResponse message to node object
-        await self._nodes[mac].async_node_info_update(node_info)
+        await self._nodes[mac].node_info_update(node_info)
         if node_ping is not None:
-            await self._nodes[mac].async_ping_update(node_ping)
+            await self._nodes[mac].ping_update(node_ping)
         _LOGGER.debug("Publish NODE_DISCOVERED for %s", mac)
         await self._notify_node_event_subscribers(NodeEvent.DISCOVERED, mac)
 
@@ -460,7 +460,7 @@ class StickNetwork():
             return False
         if self._nodes[mac].loaded:
             return True
-        if await self._nodes[mac].async_load():
+        if await self._nodes[mac].load():
             await self._notify_node_event_subscribers(NodeEvent.LOADED, mac)
             return True
         return False
@@ -479,7 +479,7 @@ class StickNetwork():
         """Unload all nodes"""
         await gather(
             *[
-                node.async_unload()
+                node.unload()
                 for node in self._nodes.values()
             ]
         )
