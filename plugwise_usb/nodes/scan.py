@@ -108,17 +108,17 @@ class PlugwiseScan(NodeSED):
         self._available_update_state(True)
         if message.power_state.value == 0:
             # turn off => clear motion
-            await self.async_motion_state_update(False, message.timestamp)
+            await self.motion_state_update(False, message.timestamp)
         elif message.power_state.value == 1:
             # turn on => motion
-            await self.async_motion_state_update(True, message.timestamp)
+            await self.motion_state_update(True, message.timestamp)
         else:
             raise MessageError(
                 f"Unknown power_state '{message.power_state.value}' "
                 + f"received from {self.mac}"
             )
 
-    async def async_motion_state_update(
+    async def motion_state_update(
         self, motion_state: bool, timestamp: datetime | None = None
     ) -> None:
         """Process motion state update."""
