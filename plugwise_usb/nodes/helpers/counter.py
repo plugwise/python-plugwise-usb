@@ -104,7 +104,11 @@ class EnergyCounters:
         self, pulses_consumed: int, pulses_produced: int, timestamp: datetime
     ) -> None:
         """Add pulse statistics"""
-        _LOGGER.debug("add_pulse_stats | consumed=%s, for %s", str(pulses_consumed), self._mac)
+        _LOGGER.debug(
+            "add_pulse_stats | consumed=%s, for %s",
+            str(pulses_consumed),
+            self._mac,
+        )
         self._pulse_collection.update_pulse_counter(
             pulses_consumed, pulses_produced, timestamp
         )
@@ -279,10 +283,8 @@ class EnergyCounter:
         )
         calc_value = corrected_pulses / PULSES_PER_KW_SECOND / HOUR_IN_SECONDS
         # Fix minor miscalculations?
-        # if -0.001 < calc_value < 0.001:
-        #    calc_value = 0.0
-        if calc_value < 0:
-            calc_value = calc_value * -1
+        if -0.001 < calc_value < 0.001:
+            calc_value = 0.0
         return calc_value
 
     @property
@@ -318,7 +320,11 @@ class EnergyCounter:
         pulses, last_update = pulse_collection.collected_pulses(
             last_reset, self._is_consumption
         )
-        _LOGGER.debug("collected_pulses : pulses=%s | last_update=%s", pulses, last_update)
+        _LOGGER.debug(
+            "collected_pulses : pulses=%s | last_update=%s",
+            pulses,
+            last_update,
+        )
         if pulses is None or last_update is None:
             return (None, None)
         self._last_update = last_update
