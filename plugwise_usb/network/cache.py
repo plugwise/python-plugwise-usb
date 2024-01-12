@@ -109,41 +109,41 @@ class NetworkRegistrationCache:
                 "Failed to read cache file %s", str(self._cache_file)
             )
             return False
-        else:
-            self._registrations = {}
-            for line in lines:
-                data = line.strip().split(CACHE_SEPARATOR)
-                if len(data) != 3:
+
+        self._registrations = {}
+        for line in lines:
+            data = line.strip().split(CACHE_SEPARATOR)
+            if len(data) != 3:
+                _LOGGER.warning(
+                    "Skip invalid line '%s' in cache file %s",
+                    line,
+                    self._cache_file.name,
+                )
+                break
+            address = int(data[0])
+            mac = data[1]
+            node_type: NodeType | None = None
+            if data[2] != "":
+                try:
+                    node_type = NodeType[data[2][9:]]
+                except KeyError:
                     _LOGGER.warning(
-                        "Skip invalid line '%s' in cache file %s",
+                        "Skip invalid NodeType '%s' " +
+                        "in data '%s' in cache file '%s'",
+                        data[2][9:],
                         line,
                         self._cache_file.name,
                     )
                     break
-                address = int(data[0])
-                mac = data[1]
-                node_type: NodeType | None = None
-                if data[2] != "":
-                    try:
-                        node_type = NodeType[data[2][9:]]
-                    except KeyError:
-                        _LOGGER.warning(
-                            "Skip invalid NodeType '%s' " +
-                            "in data '%s' in cache file '%s'",
-                            data[2][9:],
-                            line,
-                            self._cache_file.name,
-                        )
-                        break
-                self._registrations[address] = (mac, node_type)
-                _LOGGER.debug(
-                    "Restore registry address %s with mac %s " +
-                    "with node type %s",
-                    address,
-                    mac if mac != "" else "<empty>",
-                    str(node_type),
-                )
-            return True
+            self._registrations[address] = (mac, node_type)
+            _LOGGER.debug(
+                "Restore registry address %s with mac %s " +
+                "with node type %s",
+                address,
+                mac if mac != "" else "<empty>",
+                str(node_type),
+            )
+        return True
 
     async def async_delete_cache_file(self) -> None:
         """Delete cache file"""
