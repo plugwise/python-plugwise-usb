@@ -79,7 +79,7 @@ class NodeCache:
     async def clear_cache(self) -> None:
         """Clear current cache."""
         self._states = {}
-        await self.async_delete_cache_file()
+        await self.delete_cache_file()
 
     async def restore_cache(self) -> bool:
         """Load the previously store state information."""
@@ -114,7 +114,7 @@ class NodeCache:
             )
         return True
 
-    async def async_delete_cache_file(self) -> None:
+    async def delete_cache_file(self) -> None:
         """Delete cache file"""
         if self._cache_file is None:
             return
