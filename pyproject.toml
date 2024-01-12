@@ -27,15 +27,12 @@ maintainers = [
         { name = "brefra"},
         { name = "CoMPaTech" }
 ]
-requires-python = ">=3.9.0"
+requires-python = ">=3.11.0"
 dependencies    = [
-        "aiohttp",
+        "pyserial-asyncio",
         "async_timeout",
+        "aiofiles",
         "crcmod",
-        "defusedxml",
-        "munch",
-        "pyserial",
-        "python-dateutil",
         "semver",
 ]
 
@@ -49,6 +46,11 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 include = ["plugwise_usb*"]
+
+[tool.black]
+target-version = ["py311"]
+exclude = 'generated'
+line-length = 79
 
 [tool.isort]
 # https://github.com/PyCQA/isort/wiki/isort-Settings
@@ -185,7 +187,7 @@ norecursedirs = [
 [tool.mypy]
 python_version = "3.11"
 show_error_codes = true
-follow_imports = "silent"
+follow_imports = "skip"
 ignore_missing_imports = true
 strict_equality = true
 warn_incomplete_stub = true
@@ -203,7 +205,9 @@ no_implicit_optional = true
 strict = true
 warn_return_any = true
 warn_unreachable = true
-exclude = []
+exclude = [
+    "tests/test_usb.py"
+]
 
 [tool.coverage.run]
 source = [ "plugwise_usb" ]
