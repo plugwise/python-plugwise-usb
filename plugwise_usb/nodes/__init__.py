@@ -493,15 +493,14 @@ class PlugwiseNode(NodePublisher, ABC):
             if self._node_info.version != hardware:
                 self._node_info.version = hardware
                 # Generate modelname based on hardware version
-                hardware_model = version_to_model(hardware)
-                if hardware_model == "Unknown":
+                self._node_info.model = version_to_model(hardware)
+                if self._node_info.model == "Unknown":
                     _LOGGER.warning(
                         "Failed to detect hardware model for %s based on '%s'",
                         self.mac,
                         hardware,
                     )
-                self._node_info.model = hardware_model
-                if hardware_model is not None:
+                if self._node_info.model is not None:
                     self._node_info.name = str(self._node_info.mac[-5:])
             self._set_cache("hardware", hardware)
         if timestamp is None:
@@ -540,16 +539,16 @@ class PlugwiseNode(NodePublisher, ABC):
             )
             self._available_update_state(False)
             return False
-        else:
-            if ping_response is None:
-                _LOGGER.info(
-                    "No response to ping for %s",
-                    self.mac
-                )
-                self._available_update_state(False)
-                return False
-            await self.async_ping_update(ping_response)
-            return True
+
+        if ping_response is None:
+            _LOGGER.info(
+                "No response to ping for %s",
+                self.mac
+            )
+            self._available_update_state(False)
+            return False
+        await self.async_ping_update(ping_response)
+        return True
 
     async def async_ping_update(
         self, ping_response: NodePingResponse | None = None, retries: int = 0
