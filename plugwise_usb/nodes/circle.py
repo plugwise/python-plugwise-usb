@@ -439,6 +439,7 @@ class PlugwiseCircle(PlugwiseNode):
                 else:
                     _LOGGER.info(
                         "_collect_energy_pulses ignoring negative _mem_address %s",
+                        str(_mem_address),
                     )
 
 
