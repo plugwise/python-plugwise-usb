@@ -151,7 +151,7 @@ class CircleClockSetRequest(NodeRequest):
 
     ID = b"0016"
 
-    def __init__(self, mac, dt):
+    def __init__(self, mac, dt, reset=False):
         super().__init__(mac)
         passed_days = dt.day - 1
         month_minutes = (passed_days * 24 * 60) + (dt.hour * 60) + dt.minute
@@ -159,7 +159,10 @@ class CircleClockSetRequest(NodeRequest):
         this_time = Time(dt.hour, dt.minute, dt.second)
         day_of_week = Int(dt.weekday(), 2)
         # FIXME: use LogAddr instead
-        log_buf_addr = String("FFFFFFFF", 8)
+        if reset:
+            log_buf_addr = String("00044000", 8)
+        else:
+            log_buf_addr = String("FFFFFFFF", 8)
         self.args += [this_date, log_buf_addr, this_time, day_of_week]
 
 

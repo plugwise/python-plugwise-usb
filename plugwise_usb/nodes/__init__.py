@@ -63,16 +63,16 @@ class PlugwiseNode:
         if state:
             if not self._available:
                 self._available = True
-                _LOGGER.debug(
-                    "Mark node %s available",
+                _LOGGER.info(
+                    "Marking node %s available",
                     self.mac,
                 )
                 self.do_callback(FEATURE_AVAILABLE["id"])
         else:
             if self._available:
                 self._available = False
-                _LOGGER.debug(
-                    "Mark node %s unavailable",
+                _LOGGER.info(
+                    "Marking node %s unavailable",
                     self.mac,
                 )
                 self.do_callback(FEATURE_AVAILABLE["id"])

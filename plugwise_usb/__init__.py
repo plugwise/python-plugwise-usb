@@ -598,29 +598,19 @@ class Stick:
         """
         self._run_update_thread = True
         _discover_counter = 0
-        _sync_clock = False
-        day_of_month = datetime.now().day
         try:
             while self._run_update_thread:
-                if datetime.now().day != day_of_month:
-                    day_of_month = datetime.now().day
-                    _sync_clock = True
                 for mac, device in self._device_nodes.items():
                     if device:
                         if device.battery_powered:
                             # Check availability state of SED's
                             self._check_availability_of_seds(mac)
+                        elif device.measures_power:
+                            # Request current power usage of those that reply on ping
+                            device.do_ping(device.request_power_update)
                         else:
                             # Do ping request for all non SED's
                             device.do_ping()
-
-                        if device.measures_power:
-                            # Request current power usage
-                            device.request_power_update()
-                            # Sync internal clock of power measure nodes once a day
-                            if _sync_clock:
-                                device.sync_clock()
-                _sync_clock = False
 
                 # Do a single ping for undiscovered nodes once per 10 update cycles
                 if _discover_counter == 10:
