@@ -438,10 +438,7 @@ class PlugwiseCircle(PlugwiseNode):
                         self._energy_history_failed_address.append(_mem_address)
                 else:
                     _LOGGER.info(
-                        "_collect_energy_pulses ignoring negative _mem_address",
-                        str(self.mac),
-                        str(_log_timestamp),
-                        str(_mem_address),
+                        "_collect_energy_pulses ignoring negative _mem_address %s",
                     )
 
 
