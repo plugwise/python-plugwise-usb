@@ -264,14 +264,14 @@ class Stick:
         self, discover: bool = True, load: bool = True
     ) -> None:
         """Setup connection to USB-Stick."""
-        await self.connect_to_stick()
-        await self.initialize_stick()
+        await self.connect()
+        await self.initialize()
         if discover:
             await self.start_network()
         if load:
             await self.load_nodes()
 
-    async def connect_to_stick(self, port: str | None = None) -> None:
+    async def connect(self, port: str | None = None) -> None:
         """
         Try to open connection. Does not initialize connection.
         Raises StickError if failed to create connection.
@@ -281,7 +281,6 @@ class Stick:
                 f"Already connected to {self._port}, " +
                 "Close existing connection before (re)connect."
             )
-
         if port is not None:
             self._port = port
 
@@ -295,7 +294,7 @@ class Stick:
         )
 
     @raise_not_connected
-    async def initialize_stick(self) -> None:
+    async def initialize(self) -> None:
         """
         Try to initialize existing connection to USB-Stick.
         Raises StickError if failed to communicate with USB-stick.
@@ -356,7 +355,7 @@ class Stick:
             return
         await self._network.unregister_node(mac)
 
-    async def disconnect_from_stick(self) -> None:
+    async def disconnect(self) -> None:
         """Disconnect from USB-Stick."""
         if self._network is not None:
             await self._network.stop()
