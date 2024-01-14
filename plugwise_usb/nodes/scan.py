@@ -3,11 +3,12 @@
 from __future__ import annotations
 from asyncio import create_task
 
-from datetime import datetime, UTC
+from datetime import datetime
 import logging
 from typing import Any, Final
 
 from .helpers import raise_not_loaded
+from .helpers.firmware import SCAN_FIRMWARE_SUPPORT
 from ..api import NodeFeature
 from ..constants import MotionSensitivity
 from ..exceptions import MessageError, NodeError, NodeTimeout
@@ -35,30 +36,6 @@ SCAN_SENSITIVITY = MotionSensitivity.MEDIUM
 # Light override
 SCAN_DAYLIGHT_MODE: Final = False
 
-# Minimum and maximum supported (custom) zigbee protocol version based on
-# utc timestamp of firmware extracted from "Plugwise.IO.dll" file of Plugwise
-# source installation
-SCAN_FIRMWARE: Final = {
-    datetime(2010, 11, 4, 16, 58, 46, tzinfo=UTC): (
-        "2.0",
-        "2.6",
-    ),  # Beta Scan Release
-    datetime(2011, 1, 12, 8, 32, 56, tzinfo=UTC): (
-        "2.0",
-        "2.5",
-    ),  # Beta Scan Release
-    datetime(2011, 3, 4, 14, 43, 31, tzinfo=UTC): ("2.0", "2.5"),  # Scan RC1
-    datetime(2011, 3, 28, 9, 0, 24, tzinfo=UTC): ("2.0", "2.5"),
-    datetime(2011, 5, 13, 7, 21, 55, tzinfo=UTC): ("2.0", "2.5"),
-    datetime(2011, 11, 3, 13, 0, 56, tzinfo=UTC): ("2.0", "2.6"),  # Legrand
-    datetime(2011, 6, 27, 8, 55, 44, tzinfo=UTC): ("2.0", "2.5"),
-    datetime(2017, 7, 11, 16, 8, 3, tzinfo=UTC): (
-        "2.0",
-        "2.6",
-    ),  # New Flash Update
-}
-SCAN_FEATURES: Final = (NodeFeature.INFO, NodeFeature.MOTION)
-
 
 class PlugwiseScan(NodeSED):
     """provides interface to the Plugwise Scan nodes"""
@@ -74,7 +51,10 @@ class PlugwiseScan(NodeSED):
             )
             if await self._load_from_cache():
                 self._loaded = True
-                self._load_features()
+                self._setup_protocol(
+                    SCAN_FIRMWARE_SUPPORT,
+                    (NodeFeature.INFO, NodeFeature.MOTION),
+                )
                 return await self.initialize()
 
         _LOGGER.debug("Load of Scan node %s failed", self._node_info.mac)
@@ -198,12 +178,6 @@ class PlugwiseScan(NodeSED):
         ):
             return True
         return False
-
-    def _load_features(self) -> None:
-        """Enable additional supported feature(s)"""
-        self._setup_protocol(SCAN_FIRMWARE)
-        self._features += SCAN_FEATURES
-        self._node_info.features = self._features
 
     async def get_state(
         self, features: tuple[NodeFeature]

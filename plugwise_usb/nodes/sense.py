@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from asyncio import create_task
 from collections.abc import Callable
-from datetime import datetime, UTC
 import logging
 from typing import Any, Final
 
 from .helpers import raise_not_loaded
+from .helpers.firmware import SENSE_FIRMWARE_SUPPORT
 from ..api import NodeFeature
 from ..exceptions import NodeError
 from ..messages.responses import SENSE_REPORT_ID, SenseReportResponse
@@ -22,43 +22,6 @@ SENSE_HUMIDITY_OFFSET: Final = 6
 SENSE_TEMPERATURE_MULTIPLIER: Final = 175.72
 SENSE_TEMPERATURE_OFFSET: Final = 46.85
 
-# Minimum and maximum supported (custom) zigbee protocol version based
-# on utc timestamp of firmware
-# Extracted from "Plugwise.IO.dll" file of Plugwise source installation
-SENSE_FIRMWARE: Final = {
-
-    # pre - internal test release - fixed version
-    datetime(2010, 12, 3, 10, 17, 7): (
-        "2.0",
-        "2.5",
-    ),
-
-    # Proto release, with reset and join bug fixed
-    datetime(2011, 1, 11, 14, 19, 36): (
-        "2.0",
-        "2.5",
-    ),
-
-    datetime(2011, 3, 4, 14, 52, 30, tzinfo=UTC): ("2.0", "2.5"),
-    datetime(2011, 3, 25, 17, 43, 2, tzinfo=UTC): ("2.0", "2.5"),
-    datetime(2011, 5, 13, 7, 24, 26, tzinfo=UTC): ("2.0", "2.5"),
-    datetime(2011, 6, 27, 8, 58, 19, tzinfo=UTC): ("2.0", "2.5"),
-
-    # Legrand
-    datetime(2011, 11, 3, 13, 7, 33, tzinfo=UTC): ("2.0", "2.6"),
-
-    # Radio Test
-    datetime(2012, 4, 19, 14, 10, 48, tzinfo=UTC): (
-        "2.0",
-        "2.5",
-    ),
-
-    # New Flash Update
-    datetime(2017, 7, 11, 16, 9, 5, tzinfo=UTC): (
-        "2.0",
-        "2.6",
-    ),
-}
 SENSE_FEATURES: Final = (
     NodeFeature.INFO,
     NodeFeature.TEMPERATURE,
@@ -82,7 +45,14 @@ class PlugwiseSense(NodeSED):
             )
             if await self._load_from_cache():
                 self._loaded = True
-                self._load_features()
+                self._setup_protocol(
+                    SENSE_FIRMWARE_SUPPORT,
+                    (
+                        NodeFeature.INFO,
+                        NodeFeature.TEMPERATURE,
+                        NodeFeature.HUMIDITY
+                    ),
+                )
                 return True
 
         _LOGGER.debug("Load of Sense node %s failed", self._node_info.mac)
@@ -102,12 +72,6 @@ class PlugwiseSense(NodeSED):
         )
         self._initialized = True
         return True
-
-    def _load_features(self) -> None:
-        """Enable additional supported feature(s)"""
-        self._setup_protocol(SENSE_FIRMWARE)
-        self._features += SENSE_FEATURES
-        self._node_info.features = self._features
 
     async def unload(self) -> None:
         """Unload node."""
