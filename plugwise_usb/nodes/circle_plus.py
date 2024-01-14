@@ -113,11 +113,16 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             return False
         if (
             NodeFeature.RELAY_INIT in self._features and
-            self._relay_init_state is None and
-            not await self.relay_init_update()
+            self._relay_init_state is None
         ):
-            self._initialized = False
-            return False
+            if (state := await self.relay_init_get()) is not None:
+                self._relay_init_state = state
+            else:
+                _LOGGER.debug(
+                    "Failed to initialized node %s, relay init",
+                    self.mac
+                )
+                return False
         self._initialized = True
         return True
 
