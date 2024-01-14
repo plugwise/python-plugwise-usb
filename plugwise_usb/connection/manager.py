@@ -4,7 +4,7 @@ towards the Plugwise (propriety) Zigbee like network.
 """
 from __future__ import annotations
 
-from asyncio import Future, get_event_loop, wait_for, sleep
+from asyncio import Future, gather, get_event_loop, wait_for
 from collections.abc import Awaitable, Callable
 import logging
 from typing import Any
@@ -14,7 +14,7 @@ from serial import SerialException
 import serial_asyncio
 
 from .sender import StickSender
-from .receiver import STICK_RECEIVER_EVENTS, StickReceiver
+from .receiver import StickReceiver
 from ..api import StickEvent
 from ..exceptions import StickError
 from ..messages.requests import PlugwiseRequest
@@ -37,6 +37,7 @@ class StickConnectionManager():
             Callable[[], None],
             tuple[Callable[[StickEvent], Awaitable[None]], StickEvent | None]
         ] = {}
+        self._unsubscribe_stick_events: Callable[[], None] | None = None
 
     @property
     def serial_path(self) -> str:
@@ -52,10 +53,33 @@ class StickConnectionManager():
             return False
         return self._receiver.is_connected
 
+    def _subscribe_to_stick_events(self) -> None:
+        """Subscribe to handle stick events by manager"""
+        if not self.is_connected:
+            raise StickError("Unable to subscribe to events")
+        if self._unsubscribe_stick_events is None:
+            self._unsubscribe_stick_events = (
+                self._receiver.subscribe_to_stick_events(
+                    self._handle_stick_event,
+                    (StickEvent.CONNECTED, StickEvent.DISCONNECTED)
+                )
+            )
+
+    async def _handle_stick_event(
+        self,
+        event: StickEvent,
+    ) -> None:
+        """Call callback for stick event subscribers"""
+        callback_list: list[Callable] = []
+        for callback, filtered_event in self._stick_event_subscribers.values():
+            if filtered_event is None or filtered_event == event:
+                callback_list.append(callback(event))
+        await gather(*callback_list)
+
     def subscribe_to_stick_events(
         self,
         stick_event_callback: Callable[[StickEvent], Awaitable[None]],
-        event: StickEvent | None,
+        events: tuple[StickEvent],
     ) -> Callable[[], None]:
         """
         Subscribe callback when specified StickEvent occurs.
@@ -65,13 +89,9 @@ class StickConnectionManager():
             """Remove stick event subscription."""
             self._stick_event_subscribers.pop(remove_subscription)
 
-        if event in STICK_RECEIVER_EVENTS:
-            return self._receiver.subscribe_to_stick_events(
-                stick_event_callback, event
-            )
         self._stick_event_subscribers[
             remove_subscription
-        ] = (stick_event_callback, event)
+        ] = (stick_event_callback, events)
         return remove_subscription
 
     def subscribe_to_stick_replies(
@@ -147,9 +167,12 @@ class StickConnectionManager():
             connected_future.cancel()
         await sleep(0)
         await wait_for(connected_future, 5)
-        self._connected = True
         if self._receiver is None:
             raise StickError("Protocol is not loaded")
+        if await wait_for(connected_future, 5):
+            await self._handle_stick_event(StickEvent.CONNECTED)
+        self._connected = True
+        self._subscribe_to_stick_events()
 
     async def write_to_stick(
         self, request: PlugwiseRequest
@@ -174,6 +197,9 @@ class StickConnectionManager():
     async def disconnect_from_stick(self) -> None:
         """Disconnect from USB-Stick."""
         _LOGGER.debug("Disconnecting manager")
+        if self._unsubscribe_stick_events is not None:
+            self._unsubscribe_stick_events()
+            self._unsubscribe_stick_events = None
         self._connected = False
         if self._receiver is not None:
             await self._receiver.close()
