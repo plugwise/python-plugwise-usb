@@ -22,13 +22,12 @@ from asyncio import (
     gather,
     Lock,
     Protocol,
-    Transport,
     get_running_loop,
 )
+from serial_asyncio import SerialTransport
 from collections.abc import Awaitable, Callable
 from concurrent import futures
 import logging
-from typing import Any
 
 from ..api import StickEvent
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER
@@ -61,7 +60,7 @@ class StickReceiver(Protocol):
         super().__init__()
         self._loop = get_running_loop()
         self._connected_future = connected_future
-        self._transport: Transport | None = None
+        self._transport: SerialTransport | None = None
         self._buffer: bytes = bytes([])
         self._connection_state = False
 
@@ -110,7 +109,7 @@ class StickReceiver(Protocol):
         """Return current connection state of the USB-Stick."""
         return self._connection_state
 
-    def connection_made(self, transport: Any) -> None:
+    def connection_made(self, transport: SerialTransport) -> None:
         """Call when the serial connection to USB-Stick is established."""
         _LOGGER.debug("Connection made")
         self._transport = transport
