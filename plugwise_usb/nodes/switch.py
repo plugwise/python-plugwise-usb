@@ -3,50 +3,16 @@
 from __future__ import annotations
 from collections.abc import Callable
 
-from datetime import datetime, UTC
 import logging
-from typing import Final
 
 from .helpers import raise_not_loaded
+from .helpers.firmware import SWITCH_FIRMWARE_SUPPORT
 from ..api import NodeFeature
 from ..exceptions import MessageError
 from ..messages.responses import NODE_SWITCH_GROUP_ID, NodeSwitchGroupResponse
 from ..nodes.sed import NodeSED
 
 _LOGGER = logging.getLogger(__name__)
-
-# Minimum and maximum supported (custom) zigbee protocol version based
-# on utc timestamp of firmware
-# Extracted from "Plugwise.IO.dll" file of Plugwise source installation
-SWITCH_FIRMWARE: Final = {
-    datetime(2009, 9, 8, 14, 7, 4, tzinfo=UTC): ("2.0", "2.4"),
-    datetime(2010, 1, 16, 14, 7, 13, tzinfo=UTC): ("2.0", "2.4"),
-    datetime(2010, 4, 27, 11, 59, 31, tzinfo=UTC): ("2.0", "2.4"),
-    datetime(2010, 8, 4, 14, 15, 25, tzinfo=UTC): ("2.0", "2.4"),
-    datetime(2010, 8, 17, 7, 44, 24, tzinfo=UTC): ("2.0", "2.4"),
-    datetime(2010, 8, 31, 10, 23, 32, tzinfo=UTC): ("2.0", "2.4"),
-    datetime(2010, 10, 7, 14, 29, 55, tzinfo=UTC): ("2.0", "2.4"),
-    datetime(2010, 11, 1, 13, 41, 30, tzinfo=UTC): ("2.0", "2.4"),
-    datetime(2011, 3, 25, 17, 46, 41, tzinfo=UTC): ("2.0", "2.5"),
-    datetime(2011, 5, 13, 7, 26, 54, tzinfo=UTC): ("2.0", "2.5"),
-    datetime(2011, 6, 27, 9, 4, 10, tzinfo=UTC): ("2.0", "2.5"),
-
-    # Legrand
-    datetime(2011, 11, 3, 13, 10, 18, tzinfo=UTC): ("2.0", "2.6"),
-
-    # Radio Test
-    datetime(2012, 4, 19, 14, 10, 48, tzinfo=UTC): (
-        "2.0",
-        "2.5",
-    ),
-
-    # New Flash Update
-    datetime(2017, 7, 11, 16, 11, 10, tzinfo=UTC): (
-        "2.0",
-        "2.6",
-    ),
-}
-SWITCH_FEATURES: Final = (NodeFeature.INFO, NodeFeature.SWITCH)
 
 
 class PlugwiseSwitch(NodeSED):
@@ -66,7 +32,10 @@ class PlugwiseSwitch(NodeSED):
             )
             if await self._load_from_cache():
                 self._loaded = True
-                self._load_features()
+                self._setup_protocol(
+                    SWITCH_FIRMWARE_SUPPORT,
+                    (NodeFeature.INFO, NodeFeature.SWITCH),
+                )
                 return True
 
         _LOGGER.debug("Load of Switch node %s failed", self._node_info.mac)
@@ -87,12 +56,6 @@ class PlugwiseSwitch(NodeSED):
         )
         self._initialized = True
         return True
-
-    def _load_features(self) -> None:
-        """Enable additional supported feature(s)"""
-        self._setup_protocol(SWITCH_FIRMWARE)
-        self._features += SWITCH_FEATURES
-        self._node_info.features = self._features
 
     async def unload(self) -> None:
         """Unload node."""

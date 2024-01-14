@@ -31,6 +31,7 @@ from ..util import version_to_model
 from .helpers.cache import NodeCache
 from .helpers.counter import EnergyCalibration, EnergyCounters
 from .helpers.subscription import NodePublisher
+from .helpers.firmware import FEATURE_SUPPORTED_AT_FIRMWARE, SupportedVersions
 
 _LOGGER = logging.getLogger(__name__)
 NODE_FEATURES = (
@@ -73,7 +74,7 @@ class PlugwiseNode(NodePublisher, ABC):
         self._connected: bool = False
         self._initialized: bool = False
         self._loaded: bool = False
-        self._node_protocols: tuple[str, str] | None = None
+        self._node_protocols: SupportedVersions | None = None
         self._node_last_online: datetime | None = None
 
         # Motion
@@ -272,20 +273,33 @@ class PlugwiseNode(NodePublisher, ABC):
         raise NotImplementedError()
 
     def _setup_protocol(
-        self, firmware: dict[datetime, tuple[str, str]]
+        self,
+        firmware: dict[datetime, SupportedVersions],
+        node_features: tuple[NodeFeature],
     ) -> None:
-        """Extract protocol version from firmware version"""
-        if self._node_info.firmware is not None:
-            self._node_protocols = firmware.get(self._node_info.firmware, None)
-            if self._node_protocols is None:
-                _LOGGER.warning(
-                    "Failed to determine the protocol version for node %s (%s)"
-                    + " based on firmware version %s of list %s",
-                    self._node_info.mac,
-                    self.__class__.__name__,
-                    self._node_info.firmware,
-                    str(firmware.keys()),
-                )
+        """
+        Determine protocol version based on firmware version
+        and enable supported additional supported features
+        """
+        if self._node_info.firmware is None:
+            return
+        self._node_protocols = firmware.get(self._node_info.firmware, None)
+        if self._node_protocols is None:
+            _LOGGER.warning(
+                "Failed to determine the protocol version for node %s (%s)"
+                + " based on firmware version %s of list %s",
+                self._node_info.mac,
+                self.__class__.__name__,
+                self._node_info.firmware,
+                str(firmware.keys()),
+            )
+            return
+        for feature in node_features:
+            if (
+                required_version := FEATURE_SUPPORTED_AT_FIRMWARE.get(feature)
+            ) is not None:
+                if required_version <= self._node_protocols.min:
+                    self._features += feature
 
     async def reconnect(self) -> None:
         """Reconnect node to Plugwise Zigbee network."""
