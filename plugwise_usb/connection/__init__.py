@@ -134,11 +134,11 @@ class StickController():
     async def _handle_stick_event(self, event: StickEvent) -> None:
         """Handle stick events"""
         if event == StickEvent.CONNECTED:
-            if not self._queue.running:
+            if not self._queue.is_running:
                 self._queue.start(self._manager)
                 await self.initialize_stick()
         elif event == StickEvent.DISCONNECTED:
-            if self._queue.running:
+            if self._queue.is_running:
                 await self._queue.stop()
 
     async def initialize_stick(self) -> None:
@@ -150,7 +150,7 @@ class StickController():
             raise StickError(
                 "Cannot initialize USB-stick, connected to USB-stick first"
             )
-        if not self._queue.running:
+        if not self._queue.is_running:
             raise StickError("Cannot initialize, queue manager not running")
 
         try:
