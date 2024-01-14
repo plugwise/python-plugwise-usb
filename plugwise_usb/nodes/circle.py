@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime, UTC, timedelta
 from functools import wraps
 import logging
-from typing import Any, Final, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from ..api import NodeFeature
 from ..constants import (
@@ -18,6 +18,7 @@ from ..constants import (
     UTF8,
 )
 from .helpers import EnergyCalibration, raise_not_loaded
+from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
 from .helpers.pulses import PulseLogRecord
 from ..exceptions import NodeError
 from ..messages.requests import (
@@ -49,53 +50,6 @@ from ..nodes import (
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 _LOGGER = logging.getLogger(__name__)
-
-# Minimum and maximum supported (custom) zigbee protocol version based
-# on utc timestamp of firmware
-# Extracted from "Plugwise.IO.dll" file of Plugwise source installation
-CIRCLE_FEATURES: Final = (
-    NodeFeature.ENERGY,
-    NodeFeature.INFO,
-    NodeFeature.POWER,
-    NodeFeature.RELAY,
-)
-CIRCLE_FIRMWARE: Final = {
-    datetime(2008, 8, 26, 15, 46, tzinfo=UTC): ("1.0", "1.1"),
-    datetime(2009, 9, 8, 13, 50, 31, tzinfo=UTC): ("2.0", "2.4"),
-    datetime(2010, 4, 27, 11, 56, 23, tzinfo=UTC): ("2.0", "2.4"),
-    datetime(2010, 8, 4, 14, 9, 6, tzinfo=UTC): ("2.0", "2.4"),
-    datetime(2010, 8, 17, 7, 40, 37, tzinfo=UTC): ("2.0", "2.4"),
-    datetime(2010, 8, 31, 5, 55, 19, tzinfo=UTC): ("2.0", "2.5"),
-    datetime(2010, 8, 31, 10, 21, 2, tzinfo=UTC): ("2.0", "2.4"),
-    datetime(2010, 10, 7, 14, 46, 38, tzinfo=UTC): ("2.0", "2.4"),
-    datetime(2010, 11, 1, 13, 29, 38, tzinfo=UTC): ("2.0", "2.4"),
-    datetime(2011, 3, 25, 17, 40, 20, tzinfo=UTC): ("2.0", "2.5"),
-    datetime(2011, 5, 13, 7, 19, 23, tzinfo=UTC): ("2.0", "2.5"),
-    datetime(2011, 6, 27, 8, 52, 18, tzinfo=UTC): ("2.0", "2.5"),
-    # Legrand
-    datetime(2011, 11, 3, 12, 57, 57, tzinfo=UTC): ("2.0", "2.6"),
-    # Radio Test
-    datetime(2012, 4, 19, 14, 0, 42, tzinfo=UTC): ("2.0", "2.5"),
-    # Beta release
-    datetime(2015, 6, 18, 14, 42, 54, tzinfo=UTC): (
-        "2.0",
-        "2.6",
-    ),
-    # Proto release
-    datetime(2015, 6, 16, 21, 9, 10, tzinfo=UTC): (
-        "2.0",
-        "2.6",
-    ),
-    datetime(2015, 6, 18, 14, 0, 54, tzinfo=UTC): (
-        "2.0",
-        "2.6",
-    ),
-    # New Flash Update
-    datetime(2017, 7, 11, 16, 6, 59, tzinfo=UTC): (
-        "2.0",
-        "2.6",
-    ),
-}
 
 
 def raise_calibration_missing(func: FuncT) -> FuncT:
@@ -747,7 +701,9 @@ class PlugwiseCircle(PlugwiseNode):
             )
             if await self._load_from_cache():
                 self._loaded = True
-                self._load_features()
+                self._setup_protocol(
+                    CIRCLE_FIRMWARE_SUPPORT, (NodeFeature.RELAY_INIT,)
+                )
                 return await self.initialize()
             _LOGGER.warning(
                 "Load Circle node %s from cache failed",
@@ -773,7 +729,9 @@ class PlugwiseCircle(PlugwiseNode):
             )
             return False
         self._loaded = True
-        self._load_features()
+        self._setup_protocol(
+            CIRCLE_FIRMWARE_SUPPORT, (NodeFeature.RELAY_INIT,)
+        )
         return await self.initialize()
 
     async def _load_from_cache(self) -> bool:
@@ -854,20 +812,7 @@ class PlugwiseCircle(PlugwiseNode):
                 )
                 self._initialized = False
                 return False
-            else:
-                self._relay_init_state = state
         return True
-
-    def _load_features(self) -> None:
-        """Enable additional supported feature(s)"""
-        self._setup_protocol(CIRCLE_FIRMWARE)
-        self._features += CIRCLE_FEATURES
-        if (
-            self._node_protocols is not None and
-            "2.6" in self._node_protocols
-        ):
-            self._features += (NodeFeature.RELAY_INIT,)
-        self._node_info.features = self._features
 
     async def node_info_update(
         self, node_info: NodeInfoResponse | None = None
