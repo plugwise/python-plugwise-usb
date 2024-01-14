@@ -11,10 +11,12 @@ from asyncio import (
     get_running_loop,
     sleep,
 )
+from collections.abc import Callable
 from dataclasses import dataclass
 import logging
 
 from .manager import StickConnectionManager
+from ..api import StickEvent
 from ..exceptions import StickError
 from ..messages.requests import PlugwiseRequest
 from ..messages.responses import PlugwiseResponse
@@ -38,6 +40,7 @@ class StickQueue:
         self._loop = get_running_loop()
         self._queue: PriorityQueue[PlugwiseRequest] = PriorityQueue()
         self._submit_worker_task: Task | None = None
+        self._unsubscribe_connection_events: Callable[[], None] | None = None
         self._running = False
 
     @property
@@ -53,10 +56,27 @@ class StickQueue:
         if self._running:
             raise StickError("Cannot start queue manager, already running")
         self._stick = stick_connection_manager
+        if self._stick.is_connected:
+            self._running = True
+        self._unsubscribe_connection_events = (
+            self._stick.subscribe_to_stick_events(
+                self._handle_stick_event,
+                (StickEvent.CONNECTED, StickEvent.DISCONNECTED)
+            )
+        )
+
+    async def _handle_stick_event(self, event: StickEvent) -> None:
+        """Handle events from stick"""
+        if event is StickEvent.CONNECTED:
+            self._running = True
+        elif event is StickEvent.DISCONNECTED:
+            self._running = False
 
     async def stop(self) -> None:
         """Stop sending from queue."""
         _LOGGER.debug("Stop queue")
+        if self._unsubscribe_connection_events is not None:
+            self._unsubscribe_connection_events()
         self._running = False
         self._stick = None
         if (
