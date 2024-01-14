@@ -41,7 +41,7 @@ class StickQueue:
         self._running = False
 
     @property
-    def running(self) -> bool:
+    def is_running(self) -> bool:
         """Return the state of the queue"""
         return self._running
 
