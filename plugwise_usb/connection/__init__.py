@@ -25,11 +25,7 @@ class StickController():
         """Initialize Stick controller."""
         self._manager = StickConnectionManager()
         self._queue = StickQueue()
-        self._unsubscribe_stick_event = (
-            self._manager.subscribe_to_stick_events(
-                self._handle_stick_event, None
-            )
-        )
+        self._unsubscribe_stick_event: Callable[[], None] | None = None
 
         self._init_sequence_id: bytes | None = None
         self._init_future: futures.Future | None = None
@@ -103,7 +99,16 @@ class StickController():
 
     async def connect_to_stick(self, serial_path: str) -> None:
         """Setup connection to USB stick."""
+        if self._manager.is_connected:
+            raise StickError("Already connected")
         await self._manager.setup_connection_to_stick(serial_path)
+        if self._unsubscribe_stick_event is None:
+            self._unsubscribe_stick_event = (
+                self._manager.subscribe_to_stick_events(
+                    self._handle_stick_event, None
+                )
+            )
+        self._queue.start(self._manager)
 
     def subscribe_to_stick_events(
         self,
@@ -114,6 +119,8 @@ class StickController():
         Subscribe callback when specified StickEvent occurs.
         Returns the function to be called to unsubscribe later.
         """
+        if self._manager is None:
+            raise StickError("Connect to stick before subscribing to events")
         return self._manager.subscribe_to_stick_events(
             stick_event_callback,
             events,
@@ -183,4 +190,7 @@ class StickController():
 
     async def disconnect_from_stick(self) -> None:
         """Disconnect from USB-Stick."""
+        if self._unsubscribe_stick_event is not None:
+            self._unsubscribe_stick_event()
+            self._unsubscribe_stick_event = None
         await self._manager.disconnect_from_stick()
