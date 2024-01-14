@@ -161,7 +161,7 @@ class StickController():
             raise StickError("Cannot initialize, queue manager not running")
 
         try:
-            init_response: StickInitResponse = self._queue.submit(
+            init_response: StickInitResponse = await self._queue.submit(
                 StickInitRequest()
             )
         except StickError as err:
