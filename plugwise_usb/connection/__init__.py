@@ -177,6 +177,7 @@ class StickController():
         # Replace first 2 characters by 00 for mac of circle+ node
         self._mac_nc = init_response.mac_network_controller
         self._network_id = init_response.network_id
+        self._is_initialized = True
 
     async def send(self, request: PlugwiseRequest) -> PlugwiseResponse:
         """Submit request to queue and return response"""
