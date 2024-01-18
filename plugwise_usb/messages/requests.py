@@ -117,7 +117,7 @@ class PlugwiseRequest(PlugwiseMessage):
             return
         self._response_future.set_exception(error)
 
-    def _update_response(self, response: PlugwiseResponse) -> None:
+    async def _update_response(self, response: PlugwiseResponse) -> None:
         """Process incoming message from node"""
         if self._seq_id is None:
             pass
