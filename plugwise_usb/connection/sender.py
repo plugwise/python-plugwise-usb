@@ -15,7 +15,7 @@ process flow
 """
 from __future__ import annotations
 
-from asyncio import Future, Lock, Transport, get_running_loop, wait_for
+from asyncio import Future, Lock, Transport, get_running_loop, sleep, wait_for
 import logging
 
 from .receiver import StickReceiver
@@ -71,17 +71,25 @@ class StickSender():
         # Write message to serial port buffer
         self._transport.write(serialized_data)
         request.add_send_attempt()
+        request.start_response_timeout()
 
         # Wait for USB stick to accept request
         try:
             seq_id: bytes = await wait_for(
                 self._stick_response, timeout=STICK_TIME_OUT
             )
-        except TimeoutError as exc:
-            raise StickError(
-                f"Failed to send {request.__class__.__name__} because " +
-                f"USB-Stick did not respond within {STICK_TIME_OUT} seconds."
-            ) from exc
+        except TimeoutError:
+            request.assign_error(
+                BaseException(
+                    StickError(
+                        f"Failed to send {request.__class__.__name__} " +
+                        "because USB-Stick did not respond " +
+                        f"within {STICK_TIME_OUT} seconds."
+                    )
+                )
+            )
+        except BaseException as exception:  # [broad-exception-caught]
+            request.assign_error(exception)
         else:
             # Update request with session id
             request.seq_id = seq_id
@@ -126,6 +134,7 @@ class StickSender():
                     )
                 )
             )
+        await sleep(0.1)
 
     def stop(self) -> None:
         """Stop sender"""
