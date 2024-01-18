@@ -50,13 +50,14 @@ class PlugwiseScan(NodeSED):
                 "Load Scan node %s from cache", self._node_info.mac
             )
             if await self._load_from_cache():
-                self._loaded = True
-                self._setup_protocol(
-                    SCAN_FIRMWARE_SUPPORT,
-                    (NodeFeature.INFO, NodeFeature.MOTION),
-                )
-                return await self.initialize()
-
+                pass
+        self._loaded = True
+        self._setup_protocol(
+            SCAN_FIRMWARE_SUPPORT,
+            (NodeFeature.INFO, NodeFeature.MOTION),
+        )
+        if await self.initialize():
+            return True
         _LOGGER.debug("Load of Scan node %s failed", self._node_info.mac)
         return False
 
