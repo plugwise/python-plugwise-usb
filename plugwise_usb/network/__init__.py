@@ -2,13 +2,9 @@
 # region - Imports
 
 from __future__ import annotations
-from asyncio import (
-    create_task,
-    gather,
-    sleep,
-)
+from asyncio import gather, sleep
 from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 import logging
 
 from .registry import StickNetworkRegister
@@ -197,9 +193,18 @@ class StickNetwork():
 
     async def node_awake_message(self, response: NodeAwakeResponse) -> None:
         """Handle NodeAwakeResponse message."""
-        if response.mac_decoded in self._nodes:
-            return
         mac = response.mac_decoded
+        if self._awake_discovery.get(mac) is None:
+            self._awake_discovery[mac] = (
+                response.timestamp - timedelta(seconds=15)
+            )
+        if mac in self._nodes:
+            if self._awake_discovery[mac] < (
+                response.timestamp - timedelta(seconds=10)
+            ):
+                await self._notify_node_event_subscribers(NodeEvent.AWAKE, mac)
+            self._awake_discovery[mac] = response.timestamp
+            return
         if self._register.network_address(mac) is None:
             _LOGGER.warning(
                 "Skip node awake message for %s because network " +
@@ -208,39 +213,9 @@ class StickNetwork():
             )
             return
         address: int | None = self._register.network_address(mac)
-        if self._awake_discovery.get(mac) is None:
-            _LOGGER.info(
-                "Node Awake Response from undiscovered node with mac %s" +
-                ", start discovery",
-                mac
-            )
-            self._awake_discovery[mac] = datetime.now(UTC)
-            if self._nodes.get(mac) is None:
-                await self._discover_and_load_node(address, mac, None)
+        if self._nodes.get(mac) is None:
+            await self._discover_and_load_node(address, mac, None)
             await self._notify_node_event_subscribers(NodeEvent.AWAKE, mac)
-        else:
-            # Skip multiple node awake messages for same node within 10 sec.
-
-            if self._awake_discovery[mac] < (
-                datetime.now(UTC) - timedelta(seconds=10)
-            ):
-                _LOGGER.info(
-                    "Node Awake Response from previously undiscovered node " +
-                    "with mac %s, start discovery",
-                    mac
-                )
-                self._awake_discovery[mac] = datetime.now(UTC)
-                if self._nodes.get(mac) is None:
-                    create_task(
-                        self._discover_and_load_node(address, mac, None)
-                    )
-                await self._notify_node_event_subscribers(NodeEvent.AWAKE, mac)
-            else:
-                _LOGGER.debug(
-                    "Skip second Node Awake Response within 10 seconds for " +
-                    "undiscovered node with mac %s",
-                    mac
-                )
 
     def _unsubscribe_to_protocol_events(self) -> None:
         """Unsubscribe to events from protocol."""
