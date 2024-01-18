@@ -815,7 +815,7 @@ class PlugwiseCircle(PlugwiseNode):
         """
         Update Node hardware information.
         """
-        if not super().node_info_update(node_info):
+        if not await super().node_info_update(node_info):
             return False
 
         self._node_info_update_state(
