@@ -17,7 +17,7 @@ from ..constants import (
     NODE_TIME_OUT,
 )
 from ..messages.responses import PlugwiseResponse
-from ..exceptions import NodeError
+from ..exceptions import NodeError, StickError
 from ..util import (
     DateTime,
     Int,
@@ -109,6 +109,14 @@ class PlugwiseRequest(PlugwiseMessage):
                     f"{self.mac_decoded}"
                 )
             )
+
+    def assign_error(self, error: StickError) -> None:
+        """Assign error for this request"""
+        if self._response_timeout is not None:
+            self._response_timeout.cancel()
+        if self._response_future.done():
+            return
+        self._response_future.set_exception(error)
 
     def _update_response(self, response: PlugwiseResponse) -> None:
         """Process incoming message from node"""
