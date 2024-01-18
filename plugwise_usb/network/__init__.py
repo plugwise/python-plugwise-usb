@@ -385,7 +385,7 @@ class StickNetwork():
             )  # type: ignore [assignment]
             if ping_response is None:
                 return (None, None)
-        info_response: NodeInfoResponse | None = await self._controller.submit(
+        info_response: NodeInfoResponse | None = await self._controller.send(
             NodeInfoRequest(bytes(mac, UTF8), retries=1)
         )  # type: ignore [assignment]
         return (info_response, ping_response)
@@ -534,7 +534,7 @@ class StickNetwork():
 
     async def allow_join_requests(self, state: bool) -> None:
         """Enable or disable Plugwise network."""
-        response: NodeAckResponse | None = await self._controller.submit(
+        response: NodeAckResponse | None = await self._controller.send(
             CirclePlusAllowJoiningRequest(state)
         )  # type: ignore [assignment]
         if response is None:
