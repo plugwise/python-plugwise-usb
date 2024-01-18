@@ -57,7 +57,7 @@ class StickNetwork():
         """Initialize the USB-Stick zigbee network class."""
         self._controller = controller
         self._register = StickNetworkRegister(
-            controller.mac_coordinator,
+            bytes(controller.mac_coordinator, encoding=UTF8),
             controller.send,
         )
         self._is_running: bool = False
