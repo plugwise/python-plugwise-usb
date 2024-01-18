@@ -30,7 +30,7 @@ from ..messages.responses import NodeInfoResponse, NodePingResponse
 from ..util import version_to_model
 from .helpers.cache import NodeCache
 from .helpers.counter import EnergyCalibration, EnergyCounters
-from .helpers.subscription import NodePublisher
+from .helpers.subscription import FeaturePublisher
 from .helpers.firmware import FEATURE_SUPPORTED_AT_FIRMWARE, SupportedVersions
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ NODE_FEATURES = (
 )
 
 
-class PlugwiseNode(NodePublisher, ABC):
+class PlugwiseNode(FeaturePublisher, ABC):
     """Abstract Base Class for a Plugwise node."""
 
     def __init__(
@@ -399,18 +399,22 @@ class PlugwiseNode(NodePublisher, ABC):
         """Enable additional supported feature(s)"""
         raise NotImplementedError()
 
-    def _available_update_state(self, available: bool) -> None:
+    async def _available_update_state(self, available: bool) -> None:
         """Update the node availability state."""
         if self._available == available:
             return
         if available:
             _LOGGER.info("Mark node %s to be available", self.mac)
             self._available = True
-            create_task(self.publish_event(NodeFeature.AVAILABLE, True))
+            await self.publish_feature_update_to_subscribers(
+                NodeFeature.AVAILABLE, True
+            )
             return
         _LOGGER.info("Mark node %s to be NOT available", self.mac)
         self._available = False
-        create_task(self.publish_event(NodeFeature.AVAILABLE, False))
+        await self.publish_feature_update_to_subscribers(
+            NodeFeature.AVAILABLE, False
+        )
 
     async def node_info_update(
         self, node_info: NodeInfoResponse | None = None
@@ -422,10 +426,10 @@ class PlugwiseNode(NodePublisher, ABC):
             )
         if node_info is None:
             _LOGGER.debug(
-                "No response for async_node_info_update() for %s",
+                "No response for node_info_update() for %s",
                 self.mac
             )
-            self._available_update_state(False)
+            await self._available_update_state(False)
             return False
         if node_info.mac_decoded != self.mac:
             raise NodeError(
@@ -433,9 +437,9 @@ class PlugwiseNode(NodePublisher, ABC):
                 f"!= {self.mac}, id={node_info}"
             )
 
-        self._available_update_state(True)
+        await self._available_update_state(True)
 
-        self._node_info_update_state(
+        await self._node_info_update_state(
             firmware=node_info.fw_ver.value,
             hardware=node_info.hw_ver.value.decode(UTF8),
             node_type=node_info.node_type.value,
@@ -477,7 +481,7 @@ class PlugwiseNode(NodePublisher, ABC):
                     second=int(data[5]),
                     tzinfo=UTC
                 )
-        return self._node_info_update_state(
+        return await self._node_info_update_state(
             firmware=firmware,
             hardware=hardware,
             node_type=node_type,
@@ -541,17 +545,17 @@ class PlugwiseNode(NodePublisher, ABC):
             )
         except StickError:
             _LOGGER.warning(
-                "StickError for async_is_online() for %s",
+                "StickError for is_online() for %s",
                 self.mac
             )
-            self._available_update_state(False)
+            await self._available_update_state(False)
             return False
         except NodeError:
             _LOGGER.warning(
-                "NodeError for async_is_online() for %s",
+                "NodeError for is_online() for %s",
                 self.mac
             )
-            self._available_update_state(False)
+            await self._available_update_state(False)
             return False
 
         if ping_response is None:
@@ -559,7 +563,7 @@ class PlugwiseNode(NodePublisher, ABC):
                 "No response to ping for %s",
                 self.mac
             )
-            self._available_update_state(False)
+            await self._available_update_state(False)
             return False
         await self.ping_update(ping_response)
         return True
@@ -575,16 +579,18 @@ class PlugwiseNode(NodePublisher, ABC):
                 )
             )
         if ping_response is None:
-            self._available_update_state(False)
+            await self._available_update_state(False)
             return None
-        self._available_update_state(True)
+        await self._available_update_state(True)
 
         self._ping.timestamp = ping_response.timestamp
         self._ping.rssi_in = ping_response.rssi_in
         self._ping.rssi_out = ping_response.rssi_out
         self._ping.rtt = ping_response.rtt
 
-        create_task(self.publish_event(NodeFeature.PING, self._ping))
+        await self.publish_feature_update_to_subscribers(
+            NodeFeature.PING, self._ping
+        )
         return self._ping
 
     async def switch_relay(self, state: bool) -> bool | None:

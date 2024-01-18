@@ -1,67 +1,52 @@
 """Base class for plugwise node publisher."""
 
 from __future__ import annotations
-from collections.abc import Callable, Coroutine
-from dataclasses import dataclass
+from asyncio import gather
+from collections.abc import Awaitable, Callable
 from typing import Any
 
-from ...api import NodeFeature
-from ...exceptions import SubscriptionError
+from ...api import NodeEvent, NodeFeature
 
 
-@dataclass
-class NodeSubscription:
-    """Class to subscribe a callback to node events."""
-
-    event: NodeFeature
-    callback: Callable[[Any], Coroutine[Any, Any, None]] | Callable[
-        [], Coroutine[Any, Any, None]
-    ]
-
-
-class NodePublisher():
+class FeaturePublisher():
     """Base Class to call awaitable of subscription when event happens."""
 
-    _subscribers: dict[int, NodeSubscription] = {}
-    _features: tuple[NodeFeature, ...] = ()
+    _feature_update_subscribers: dict[
+            Callable[[], None],
+            tuple[Callable[[NodeEvent], Awaitable[None]], NodeEvent | None]
+        ] = {}
 
-    def subscribe(self, subscription: NodeSubscription) -> int:
-        """Add subscription and returns the id to unsubscribe later."""
-        if subscription.event not in self._features:
-            raise SubscriptionError(
-                f"Subscription event {subscription.event} is not supported"
-            )
-        if id(subscription) in self._subscribers:
-            raise SubscriptionError("Subscription already exists")
-        self._subscribers[id(subscription)] = subscription
-        return id(subscription)
-
-    def subscribe_to_event(
+    def subscribe_to_feature_update(
         self,
-        event: NodeFeature,
-        callback: Callable[[Any], Coroutine[Any, Any, None]]
-        | Callable[[], Coroutine[Any, Any, None]],
-    ) -> int:
-        """Subscribe callback to events."""
-        return self.subscribe(
-            NodeSubscription(
-                event=event,
-                callback=callback,
-            )
-        )
+        node_feature_callback: Callable[
+            [NodeFeature, Any], Awaitable[None]
+        ],
+        features: tuple[NodeFeature],
+    ) -> Callable[[], None]:
+        """
+        Subscribe callback when specified NodeFeature state updates.
+        Returns the function to be called to unsubscribe later.
+        """
+        def remove_subscription() -> None:
+            """Remove stick event subscription."""
+            self._feature_update_subscribers.pop(remove_subscription)
 
-    def unsubscribe(self, subscription_id: int) -> bool:
-        """Remove subscription. Returns True if unsubscribe was successful."""
-        if subscription_id in self._subscribers:
-            del self._subscribers[subscription_id]
-            return True
-        return False
+        self._feature_update_subscribers[
+            remove_subscription
+        ] = (node_feature_callback, features)
+        return remove_subscription
 
-    async def publish_event(self, event: NodeFeature, value: Any) -> None:
+    async def publish_feature_update_to_subscribers(
+        self,
+        feature: NodeFeature,
+        state: Any,
+    ) -> None:
         """Publish feature to applicable subscribers."""
-        if event not in self._features:
-            return
-        for subscription in list(self._subscribers.values()):
-            if subscription.event != event:
-                continue
-            await subscription.callback(event, value)
+        callback_list: list[Callable] = []
+        for callback, filtered_features in (
+            self._feature_update_subscribers.values()
+        ):
+            if feature in filtered_features:
+                callback_list.append(callback(feature, state))
+        if len(callback_list) > 0:
+            await gather(*callback_list)

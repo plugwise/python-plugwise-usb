@@ -29,7 +29,6 @@ from ..messages.requests import (
     CircleRelayInitStateRequest,
     CircleRelaySwitchRequest,
     EnergyCalibrationRequest,
-    NodeInfoRequest,
 )
 from ..messages.responses import (
     CircleClockResponse,
@@ -144,9 +143,9 @@ class PlugwiseCircle(PlugwiseNode):
                 "Updating energy calibration for node %s failed",
                 self._node_info.mac,
             )
-            self._available_update_state(False)
+            await self._available_update_state(False)
             return False
-        self._available_update_state(True)
+        await self._available_update_state(True)
 
         self._calibration_update_state(
             calibration_response.gain_a,
@@ -250,14 +249,14 @@ class PlugwiseCircle(PlugwiseNode):
                 "No response for async_power_update() for %s",
                 self.mac
             )
-            self._available_update_state(False)
+            await self._available_update_state(False)
             return None
         if response.mac_decoded != self.mac:
             raise NodeError(
                 f"Incorrect power response for {response.mac_decoded} " +
                 f"!= {self.mac} = {self._mac_in_str} | {request.mac_decoded}"
             )
-        self._available_update_state(True)
+        await self._available_update_state(True)
 
         # Update power stats
         self._power.last_second = self._calc_watts(
@@ -267,7 +266,9 @@ class PlugwiseCircle(PlugwiseNode):
             response.pulse_8s.value, 8, response.nanosecond_offset
         )
         self._power.timestamp = response.timestamp
-        create_task(self.publish_event(NodeFeature.POWER, self._power))
+        await self.publish_feature_update_to_subscribers(
+            NodeFeature.POWER, self._power
+        )
 
         # Forward pulse interval counters to pulse Collection
         self._energy_counters.add_pulse_stats(
@@ -275,11 +276,8 @@ class PlugwiseCircle(PlugwiseNode):
             response.produced_counter,
             response.timestamp,
         )
-        create_task(
-            self.publish_event(
-                NodeFeature.ENERGY,
-                self._energy_counters.energy_statistics
-            )
+        await self.publish_feature_update_to_subscribers(
+            NodeFeature.ENERGY, self._energy_counters.energy_statistics
         )
         response = None
         return self._power
@@ -426,7 +424,7 @@ class PlugwiseCircle(PlugwiseNode):
             )
             return False
 
-        self._available_update_state(True)
+        await self._available_update_state(True)
 
         # Forward historical energy log information to energy counters
         # Each response message contains 4 log counters (slots) of the
@@ -643,11 +641,8 @@ class PlugwiseCircle(PlugwiseNode):
                 state_update = False
         self._relay = state
         if state_update:
-            create_task(
-                self.publish_event(
-                    NodeFeature.RELAY,
-                    self._relay_state
-                )
+            await self.publish_feature_update_to_subscribers(
+                NodeFeature.RELAY, self._relay_state
             )
             if self.cache_enabled and self._loaded and self._initialized:
                 create_task(self.save_cache())
@@ -941,10 +936,8 @@ class PlugwiseCircle(PlugwiseNode):
                 state_update = True
         if state_update:
             self._relay_init_state = state
-            create_task(
-                self.publish_event(
-                    NodeFeature.RELAY_INIT, self._relay_init_state
-                )
+            await self.publish_feature_update_to_subscribers(
+                NodeFeature.RELAY_INIT, self._relay_init_state
             )
             if self.cache_enabled and self._loaded and self._initialized:
                 create_task(self.save_cache())
