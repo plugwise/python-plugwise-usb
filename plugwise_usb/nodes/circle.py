@@ -814,19 +814,8 @@ class PlugwiseCircle(PlugwiseNode):
     ) -> bool:
         """
         Update Node hardware information.
-        Returns true if successful.
         """
-        if node_info is None:
-            node_info = await self._send(
-                NodeInfoRequest(self._mac_in_bytes)
-            )
-        else:
-            if node_info.mac_decoded != self.mac:
-                raise NodeError(
-                    f"Incorrect node_info {node_info.mac_decoded} " +
-                    f"!= {self.mac}={self._mac_in_str}"
-                )
-        if node_info is None:
+        if not super().node_info_update(node_info):
             return False
 
         self._node_info_update_state(
@@ -856,7 +845,6 @@ class PlugwiseCircle(PlugwiseNode):
             )
             if self.cache_enabled and self._loaded and self._initialized:
                 create_task(self.save_cache())
-        node_info = None
         return True
 
     async def _node_info_load_from_cache(self) -> bool:
