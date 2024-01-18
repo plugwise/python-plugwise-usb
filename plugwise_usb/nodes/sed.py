@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from asyncio import (
     CancelledError,
-    create_task,
     Future,
     get_event_loop,
     wait_for,
@@ -18,8 +17,6 @@ from typing import Final
 from plugwise_usb.connection import StickController
 
 from .helpers import raise_not_loaded
-from .helpers.subscription import NodeSubscription
-from ..api import NodeFeature
 from ..exceptions import NodeError, NodeTimeout
 from ..messages.requests import NodeSleepConfigRequest
 from ..messages.responses import (
@@ -85,22 +82,6 @@ class NodeSED(PlugwiseNode):
         super().__init__(mac, address, controller)
         self._message_subscribe = controller.subscribe_to_node_responses
 
-    def subscribe(self, subscription: NodeSubscription) -> int:
-        if subscription.event == NodeFeature.PING:
-            self._ping_at_awake = True
-        return super().subscribe(subscription)
-
-    def unsubscribe(self, subscription_id: int) -> bool:
-        if super().unsubscribe(subscription_id):
-            keep_ping = False
-            for subscription in self._subscribers.values():
-                if subscription.event == NodeFeature.PING:
-                    keep_ping = True
-                    break
-            self._ping_at_awake = keep_ping
-            return True
-        return False
-
     async def unload(self) -> None:
         """Deactivate and unload node features."""
         if self._maintenance_future is not None:
@@ -133,7 +114,7 @@ class NodeSED(PlugwiseNode):
     async def _awake_response(self, message: NodeAwakeResponse) -> None:
         """Process awake message."""
         self._node_last_online = message.timestamp
-        self._available_update_state(True)
+        await self._available_update_state(True)
         if message.timestamp is None:
             return
         if (
@@ -146,9 +127,7 @@ class NodeSED(PlugwiseNode):
                 )
                 if ping_response is not None:
                     self._ping_at_awake = False
-            create_task(
-                self.reset_maintenance_awake(message.timestamp)
-            )
+            await self.reset_maintenance_awake(message.timestamp)
 
     async def reset_maintenance_awake(self, last_alive: datetime) -> None:
         """Reset node alive state."""
@@ -182,7 +161,7 @@ class NodeSED(PlugwiseNode):
                     self.mac,
                     str(self._maintenance_interval * 1.05),
                 )
-                self._available_update_state(False)
+                await self._available_update_state(False)
         except CancelledError:
             pass
 
