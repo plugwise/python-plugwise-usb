@@ -45,7 +45,6 @@ class PlugwiseRequest(PlugwiseMessage):
 
     arguments: list = []
     priority: Priority = Priority.MEDIUM
-    seq_id: bytes | None = None
 
     def __init__(
         self,
@@ -120,9 +119,9 @@ class PlugwiseRequest(PlugwiseMessage):
 
     def _update_response(self, response: PlugwiseResponse) -> None:
         """Process incoming message from node"""
-        if self.seq_id is None:
+        if self._seq_id is None:
             pass
-        if self.seq_id == response.seq_id:
+        if self._seq_id == response.seq_id:
             self._response = response
             self._response_timeout.cancel()
             self._response_future.set_result(response)
