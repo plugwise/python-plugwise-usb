@@ -236,7 +236,7 @@ class StickReceiver(Protocol):
     ) -> None:
         """Call callback for stick event subscribers"""
         callback_list: list[Callable] = []
-        for callback, filtered_events in (
+        for callback, filtered_events in list(
             self._stick_event_subscribers.values()
         ):
             if event in filtered_events:
@@ -290,7 +290,9 @@ class StickReceiver(Protocol):
         self, node_response: PlugwiseResponse
     ) -> None:
         """Call callback for all node response message subscribers"""
-        for callback, mac, ids in self._node_response_subscribers.values():
+        for callback, mac, ids in list(
+            self._node_response_subscribers.values()
+        ):
             if mac is not None:
                 if mac != node_response.mac:
                     continue
