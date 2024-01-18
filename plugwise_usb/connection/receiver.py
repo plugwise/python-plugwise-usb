@@ -98,9 +98,10 @@ class StickReceiver(Protocol):
                 self._connected_future.set_result(True)
             else:
                 self._connected_future.set_exception(exc)
-        self._loop.create_task(
-            self._notify_stick_event_subscribers(StickEvent.DISCONNECTED)
-        )
+        if len(self._stick_event_subscribers) > 0:
+            self._loop.create_task(
+                self._notify_stick_event_subscribers(StickEvent.DISCONNECTED)
+            )
         self._transport = None
         self._connection_state = False
 
@@ -119,9 +120,10 @@ class StickReceiver(Protocol):
         ):
             self._connected_future.set_result(True)
         self._connection_state = True
-        self._loop.create_task(
-            self._notify_stick_event_subscribers(StickEvent.CONNECTED)
-        )
+        if len(self._stick_event_subscribers) > 0:
+            self._loop.create_task(
+                self._notify_stick_event_subscribers(StickEvent.CONNECTED)
+            )
 
     async def close(self) -> None:
         """Close connection."""
