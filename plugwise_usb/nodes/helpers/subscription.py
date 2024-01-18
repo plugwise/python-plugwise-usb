@@ -43,7 +43,7 @@ class FeaturePublisher():
     ) -> None:
         """Publish feature to applicable subscribers."""
         callback_list: list[Callable] = []
-        for callback, filtered_features in (
+        for callback, filtered_features in list(
             self._feature_update_subscribers.values()
         ):
             if feature in filtered_features:
