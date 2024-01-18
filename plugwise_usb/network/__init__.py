@@ -572,7 +572,7 @@ class StickNetwork():
     ) -> None:
         """Call callback for node event subscribers"""
         callback_list: list[Callable] = []
-        for callback, filtered_events in (
+        for callback, filtered_events in list(
             self._node_event_subscribers.values()
         ):
             if event in filtered_events:

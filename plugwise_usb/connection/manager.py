@@ -73,7 +73,7 @@ class StickConnectionManager():
         if len(self._stick_event_subscribers) == 0:
             return
         callback_list: list[Callable] = []
-        for callback, filtered_events in (
+        for callback, filtered_events in list(
             self._stick_event_subscribers.values()
         ):
             if event in filtered_events:
