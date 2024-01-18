@@ -11,7 +11,7 @@ from typing import Any
 
 from serial import EIGHTBITS, PARITY_NONE, STOPBITS_ONE
 from serial import SerialException
-import serial_asyncio
+from serial_asyncio import create_serial_connection, SerialTransport
 
 from .sender import StickSender
 from .receiver import StickReceiver
@@ -30,9 +30,9 @@ class StickConnectionManager():
         """Initialize Stick controller."""
         self._sender: StickSender | None = None
         self._receiver: StickReceiver | None = None
+        self._serial_transport: SerialTransport | None = None
         self._port = "<not defined>"
         self._connected: bool = False
-
         self._stick_event_subscribers: dict[
             Callable[[], None],
             tuple[Callable[[StickEvent], Awaitable[None]], StickEvent | None]
@@ -145,10 +145,10 @@ class StickConnectionManager():
 
         try:
             (
-                self._sender,
+                self._serial_transport,
                 self._receiver,
             ) = await wait_for(
-                serial_asyncio.create_serial_connection(
+                create_serial_connection(
                     loop,
                     lambda: self._receiver,
                     url=serial_path,
@@ -170,11 +170,11 @@ class StickConnectionManager():
             ) from err
         finally:
             connected_future.cancel()
-        await sleep(0)
-        await wait_for(connected_future, 5)
+
         if self._receiver is None:
             raise StickError("Protocol is not loaded")
-        if await wait_for(connected_future, 5):
+        self._sender = StickSender(self._receiver, self._serial_transport)
+        if connected_future.result():
             await self._handle_stick_event(StickEvent.CONNECTED)
         self._connected = True
         self._subscribe_to_stick_events()
