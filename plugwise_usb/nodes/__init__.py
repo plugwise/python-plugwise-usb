@@ -439,7 +439,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
         await self._available_update_state(True)
 
-        await self._node_info_update_state(
+        self._node_info_update_state(
             firmware=node_info.fw_ver.value,
             hardware=node_info.hw_ver.value.decode(UTF8),
             node_type=node_info.node_type.value,
