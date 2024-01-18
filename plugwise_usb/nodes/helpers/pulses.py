@@ -786,33 +786,33 @@ class PulseCollection:
                 if address not in addresses:
                     addresses.append(address)
             return addresses
-        else:
-            # Production logging active
-            calc_interval_prod = timedelta(hours=1)
-            if (
-                self._log_interval_production is not None
-                and self._log_interval_production > 0
-            ):
-                calc_interval_prod = timedelta(
-                    minutes=self._log_interval_production
-                )
 
-            expected_timestamp_cons = (
-                self._logs[address][slot].timestamp + calc_interval_cons
+        # Production logging active
+        calc_interval_prod = timedelta(hours=1)
+        if (
+            self._log_interval_production is not None
+            and self._log_interval_production > 0
+        ):
+            calc_interval_prod = timedelta(
+                minutes=self._log_interval_production
             )
-            expected_timestamp_prod = (
-                self._logs[address][slot].timestamp + calc_interval_prod
-            )
+
+        expected_timestamp_cons = (
+            self._logs[address][slot].timestamp + calc_interval_cons
+        )
+        expected_timestamp_prod = (
+            self._logs[address][slot].timestamp + calc_interval_prod
+        )
+        address, slot = calc_log_address(address, slot, 1)
+        while (
+            expected_timestamp_cons < target
+            or expected_timestamp_prod < target
+        ):
+            if address not in addresses:
+                addresses.append(address)
+            if expected_timestamp_prod < expected_timestamp_cons:
+                expected_timestamp_prod += calc_interval_prod
+            else:
+                expected_timestamp_cons += calc_interval_cons
             address, slot = calc_log_address(address, slot, 1)
-            while (
-                expected_timestamp_cons < target
-                or expected_timestamp_prod < target
-            ):
-                if address not in addresses:
-                    addresses.append(address)
-                if expected_timestamp_prod < expected_timestamp_cons:
-                    expected_timestamp_prod += calc_interval_prod
-                else:
-                    expected_timestamp_cons += calc_interval_cons
-                address, slot = calc_log_address(address, slot, 1)
-            return addresses
+        return addresses
