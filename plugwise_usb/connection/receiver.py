@@ -20,7 +20,6 @@ from __future__ import annotations
 from asyncio import (
     Future,
     gather,
-    Lock,
     Protocol,
     get_running_loop,
 )
@@ -64,7 +63,6 @@ class StickReceiver(Protocol):
         self._buffer: bytes = bytes([])
         self._connection_state = False
 
-        self._stick_lock = Lock()
         self._stick_future: futures.Future | None = None
         self._responses: dict[bytes, Callable[[PlugwiseResponse], None]] = {}
 
