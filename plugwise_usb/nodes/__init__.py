@@ -540,7 +540,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         try:
             ping_response: NodePingResponse | None = await self._send(
                 NodePingRequest(
-                    self._mac_in_bytes, retries=0
+                    self._mac_in_bytes, retries=1
                 )
             )
         except StickError:
@@ -569,7 +569,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         return True
 
     async def ping_update(
-        self, ping_response: NodePingResponse | None = None, retries: int = 0
+        self, ping_response: NodePingResponse | None = None, retries: int = 1
     ) -> NetworkStatistics | None:
         """Update ping statistics."""
         if ping_response is None:
