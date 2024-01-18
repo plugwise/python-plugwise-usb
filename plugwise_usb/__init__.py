@@ -238,7 +238,7 @@ class Stick:
             events,
         )
 
-    def subscribe_to_network_events(
+    def subscribe_to_node_events(
         self,
         node_event_callback: Callable[[NodeEvent, str], Awaitable[None]],
         events: tuple[NodeEvent],
