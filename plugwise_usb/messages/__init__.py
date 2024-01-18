@@ -16,6 +16,17 @@ class PlugwiseMessage:
         self._mac: bytes | None = None
         self._checksum: bytes | None = None
         self._args: list[Any] = []
+        self._seq_id: bytes | None = None
+
+    @property
+    def seq_id(self) -> bytes | None:
+        """Return sequence id assigned to this request"""
+        return self._seq_id
+
+    @seq_id.setter
+    def seq_id(self, seq_id: bytes) -> None:
+        """Assign sequence id"""
+        self._seq_id = seq_id
 
     @property
     def identifier(self) -> bytes:
