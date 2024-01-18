@@ -571,9 +571,10 @@ class StickNetwork():
     ) -> None:
         """Call callback for node event subscribers"""
         callback_list: list[Callable] = []
-        for callback, filtered_event in (
+        for callback, filtered_events in (
             self._node_event_subscribers.values()
         ):
-            if filtered_event is None or filtered_event == event:
+            if event in filtered_events:
                 callback_list.append(callback(event, mac))
-        await gather(*callback_list)
+        if len(callback_list) > 0:
+            await gather(*callback_list)
