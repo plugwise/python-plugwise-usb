@@ -270,7 +270,7 @@ class StickNetwork():
             ping_response = await self._controller.send(
                 NodePingRequest(
                     bytes(self._controller.mac_coordinator, UTF8),
-                    retries=0
+                    retries=1
                 ),
             )  # type: ignore [assignment]
         except StickTimeout as err:
@@ -377,14 +377,16 @@ class StickNetwork():
         ping_response: NodePingResponse | None = None
         if ping_first:
             # Define ping request with custom timeout
-            ping_request = NodePingRequest(bytes(mac, UTF8), retries=0)
+            ping_request = NodePingRequest(bytes(mac, UTF8), retries=1)
             # ping_request.timeout = 3
 
-            ping_response = await self._controller.submit(
-                ping_request
-            )  # type: ignore [assignment]
-            if ping_response is None:
+            try:
+                ping_response = await self._controller.send(
+                    ping_request
+                )  # type: ignore [assignment]
+            except StickTimeout:
                 return (None, None)
+
         info_response: NodeInfoResponse | None = await self._controller.send(
             NodeInfoRequest(bytes(mac, UTF8), retries=1)
         )  # type: ignore [assignment]
