@@ -105,7 +105,8 @@ class StickController():
         if self._unsubscribe_stick_event is None:
             self._unsubscribe_stick_event = (
                 self._manager.subscribe_to_stick_events(
-                    self._handle_stick_event, None
+                    self._handle_stick_event,
+                    (StickEvent.CONNECTED, StickEvent.DISCONNECTED),
                 )
             )
         self._queue.start(self._manager)
