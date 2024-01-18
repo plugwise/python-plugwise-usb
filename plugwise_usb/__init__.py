@@ -341,6 +341,16 @@ class Stick:
 
     @raise_not_connected
     @raise_not_initialized
+    async def discover_nodes(self, load: bool = False) -> None:
+        """Setup connection to Zigbee network coordinator."""
+        if self._network is None:
+            raise StickError(
+                "Cannot load nodes when network is not initialized"
+            )
+        await self._network.discover_nodes(load=load)
+
+    @raise_not_connected
+    @raise_not_initialized
     async def register_node(self, mac: str) -> bool:
         """Add node to plugwise network."""
         if self._network is None:
