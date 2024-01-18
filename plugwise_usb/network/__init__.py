@@ -71,7 +71,7 @@ class StickNetwork():
 
         self._node_event_subscribers: dict[
             Callable[[], None],
-            tuple[Callable[[StickEvent], Awaitable[None]], StickEvent | None]
+            tuple[Callable[[NodeEvent], Awaitable[None]], NodeEvent | None]
         ] = {}
 
         self._unsubscribe_stick_event: Callable[[], None] | None = None
