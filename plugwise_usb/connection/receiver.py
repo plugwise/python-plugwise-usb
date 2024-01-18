@@ -238,10 +238,13 @@ class StickReceiver(Protocol):
     ) -> None:
         """Call callback for stick event subscribers"""
         callback_list: list[Callable] = []
-        for callback, filtered_event in self._stick_event_subscribers.values():
-            if filtered_event is None or filtered_event == event:
+        for callback, filtered_events in (
+            self._stick_event_subscribers.values()
+        ):
+            if event in filtered_events:
                 callback_list.append(callback(event))
-        await gather(*callback_list)
+        if len(callback_list) > 0:
+            await gather(*callback_list)
 
     def subscribe_to_stick_responses(
         self,
