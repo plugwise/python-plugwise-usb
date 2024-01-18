@@ -294,12 +294,17 @@ class PlugwiseNode(FeaturePublisher, ABC):
                 str(firmware.keys()),
             )
             return
+        new_feature_list = list(self._features)
         for feature in node_features:
             if (
                 required_version := FEATURE_SUPPORTED_AT_FIRMWARE.get(feature)
             ) is not None:
-                if required_version <= self._node_protocols.min:
-                    self._features += feature
+                if (
+                    required_version <= self._node_protocols.min and
+                    feature not in new_feature_list
+                ):
+                    new_feature_list.append(feature)
+        self._features = tuple(new_feature_list)
 
     async def reconnect(self) -> None:
         """Reconnect node to Plugwise Zigbee network."""
