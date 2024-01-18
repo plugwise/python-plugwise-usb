@@ -9,7 +9,6 @@ from asyncio import (
     PriorityQueue,
     Task,
     get_running_loop,
-    sleep,
 )
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -133,4 +132,3 @@ class StickQueue:
                 break
 
             await self._stick.write_to_stick(request)
-            await sleep(0.0)
