@@ -111,9 +111,9 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                 "No response for async_realtime_clock_synchronize() for %s",
                 self.mac
             )
-            self._available_update_state(False)
+            await self._available_update_state(False)
             return False
-        self._available_update_state(True)
+        await self._available_update_state(True)
 
         _dt_of_circle: datetime = datetime.utcnow().replace(
             hour=clock_response.time.value.hour,

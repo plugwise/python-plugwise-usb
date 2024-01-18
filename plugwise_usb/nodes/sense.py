@@ -1,7 +1,6 @@
 """Plugwise Sense node object."""
 from __future__ import annotations
 
-from asyncio import create_task
 from collections.abc import Callable
 import logging
 from typing import Any, Final
@@ -84,7 +83,7 @@ class PlugwiseSense(NodeSED):
         process sense report message to extract
         current temperature and humidity values.
         """
-        self._available_update_state(True)
+        await self._available_update_state(True)
         if message.temperature.value != 65535:
             self._temperature = int(
                 SENSE_TEMPERATURE_MULTIPLIER * (
@@ -92,17 +91,16 @@ class PlugwiseSense(NodeSED):
                 )
                 - SENSE_TEMPERATURE_OFFSET
             )
-            create_task(
-                self.publish_event(NodeFeature.TEMPERATURE, self._temperature)
+            await self.publish_feature_update_to_subscribers(
+                NodeFeature.TEMPERATURE, self._temperature
             )
-
         if message.humidity.value != 65535:
             self._humidity = int(
                 SENSE_HUMIDITY_MULTIPLIER * (message.humidity.value / 65536)
                 - SENSE_HUMIDITY_OFFSET
             )
-            create_task(
-                self.publish_event(NodeFeature.HUMIDITY, self._humidity)
+            await self.publish_feature_update_to_subscribers(
+                NodeFeature.HUMIDITY, self._humidity
             )
 
     async def get_state(

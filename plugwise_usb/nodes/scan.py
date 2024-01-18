@@ -85,7 +85,7 @@ class PlugwiseScan(NodeSED):
 
     async def _switch_group(self, message: NodeSwitchGroupResponse) -> None:
         """Switch group request from Scan."""
-        self._available_update_state(True)
+        await self._available_update_state(True)
         if message.power_state.value == 0:
             # turn off => clear motion
             await self.motion_state_update(False, message.timestamp)
@@ -115,11 +115,8 @@ class PlugwiseScan(NodeSED):
                 state_update = True
         if state_update:
             self._motion = motion_state
-            create_task(
-                self.publish_event(
-                    NodeFeature.MOTION,
-                    self._motion_state,
-                )
+            await self.publish_feature_update_to_subscribers(
+                NodeFeature.MOTION, self._motion_state,
             )
             if self.cache_enabled and self._loaded and self._initialized:
                 create_task(self.save_cache())
