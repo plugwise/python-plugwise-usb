@@ -500,8 +500,7 @@ class StickNetwork():
     async def discover_nodes(self, load: bool = True) -> None:
         """Discover nodes"""
         if not self._is_running:
-            await self._register.start()
-            self._subscribe_to_protocol_events()
+            await self.start()
         await self._discover_registered_nodes()
         await sleep(0)
         if load:
