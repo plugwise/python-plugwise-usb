@@ -76,6 +76,7 @@ class PlugwiseCircle(PlugwiseNode):
         self._energy_last_collected_count = 0
         self._energy_ratelimit_collection_timestamp = datetime.utcnow()
         self._energy_last_rollover_timestamp = datetime.utcnow()
+        self._energy_pulses_midnight_rollover = datetime.utcnow()
         self._energy_last_local_hour = datetime.now().hour
         self._energy_last_populated_slot = 0
         self._energy_pulses_current_hour = None
@@ -483,13 +484,17 @@ class PlugwiseCircle(PlugwiseNode):
                 + self._energy_pulses_current_hour
             )
 
+        _utc_hour_timestamp = datetime.utcnow().replace(
+                minute=0, second=0, microsecond=0
+        )
+        _local_hour = datetime.now().hour
+        _utc_midnight_timestamp = _utc_hour_timestamp - timedelta(hours=_local_hour)
+        _local_midnight_timestamp = datetime.now().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+
         if _pulses_today_now is None:
             if self._energy_pulses_today_hourly is None:
-                _utc_hour_timestamp = datetime.utcnow().replace(
-                        minute=0, second=0, microsecond=0
-                )
-                _local_hour = datetime.now().hour
-                _utc_midnight_timestamp = _utc_hour_timestamp - timedelta(hours=_local_hour)
                 self._update_energy_today_hourly(
                     _utc_midnight_timestamp + timedelta(hours=1),
                     _utc_hour_timestamp,
@@ -497,7 +502,24 @@ class PlugwiseCircle(PlugwiseNode):
         elif (
              self._energy_pulses_today_now is not None
              and self._energy_pulses_today_now > _pulses_today_now
-             and int((self._energy_pulses_today_now-_pulses_today_now)/self._energy_pulses_today_now*100) > 1
+             and self._energy_pulses_midnight_rollover < _local_midnight_timestamp
+        ):
+            _LOGGER.info(
+                "_update_energy_today_now for %s midnight rollover started old=%s, new=%s",
+                str(self.mac),
+                str(self._energy_pulses_today_now),
+                str(_pulses_today_now),
+            )
+            self._energy_pulses_today_now = 0
+            self._energy_pulses_midnight_rollover = _local_midnight_timestamp
+            self._update_energy_today_hourly(
+                _utc_midnight_timestamp + timedelta(hours=1),
+                _utc_hour_timestamp,
+            )
+        elif (
+             self._energy_pulses_today_now is not None
+             and self._energy_pulses_today_now > _pulses_today_now
+             and int((self._energy_pulses_today_now-_pulses_today_now)/(self._energy_pulses_today_now+1)*100) > 1
         ):
             _LOGGER.info(
                 "_update_energy_today_now for %s hour rollover started old=%s, new=%s",
@@ -505,11 +527,6 @@ class PlugwiseCircle(PlugwiseNode):
                 str(self._energy_pulses_today_now),
                 str(_pulses_today_now),
             )
-            _utc_hour_timestamp = datetime.utcnow().replace(
-                    minute=0, second=0, microsecond=0
-            )
-            _local_hour = datetime.now().hour
-            _utc_midnight_timestamp = _utc_hour_timestamp - timedelta(hours=_local_hour)
             self._update_energy_today_hourly(
                 _utc_midnight_timestamp + timedelta(hours=1),
                 _utc_hour_timestamp,
