@@ -251,6 +251,63 @@ SWITCH_FIRMWARE_SUPPORT: Final = {
         min=2.0, max=2.6,
     ),
 }
+
+CELSIUS_FIRMWARE_SUPPORT: Final = {
+    # Celsius Proto
+    datetime(2013, 9, 25, 15, 9, 44): SupportedVersions(
+        min=2.0, max=2.6,
+    ),
+
+    datetime(2013, 10, 11, 15, 15, 58): SupportedVersions(
+        min=2.0, max=2.6,
+    ),
+    datetime(2013, 10, 17, 10, 13, 12): SupportedVersions(
+        min=2.0, max=2.6,
+    ),
+    datetime(2013, 11, 19, 17, 35, 48): SupportedVersions(
+        min=2.0, max=2.6,
+    ),
+    datetime(2013, 12, 5, 16, 25, 33): SupportedVersions(
+        min=2.0, max=2.6,
+    ),
+    datetime(2013, 12, 11, 10, 53, 55): SupportedVersions(
+        min=2.0, max=2.6,
+    ),
+    datetime(2014, 1, 30, 8, 56, 21): SupportedVersions(
+        min=2.0, max=2.6,
+    ),
+    datetime(2014, 2, 3, 10, 9, 27): SupportedVersions(
+        min=2.0, max=2.6,
+    ),
+    datetime(2014, 3, 7, 16, 7, 42): SupportedVersions(
+        min=2.0, max=2.6,
+    ),
+    datetime(2014, 3, 24, 11, 12, 23): SupportedVersions(
+        min=2.0, max=2.6,
+    ),
+
+    # MSPBootloader Image - Required to allow
+    # a MSPBootload image for OTA update
+    datetime(2014, 4, 14, 15, 45, 26): SupportedVersions(
+        min=2.0, max=2.6,
+    ),
+
+    # CelsiusV Image
+    datetime(2014, 7, 23, 19, 24, 18): SupportedVersions(
+        min=2.0, max=2.6,
+    ),
+
+    # CelsiusV Image
+    datetime(2014, 9, 12, 11, 36, 40): SupportedVersions(
+        min=2.0, max=2.6,
+    ),
+
+    # New Flash Update
+    datetime(2017, 7, 11, 16, 2, 50): SupportedVersions(
+        min=2.0, max=2.6,
+    ),
+}
+
 # endregion
 
 # region - node firmware based features
