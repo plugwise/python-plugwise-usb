@@ -7,7 +7,7 @@
 - Prevent message flooding on the network.
 - Reduce network load on restart by updating one history log per loop cycle.
 - Workaround for off-by-one issue with log_address record in circle.
-- Ceduce complexity of energy_consumption_today counters synchronisation between PowerUsage and EnergyCounters hourly and at midnight.
+- Reduce complexity of energy_consumption_today counters synchronisation between PowerUsage and EnergyCounters hourly and at midnight.
 
 ## v0.31 refactoring (alpha only, effectively refactored version release): Logic separation between USB and non-USB
 
