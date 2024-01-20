@@ -1,13 +1,13 @@
 # Changelog
 
-## Ongoing
+## v0.31.2
 
-- CI improvements
-- (temporary) bugfix on sequence ids
-- prevent message flooding on the network
-- reduce network load on restart by updating one history log per loop cycle
-- workaround for off-by-one issue with log_address record in circle
-- reduce complexity of energy_consumption_today counters synchronisation between PowerUsage and EnergyCounters hourly and at midnight
+- CI improvements.
+- (Temporary) bugfix on sequence ids.
+- Prevent message flooding on the network.
+- Reduce network load on restart by updating one history log per loop cycle.
+- Workaround for off-by-one issue with log_address record in circle.
+- Ceduce complexity of energy_consumption_today counters synchronisation between PowerUsage and EnergyCounters hourly and at midnight.
 
 ## v0.31 refactoring (alpha only, effectively refactored version release): Logic separation between USB and non-USB
 
