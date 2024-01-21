@@ -19,9 +19,11 @@ from ..messages.requests import (
 )
 from ..messages.responses import (
     NODE_AWAKE_RESPONSE_ID,
+    NODE_JOIN_ID,
     NodeAckResponse,
     NodeAwakeResponse,
     NodeInfoResponse,
+    NodeJoinAvailableResponse,
     #    NodeJoinAvailableResponse,
     NodePingResponse,
     NodeResponseType,
@@ -72,6 +74,7 @@ class StickNetwork():
 
         self._unsubscribe_stick_event: Callable[[], None] | None = None
         self._unsubscribe_node_awake: Callable[[], None] | None = None
+        self._unsubscribe_node_join: Callable[[], None] | None = None
 
 # region - Properties
 
@@ -162,13 +165,13 @@ class StickNetwork():
                 (NODE_AWAKE_RESPONSE_ID,),
             )
         )
-        # self._unsubscribe_node_join = (
-        #     self._controller.subscribe_to_node_responses(
-        #         self.node_join_available_message,
-        #         None,
-        #         (b"0006",),
-        #     )
-        # )
+        self._unsubscribe_node_join = (
+            self._controller.subscribe_to_node_responses(
+                self.node_join_available_message,
+                None,
+                (NODE_JOIN_ID,),
+            )
+        )
 
     async def _handle_stick_event(self, event: StickEvent) -> None:
         """Handle stick events"""
@@ -216,6 +219,13 @@ class StickNetwork():
         if self._nodes.get(mac) is None:
             await self._discover_and_load_node(address, mac, None)
             await self._notify_node_event_subscribers(NodeEvent.AWAKE, mac)
+
+    async def node_join_available_message(
+        self, response: NodeJoinAvailableResponse
+    ) -> None:
+        """Handle NodeJoinAvailableResponse messages."""
+        mac = response.mac_decoded
+        await self._notify_node_event_subscribers(NodeEvent.JOIN, mac)
 
     def _unsubscribe_to_protocol_events(self) -> None:
         """Unsubscribe to events from protocol."""
@@ -492,20 +502,6 @@ class StickNetwork():
         _LOGGER.debug("Stopping finished")
 
 # endregion
-    # async def node_join_available_message(
-    #     self, response: NodeJoinAvailableResponse
-    # ) -> None:
-    #     """Receive NodeJoinAvailableResponse messages."""
-    #     mac = response.mac_decoded
-    #     await self._notify_node_event_subscribers(NodeEvent.JOIN, mac)
-    #     if self.join_available is not None:
-    #         self.join_available(response.mac_decoded)
-    #     if not self.accept_join_request:
-    #         # TODO: Add debug logging
-    #         return
-        # if not await self.register_network_node(response.mac_decoded):
-        #    # TODO: Add warning logging
-        #    pass
 
     async def allow_join_requests(self, state: bool) -> None:
         """Enable or disable Plugwise network."""
