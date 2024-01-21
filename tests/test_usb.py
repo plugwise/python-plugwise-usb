@@ -687,10 +687,94 @@ class TestStick:
 
         await stick.disconnect()
 
-# No tests available
-class TestPlugwise:  # pylint: disable=attribute-defined-outside-init
-    """Tests for Plugwise USB."""
+    @freeze_time(dt.now())
+    def test_pulse_collection(self):
+        """Testing pulse collection class"""
 
-    async def test_connect_legacy_anna(self):
-        """No tests available."""
-        assert True
+    _pulse_update = 0
+
+    def pulse_update(self, timestamp: dt, is_consumption: bool):
+        """Callback helper for pulse updates for energy counter"""
+        self._pulse_update += 1
+        if self._pulse_update == 1:
+            return (None, None)
+        if self._pulse_update == 2:
+            return (None, timestamp + td(minutes=5))
+        if self._pulse_update == 3:
+            return (2222, None)
+        if self._pulse_update == 4:
+            return (2222, timestamp + td(minutes=10))
+        return (3333, timestamp + td(minutes=15, seconds=10))
+
+    @freeze_time(dt.now())
+    def test_energy_counter(self):
+        """Testing energy counter class"""
+        pulse_col_mock = Mock()
+        pulse_col_mock.collected_pulses.side_effect = self.pulse_update
+
+        fixed_timestamp_utc = dt.now(tz.utc)
+        fixed_timestamp_local = dt.now(dt.now(tz.utc).astimezone().tzinfo)
+
+        _LOGGER.debug(
+            "test_energy_counter | fixed_timestamp-utc = %s", str(fixed_timestamp_utc)
+        )
+
+        calibration_config = pw_energy_calibration.EnergyCalibration(1, 2, 3, 4)
+
+        # Initialize hour counter
+        energy_counter_init = pw_energy_counter.EnergyCounter(
+            pw_energy_counter.EnergyType.CONSUMPTION_HOUR,
+        )
+        assert energy_counter_init.calibration is None
+        energy_counter_init.calibration = calibration_config
+
+        assert energy_counter_init.energy is None
+        assert energy_counter_init.is_consumption
+        assert energy_counter_init.last_reset is None
+        assert energy_counter_init.last_update is None
+
+        # First update (None, None)
+        assert energy_counter_init.update(pulse_col_mock) == (None, None)
+        assert energy_counter_init.energy is None
+        assert energy_counter_init.last_reset is None
+        assert energy_counter_init.last_update is None
+        # Second update (None, timestamp)
+        assert energy_counter_init.update(pulse_col_mock) == (None, None)
+        assert energy_counter_init.energy is None
+        assert energy_counter_init.last_reset is None
+        assert energy_counter_init.last_update is None
+        # Third update (2222, None)
+        assert energy_counter_init.update(pulse_col_mock) == (None, None)
+        assert energy_counter_init.energy is None
+        assert energy_counter_init.last_reset is None
+        assert energy_counter_init.last_update is None
+
+        # forth update (2222, timestamp + 00:10:00)
+        reset_timestamp = fixed_timestamp_local.replace(
+            minute=0, second=0, microsecond=0
+        )
+        assert energy_counter_init.update(pulse_col_mock) == (
+            0.07204743061527973,
+            reset_timestamp,
+        )
+        assert energy_counter_init.energy == 0.07204743061527973
+        assert energy_counter_init.last_reset == reset_timestamp
+        assert energy_counter_init.last_update == reset_timestamp + td(minutes=10)
+
+        # fifth update (3333, timestamp + 00:15:10)
+        assert energy_counter_init.update(pulse_col_mock) == (
+            0.08263379198066137,
+            reset_timestamp,
+        )
+        assert energy_counter_init.energy == 0.08263379198066137
+        assert energy_counter_init.last_reset == reset_timestamp
+        assert energy_counter_init.last_update == reset_timestamp + td(
+            minutes=15, seconds=10
+        )
+
+        # Production hour
+        energy_counter_p_h = pw_energy_counter.EnergyCounter(
+            pw_energy_counter.EnergyType.PRODUCTION_HOUR,
+        )
+        assert not energy_counter_p_h.is_consumption
+
