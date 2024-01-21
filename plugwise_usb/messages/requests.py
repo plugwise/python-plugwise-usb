@@ -86,7 +86,7 @@ class PlugwiseRequest(PlugwiseMessage):
             subscription_fn(
                 self._update_response,
                 mac=self._mac,
-                identifiers=(self._reply_identifier,),
+                message_ids=(self._reply_identifier,),
             )
         )
 
