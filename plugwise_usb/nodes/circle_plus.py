@@ -88,7 +88,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             NodeFeature.RELAY_INIT in self._features and
             self._relay_init_state is None
         ):
-            if (state := await self.relay_init_get()) is not None:
+            if (state := await self._relay_init_get()) is not None:
                 self._relay_init_state = state
             else:
                 _LOGGER.debug(
