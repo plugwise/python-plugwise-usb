@@ -95,23 +95,22 @@ class NodeCache:
                 "Failed to read cache file %s", str(self._cache_file)
             )
             return False
-        else:
-            self._states.clear()
-            for line in lines:
-                data = line.strip().split(CACHE_SEPARATOR)
-                if len(data) != 2:
-                    _LOGGER.warning(
-                        "Skip invalid line '%s' in cache file %s",
-                        line,
-                        str(self._cache_file)
-                    )
-                    break
-                self._states[data[0]] = data[1]
-            _LOGGER.debug(
-                "Cached settings restored %s lines from cache file %s",
-                str(len(self._states)),
-                str(self._cache_file),
-            )
+        self._states.clear()
+        for line in lines:
+            data = line.strip().split(CACHE_SEPARATOR)
+            if len(data) != 2:
+                _LOGGER.warning(
+                    "Skip invalid line '%s' in cache file %s",
+                    line,
+                    str(self._cache_file)
+                )
+                break
+            self._states[data[0]] = data[1]
+        _LOGGER.debug(
+            "Cached settings restored %s lines from cache file %s",
+            str(len(self._states)),
+            str(self._cache_file),
+        )
         return True
 
     async def delete_cache_file(self) -> None:
