@@ -131,12 +131,18 @@ class StickController():
         self,
         node_response_callback: Callable[[PlugwiseResponse], Awaitable[None]],
         mac: bytes | None = None,
-        identifiers: tuple[bytes] | None = None,
+        message_ids: tuple[bytes] | None = None,
     ) -> Callable[[], None]:
+        """
+        Subscribe a awaitable callback to be called when a specific
+        message is received.
+        Returns function to unsubscribe.
+        """
+
         return self._manager.subscribe_to_node_responses(
             node_response_callback,
             mac,
-            identifiers,
+            message_ids,
         )
 
     async def _handle_stick_event(self, event: StickEvent) -> None:
