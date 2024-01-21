@@ -605,8 +605,7 @@ class PlugwiseCircle(PlugwiseNode):
         if self._relay is not None:
             # State already known, no need to load from cache
             return True
-        cached_relay_data = self._get_cache("relay")
-        if cached_relay_data is not None:
+        if (cached_relay_data := self._get_cache("relay")) is not None:
             _LOGGER.debug(
                 "Restore relay state cache for node %s",
                 self.mac
