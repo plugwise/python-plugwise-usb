@@ -9,7 +9,7 @@ from concurrent import futures
 import logging
 
 from ..api import StickEvent
-from ..exceptions import StickError
+from ..exceptions import NodeError, StickError
 from ..messages.requests import PlugwiseRequest, StickInitRequest
 from ..messages.responses import PlugwiseResponse, StickInitResponse
 from .manager import StickConnectionManager
@@ -190,9 +190,16 @@ class StickController():
                 "Zigbee network connection to Circle+ is down."
             )
 
-    async def send(self, request: PlugwiseRequest) -> PlugwiseResponse:
+    async def send(
+        self, request: PlugwiseRequest, suppress_node_errors: bool = True
+    ) -> PlugwiseResponse | None:
         """Submit request to queue and return response"""
-        return await self._queue.submit(request)
+        if not suppress_node_errors:
+            return await self._queue.submit(request)
+        try:
+            return await self._queue.submit(request)
+        except NodeError:
+            return None
 
     def _reset_states(self) -> None:
         """Reset internal connection information."""
