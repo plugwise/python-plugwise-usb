@@ -136,10 +136,15 @@ class PlugwiseRequest(PlugwiseMessage):
         if isinstance(response, StickResponse):
             self._response_timeout.cancel()
             self._response_timeout_expired()
-        else:
-            self._response_timeout.cancel()
+            return
+
+        self._response_timeout.cancel()
+        # Guard for multiple duplicate response message
+        if not self._response_future.done():
             self._response_future.set_result(response)
+        if self._unsubscribe_response is not None:
             self._unsubscribe_response()
+            self._unsubscribe_response = None
 
     @property
     def object_id(self) -> int:
