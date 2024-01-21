@@ -572,7 +572,6 @@ class PlugwiseCircle(PlugwiseNode):
         response: NodeResponse | None = await self._send(
             CircleRelaySwitchRequest(self._mac_in_bytes, state),
         )
-        await sleep(0)
         if (
             response is None
             or response.ack_id == NodeResponseType.RELAY_SWITCH_FAILED
