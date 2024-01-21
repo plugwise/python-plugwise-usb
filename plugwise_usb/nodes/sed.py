@@ -14,9 +14,8 @@ from datetime import datetime
 import logging
 from typing import Final
 
-from plugwise_usb.connection import StickController
-
 from .helpers import raise_not_loaded
+from ..connection import StickController
 from ..exceptions import NodeError, NodeTimeout
 from ..messages.requests import NodeSleepConfigRequest
 from ..messages.responses import (

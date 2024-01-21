@@ -8,14 +8,12 @@ The data is extracted from analyzing the "Plugwise.IO.dll" file of
 the Plugwise source installation.
 
 """
-
 from __future__ import annotations
 
 from datetime import datetime, UTC
-
 from typing import Final, NamedTuple
 
-from plugwise_usb.api import NodeFeature
+from ...api import NodeFeature
 
 
 SupportedVersions = NamedTuple(
