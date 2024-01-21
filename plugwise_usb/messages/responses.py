@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Any, Final
 
 from . import PlugwiseMessage
+from ..api import NodeType
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER, UTF8
 from ..exceptions import MessageError
 from ..util import (
@@ -546,42 +547,72 @@ class NodeInfoResponse(PlugwiseResponse):
         """Initialize NodeInfoResponse message object"""
         super().__init__(b"0024")
 
-        self.last_logaddress = LogAddr(0, length=8)
+        self._last_logaddress = LogAddr(0, length=8)
         if protocol_version == "1.0":
             # FIXME: Define "absoluteHour" variable
             self.datetime = DateTime()
-            self.relay_state = Int(0, length=2)
+            self._relay_state = Int(0, length=2)
             self._params += [
                 self.datetime,
-                self.last_logaddress,
-                self.relay_state,
+                self._last_logaddress,
+                self._relay_state,
             ]
         elif protocol_version == "2.0":
             self.datetime = DateTime()
-            self.relay_state = Int(0, length=2)
+            self._relay_state = Int(0, length=2)
             self._params += [
                 self.datetime,
-                self.last_logaddress,
-                self.relay_state,
+                self._last_logaddress,
+                self._relay_state,
             ]
         elif protocol_version == "2.3":
             # FIXME: Define "State_mask" variable
             self.state_mask = Int(0, length=2)
             self._params += [
                 self.datetime,
-                self.last_logaddress,
+                self._last_logaddress,
                 self.state_mask,
             ]
-        self.frequency = Int(0, length=2)
-        self.hw_ver = String(None, length=12)
-        self.fw_ver = UnixTimestamp(0)
-        self.node_type = Int(0, length=2)
+        self._frequency = Int(0, length=2)
+        self._hw_ver = String(None, length=12)
+        self._fw_ver = UnixTimestamp(0)
+        self._node_type = Int(0, length=2)
         self._params += [
-            self.frequency,
-            self.hw_ver,
-            self.fw_ver,
-            self.node_type,
+            self._frequency,
+            self._hw_ver,
+            self._fw_ver,
+            self._node_type,
         ]
+
+    @property
+    def hardware(self) -> str:
+        """Return hardware id"""
+        return self._hw_ver.value.decode(UTF8)
+
+    @property
+    def firmware(self) -> datetime:
+        """Return timestamp of firmware"""
+        return self._fw_ver.value
+
+    @property
+    def node_type(self) -> NodeType:
+        """Return the type of node"""
+        return NodeType(self._node_type.value)
+
+    @property
+    def last_logaddress(self) -> int:
+        """Return the current energy log address"""
+        return self._last_logaddress.value
+
+    @property
+    def relay_state(self) -> bool:
+        """Return state of relay"""
+        return self._relay_state.value == 1
+
+    @property
+    def frequency(self) -> int:
+        """Return frequency config of node"""
+        return self._frequency
 
 
 class EnergyCalibrationResponse(PlugwiseResponse):

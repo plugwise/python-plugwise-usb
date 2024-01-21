@@ -15,7 +15,6 @@ from ..constants import (
     MINIMAL_POWER_UPDATE,
     PULSES_PER_KW_SECOND,
     SECOND_IN_NANOSECONDS,
-    UTF8,
 )
 from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
@@ -29,6 +28,7 @@ from ..messages.requests import (
     CircleRelayInitStateRequest,
     CircleRelaySwitchRequest,
     EnergyCalibrationRequest,
+    NodeInfoRequest,
 )
 from ..messages.responses import (
     CircleClockResponse,
@@ -815,33 +815,31 @@ class PlugwiseCircle(PlugwiseNode):
         """
         Update Node hardware information.
         """
+        if node_info is None:
+            node_info = await self._send(
+                NodeInfoRequest(self._mac_in_bytes)
+            )
         if not await super().node_info_update(node_info):
             return False
 
-        self._node_info_update_state(
-            firmware=node_info.fw_ver.value,
-            hardware=node_info.hw_ver.value.decode(UTF8),
-            node_type=node_info.node_type.value,
-            timestamp=node_info.timestamp,
-        )
         await self._relay_update_state(
-            node_info.relay_state.value == 1, timestamp=node_info.timestamp
+            node_info.relay_state, timestamp=node_info.timestamp
         )
         if (
             self._last_log_address is not None and
-            self._last_log_address > node_info.last_logaddress.value
+            self._last_log_address > node_info.last_logaddress
         ):
             # Rollover of log address
             _LOGGER.warning(
                 "Rollover log address from %s into %s for node %s",
                 self._last_log_address,
-                node_info.last_logaddress.value,
+                node_info.last_logaddress,
                 self.mac
             )
-        if self._last_log_address != node_info.last_logaddress.value:
-            self._last_log_address = node_info.last_logaddress.value
+        if self._last_log_address != node_info.last_logaddress:
+            self._last_log_address = node_info.last_logaddress
             self._set_cache(
-                "last_log_address", node_info.last_logaddress.value
+                "last_log_address", node_info.last_logaddress
             )
             if self.cache_enabled and self._loaded and self._initialized:
                 create_task(self.save_cache())
