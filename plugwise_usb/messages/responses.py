@@ -21,6 +21,7 @@ from ..util import (
     UnixTimestamp,
 )
 
+NODE_JOIN_ID: Final = b"0006"
 NODE_AWAKE_RESPONSE_ID: Final = b"004F"
 NODE_SWITCH_GROUP_ID: Final = b"0056"
 SENSE_REPORT_ID: Final = b"0105"
@@ -310,7 +311,7 @@ class NodeJoinAvailableResponse(PlugwiseResponse):
 
     def __init__(self) -> None:
         """Initialize NodeJoinAvailableResponse message object"""
-        super().__init__(b"0006")
+        super().__init__(NODE_JOIN_ID)
 
 
 class NodePingResponse(PlugwiseResponse):
@@ -860,7 +861,7 @@ ID_TO_MESSAGE = {
     b"0002": StickNetworkInfoResponse(),
     b"0003": NodeSpecificResponse(),
     b"0005": CirclePlusConnectResponse(),
-    b"0006": NodeJoinAvailableResponse(),
+    NODE_JOIN_ID: NodeJoinAvailableResponse(),
     b"000E": NodePingResponse(),
     b"0010": NodeImageValidationResponse(),
     b"0011": StickInitResponse(),
