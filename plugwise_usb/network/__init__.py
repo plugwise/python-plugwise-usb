@@ -404,8 +404,7 @@ class StickNetwork():
         node_info, node_ping = await self.get_node_details(mac, True)
         if node_info is None:
             return False
-        node_type = NodeType(node_info.node_type.value)
-        self._create_node_object(mac, address, node_type)
+        self._create_node_object(mac, address, node_info.node_type)
 
         # Forward received NodeInfoResponse message to node object
         await self._nodes[mac].node_info_update(node_info)
