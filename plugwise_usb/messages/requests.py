@@ -422,6 +422,8 @@ class CircleClockSetRequest(PlugwiseRequest):
     """
     Set internal clock of node and flash address
 
+    reset=True, will reset all locally stored energy logs
+    
     Supported protocols : 1.0, 2.0
     Response message    : NodeResponse
     """
@@ -430,17 +432,17 @@ class CircleClockSetRequest(PlugwiseRequest):
         self,
         mac: bytes,
         dt: datetime,
-        flash_address: str = "FFFFFFFF",
-        protocol_version: str = "2.0",
+        protocol_version: float,
+        reset: bool = False,
     ) -> None:
         """Initialize CircleLogDataRequest message object"""
         super().__init__(b"0016", mac)
         self._reply_identifier = b"0000"
         self.priority = Priority.HIGH
-        if protocol_version == "1.0":
+        if protocol_version == 1.0:
             pass
             # FIXME: Define "absoluteHour" variable
-        elif protocol_version == "2.0":
+        elif protocol_version >= 2.0:
             passed_days = dt.day - 1
             month_minutes = (
                 (passed_days * DAY_IN_MINUTES)
@@ -450,7 +452,10 @@ class CircleClockSetRequest(PlugwiseRequest):
             this_date = DateTime(dt.year, dt.month, month_minutes)
         this_time = Time(dt.hour, dt.minute, dt.second)
         day_of_week = Int(dt.weekday(), 2)
-        log_buf_addr = String(flash_address, 8)
+        if reset:
+            log_buf_addr = String("00044000", 8)
+        else:
+            log_buf_addr = String("FFFFFFFF", 8)
         self._args += [this_date, log_buf_addr, this_time, day_of_week]
 
 
