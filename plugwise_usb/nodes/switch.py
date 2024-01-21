@@ -68,11 +68,15 @@ class PlugwiseSwitch(NodeSED):
         if message.power_state.value == 0:
             if self._switch is None or self._switch:
                 self._switch = False
-                await self.publish_event(NodeFeature.SWITCH, False)
+                await self.publish_feature_update_to_subscribers(
+                    NodeFeature.SWITCH, False
+                )
         elif message.power_state.value == 1:
             if self._switch_state is None or not self._switch:
                 self._switch_state = True
-                await self.publish_event(NodeFeature.SWITCH, True)
+                await self.publish_feature_update_to_subscribers(
+                    NodeFeature.SWITCH, True
+                )
         else:
             raise MessageError(
                 f"Unknown power_state '{message.power_state.value}' " +
