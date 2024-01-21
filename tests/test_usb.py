@@ -284,7 +284,7 @@ class TestStick:
         monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 5)
         stick = pw_stick.Stick()
         await stick.connect("test_port")
-        with pytest.raises(pw_exceptions.StickTimeout):
+        with pytest.raises(pw_exceptions.StickError):
             await stick.initialize()
         await stick.disconnect()
 
