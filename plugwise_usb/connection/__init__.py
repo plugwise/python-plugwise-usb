@@ -185,6 +185,11 @@ class StickController():
         self._network_id = init_response.network_id
         self._is_initialized = True
 
+        if not self._network_online:
+            raise StickError(
+                "Zigbee network connection to Circle+ is down."
+            )
+
     async def send(self, request: PlugwiseRequest) -> PlugwiseResponse:
         """Submit request to queue and return response"""
         return await self._queue.submit(request)
