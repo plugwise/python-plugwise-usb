@@ -117,11 +117,12 @@ class StickConnectionManager():
         self,
         node_response_callback: Callable[[PlugwiseResponse], Awaitable[None]],
         mac: bytes | None = None,
-        identifiers: tuple[bytes] | None = None,
+        message_ids: tuple[bytes] | None = None,
     ) -> Callable[[], None]:
         """
-        Subscribe to response messages from node(s).
-        Returns callable function to unsubscribe
+        Subscribe a awaitable callback to be called when a specific
+        message is received.
+        Returns function to unsubscribe.
         """
         if self._receiver is None or not self._receiver.is_connected:
             raise StickError(
@@ -129,7 +130,7 @@ class StickConnectionManager():
                 "is not loaded"
             )
         return self._receiver.subscribe_to_node_responses(
-            node_response_callback, mac, identifiers
+            node_response_callback, mac, message_ids
         )
 
     async def setup_connection_to_stick(

@@ -271,11 +271,12 @@ class StickReceiver(Protocol):
         self,
         node_response_callback: Callable[[PlugwiseResponse], Awaitable[None]],
         mac: bytes | None = None,
-        identifiers: tuple[bytes] | None = None,
+        message_ids: tuple[bytes] | None = None,
     ) -> Callable[[], None]:
         """
-        Subscribe to response messages from node(s).
-        Returns callable function to unsubscribe
+        Subscribe a awaitable callback to be called when a specific
+        message is received.
+        Returns function to unsubscribe.
         """
         def remove_listener() -> None:
             """Remove update listener."""
@@ -283,20 +284,20 @@ class StickReceiver(Protocol):
 
         self._node_response_subscribers[
             remove_listener
-        ] = (node_response_callback, mac, identifiers)
+        ] = (node_response_callback, mac, message_ids)
         return remove_listener
 
     async def _notify_node_response_subscribers(
         self, node_response: PlugwiseResponse
     ) -> None:
         """Call callback for all node response message subscribers"""
-        for callback, mac, ids in list(
+        for callback, mac, message_ids in list(
             self._node_response_subscribers.values()
         ):
             if mac is not None:
                 if mac != node_response.mac:
                     continue
-            if ids is not None:
-                if node_response.identifier not in ids:
+            if message_ids is not None:
+                if node_response.identifier not in message_ids:
                     continue
             await callback(node_response)
