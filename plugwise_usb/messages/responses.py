@@ -112,6 +112,7 @@ class PlugwiseResponse(PlugwiseMessage):
         self._decode_mac = decode_mac
         self._params: list[Any] = []
         self._seq_id: bytes = b"FFFF"
+        self._notify_retries: int = 0
 
     @property
     def ack_id(self) -> bytes | None:
@@ -122,6 +123,16 @@ class PlugwiseResponse(PlugwiseMessage):
     def seq_id(self) -> bytes:
         """Sequence ID"""
         return self._seq_id
+
+    @property
+    def notify_retries(self) -> int:
+        """Return number of notifies"""
+        return self._notify_retries
+
+    @notify_retries.setter
+    def notify_retries(self, retries: int) -> None:
+        """Set number of notification retries"""
+        self._notify_retries = retries
 
     def deserialize(self, response: bytes) -> None:
         """Deserialize bytes to actual message properties."""

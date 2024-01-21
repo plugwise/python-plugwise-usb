@@ -19,9 +19,11 @@ and publish detected connection status changes
 from __future__ import annotations
 from asyncio import (
     Future,
+    create_task,
     gather,
     Protocol,
     get_running_loop,
+    sleep,
 )
 from serial_asyncio import SerialTransport
 from collections.abc import Awaitable, Callable
@@ -43,6 +45,12 @@ STICK_RECEIVER_EVENTS = (
     StickEvent.CONNECTED,
     StickEvent.DISCONNECTED
 )
+
+
+async def delayed_run(coroutine: Callable, seconds: float):
+    """Postpone a coroutine to be executed after given delay"""
+    await sleep(seconds)
+    await coroutine
 
 
 class StickReceiver(Protocol):
@@ -291,6 +299,7 @@ class StickReceiver(Protocol):
         self, node_response: PlugwiseResponse
     ) -> None:
         """Call callback for all node response message subscribers"""
+        callback_list: list[Callable] = []
         for callback, mac, message_ids in list(
             self._node_response_subscribers.values()
         ):
@@ -300,4 +309,26 @@ class StickReceiver(Protocol):
             if message_ids is not None:
                 if node_response.identifier not in message_ids:
                     continue
-            await callback(node_response)
+            callback_list.append(callback(node_response))
+
+        if len(callback_list) > 0:
+            await gather(*callback_list)
+            return
+
+        # No subscription for response, retry in 0.5 sec.
+        node_response.notify_retries += 1
+        if node_response.notify_retries > 10:
+            _LOGGER.warning(
+                "No subscriber to handle %s from %s",
+                node_response.__class__.__name__,
+                node_response.mac_decoded,
+            )
+            return
+        create_task(
+            delayed_run(
+                self._notify_node_response_subscribers(
+                    node_response
+                ),
+                0.5,
+            )
+        )
