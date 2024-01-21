@@ -638,7 +638,7 @@ class PlugwiseCircle(PlugwiseNode):
         if not state:
             self._set_cache("relay", "False")
             if (self._relay is None or self._relay):
-                state_update = False
+                state_update = True
         self._relay = state
         if state_update:
             await self.publish_feature_update_to_subscribers(
