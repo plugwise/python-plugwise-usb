@@ -1030,3 +1030,33 @@ class TestStick:
             == b"\x05\x05\x03\x03010111112222333344441E0005025E\r\n"
         )
 
+    @pytest.mark.asyncio
+    async def test_stick_network_down(self, monkeypatch):
+        """Testing timeout circle+ discovery"""
+        mock_serial = MockSerial(
+            {
+                b"\x05\x05\x03\x03000AB43C\r\n": (
+                    "STICK INIT",
+                    b"000000C1",  # Success ack
+                    b"0011"  # msg_id
+                    + b"0123456789012345"  # stick mac
+                    + b"00"  # unknown1
+                    + b"00"  # network_is_online
+                    + b"0098765432101234"  # circle_plus_mac
+                    + b"4321"  # network_id
+                    + b"00",  # unknown2
+                ),
+            }
+        )
+        monkeypatch.setattr(
+            pw_connection_manager,
+            "create_serial_connection",
+            mock_serial.mock_connection,
+        )
+        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
+        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
+        stick = pw_stick.Stick(port="test_port", cache_enabled=False)
+        await stick.connect()
+        with pytest.raises(pw_exceptions.StickError):
+            await stick.initialize()
+
