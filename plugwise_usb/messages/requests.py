@@ -114,7 +114,7 @@ class PlugwiseRequest(PlugwiseMessage):
         else:
             self._response_future.set_exception(
                 NodeError(
-                    f"No response within {NODE_TIME_OUT} from node " +
+                    f"No response within {NODE_TIME_OUT} seconds from node " +
                     f"{self.mac_decoded}"
                 )
             )
