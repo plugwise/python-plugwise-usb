@@ -437,7 +437,7 @@ class CircleClockSetRequest(PlugwiseRequest):
     Set internal clock of node and flash address
 
     reset=True, will reset all locally stored energy logs
-    
+
     Supported protocols : 1.0, 2.0
     Response message    : NodeResponse
     """
