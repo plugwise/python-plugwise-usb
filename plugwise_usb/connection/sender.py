@@ -88,8 +88,8 @@ class StickSender():
                     )
                 )
             )
-        except BaseException as exception:  # [broad-exception-caught]
-            request.assign_error(exception)
+        except BaseException as exc:  # pylint: disable=broad-exception-caught
+            request.assign_error(exc)
         else:
             # Update request with session id
             request.seq_id = seq_id
