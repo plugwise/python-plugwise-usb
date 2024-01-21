@@ -445,9 +445,9 @@ class PlugwiseNode(FeaturePublisher, ABC):
         await self._available_update_state(True)
 
         self._node_info_update_state(
-            firmware=node_info.fw_ver.value,
-            hardware=node_info.hw_ver.value.decode(UTF8),
-            node_type=node_info.node_type.value,
+            firmware=node_info.firmware,
+            node_type=node_info.node_type,
+            hardware=node_info.hardware,
             timestamp=node_info.timestamp,
         )
         return True
@@ -455,7 +455,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
     async def _node_info_load_from_cache(self) -> bool:
         """Load node info settings from cache."""
         firmware: datetime | None = None
-        node_type: int | None = None
+        node_type: NodeType | None = None
         hardware: str | None = self._get_cache("hardware")
         timestamp: datetime | None = None
         if (firmware_str := self._get_cache("firmware")) is not None:
@@ -471,7 +471,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
                     tzinfo=UTC
                 )
         if (node_type_str := self._get_cache("node_type")) is not None:
-            node_type = int(node_type_str)
+            node_type = NodeType(int(node_type_str))
         if (
             timestamp_str := self._get_cache("node_info_timestamp")
         ) is not None:
@@ -497,7 +497,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         self,
         firmware: datetime | None,
         hardware: str | None,
-        node_type: int | None,
+        node_type: NodeType | None,
         timestamp: datetime | None,
     ) -> bool:
         """
