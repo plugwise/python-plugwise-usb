@@ -108,8 +108,7 @@ class PlugwiseRequest(PlugwiseMessage):
         if stick_timeout:
             self._response_future.set_exception(
                 NodeError(
-                    f"Timeout by stick to " +
-                    f"{self.mac_decoded}"
+                    "Timeout by stick to {self.mac_decoded}"
                 )
             )
         else:
