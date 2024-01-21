@@ -236,6 +236,8 @@ class PulseCollection:
         self._last_update = timestamp
 
         if self._next_log_consumption_timestamp is None:
+            self._pulses_consumption = pulses_consumed
+            self._pulses_production = pulses_produced
             return
         if (
             self._log_production
@@ -636,7 +638,6 @@ class PulseCollection:
         _LOGGER.debug("_logs_missing | %s | first_address=%s, last_address=%s", self._mac, first_address, last_address)
 
         if last_address <= first_address:
-            _LOGGER.warning("_logs_missing | %s | first_address=%s >= last_address=%s", self._mac, first_address, last_address)
             return []
 
         finished = False
