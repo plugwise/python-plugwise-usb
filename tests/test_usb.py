@@ -539,6 +539,153 @@ class TestStick:
         assert len(stick.nodes) == 6  # Discovered nodes
         await stick.disconnect()
 
+    async def node_relay_state(
+        self,
+        feature: pw_api.NodeFeature,
+        state: pw_api.RelayState,
+    ):
+        """Callback helper for relay event"""
+        if feature == pw_api.NodeFeature.RELAY:
+            if state.relay_state:
+                self.test_relay_state_on.set_result(state.relay_state)
+            else:
+                self.test_relay_state_off.set_result(state.relay_state)
+        else:
+            self.test_relay_state_on.set_exception(
+                BaseException(
+                    f"Invalid {feature} feature, expected " +
+                    f"{pw_api.NodeFeature.RELAY}"
+                )
+            )
+            self.test_relay_state_off.set_exception(
+                BaseException(
+                    f"Invalid {feature} feature, expected " +
+                    f"{pw_api.NodeFeature.RELAY}"
+                )
+            )
+
+    async def node_init_relay_state(
+        self,
+        feature: pw_api.NodeFeature,
+        state: bool,
+    ):
+        """Callback helper for relay event"""
+        if feature == pw_api.NodeFeature.RELAY_INIT:
+            if state:
+                self.test_init_relay_state_on.set_result(state)
+            else:
+                self.test_init_relay_state_off.set_result(state)
+        else:
+            self.test_init_relay_state_on.set_exception(
+                BaseException(
+                    f"Invalid {feature} feature, expected " +
+                    f"{pw_api.NodeFeature.RELAY_INIT}"
+                )
+            )
+            self.test_init_relay_state_off.set_exception(
+                BaseException(
+                    f"Invalid {feature} feature, expected " +
+                    f"{pw_api.NodeFeature.RELAY_INIT}"
+                )
+            )
+
+    @pytest.mark.asyncio
+    async def test_node_relay(self, monkeypatch):
+        """Testing discovery of nodes"""
+        mock_serial = MockSerial(None)
+        monkeypatch.setattr(
+            pw_connection_manager,
+            "create_serial_connection",
+            mock_serial.mock_connection,
+        )
+        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
+        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
+        stick = pw_stick.Stick("test_port", cache_enabled=False)
+        await stick.connect()
+        await stick.initialize()
+        await stick.discover_nodes(load=False)
+
+        # Manually load node
+        assert await stick.nodes["0098765432101234"].load()
+
+        self.test_relay_state_on = asyncio.Future()
+        self.test_relay_state_off = asyncio.Future()
+        unsub_relay = stick.nodes[
+            "0098765432101234"
+        ].subscribe_to_feature_update(
+            node_feature_callback=self.node_relay_state,
+            features=(pw_api.NodeFeature.RELAY,),
+        )
+        # Test sync switching from on to off
+        assert stick.nodes["0098765432101234"].relay
+        stick.nodes["0098765432101234"].relay = False
+        assert not await self.test_relay_state_off
+        assert not stick.nodes["0098765432101234"].relay
+
+        # Test sync switching back from off to on
+        stick.nodes["0098765432101234"].relay = True
+        assert await self.test_relay_state_on
+        assert stick.nodes["0098765432101234"].relay
+
+        # Test async switching back from on to off
+        self.test_relay_state_off = asyncio.Future()
+        assert not await stick.nodes["0098765432101234"].switch_relay(False)
+        assert not await self.test_relay_state_off
+        assert not stick.nodes["0098765432101234"].relay
+
+        # Test async switching back from off to on
+        self.test_relay_state_on = asyncio.Future()
+        assert await stick.nodes["0098765432101234"].switch_relay(True)
+        assert await self.test_relay_state_on
+        assert stick.nodes["0098765432101234"].relay
+
+        unsub_relay()
+
+        # Test non-support init relay state
+        with pytest.raises(pw_exceptions.NodeError):
+            assert stick.nodes["0098765432101234"].relay_init
+        with pytest.raises(pw_exceptions.NodeError):
+            await stick.nodes["0098765432101234"].switch_init_relay(True)
+            await stick.nodes["0098765432101234"].switch_init_relay(False)
+
+        # Test relay init
+        # load node 2222222222222222 which has
+        # the firmware with init relay feature
+        assert await stick.nodes["2222222222222222"].load()
+        self.test_init_relay_state_on = asyncio.Future()
+        self.test_init_relay_state_off = asyncio.Future()
+        unsub_inti_relay = stick.nodes[
+            "0098765432101234"
+        ].subscribe_to_feature_update(
+            node_feature_callback=self.node_init_relay_state,
+            features=(pw_api.NodeFeature.RELAY_INIT,),
+        )
+        # Test sync switching init_state from on to off
+        assert stick.nodes["2222222222222222"].relay_init
+        stick.nodes["2222222222222222"].relay_init = False
+        assert not await self.test_init_relay_state_off
+        assert not stick.nodes["2222222222222222"].relay_init
+
+        # Test sync switching back init_state from off to on
+        stick.nodes["2222222222222222"].relay_init = True
+        assert await self.test_init_relay_state_on
+        assert stick.nodes["2222222222222222"].relay_init
+
+        # Test async switching back init_state from on to off
+        self.test_init_relay_state_off = asyncio.Future()
+        assert not await stick.nodes["2222222222222222"].switch_init_relay(False)
+        assert not await self.test_init_relay_state_off
+        assert not stick.nodes["2222222222222222"].relay_init
+
+        # Test async switching back from off to on
+        self.test_init_relay_state_on = asyncio.Future()
+        assert await stick.nodes["2222222222222222"].switch_init_relay(True)
+        assert await self.test_init_relay_state_on
+        assert stick.nodes["2222222222222222"].relay_init
+
+        unsub_inti_relay()
+
+        await stick.disconnect()
 
 # No tests available
 class TestPlugwise:  # pylint: disable=attribute-defined-outside-init
