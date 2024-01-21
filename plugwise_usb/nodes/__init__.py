@@ -300,8 +300,10 @@ class PlugwiseNode(FeaturePublisher, ABC):
                 required_version := FEATURE_SUPPORTED_AT_FIRMWARE.get(feature)
             ) is not None:
                 if (
-                    required_version <= self._node_protocols.min and
-                    feature not in new_feature_list
+                    self._node_protocols.min
+                    <= required_version
+                    <= self._node_protocols.max
+                    and feature not in new_feature_list
                 ):
                     new_feature_list.append(feature)
         self._features = tuple(new_feature_list)
