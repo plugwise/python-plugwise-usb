@@ -63,7 +63,6 @@ class PlugwiseRequest(PlugwiseMessage):
         self._reply_identifier: bytes = b"0000"
 
         self._unsubscribe_response: Callable[[], None] | None = None
-        self._response: PlugwiseResponse | None = None
         self._response_timeout: TimerHandle | None = None
         self._response_future: Future[PlugwiseResponse] = (
             self._loop.create_future()
@@ -74,9 +73,11 @@ class PlugwiseRequest(PlugwiseMessage):
         return self._response_future
 
     @property
-    def response(self) -> PlugwiseResponse | None:
+    def response(self) -> PlugwiseResponse:
         """Return response message"""
-        return self._response
+        if not self._response_future.done():
+            raise StickError("No response available")
+        return self._response_future.result()
 
     def subscribe_to_responses(
         self, subscription_fn: Callable[[], None]
@@ -122,7 +123,6 @@ class PlugwiseRequest(PlugwiseMessage):
         if self._seq_id is None:
             pass
         if self._seq_id == response.seq_id:
-            self._response = response
             self._response_timeout.cancel()
             self._response_future.set_result(response)
             self._unsubscribe_response()
