@@ -106,7 +106,10 @@ class StickQueue:
         try:
             response: PlugwiseResponse = await request.response_future()
         except BaseException as exception:  # [broad-exception-caught]
-            raise exception.args[0]
+            raise StickError(
+                f"No response received for {request.__class__.__name__} " +
+                f"to {request.mac_decoded}"
+            ) from exception
         return response
 
     async def _add_request_to_queue(self, request: PlugwiseRequest) -> None:
