@@ -671,7 +671,11 @@ class PlugwiseCircle(PlugwiseNode):
                 str(clock_offset.seconds),
             )
             node_response: NodeResponse | None = await self._send(
-                CircleClockSetRequest(self._mac_in_bytes, datetime.utcnow()),
+                CircleClockSetRequest(
+                    self._mac_in_bytes,
+                    datetime.utcnow(),
+                    self._node_protocols.max
+                )
             )
             if (
                 node_response is None
