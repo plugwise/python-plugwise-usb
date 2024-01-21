@@ -485,6 +485,7 @@ class StickNetwork():
         """Discover nodes"""
         if not self._is_running:
             await self.start()
+        await self.discover_network_coordinator()
         await self._discover_registered_nodes()
         await sleep(0)
         if load:
