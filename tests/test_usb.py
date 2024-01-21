@@ -372,18 +372,29 @@ class TestStick:
     async def node_motion_state(
         self,
         feature: pw_api.NodeFeature,
-        state: bool,
+        state: pw_api.MotionState,
     ):
         """Callback helper for node_motion event"""
         if feature == pw_api.NodeFeature.MOTION:
-            self.motion_on.set_result(state)
+            if state.motion:
+                self.motion_on.set_result(state.motion)
+            else:
+                self.motion_off.set_result(state.motion)
         else:
-            self.motion_off.set_exception(
-                BaseException(
-                    f"Invalid {feature} feature, expected " +
-                    f"{pw_api.NodeFeature.MOTION}"
+            if state.motion:
+                self.motion_on.set_exception(
+                    BaseException(
+                        f"Invalid {feature} feature, expected " +
+                        f"{pw_api.NodeFeature.MOTION}"
+                    )
                 )
-            )
+            else:
+                self.motion_off.set_exception(
+                    BaseException(
+                        f"Invalid {feature} feature, expected " +
+                        f"{pw_api.NodeFeature.MOTION}"
+                    )
+                )
 
     async def node_ping(
         self,
@@ -422,17 +433,52 @@ class TestStick:
             node_event_callback=self.node_awake,
             events=(pw_api.NodeEvent.AWAKE,),
         )
-        self.test_node_discovered = asyncio.Future()
-        unsub_discovered = stick.subscribe_to_node_events(
-            node_event_callback=self.node_discovered,
-            events=(pw_api.NodeEvent.DISCOVERED,),
-        )
+
         # Inject NodeAwakeResponse message to trigger a 'node discovered' event
         mock_serial._transport.message_response(b"004F555555555555555500", b"FFFE")
         mac_awake_node = await self.test_node_awake
         assert mac_awake_node == "5555555555555555"
         unsub_awake()
 
+        assert await stick.nodes["5555555555555555"].load()
+        assert stick.nodes["5555555555555555"].node_info.firmware == dt(
+            2011, 6, 27, 8, 55, 44, tzinfo=tz.utc
+        )
+        assert stick.nodes["5555555555555555"].node_info.version == "000000080007"
+        assert stick.nodes["5555555555555555"].node_info.model == "Scan"
+        assert stick.nodes["5555555555555555"].available
+        assert stick.nodes["5555555555555555"].node_info.battery_powered
+        assert sorted(stick.nodes["5555555555555555"].features) == sorted(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.PING,
+                pw_api.NodeFeature.MOTION,
+            )
+        )
+
+        # Motion
+        self.motion_on = asyncio.Future()
+        self.motion_off = asyncio.Future()
+        unsub_motion = stick.nodes[
+            "5555555555555555"
+        ].subscribe_to_feature_update(
+            node_feature_callback=self.node_motion_state,
+            features=(pw_api.NodeFeature.MOTION,),
+        )
+        # Inject motion message to trigger a 'motion on' event
+        mock_serial._transport.message_response(b"005655555555555555550001", b"FFFF")
+        motion_on = await self.motion_on
+        assert motion_on
+
+        # Inject motion message to trigger a 'motion off' event
+        mock_serial._transport.message_response(b"005655555555555555550000", b"FFFF")
+        motion_off = await self.motion_off
+        assert not motion_off
+        unsub_motion()
+
+
+        await stick.disconnect()
 
 
 # No tests available
