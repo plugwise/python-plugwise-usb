@@ -648,7 +648,7 @@ class PulseCollection:
                 if not self._log_exists(address, slot):
                     missing.append(address)
                     break
-                if self.logs[address][slot].timestamp < from_timestamp:
+                if self.logs[address][slot].timestamp <= from_timestamp:
                     finished = True
                     break
             if finished:
