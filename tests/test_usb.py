@@ -950,3 +950,83 @@ class TestStick:
         )
         assert not energy_counter_p_h.is_consumption
 
+    @pytest.mark.asyncio
+    async def test_creating_request_messages(self):
+
+        node_network_info_request = pw_requests.StickNetworkInfoRequest()
+        assert node_network_info_request.serialize() == b"\x05\x05\x03\x030001CAAB\r\n"
+        circle_plus_connect_request = pw_requests.CirclePlusConnectRequest(
+            b"1111222233334444"
+        )
+        assert (
+            circle_plus_connect_request.serialize()
+            == b"\x05\x05\x03\x030004000000000000000000001111222233334444BDEC\r\n"
+        )
+        node_add_request = pw_requests.NodeAddRequest(b"1111222233334444", True)
+        assert (
+            node_add_request.serialize()
+            == b"\x05\x05\x03\x0300070111112222333344445578\r\n"
+        )
+        node_reset_request = pw_requests.NodeResetRequest(b"1111222233334444", 2, 5)
+        assert (
+            node_reset_request.serialize()
+            == b"\x05\x05\x03\x030009111122223333444402053D5C\r\n"
+        )
+        node_image_activate_request = pw_requests.NodeImageActivateRequest(
+            b"1111222233334444", 2, 5
+        )
+        assert (
+            node_image_activate_request.serialize()
+            == b"\x05\x05\x03\x03000F1111222233334444020563AA\r\n"
+        )
+        circle_log_data_request = pw_requests.CircleLogDataRequest(
+            b"1111222233334444",
+            dt(2022, 5, 3, 0, 0, 0),
+            dt(2022, 5, 10, 23, 0, 0),
+        )
+        assert (
+            circle_log_data_request.serialize()
+            == b"\x05\x05\x03\x030014111122223333444416050B4016053804AD3A\r\n"
+        )
+        node_remove_request = pw_requests.NodeRemoveRequest(
+            b"1111222233334444", "5555666677778888"
+        )
+        assert (
+            node_remove_request.serialize()
+            == b"\x05\x05\x03\x03001C11112222333344445555666677778888D89C\r\n"
+        )
+
+        circle_plus_realtimeclock_request = (
+            pw_requests.CirclePlusRealTimeClockSetRequest(
+                b"1111222233334444", dt(2022, 5, 4, 3, 1, 0)
+            )
+        )
+        assert (
+            circle_plus_realtimeclock_request.serialize()
+            == b"\x05\x05\x03\x030028111122223333444400010302040522ADE2\r\n"
+        )
+
+        node_sleep_config_request = pw_requests.NodeSleepConfigRequest(
+            b"1111222233334444",
+            5,  # Duration in seconds the SED will be awake for receiving commands
+            360,  # Duration in minutes the SED will be in sleeping mode and not able to respond any command
+            1440,  # Interval in minutes the node will wake up and able to receive commands
+            False,  # Enable/disable clock sync
+            0,  # Duration in minutes the node synchronize its clock
+        )
+        assert (
+            node_sleep_config_request.serialize()
+            == b"\x05\x05\x03\x030050111122223333444405016805A00000008C9D\r\n"
+        )
+
+        scan_configure_request = pw_requests.ScanConfigureRequest(
+            b"1111222233334444",
+            5,  # Delay in minutes when signal is send when no motion is detected
+            30,  # Sensitivity of Motion sensor (High, Medium, Off)
+            False,  # Daylight override to only report motion when lightlevel is below calibrated level
+        )
+        assert (
+            scan_configure_request.serialize()
+            == b"\x05\x05\x03\x03010111112222333344441E0005025E\r\n"
+        )
+
