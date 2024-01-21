@@ -124,7 +124,7 @@ class PlugwiseCircle(PlugwiseNode):
                 "Configuring initial state of relay"
                 + f"is not supported for device {self.mac}"
             )
-        create_task(self.relay_init_set(state))
+        create_task(self._relay_init_set(state))
 
     async def calibration_update(self) -> bool:
         """
@@ -798,7 +798,7 @@ class PlugwiseCircle(PlugwiseNode):
             NodeFeature.RELAY_INIT in self._features and
             self._relay_init_state is None
         ):
-            if (state := await self.relay_init_get()) is not None:
+            if (state := await self._relay_init_get()) is not None:
                 self._relay_init_state = state
             else:
                 _LOGGER.debug(
@@ -862,7 +862,15 @@ class PlugwiseCircle(PlugwiseNode):
             await self.save_cache()
         self._loaded = False
 
-    async def relay_init_get(self) -> bool | None:
+    async def switch_init_relay(self, state: bool) -> bool:
+        """
+        Switch state of initial power-up relay state.
+        Return new state of relay
+        """
+        await self._relay_init_set(state)
+        return self._relay_init_state
+
+    async def _relay_init_get(self) -> bool | None:
         """
         Get current configuration of the power-up state of the relay.
 
@@ -881,7 +889,7 @@ class PlugwiseCircle(PlugwiseNode):
         await self._relay_init_update_state(response.relay.value == 1)
         return self._relay_init_state
 
-    async def relay_init_set(self, state: bool) -> bool | None:
+    async def _relay_init_set(self, state: bool) -> bool | None:
         """Configure relay init state."""
         if NodeFeature.RELAY_INIT not in self._features:
             raise NodeError(
