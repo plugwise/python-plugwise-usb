@@ -126,13 +126,4 @@ class StickQueue:
         while self._queue.qsize() > 0:
             # Get item with highest priority from queue first
             request = await self._queue.get()
-
-            # Guard for incorrect futures
-            if request.response is not None:
-                _LOGGER.error(
-                    "%s has already a response",
-                    request.__class__.__name__,
-                )
-                break
-
             await self._stick.write_to_stick(request)
