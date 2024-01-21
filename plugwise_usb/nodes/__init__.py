@@ -328,10 +328,6 @@ class PlugwiseNode(FeaturePublisher, ABC):
         """
         raise NotImplementedError()
 
-    async def relay_init_set(self, state: bool) -> bool | None:
-        """Configure relay init state."""
-        raise NotImplementedError()
-
     async def scan_calibrate_light(self) -> bool:
         """
         Request to calibration light sensitivity of Scan device.
