@@ -11,12 +11,13 @@ from . import PlugwiseMessage
 from ..constants import (
     DAY_IN_MINUTES,
     HOUR_IN_MINUTES,
+    LOGADDR_OFFSET,
     MAX_RETRIES,
     MESSAGE_FOOTER,
     MESSAGE_HEADER,
     NODE_TIME_OUT,
 )
-from ..messages.responses import PlugwiseResponse
+from ..messages.responses import PlugwiseResponse, StickResponse
 from ..exceptions import NodeError, StickError
 from ..util import (
     DateTime,
@@ -87,7 +88,7 @@ class PlugwiseRequest(PlugwiseMessage):
             subscription_fn(
                 self._update_response,
                 mac=self._mac,
-                message_ids=(self._reply_identifier,),
+                message_ids=(b"0000", self._reply_identifier),
             )
         )
 
@@ -99,10 +100,19 @@ class PlugwiseRequest(PlugwiseMessage):
             NODE_TIME_OUT, self._response_timeout_expired
         )
 
-    def _response_timeout_expired(self) -> None:
+    def _response_timeout_expired(self, stick_timeout: bool = False) -> None:
         """Handle response timeout"""
-        if not self._response_future.done():
-            self._unsubscribe_response()
+        if self._response_future.done():
+            return
+        self._unsubscribe_response()
+        if stick_timeout:
+            self._response_future.set_exception(
+                NodeError(
+                    f"Timeout by stick to " +
+                    f"{self.mac_decoded}"
+                )
+            )
+        else:
             self._response_future.set_exception(
                 NodeError(
                     f"No response within {NODE_TIME_OUT} from node " +
@@ -121,8 +131,13 @@ class PlugwiseRequest(PlugwiseMessage):
     async def _update_response(self, response: PlugwiseResponse) -> None:
         """Process incoming message from node"""
         if self._seq_id is None:
-            pass
-        if self._seq_id == response.seq_id:
+            return
+        if self._seq_id != response.seq_id:
+            return
+        if isinstance(response, StickResponse):
+            self._response_timeout.cancel()
+            self._response_timeout_expired()
+        else:
             self._response_timeout.cancel()
             self._response_future.set_result(response)
             self._unsubscribe_response()
