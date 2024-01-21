@@ -516,6 +516,7 @@ class PlugwiseCircle(PlugwiseNode):
                 _utc_midnight_timestamp + timedelta(hours=1),
                 _utc_hour_timestamp,
             )
+            self.do_callback(FEATURE_ENERGY_CONSUMPTION_TODAY["id"])
         elif (
              self._energy_pulses_today_now is not None
              and self._energy_pulses_today_now > _pulses_today_now

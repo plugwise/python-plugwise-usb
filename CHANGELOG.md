@@ -1,5 +1,9 @@
 # Changelog
 
+## ongoing
+
+- Bugfix midnight rollover for cicrles without power usage registered during first hour(s)
+
 ## v0.31.2
 
 - CI improvements.
