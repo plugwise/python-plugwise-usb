@@ -37,7 +37,12 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             if await self._load_from_cache():
                 self._loaded = True
                 self._setup_protocol(
-                    CIRCLE_PLUS_FIRMWARE_SUPPORT, (NodeFeature.RELAY_INIT,)
+                    CIRCLE_PLUS_FIRMWARE_SUPPORT,
+                    (
+                        NodeFeature.RELAY_INIT,
+                        NodeFeature.ENERGY,
+                        NodeFeature.POWER,
+                    ),
                 )
                 return await self.initialize()
             _LOGGER.warning(
@@ -65,7 +70,12 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             return False
         self._loaded = True
         self._setup_protocol(
-            CIRCLE_PLUS_FIRMWARE_SUPPORT, (NodeFeature.RELAY_INIT,)
+            CIRCLE_PLUS_FIRMWARE_SUPPORT,
+            (
+                NodeFeature.RELAY_INIT,
+                NodeFeature.ENERGY,
+                NodeFeature.POWER,
+            ),
         )
         return await self.initialize()
 
