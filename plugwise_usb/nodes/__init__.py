@@ -389,15 +389,10 @@ class PlugwiseNode(FeaturePublisher, ABC):
                 self.mac
             )
             return False
-        #self._load_features()
         return True
 
     async def initialize(self) -> bool:
         """Initialize node."""
-        raise NotImplementedError()
-
-    def _load_features(self) -> None:
-        """Enable additional supported feature(s)."""
         raise NotImplementedError()
 
     async def _available_update_state(self, available: bool) -> None:
