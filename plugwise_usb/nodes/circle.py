@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from asyncio import create_task, gather, sleep
 from collections.abc import Awaitable, Callable
-from datetime import datetime, UTC, timedelta
+from datetime import UTC, datetime, timedelta
 from functools import wraps
 import logging
 from typing import Any, TypeVar, cast
-
+from ..exceptions import PlugwiseException
 from ..api import NodeFeature
 from ..constants import (
     MAX_TIME_DRIFT,
@@ -16,9 +16,6 @@ from ..constants import (
     PULSES_PER_KW_SECOND,
     SECOND_IN_NANOSECONDS,
 )
-from .helpers import EnergyCalibration, raise_not_loaded
-from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
-from .helpers.pulses import PulseLogRecord
 from ..exceptions import NodeError
 from ..messages.requests import (
     CircleClockGetRequest,
@@ -40,12 +37,10 @@ from ..messages.responses import (
     NodeResponse,
     NodeResponseType,
 )
-from ..nodes import (
-    EnergyStatistics,
-    PlugwiseNode,
-    PowerStatistics,
-)
-
+from ..nodes import EnergyStatistics, PlugwiseNode, PowerStatistics
+from .helpers import EnergyCalibration, raise_not_loaded
+from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
+from .helpers.pulses import PulseLogRecord
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 _LOGGER = logging.getLogger(__name__)
@@ -55,12 +50,13 @@ def raise_calibration_missing(func: FuncT) -> FuncT:
     """
     Decorator function to make sure energy calibration settings are available.
     """
+
     @wraps(func)
     def decorated(*args: Any, **kwargs: Any) -> Any:
-
         if args[0].calibrated is None:
             raise NodeError("Energy calibration settings are missing")
         return func(*args, **kwargs)
+
     return cast(FuncT, decorated)
 
 
@@ -241,9 +237,7 @@ class PlugwiseCircle(PlugwiseNode):
             return self._power
 
         request = CirclePowerUsageRequest(self._mac_in_bytes)
-        response: CirclePowerUsageResponse | None = await self._send(
-            request
-        )
+        response: CirclePowerUsageResponse | None = await self._send(request)
         if response is None or response.timestamp is None:
             _LOGGER.debug(
                 "No response for async_power_update() for %s",
@@ -260,10 +254,10 @@ class PlugwiseCircle(PlugwiseNode):
 
         # Update power stats
         self._power.last_second = self._calc_watts(
-            response.pulse_1s, 1, response.nanosecond_offset
+            response.pulse_1s, 1, response.offset
         )
         self._power.last_8_seconds = self._calc_watts(
-            response.pulse_8s.value, 8, response.nanosecond_offset
+            response.pulse_8s, 8, response.offset
         )
         self._power.timestamp = response.timestamp
         await self.publish_feature_update_to_subscribers(
@@ -369,35 +363,38 @@ class PlugwiseCircle(PlugwiseNode):
                     _LOGGER.warning(
                         "Failed to update energy log %s for %s",
                         str(address),
-                        self._mac_in_str
+                        self._mac_in_str,
                     )
                     break
             if self._cache_enabled:
                 await self._energy_log_records_save_to_cache()
             return
-        if len(missing_addresses) == 0:
-            return
-        _LOGGER.debug(
-            "Request %s missing energy logs for node %s | %s",
-            str(len(missing_addresses)),
-            self._node_info.mac,
-            str(missing_addresses),
-        )
-        if len(missing_addresses) > 10:
-            _LOGGER.warning(
-                "Limit requesting max 10 energy logs %s for node %s",
+        if (
+            missing_addresses := self._energy_counters.log_addresses_missing
+        ) is not None:
+            if len(missing_addresses) == 0:
+                return
+            _LOGGER.debug(
+                "Request %s missing energy logs for node %s | %s",
                 str(len(missing_addresses)),
                 self._node_info.mac,
+                str(missing_addresses),
             )
-            missing_addresses = sorted(missing_addresses, reverse=True)[:10]
-        await gather(
-            *[
-                self.energy_log_update(address)
-                for address in missing_addresses
-            ]
-        )
-        if self._cache_enabled:
-            await self._energy_log_records_save_to_cache()
+            if len(missing_addresses) > 10:
+                _LOGGER.warning(
+                    "Limit requesting max 10 energy logs %s for node %s",
+                    str(len(missing_addresses)),
+                    self._node_info.mac,
+                )
+                missing_addresses = sorted(missing_addresses, reverse=True)[:10]
+            await gather(
+                *[
+                    self.energy_log_update(address)
+                    for address in missing_addresses
+                ]
+            )
+            if self._cache_enabled:
+                await self._energy_log_records_save_to_cache()
 
     async def energy_log_update(self, address: int) -> bool:
         """
@@ -412,9 +409,10 @@ class PlugwiseCircle(PlugwiseNode):
             str(address),
             self._mac_in_str,
         )
-        response: CircleEnergyLogsResponse | None = await self._send(
-            request
-        )
+        try:
+            response: CircleEnergyLogsResponse | None = await self._send(request)
+        except PlugwiseException:
+            response = None
         await sleep(0)
         if response is None:
             _LOGGER.warning(
@@ -699,7 +697,12 @@ class PlugwiseCircle(PlugwiseNode):
             if await self._load_from_cache():
                 self._loaded = True
                 self._setup_protocol(
-                    CIRCLE_FIRMWARE_SUPPORT, (NodeFeature.RELAY_INIT,)
+                    CIRCLE_FIRMWARE_SUPPORT,
+                    (
+                        NodeFeature.RELAY_INIT,
+                        NodeFeature.ENERGY,
+                        NodeFeature.POWER,
+                    ),
                 )
                 return await self.initialize()
             _LOGGER.warning(
@@ -843,8 +846,22 @@ class PlugwiseCircle(PlugwiseNode):
             self._set_cache(
                 "last_log_address", node_info.last_logaddress
             )
-            if self.cache_enabled and self._loaded and self._initialized:
-                create_task(self.save_cache())
+            if (
+                self._last_log_address is not None
+                and self._last_log_address > node_info.last_logaddress.value
+            ):
+                # Rollover of log address
+                _LOGGER.warning(
+                    "Rollover log address from %s into %s for node %s",
+                    self._last_log_address,
+                    node_info.last_logaddress.value,
+                    self.mac
+                )
+            if self._last_log_address != node_info.last_logaddress.value:
+                self._last_log_address = node_info.last_logaddress.value
+                self._set_cache("last_log_address", node_info.last_logaddress.value)
+                if self.cache_enabled and self._loaded and self._initialized:
+                    create_task(self.save_cache())
         return True
 
     async def _node_info_load_from_cache(self) -> bool:
@@ -1006,8 +1023,7 @@ class PlugwiseCircle(PlugwiseNode):
         if not self._loaded:
             if not await self.load():
                 _LOGGER.warning(
-                    "Unable to update state because load node %s failed",
-                    self.mac
+                    "Unable to update state because load node %s failed", self.mac
                 )
         states: dict[NodeFeature, Any] = {}
         if not self._available:
