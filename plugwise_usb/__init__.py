@@ -62,14 +62,14 @@ class Stick:
     """Plugwise connection stick."""
 
     def __init__(
-        self, port: str | None = None, cache_enabled: bool = True
+        self, port: str | None = None, use_cache: bool = True
     ) -> None:
         """Initialize Stick."""
         self._loop = get_running_loop()
         self._loop.set_debug(True)
         self._controller = StickController()
         self._network: StickNetwork | None = None
-        self._cache_enabled = cache_enabled
+        self._cache_enabled = use_cache
         self._port = port
         self._cache_folder: str = ""
 
@@ -264,10 +264,14 @@ class Stick:
         self, discover: bool = True, load: bool = True
     ) -> None:
         """Setup connection to USB-Stick."""
-        await self.connect()
-        await self.initialize()
+        if not self.is_connected:
+            await self.connect()
+        if not self.is_initialized:
+            await self.initialize()
         if discover:
             await self.start_network()
+            await self.discover_coordinator()
+            await self.discover_nodes()
         if load:
             await self.load_nodes()
 
