@@ -22,6 +22,7 @@ from asyncio import (
     create_task,
     gather,
     Protocol,
+    Queue,
     get_running_loop,
     sleep,
 )
@@ -29,13 +30,11 @@ from serial_asyncio import SerialTransport
 from collections.abc import Awaitable, Callable
 from concurrent import futures
 import logging
-
 from ..api import StickEvent
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER
 from ..exceptions import MessageError
 from ..messages.responses import (
     PlugwiseResponse,
-    StickInitResponse,
     StickResponse,
     get_message_object,
 )
@@ -70,10 +69,11 @@ class StickReceiver(Protocol):
         self._transport: SerialTransport | None = None
         self._buffer: bytes = bytes([])
         self._connection_state = False
-
+        self._request_queue = Queue()
         self._stick_future: futures.Future | None = None
         self._responses: dict[bytes, Callable[[PlugwiseResponse], None]] = {}
-
+        self._stick_response_future: futures.Future | None = None
+        #self._msg_processing_task: Task | None = None
         # Subscribers
         self._stick_event_subscribers: dict[
             Callable[[], None],
@@ -82,7 +82,7 @@ class StickReceiver(Protocol):
 
         self._stick_response_subscribers: dict[
             Callable[[], None],
-            Callable[[StickResponse | StickInitResponse], Awaitable[None]]
+            Callable[[StickResponse], Awaitable[None]]
         ] = {}
 
         self._node_response_subscribers: dict[
@@ -108,8 +108,10 @@ class StickReceiver(Protocol):
             self._loop.create_task(
                 self._notify_stick_event_subscribers(StickEvent.DISCONNECTED)
             )
+
         self._transport = None
         self._connection_state = False
+        #self._msg_processing_task.cancel()
 
     @property
     def is_connected(self) -> bool:
@@ -120,6 +122,8 @@ class StickReceiver(Protocol):
         """Call when the serial connection to USB-Stick is established."""
         _LOGGER.debug("Connection made")
         self._transport = transport
+        #self._msg_processing_task = 
+        
         if (
             self._connected_future is not None
             and not self._connected_future.done()
@@ -137,22 +141,24 @@ class StickReceiver(Protocol):
             return
         if self._stick_future is not None and not self._stick_future.done():
             self._stick_future.cancel()
+  
         self._transport.close()
 
     def data_received(self, data: bytes) -> None:
-        """
-        Receive data from USB-Stick connection.
+        """Receive data from USB-Stick connection.
+
         This function is called by inherited asyncio.Protocol class
         """
+        _LOGGER.debug("USB stick received [%s]", data)
         self._buffer += data
         if len(self._buffer) < 8:
             return
         while self.extract_message_from_buffer():
             pass
 
-    def extract_message_from_buffer(self) -> bool:
-        """
-        Parse data in buffer and extract any message.
+    def extract_message_from_buffer(self, queue=None) -> bool:
+        """Parse data in buffer and extract any message.
+
         When buffer does not contain any message return False.
         """
         # Lookup header of message
@@ -179,15 +185,19 @@ class StickReceiver(Protocol):
         response = self._populate_message(
             _empty_message, self._buffer[: _footer_index + 2]
         )
-
+        _LOGGER.debug('USB Got %s', response)
         # Parse remaining buffer
         self._reset_buffer(self._buffer[_footer_index:])
 
         if response is not None:
-            self._forward_response(response)
+            self._request_queue.put_nowait(response)
 
-        if len(self._buffer) > 0:
+        if len(self._buffer) >= 8:
             self.extract_message_from_buffer()
+        else:
+            self._loop.create_task(
+                self._msg_queue_processing_function()
+            )
         return False
 
     def _populate_message(
@@ -201,16 +211,15 @@ class StickReceiver(Protocol):
             return None
         return message
 
-    def _forward_response(self, response: PlugwiseResponse) -> None:
-        """Receive and handle response messages."""
-        if isinstance(response, StickResponse):
-            self._loop.create_task(
-                self._notify_stick_response_subscribers(response)
-            )
-        else:
-            self._loop.create_task(
-                self._notify_node_response_subscribers(response)
-            )
+    async def _msg_queue_processing_function(self):
+        while self._request_queue.qsize() > 0:
+            response: PlugwiseResponse | None = await self._request_queue.get()
+            _LOGGER.debug("Processing %s", response)
+            if isinstance(response, StickResponse):
+                await self._notify_stick_response_subscribers(response)
+            else:
+                await self._notify_node_response_subscribers(response)
+            self._request_queue.task_done()
 
     def _reset_buffer(self, new_buffer: bytes) -> None:
         if new_buffer[:2] == MESSAGE_FOOTER:
@@ -225,8 +234,8 @@ class StickReceiver(Protocol):
         stick_event_callback: Callable[[StickEvent], Awaitable[None]],
         events: tuple[StickEvent],
     ) -> Callable[[], None]:
-        """
-        Subscribe callback when specified StickEvent occurs.
+        """Subscribe callback when specified StickEvent occurs.
+
         Returns the function to be called to unsubscribe later.
         """
         def remove_subscription() -> None:
@@ -244,7 +253,7 @@ class StickReceiver(Protocol):
     ) -> None:
         """Call callback for stick event subscribers"""
         callback_list: list[Callable] = []
-        for callback, filtered_events in list(
+        for callback, filtered_events in (
             self._stick_event_subscribers.values()
         ):
             if event in filtered_events:
@@ -254,9 +263,7 @@ class StickReceiver(Protocol):
 
     def subscribe_to_stick_responses(
         self,
-        callback: Callable[
-            [StickResponse | StickInitResponse], Awaitable[None]
-        ],
+        callback: Callable[[StickResponse] , Awaitable[None]],
     ) -> Callable[[], None]:
         """Subscribe to response messages from stick."""
         def remove_subscription() -> None:
@@ -271,7 +278,7 @@ class StickReceiver(Protocol):
     async def _notify_stick_response_subscribers(
         self, stick_response: StickResponse
     ) -> None:
-        """Call callback for all stick response message subscribers"""
+        """Call callback for all stick response message subscribers."""
         for callback in self._stick_response_subscribers.values():
             await callback(stick_response)
 
