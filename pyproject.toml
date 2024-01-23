@@ -139,6 +139,7 @@ disable = [
     "missing-function-docstring",
     "missing-module-docstring",
     "too-many-nested-blocks",
+    "broad-exception-caught"
 ]
 # for now (20201031) added the below while we are codemerging/-improving
 # missing-class-docstring
@@ -168,6 +169,8 @@ overgeneral-exceptions = [
 ]
 
 [tool.pytest.ini_options]
+log_cli_level="DEBUG"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
 asyncio_mode = "strict"
 markers = [
     # mark a test as a asynchronous io test.
@@ -213,6 +216,7 @@ omit= [
     "*/venv/*",
     "setup.py",
 ]
+
 
 [tool.ruff]
 target-version = "py311"
