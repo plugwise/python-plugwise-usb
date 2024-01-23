@@ -69,6 +69,9 @@ class PlugwiseRequest(PlugwiseMessage):
             self._loop.create_future()
         )
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__} for {self.mac_decoded}"
+
     def response_future(self) -> Future[PlugwiseResponse]:
         """Return awaitable future with response message"""
         return self._response_future
@@ -120,7 +123,7 @@ class PlugwiseRequest(PlugwiseMessage):
             )
 
     def assign_error(self, error: StickError) -> None:
-        """Assign error for this request"""
+        """Assign error for this request."""
         if self._response_timeout is not None:
             self._response_timeout.cancel()
         if self._response_future.done():
@@ -128,42 +131,35 @@ class PlugwiseRequest(PlugwiseMessage):
         self._response_future.set_exception(error)
 
     async def _update_response(self, response: PlugwiseResponse) -> None:
-        """Process incoming message from node"""
+        """Process incoming message from node."""
         if self._seq_id is None:
-            return
-        if self._seq_id != response.seq_id:
-            return
-        if isinstance(response, StickResponse):
+            pass
+        if self._seq_id == response.seq_id:
+            _LOGGER.debug('Response %s for request %s id %d', response, self, self._id)
+            self._response = response
             self._response_timeout.cancel()
-            self._response_timeout_expired()
-            return
 
-        self._response_timeout.cancel()
-        # Guard for multiple duplicate response message
-        if not self._response_future.done():
-            self._response_future.set_result(response)
-        if self._unsubscribe_response is not None:
-            self._unsubscribe_response()
-            self._unsubscribe_response = None
+
+
 
     @property
     def object_id(self) -> int:
-        """return the object id"""
+        """return the object id."""
         return self._id
 
     @property
     def max_retries(self) -> int:
-        """Return the maximum retries"""
+        """Return the maximum retries."""
         return self._max_retries
 
     @max_retries.setter
     def max_retries(self, max_retries: int) -> None:
-        """Set maximum retries"""
+        """Set maximum retries."""
         self._max_retries = max_retries
 
     @property
     def retries_left(self) -> int:
-        """Return number of retries left"""
+        """Return number of retries left."""
         return self._max_retries - self._send_counter
 
     @property
@@ -172,7 +168,7 @@ class PlugwiseRequest(PlugwiseMessage):
         return self._max_retries > self._send_counter
 
     def add_send_attempt(self):
-        """Decrease the number of retries"""
+        """Increase the number of retries"""
         self._send_counter += 1
 
     def __gt__(self, other: PlugwiseRequest) -> bool:
@@ -209,8 +205,7 @@ class PlugwiseRequest(PlugwiseMessage):
 
 
 class StickNetworkInfoRequest(PlugwiseRequest):
-    """
-    Request network information
+    """Request network information.
 
     Supported protocols : 1.0, 2.0
     Response message    : NodeNetworkInfoResponse
@@ -223,8 +218,7 @@ class StickNetworkInfoRequest(PlugwiseRequest):
 
 
 class CirclePlusConnectRequest(PlugwiseRequest):
-    """
-    Request to connect a Circle+ to the Stick
+    """Request to connect a Circle+ to the Stick.
 
     Supported protocols : 1.0, 2.0
     Response message    : CirclePlusConnectResponse
@@ -513,7 +507,6 @@ class CirclePlusScanRequest(PlugwiseRequest):
         self._reply_identifier = b"0019"
         self._args.append(Int(network_address, length=2))
         self.network_address = network_address
-
 
 class NodeRemoveRequest(PlugwiseRequest):
     """
