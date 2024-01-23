@@ -624,14 +624,14 @@ class PulseCollection:
             return None
         last_address, last_slot = self._last_log_reference()
         if last_address is None or last_slot is None:
-            _LOGGER.debug("_logs_missing | %s | last_address=%s, last_slot=%s", self._mac, last_address, last_slot)
+            _LOGGER.warning("_logs_missing | %s | last_address=%s, last_slot=%s", self._mac, last_address, last_slot)
             return None
         if self._logs[last_address][last_slot].timestamp <= from_timestamp:
             return []
 
         first_address, first_slot = self._first_log_reference()
         if first_address is None or first_slot is None:
-            _LOGGER.debug("_logs_missing | %s | first_address=%s, first_slot=%s", self._mac, first_address, first_slot)
+            _LOGGER.warning("_logs_missing | %s | first_address=%s, first_slot=%s", self._mac, first_address, first_slot)
             return None
 
         missing = []
@@ -662,6 +662,12 @@ class PulseCollection:
             _LOGGER.debug("_logs_missing | %s | missing in range=%s", self._mac, missing)
             return missing
 
+        if first_address not in self.logs:
+            return missing
+
+        if first_slot not in self.logs[first_address]:
+            return missing
+        
         if self.logs[first_address][first_slot].timestamp < from_timestamp:
             return missing
 
