@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC
 from asyncio import create_task, sleep
 from collections.abc import Callable
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 import logging
 from typing import Any
 
@@ -22,16 +22,13 @@ from ..api import (
 from ..connection import StickController
 from ..constants import UTF8, MotionSensitivity
 from ..exceptions import NodeError, StickError
-from ..messages.requests import (
-    NodeInfoRequest,
-    NodePingRequest,
-)
+from ..messages.requests import NodeInfoRequest, NodePingRequest
 from ..messages.responses import NodeInfoResponse, NodePingResponse
 from ..util import version_to_model
 from .helpers.cache import NodeCache
 from .helpers.counter import EnergyCalibration, EnergyCounters
-from .helpers.subscription import FeaturePublisher
 from .helpers.firmware import FEATURE_SUPPORTED_AT_FIRMWARE, SupportedVersions
+from .helpers.subscription import FeaturePublisher
 
 _LOGGER = logging.getLogger(__name__)
 NODE_FEATURES = (
@@ -307,6 +304,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
                 ):
                     new_feature_list.append(feature)
         self._features = tuple(new_feature_list)
+        self._node_info.features = self._features
 
     async def reconnect(self) -> None:
         """Reconnect node to Plugwise Zigbee network."""
@@ -391,7 +389,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
                 self.mac
             )
             return False
-        self._load_features()
+        #self._load_features()
         return True
 
     async def initialize(self) -> bool:
@@ -399,7 +397,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         raise NotImplementedError()
 
     def _load_features(self) -> None:
-        """Enable additional supported feature(s)"""
+        """Enable additional supported feature(s)."""
         raise NotImplementedError()
 
     async def _available_update_state(self, available: bool) -> None:
@@ -484,7 +482,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
                     second=int(data[5]),
                     tzinfo=UTC
                 )
-        return await self._node_info_update_state(
+        return self._node_info_update_state(
             firmware=firmware,
             hardware=hardware,
             node_type=node_type,
@@ -616,6 +614,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
                     + f"not supported for {self.mac}"
                 )
             if feature == NodeFeature.INFO:
+                await self.node_info_update(None)
                 states[NodeFeature.INFO] = self._node_info
             elif feature == NodeFeature.AVAILABLE:
                 states[NodeFeature.AVAILABLE] = self.available
