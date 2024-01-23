@@ -192,6 +192,7 @@ class EnergyCounters:
         ) = self._counters[EnergyType.PRODUCTION_WEEK].update(
             self._pulse_collection
         )
+        self._pulse_collection.recalculate_missing_log_addresses()
 
     @property
     def timestamp(self) -> datetime | None:
