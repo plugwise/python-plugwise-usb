@@ -1,6 +1,4 @@
-import aiofiles
 import asyncio
-from concurrent import futures
 from datetime import datetime as dt, timedelta as td, timezone as tz
 import importlib
 import logging
@@ -114,7 +112,9 @@ class DummyTransport:
         )
 
     async def _delayed_response(self, data: bytes, seq_id: bytes) -> None:
-        await asyncio.sleep(0.5)
+        import random
+        delay = random.uniform(0.05, 0.25)
+        await asyncio.sleep(delay)
         self.message_response(data, seq_id)
 
     def message_response(self, data: bytes, seq_id: bytes) -> None:
@@ -296,7 +296,7 @@ class TestStick:
             "create_serial_connection",
             MockSerial(None).mock_connection,
         )
-        stick = pw_stick.Stick(port="test_port", cache_enabled=False)
+        stick = pw_stick.Stick(port="test_port", use_cache=False)
         await stick.connect("test_port")
         await stick.initialize()
         assert stick.mac_stick == "0123456789012345"
@@ -423,10 +423,11 @@ class TestStick:
         )
         monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
         monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
-        stick = pw_stick.Stick("test_port", cache_enabled=False)
+        stick = pw_stick.Stick("test_port", use_cache=False)
         await stick.connect()
         await stick.initialize()
-        await stick.discover_nodes(load=False)
+        async with asyncio.timeout(15.0):
+            await stick.discover_nodes(load=False)
         stick.accept_join_request = True
         self.test_node_awake = asyncio.Future()
         unsub_awake = stick.subscribe_to_node_events(
