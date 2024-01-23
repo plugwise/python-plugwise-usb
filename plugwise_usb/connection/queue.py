@@ -8,6 +8,7 @@ from asyncio import (
     InvalidStateError,
     PriorityQueue,
     Task,
+    sleep,
     get_running_loop,
 )
 from collections.abc import Callable
@@ -96,6 +97,7 @@ class StickQueue:
         Add request to queue and return the response of node
         Raises an error when something fails
         """
+        _LOGGER.debug("Queueing %s", request)
         if not self._running or self._stick is None:
             raise StickError(
                 f"Cannot send message {request.__class__.__name__} for" +
@@ -126,7 +128,10 @@ class StickQueue:
 
     async def _submit_worker(self) -> None:
         """Send messages from queue at the order of priority."""
-        while self._queue.qsize() > 0:
+        while (size := self._queue.qsize()) > 0:
             # Get item with highest priority from queue first
             request = await self._queue.get()
+            sleeptime = (2**size) * 0.0001
+            sleeptime = min(sleeptime, 0.05)
+            await sleep(sleeptime)
             await self._stick.write_to_stick(request)

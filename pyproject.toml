@@ -174,6 +174,8 @@ overgeneral-exceptions = [
 ]
 
 [tool.pytest.ini_options]
+log_cli_level="DEBUG"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
 asyncio_mode = "strict"
 markers = [
     # mark a test as a asynchronous io test.
@@ -219,6 +221,7 @@ omit= [
     "*/venv/*",
     "setup.py",
 ]
+
 
 [tool.ruff]
 target-version = "py312"
