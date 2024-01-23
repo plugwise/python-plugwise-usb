@@ -114,6 +114,9 @@ class PlugwiseResponse(PlugwiseMessage):
         self._seq_id: bytes = b"FFFF"
         self._notify_retries: int = 0
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__} from {self.mac_decoded} seq_id {self.seq_id}"
+
     @property
     def ack_id(self) -> bytes | None:
         """Return the acknowledge id"""
@@ -160,9 +163,9 @@ class PlugwiseResponse(PlugwiseMessage):
         # Checksum
         if (check := self.calculate_checksum(response[:-4])) != response[-4:]:
             raise MessageError(
-                f"Invalid checksum for {self.__class__.__name__}, " +
-                f"expected {check} got " +
-                str(response[-4:]),
+                f"Invalid checksum for {self.__class__.__name__}, "
+                + f"expected {check} got "
+                + str(response[-4:]),
             )
         response = response[:-4]
 
@@ -204,7 +207,7 @@ class PlugwiseResponse(PlugwiseMessage):
         for param in self._params:
             my_val = response[: len(param)]
             param.deserialize(my_val)
-            response = response[len(my_val):]
+            response = response[len(my_val) :]
         return response
 
     def __len__(self) -> int:
@@ -225,6 +228,9 @@ class StickResponse(PlugwiseResponse):
         """Initialize StickResponse message object"""
         super().__init__(b"0000", decode_ack=True, decode_mac=False)
 
+    def __repr__(self) -> str:
+        return "StickResponse " + str(StickResponseType(self.ack_id).name) + " seq_id" + str(self.seq_id)
+        
 
 class NodeResponse(PlugwiseResponse):
     """
@@ -642,12 +648,7 @@ class EnergyCalibrationResponse(PlugwiseResponse):
         self._gain_b = Float(0, 8)
         self._off_tot = Float(0, 8)
         self._off_noise = Float(0, 8)
-        self._params += [
-            self._gain_a,
-            self._gain_b,
-            self._off_tot,
-            self._off_noise
-        ]
+        self._params += [self._gain_a, self._gain_b, self._off_tot, self._off_noise]
 
     @property
     def gain_a(self) -> float:
@@ -823,8 +824,7 @@ class NodeRejoinResponse(PlugwiseResponse):
 
 
 class NodeAckResponse(PlugwiseResponse):
-    """
-    Acknowledge message in regular format
+    """Acknowledge message in regular format
     Sent by nodes supporting plugwise 2.4 protocol version
 
     Response to: ?
@@ -836,8 +836,8 @@ class NodeAckResponse(PlugwiseResponse):
 
 
 class SenseReportResponse(PlugwiseResponse):
-    """
-    Returns the current temperature and humidity of a Sense node.
+    """Returns the current temperature and humidity of a Sense node.
+
     The interval this report is sent is configured by
     the 'SenseReportIntervalRequest' request
 
@@ -853,8 +853,7 @@ class SenseReportResponse(PlugwiseResponse):
 
 
 class CircleRelayInitStateResponse(PlugwiseResponse):
-    """
-    Returns the configured relay state after power-up of Circle
+    """Returns the configured relay state after power-up of Circle.
 
     Supported protocols : 2.6
     Response to request : CircleRelayInitStateRequest
@@ -896,9 +895,7 @@ ID_TO_MESSAGE = {
 def get_message_object(
     identifier: bytes, length: int, seq_id: bytes
 ) -> PlugwiseResponse | None:
-    """
-    Return message class based on sequence ID, Length of message or message ID.
-    """
+    """Return message class based on sequence ID, Length of message or message ID."""
 
     # First check for known sequence ID's
     if seq_id == REJOIN_RESPONSE_SEQ_ID:
