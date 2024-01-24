@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import create_task, gather, sleep
+from asyncio import create_task, sleep
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from functools import wraps
@@ -335,7 +335,7 @@ class PlugwiseCircle(PlugwiseNode):
                 "Create task to update energy logs for node %s",
                 self._node_info.mac,
             )
-            await self.get_missing_energy_logs()
+            self._retrieve_energy_logs_task = create_task(self.get_missing_energy_logs())
         else:
             _LOGGER.debug(
                 "Skip creating task to update energy logs for node %s",
@@ -345,6 +345,7 @@ class PlugwiseCircle(PlugwiseNode):
 
     async def get_missing_energy_logs(self) -> None:
         """Task to retrieve missing energy logs"""
+
         self._energy_counters.update()
         if (
             missing_addresses := self._energy_counters.log_addresses_missing
@@ -371,30 +372,29 @@ class PlugwiseCircle(PlugwiseNode):
             return
         if (
             missing_addresses := self._energy_counters.log_addresses_missing
+        ) is not None:        
+            _LOGGER.info('Task created to get missing logs of %s', self._mac_in_str)        
+        last_loop = 0
+        while (
+            missing_addresses := self._energy_counters.log_addresses_missing
         ) is not None:
-            if len(missing_addresses) == 0:
-                return
-            _LOGGER.debug(
-                "Request %s missing energy logs for node %s | %s",
-                str(len(missing_addresses)),
-                self._node_info.mac,
-                str(missing_addresses),
-            )
-            if len(missing_addresses) > 10:
-                _LOGGER.warning(
-                    "Limit requesting max 10 energy logs %s for node %s",
-                    str(len(missing_addresses)),
+            if (missing_address_count := len(missing_addresses)) != 0:
+                if last_loop == missing_address_count:
+                    return
+                last_loop = missing_address_count
+                _LOGGER.debug(
+                    "Task Request %s missing energy logs for node %s | %s",
+                    str(missing_address_count),
                     self._node_info.mac,
+                    str(missing_addresses),
                 )
-                missing_addresses = sorted(missing_addresses, reverse=True)[:10]
-            await gather(
-                *[
-                    self.energy_log_update(address)
-                    for address in missing_addresses
-                ]
-            )
-            if self._cache_enabled:
-                await self._energy_log_records_save_to_cache()
+
+                missing_addresses = sorted(missing_addresses, reverse=True)
+                for address in missing_addresses:
+                    await self.energy_log_update(address)
+
+        if self._cache_enabled:
+            await self._energy_log_records_save_to_cache()
 
     async def energy_log_update(self, address: int) -> bool:
         """
@@ -821,12 +821,15 @@ class PlugwiseCircle(PlugwiseNode):
         Update Node hardware information.
         """
         if node_info is None:
-            node_info = await self._send(
+            node_info: NodeInfoResponse = await self._send(
                 NodeInfoRequest(self._mac_in_bytes)
             )
         if not await super().node_info_update(node_info):
             return False
-
+        
+        if node_info is None:
+            return False
+        
         await self._relay_update_state(
             node_info.relay_state, timestamp=node_info.timestamp
         )
@@ -846,22 +849,8 @@ class PlugwiseCircle(PlugwiseNode):
             self._set_cache(
                 "last_log_address", node_info.last_logaddress
             )
-            if (
-                self._last_log_address is not None
-                and self._last_log_address > node_info.last_logaddress.value
-            ):
-                # Rollover of log address
-                _LOGGER.warning(
-                    "Rollover log address from %s into %s for node %s",
-                    self._last_log_address,
-                    node_info.last_logaddress.value,
-                    self.mac
-                )
-            if self._last_log_address != node_info.last_logaddress.value:
-                self._last_log_address = node_info.last_logaddress.value
-                self._set_cache("last_log_address", node_info.last_logaddress.value)
-                if self.cache_enabled and self._loaded and self._initialized:
-                    create_task(self.save_cache())
+            if self.cache_enabled and self._loaded and self._initialized:
+                create_task(self.save_cache())
         return True
 
     async def _node_info_load_from_cache(self) -> bool:

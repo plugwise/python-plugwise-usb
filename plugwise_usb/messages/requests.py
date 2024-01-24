@@ -17,7 +17,7 @@ from ..constants import (
     MESSAGE_HEADER,
     NODE_TIME_OUT,
 )
-from ..messages.responses import PlugwiseResponse, StickResponse
+from ..messages.responses import PlugwiseResponse
 from ..exceptions import NodeError, StickError
 from ..util import (
     DateTime,
@@ -62,7 +62,7 @@ class PlugwiseRequest(PlugwiseMessage):
         self._loop = get_running_loop()
         self._id = id(self)
         self._reply_identifier: bytes = b"0000"
-
+        self._response: PlugwiseResponse | None = None
         self._unsubscribe_response: Callable[[], None] | None = None
         self._response_timeout: TimerHandle | None = None
         self._response_future: Future[PlugwiseResponse] = (
@@ -138,8 +138,8 @@ class PlugwiseRequest(PlugwiseMessage):
             _LOGGER.debug('Response %s for request %s id %d', response, self, self._id)
             self._response = response
             self._response_timeout.cancel()
-
-
+            self._response_future.set_result(response)
+            self._unsubscribe_response()
 
 
     @property
