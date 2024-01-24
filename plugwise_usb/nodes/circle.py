@@ -347,9 +347,7 @@ class PlugwiseCircle(PlugwiseNode):
         """Task to retrieve missing energy logs"""
 
         self._energy_counters.update()
-        if (
-            missing_addresses := self._energy_counters.log_addresses_missing
-        ) is None:
+        if self._energy_counters.log_addresses_missing is None:
             _LOGGER.debug(
                 "Start with initial energy request for the last 10 log"
                 + " addresses for node %s.",
@@ -370,9 +368,7 @@ class PlugwiseCircle(PlugwiseNode):
             if self._cache_enabled:
                 await self._energy_log_records_save_to_cache()
             return
-        if (
-            missing_addresses := self._energy_counters.log_addresses_missing
-        ) is not None:        
+        if self._energy_counters.log_addresses_missing is not None:
             _LOGGER.info('Task created to get missing logs of %s', self._mac_in_str)        
         last_loop = 0
         while (
