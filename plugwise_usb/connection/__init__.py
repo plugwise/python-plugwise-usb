@@ -198,6 +198,8 @@ class StickController():
             return await self._queue.submit(request)
         try:
             return await self._queue.submit(request)
+        except StickError:   
+            return None                 
         except NodeError:
             return None
 
