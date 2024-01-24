@@ -16,9 +16,9 @@ from typing import Final, NamedTuple
 from ...api import NodeFeature
 
 
-SupportedVersions = NamedTuple(
-    "SupportedVersions", [("min", float), ("max", float)]
-)
+class SupportedVersions(NamedTuple):
+    min: float
+    max: float
 
 # region - node firmware versions
 CIRCLE_FIRMWARE_SUPPORT: Final = {
