@@ -370,24 +370,20 @@ class PlugwiseCircle(PlugwiseNode):
             return
         if self._energy_counters.log_addresses_missing is not None:
             _LOGGER.info('Task created to get missing logs of %s', self._mac_in_str)        
-        last_loop = 0
-        while (
+        if (
             missing_addresses := self._energy_counters.log_addresses_missing
         ) is not None:
-            if (missing_address_count := len(missing_addresses)) != 0:
-                if last_loop == missing_address_count:
-                    return
-                last_loop = missing_address_count
-                _LOGGER.debug(
-                    "Task Request %s missing energy logs for node %s | %s",
-                    str(missing_address_count),
-                    self._node_info.mac,
-                    str(missing_addresses),
-                )
+            _LOGGER.info(
+                "Task Request %s missing energy logs for node %s | %s",
+                str(len(missing_addresses)),
+                self._node_info.mac,
+                str(missing_addresses),
+            )
 
-                missing_addresses = sorted(missing_addresses, reverse=True)
-                for address in missing_addresses:
-                    await self.energy_log_update(address)
+            missing_addresses = sorted(missing_addresses, reverse=True)
+            for address in missing_addresses:
+                await self.energy_log_update(address)
+                await sleep(0.3)
 
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
@@ -541,7 +537,7 @@ class PlugwiseCircle(PlugwiseNode):
         log_cache_record += f"-{timestamp.second}:{pulses}"
         if (cached_logs := self._get_cache('energy_collection')) is not None:
             if log_cache_record not in cached_logs:
-                _LOGGER.info(
+                _LOGGER.debug(
                     "Add logrecord (%s, %s) to log cache of %s",
                     str(address),
                     str(slot),
