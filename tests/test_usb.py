@@ -102,14 +102,19 @@ class DummyTransport:
                 return
 
         self._seq_id = inc_seq_id(self._seq_id)
-        self.message_response(ack, self._seq_id)
-        self._processed.append(data)
-        if response is None:
-            return
-        self._loop.create_task(
-            # 0.5,
-            self._delayed_response(response, self._seq_id)
-        )
+        if response and self._msg == 0:
+            self.message_response_at_once(ack, response, self._seq_id)
+            self._processed.append(data)
+        else:
+            self.message_response(ack, self._seq_id)
+            self._processed.append(data)
+            if response is None:
+                return
+            self._loop.create_task(
+                # 0.5,
+                self._delayed_response(response, self._seq_id)
+            )
+        self._msg += 1
 
     async def _delayed_response(self, data: bytes, seq_id: bytes) -> None:
         import random
@@ -127,6 +132,17 @@ class DummyTransport:
             )
         else:
             self.protocol_data_received(construct_message(data, seq_id))
+
+    def message_response_at_once(self, ack: bytes, data: bytes, seq_id: bytes) -> None:
+        self.random_extra_byte += 1
+        if self.random_extra_byte > 25:
+            self.protocol_data_received(b"\x83")
+            self.random_extra_byte = 0
+            self.protocol_data_received(
+                construct_message(ack, seq_id) + construct_message(data, seq_id) + b"\x83"
+            )
+        else:
+            self.protocol_data_received(construct_message(ack, seq_id) + construct_message(data, seq_id))
 
     def close(self) -> None:
         pass
@@ -296,22 +312,23 @@ class TestStick:
             "create_serial_connection",
             MockSerial(None).mock_connection,
         )
-        stick = pw_stick.Stick(port="test_port", use_cache=False)
-        await stick.connect("test_port")
-        await stick.initialize()
-        assert stick.mac_stick == "0123456789012345"
-        assert stick.mac_coordinator == "0098765432101234"
-        assert not stick.network_discovered
-        assert stick.network_state
-        assert stick.network_id == 17185
-        assert stick.accept_join_request is None
-        # test failing of join requests without active discovery
-        with pytest.raises(pw_exceptions.StickError):
-            stick.accept_join_request = True
-        await stick.disconnect()
-        assert not stick.network_state
-        with pytest.raises(pw_exceptions.StickError):
-            assert stick.mac_stick
+        stick = pw_stick.Stick(port="test_port", cache_enabled=False)
+        async with asyncio.timeout(10.0):
+            await stick.connect("test_port")
+            await stick.initialize()
+            assert stick.mac_stick == "0123456789012345"
+            assert stick.mac_coordinator == "0098765432101234"
+            assert not stick.network_discovered
+            assert stick.network_state
+            assert stick.network_id == 17185
+            assert stick.accept_join_request is None
+            # test failing of join requests without active discovery
+            with pytest.raises(pw_exceptions.StickError):
+                stick.accept_join_request = True
+            await stick.disconnect()
+            assert not stick.network_state
+            with pytest.raises(pw_exceptions.StickError):
+                assert stick.mac_stick
 
     async def disconnected(self, event):
         """Callback helper for stick disconnect event"""
@@ -423,7 +440,7 @@ class TestStick:
         )
         monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
         monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
-        stick = pw_stick.Stick("test_port", use_cache=False)
+        stick = pw_stick.Stick("test_port", cache_enabled=False)
         await stick.connect()
         await stick.initialize()
         async with asyncio.timeout(15.0):
