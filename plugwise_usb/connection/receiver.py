@@ -156,7 +156,7 @@ class StickReceiver(Protocol):
         while self.extract_message_from_buffer():
             pass
 
-    def extract_message_from_buffer(self, queue=None) -> bool:
+    def extract_message_from_buffer(self) -> bool:
         """Parse data in buffer and extract any message.
 
         When buffer does not contain any message return False.

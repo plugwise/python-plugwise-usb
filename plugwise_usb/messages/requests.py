@@ -132,9 +132,7 @@ class PlugwiseRequest(PlugwiseMessage):
 
     async def _update_response(self, response: PlugwiseResponse) -> None:
         """Process incoming message from node."""
-        if self._seq_id is None:
-            pass
-        if self._seq_id == response.seq_id:
+        if self._seq_id is not None and self._seq_id == response.seq_id:
             _LOGGER.debug('Response %s for request %s id %d', response, self, self._id)
             self._response = response
             self._response_timeout.cancel()
