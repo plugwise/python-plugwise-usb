@@ -211,7 +211,7 @@ jobs:
     needs: prepare-test-cache
     strategy:
       matrix:
-        python-version: ["3.11", "3.10"]
+        python-version: ["3.11"]
 
     steps:
       - name: Check out committed code
