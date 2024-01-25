@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "plugwise_usb"
-version         = "0.31.2b4"
+version         = "v0.40.0a0"
 license         = {file = "LICENSE"}
 description     = "Plugwise USB (Stick) module for Python 3."
 readme          = "README.md"
@@ -169,8 +169,6 @@ overgeneral-exceptions = [
 ]
 
 [tool.pytest.ini_options]
-log_cli_level="DEBUG"
-log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
 asyncio_mode = "strict"
 markers = [
     # mark a test as a asynchronous io test.
