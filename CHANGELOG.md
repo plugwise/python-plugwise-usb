@@ -1,6 +1,6 @@
 # Changelog
 
-## ongoing
+## v0.31.3
 
 - Bugfix midnight rollover for cicrles without power usage registered during first hour(s)
 
