@@ -17,7 +17,7 @@ from ..constants import (
     MESSAGE_HEADER,
     NODE_TIME_OUT,
 )
-from ..messages.responses import PlugwiseResponse
+from ..messages.responses import PlugwiseResponse, StickResponse, StickResponseType
 from ..exceptions import NodeError, StickError
 from ..util import (
     DateTime,
@@ -63,7 +63,9 @@ class PlugwiseRequest(PlugwiseMessage):
         self._id = id(self)
         self._reply_identifier: bytes = b"0000"
         self._response: PlugwiseResponse | None = None
-        self._unsubscribe_response: Callable[[], None] | None = None
+        self._stick_subscription_fn: Callable[[], None] | None = None
+        self._unsubscribe_stick_response: Callable[[], None] | None = None
+        self._unsubscribe_node_response: Callable[[], None] | None = None
         self._response_timeout: TimerHandle | None = None
         self._response_future: Future[PlugwiseResponse] = (
             self._loop.create_future()
@@ -83,17 +85,36 @@ class PlugwiseRequest(PlugwiseMessage):
             raise StickError("No response available")
         return self._response_future.result()
 
+    @property
+    def seq_id(self) -> bytes | None:
+        """Return sequence id assigned to this request."""
+        return self._seq_id
+
+    @seq_id.setter
+    def seq_id(self, seq_id: bytes) -> None:
+        """Assign sequence id."""
+        self._seq_id = seq_id
+        if self._unsubscribe_stick_response is not None:
+            return
+        self._unsubscribe_stick_response = self._stick_subscription_fn(
+            self._process_stick_response,
+            seq_id=seq_id
+        )
+
     def subscribe_to_responses(
-        self, subscription_fn: Callable[[], None]
+        self,
+        stick_subscription_fn: Callable[[], None],
+        node_subscription_fn: Callable[[], None]
     ) -> None:
         """Register for response messages"""
-        self._unsubscribe_response = (
-            subscription_fn(
-                self._update_response,
+        self._unsubscribe_node_response = (
+            node_subscription_fn(
+                self._process_node_response,
                 mac=self._mac,
                 message_ids=(b"0000", self._reply_identifier),
             )
         )
+        self._stick_subscription_fn = stick_subscription_fn
 
     def start_response_timeout(self) -> None:
         """Start timeout for node response"""
@@ -107,7 +128,7 @@ class PlugwiseRequest(PlugwiseMessage):
         """Handle response timeout"""
         if self._response_future.done():
             return
-        self._unsubscribe_response()
+        self._unsubscribe_node_response()
         if stick_timeout:
             self._response_future.set_exception(
                 NodeError(
@@ -130,15 +151,41 @@ class PlugwiseRequest(PlugwiseMessage):
             return
         self._response_future.set_exception(error)
 
-    async def _update_response(self, response: PlugwiseResponse) -> None:
+    async def _process_node_response(self, response: PlugwiseResponse) -> None:
         """Process incoming message from node."""
         if self._seq_id is not None and self._seq_id == response.seq_id:
             _LOGGER.debug('Response %s for request %s id %d', response, self, self._id)
+            self._unsubscribe_stick_response()
             self._response = response
             self._response_timeout.cancel()
             self._response_future.set_result(response)
-            self._unsubscribe_response()
+            self._unsubscribe_node_response()
 
+    async def _process_stick_response(self, stick_response: StickResponse) -> None:
+        """Process incoming stick response"""
+        if self._response_future.done():
+            return
+        if self._seq_id is not None and self._seq_id == stick_response.seq_id:
+            _LOGGER.debug('%s for request %s id %d', stick_response, self, self._id)
+            if stick_response.ack_id == StickResponseType.TIMEOUT:
+                self._response_timeout_expired(stick_timeout=True)
+            elif stick_response.ack_id == StickResponseType.FAILED:
+                self._unsubscribe_node_response()
+                self._response_future.set_exception(
+                    NodeError(
+                        f"Stick failed request {self._seq_id}"
+                    )
+                )
+            elif stick_response.ack_id == StickResponseType.ACCEPT:
+                pass
+            else:
+                _LOGGER.debug(
+                    'Unknown StickResponseType %s at %s for request %s id %d',
+                    str(stick_response.ack_id),
+                    stick_response,
+                    self,
+                    self._id
+                )
 
     @property
     def object_id(self) -> int:
