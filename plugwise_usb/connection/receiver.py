@@ -81,7 +81,10 @@ class StickReceiver(Protocol):
 
         self._stick_response_subscribers: dict[
             Callable[[], None],
-            Callable[[StickResponse], Awaitable[None]]
+            tuple[
+                Callable[[StickResponse], Awaitable[None]],
+                bytes | None
+            ]
         ] = {}
 
         self._node_response_subscribers: dict[
@@ -260,6 +263,7 @@ class StickReceiver(Protocol):
     def subscribe_to_stick_responses(
         self,
         callback: Callable[[StickResponse], Awaitable[None]],
+        seq_id: bytes | None = None
     ) -> Callable[[], None]:
         """Subscribe to response messages from stick."""
         def remove_subscription() -> None:
@@ -268,14 +272,17 @@ class StickReceiver(Protocol):
 
         self._stick_response_subscribers[
             remove_subscription
-        ] = callback
+        ] = callback, seq_id
         return remove_subscription
 
     async def _notify_stick_response_subscribers(
         self, stick_response: StickResponse
     ) -> None:
         """Call callback for all stick response message subscribers."""
-        for callback in self._stick_response_subscribers.values():
+        for callback, seq_id in list(self._stick_response_subscribers.values()):
+            if seq_id is not None:
+                if seq_id != stick_response.seq_id:
+                    continue
             await callback(stick_response)
 
     def subscribe_to_node_responses(
