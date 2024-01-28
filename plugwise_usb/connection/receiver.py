@@ -73,7 +73,6 @@ class StickReceiver(Protocol):
         self._stick_future: futures.Future | None = None
         self._responses: dict[bytes, Callable[[PlugwiseResponse], None]] = {}
         self._stick_response_future: futures.Future | None = None
-        #self._msg_processing_task: Task | None = None
         # Subscribers
         self._stick_event_subscribers: dict[
             Callable[[], None],
@@ -111,7 +110,6 @@ class StickReceiver(Protocol):
 
         self._transport = None
         self._connection_state = False
-        #self._msg_processing_task.cancel()
 
     @property
     def is_connected(self) -> bool:
@@ -122,8 +120,6 @@ class StickReceiver(Protocol):
         """Call when the serial connection to USB-Stick is established."""
         _LOGGER.debug("Connection made")
         self._transport = transport
-        #self._msg_processing_task = 
-        
         if (
             self._connected_future is not None
             and not self._connected_future.done()
@@ -141,7 +137,7 @@ class StickReceiver(Protocol):
             return
         if self._stick_future is not None and not self._stick_future.done():
             self._stick_future.cancel()
-  
+
         self._transport.close()
 
     def data_received(self, data: bytes) -> None:
@@ -263,7 +259,7 @@ class StickReceiver(Protocol):
 
     def subscribe_to_stick_responses(
         self,
-        callback: Callable[[StickResponse] , Awaitable[None]],
+        callback: Callable[[StickResponse], Awaitable[None]],
     ) -> Callable[[], None]:
         """Subscribe to response messages from stick."""
         def remove_subscription() -> None:
