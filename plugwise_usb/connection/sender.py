@@ -65,7 +65,8 @@ class StickSender():
 
         serialized_data = request.serialize()
         request.subscribe_to_responses(
-            self._receiver.subscribe_to_node_responses
+            self._receiver.subscribe_to_stick_responses,
+            self._receiver.subscribe_to_node_responses,
         )
 
         _LOGGER.debug("Sending %s", request)
