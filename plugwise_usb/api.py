@@ -30,8 +30,8 @@ class NodeType(Enum):
     SWITCH = 3  # AME_SEDSwitch
     SENSE = 5  # AME_SEDSense
     SCAN = 6  # AME_SEDScan
-    CELSUIS_SED = 7  # AME_CelsiusSED
-    CELSUIS_NR = 8  # AME_CelsiusNR
+    CELSIUS_SED = 7  # AME_CelsiusSED
+    CELSIUS_NR = 8  # AME_CelsiusNR
     STEALTH = 9  # AME_STEALTH_ZE
 
 
