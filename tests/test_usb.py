@@ -462,7 +462,7 @@ class TestStick:
         assert stick.nodes["5555555555555555"].node_info.firmware == dt(
             2011, 6, 27, 8, 55, 44, tzinfo=tz.utc
         )
-        assert stick.nodes["5555555555555555"].node_info.version == "000000080007"
+        assert stick.nodes["5555555555555555"].node_info.version == "000000070008"
         assert stick.nodes["5555555555555555"].node_info.model == "Scan"
         assert stick.nodes["5555555555555555"].available
         assert stick.nodes["5555555555555555"].node_info.battery_powered
