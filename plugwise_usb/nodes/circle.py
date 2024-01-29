@@ -961,18 +961,19 @@ class PlugwiseCircle(PlugwiseNode):
             + self._calibration.off_tot
         )
 
+        # Fix minor miscalculations
         if (
             calc_value := corrected_pulses / PULSES_PER_KW_SECOND / seconds * (
                 1000
             )
         ) >= 0.0:
             return calc_value
-        # Fix minor miscalculations
         _LOGGER.debug(
-            "FIX negative power miscalc from %s to 0.0 for %s",
+            "Correct negative power %s to 0.0 for %s",
             str(corrected_pulses / PULSES_PER_KW_SECOND / seconds * 1000),
             self.mac
         )
+        return 0.0
 
     def _correct_power_pulses(self, pulses: int, offset: int) -> float:
         """Correct pulses based on given measurement time offset (ns)"""
