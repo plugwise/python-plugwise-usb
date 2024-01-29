@@ -691,6 +691,7 @@ class PlugwiseCircle(PlugwiseNode):
                 self._setup_protocol(
                     CIRCLE_FIRMWARE_SUPPORT,
                     (
+                        NodeFeature.RELAY,
                         NodeFeature.RELAY_INIT,
                         NodeFeature.ENERGY,
                         NodeFeature.POWER,
