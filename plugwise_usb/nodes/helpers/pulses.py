@@ -273,7 +273,7 @@ class PulseCollection:
                 self._next_log_consumption_timestamp
                 + timedelta(minutes=self._log_interval_consumption)
             ):
-                _LOGGER.debug("update_pulse_counter | %s | _log_interval_consumption=%s, timestamp=%s, _next_log_consumption_timestamp=%s", self._mac, self._log_interval_consumption, timestamp, self._next_log_consumption_timestamp) 
+                _LOGGER.debug("update_pulse_counter | %s | _log_interval_consumption=%s, timestamp=%s, _next_log_consumption_timestamp=%s", self._mac, self._log_interval_consumption, timestamp, self._next_log_consumption_timestamp)
                 self._rollover_pulses_consumption = True
 
         if self._log_production:
@@ -667,7 +667,7 @@ class PulseCollection:
 
         if first_slot not in self.logs[first_address]:
             return missing
-        
+
         if self.logs[first_address][first_slot].timestamp < from_timestamp:
             return missing
 
@@ -692,7 +692,7 @@ class PulseCollection:
         last_known_timestamp = self.logs[address][slot].timestamp
         address, slot = calc_log_address(address, slot, -1)
         while (
-            self._log_exists(address, slot) or 
+            self._log_exists(address, slot) or
             self.logs[address][slot].timestamp == last_known_timestamp
         ):
             address, slot = calc_log_address(address, slot, -1)
