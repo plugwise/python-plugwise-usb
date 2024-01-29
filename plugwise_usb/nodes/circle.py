@@ -369,7 +369,7 @@ class PlugwiseCircle(PlugwiseNode):
                 await self._energy_log_records_save_to_cache()
             return
         if self._energy_counters.log_addresses_missing is not None:
-            _LOGGER.info('Task created to get missing logs of %s', self._mac_in_str)        
+            _LOGGER.info('Task created to get missing logs of %s', self._mac_in_str)
         if (
             missing_addresses := self._energy_counters.log_addresses_missing
         ) is not None:
@@ -818,10 +818,10 @@ class PlugwiseCircle(PlugwiseNode):
             )
         if not await super().node_info_update(node_info):
             return False
-        
+
         if node_info is None:
             return False
-        
+
         await self._relay_update_state(
             node_info.relay_state, timestamp=node_info.timestamp
         )
