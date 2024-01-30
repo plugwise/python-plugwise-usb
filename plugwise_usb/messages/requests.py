@@ -525,8 +525,6 @@ class CircleRelaySwitchRequest(PlugwiseRequest):
     Response message    : NodeResponse
     """
 
-    ID = b"0017"
-
     def __init__(self, mac: bytes, on: bool) -> None:
         """Initialize CircleRelaySwitchRequest message object"""
         super().__init__(b"0017", mac)
@@ -552,6 +550,7 @@ class CirclePlusScanRequest(PlugwiseRequest):
         self._reply_identifier = b"0019"
         self._args.append(Int(network_address, length=2))
         self.network_address = network_address
+
 
 class NodeRemoveRequest(PlugwiseRequest):
     """
@@ -923,8 +922,6 @@ class SenseReportIntervalRequest(PlugwiseRequest):
 
     Response message: NodeAckResponse
     """
-
-    ID = b"0103"
 
     def __init__(self, mac: bytes, interval: int):
         """Initialize ScanLightCalibrateRequest message object"""
