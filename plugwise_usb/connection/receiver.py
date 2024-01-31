@@ -329,8 +329,9 @@ class StickReceiver(Protocol):
         node_response.notify_retries += 1
         if node_response.notify_retries > 10:
             _LOGGER.warning(
-                "No subscriber to handle %s from %s",
+                "No subscriber to handle %s, seq_id=%s from %s",
                 node_response.__class__.__name__,
+                node_response.seq_id,
                 node_response.mac_decoded,
             )
             return
