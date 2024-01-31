@@ -913,7 +913,7 @@ class TestStick:
 
         # Initialize hour counter
         energy_counter_init = pw_energy_counter.EnergyCounter(
-            pw_energy_counter.EnergyType.CONSUMPTION_HOUR,
+            pw_energy_counter.EnergyType.CONSUMPTION_HOUR, "fake mac"
         )
         assert energy_counter_init.calibration is None
         energy_counter_init.calibration = calibration_config
@@ -964,7 +964,7 @@ class TestStick:
 
         # Production hour
         energy_counter_p_h = pw_energy_counter.EnergyCounter(
-            pw_energy_counter.EnergyType.PRODUCTION_HOUR,
+            pw_energy_counter.EnergyType.PRODUCTION_HOUR, "fake mac"
         )
         assert not energy_counter_p_h.is_consumption
 
