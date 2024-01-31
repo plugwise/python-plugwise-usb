@@ -207,7 +207,7 @@ class PlugwiseResponse(PlugwiseMessage):
         for param in self._params:
             my_val = response[: len(param)]
             param.deserialize(my_val)
-            response = response[len(my_val) :]
+            response = response[len(my_val):]
         return response
 
     def __len__(self) -> int:
@@ -230,7 +230,7 @@ class StickResponse(PlugwiseResponse):
 
     def __repr__(self) -> str:
         return "StickResponse " + str(StickResponseType(self.ack_id).name) + " seq_id" + str(self.seq_id)
-        
+
 
 class NodeResponse(PlugwiseResponse):
     """
