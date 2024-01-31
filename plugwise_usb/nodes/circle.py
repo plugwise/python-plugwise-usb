@@ -66,6 +66,7 @@ class PlugwiseCircle(PlugwiseNode):
     and base class for Circle+ nodes
     """
     _retrieve_energy_logs_task: None | Awaitable = None
+    _last_energy_log_requested: bool = False
 
     @property
     def calibrated(self) -> bool:
@@ -295,6 +296,10 @@ class PlugwiseCircle(PlugwiseNode):
             if not self.skip_update(self._node_info, 1800):
                 if not await self.node_info_update():
                     return None
+
+        # Always request last energy log records at initial startup
+        if not self._last_energy_log_requested:
+            self._last_energy_log_requested = await self.energy_log_update(self._last_log_address)
 
         if self._energy_counters.log_rollover:
             _LOGGER.debug(
