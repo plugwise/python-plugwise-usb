@@ -291,9 +291,8 @@ class PlugwiseCircle(PlugwiseNode):
             if not await self.node_info_update():
                 return None
         else:
-            if self._node_info.timestamp < (
-                datetime.now(tz=UTC) - timedelta(hours=1)
-            ):
+            # request node info update every 30 minutes.
+            if not self.skip_update(self._node_info, 1800):
                 if not await self.node_info_update():
                     return None
 
