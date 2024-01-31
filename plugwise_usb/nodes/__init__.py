@@ -609,7 +609,9 @@ class PlugwiseNode(FeaturePublisher, ABC):
                     + f"not supported for {self.mac}"
                 )
             if feature == NodeFeature.INFO:
-                await self.node_info_update(None)
+                # Only request node info when information is > 5 minutes old
+                if not self.skip_update(self._node_info, 300):
+                    await self.node_info_update(None)
                 states[NodeFeature.INFO] = self._node_info
             elif feature == NodeFeature.AVAILABLE:
                 states[NodeFeature.AVAILABLE] = self.available
