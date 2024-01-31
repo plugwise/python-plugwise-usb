@@ -629,8 +629,6 @@ class PulseCollection:
         if last_address is None or last_slot is None:
             _LOGGER.warning("_logs_missing | %s | last_address=%s, last_slot=%s", self._mac, last_address, last_slot)
             return None
-        if self._logs[last_address][last_slot].timestamp <= from_timestamp:
-            return []
 
         first_address, first_slot = self._first_log_reference()
         if first_address is None or first_slot is None:
