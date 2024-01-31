@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from asyncio import create_task, sleep
 from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from functools import wraps
 import logging
 from typing import Any, TypeVar, cast
