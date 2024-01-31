@@ -475,6 +475,16 @@ class TestStick:
             )
         )
 
+        # Check Scan is raising NodeError for unsupported features
+        with pytest.raises(pw_exceptions.NodeError):
+            assert stick.nodes["5555555555555555"].relay
+            assert stick.nodes["5555555555555555"].relay_state
+            assert stick.nodes["5555555555555555"].switch
+            assert stick.nodes["5555555555555555"].power
+            assert stick.nodes["5555555555555555"].humidity
+            assert stick.nodes["5555555555555555"].temperature
+            assert stick.nodes["5555555555555555"].energy
+
         # Motion
         self.motion_on = asyncio.Future()
         self.motion_off = asyncio.Future()
@@ -659,12 +669,21 @@ class TestStick:
 
         unsub_relay()
 
+        # Check if node is online
+        assert await stick.nodes["0098765432101234"].is_online()
+
         # Test non-support init relay state
         with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["0098765432101234"].relay_init
-        with pytest.raises(pw_exceptions.NodeError):
             await stick.nodes["0098765432101234"].switch_init_relay(True)
             await stick.nodes["0098765432101234"].switch_init_relay(False)
+
+        # Check Circle is raising NodeError for unsupported features
+        with pytest.raises(pw_exceptions.NodeError):
+            assert stick.nodes["0098765432101234"].motion
+            assert stick.nodes["0098765432101234"].switch
+            assert stick.nodes["0098765432101234"].humidity
+            assert stick.nodes["0098765432101234"].temperature
 
         # Test relay init
         # load node 2222222222222222 which has
