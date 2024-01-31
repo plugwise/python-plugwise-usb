@@ -137,7 +137,10 @@ class PulseCollection:
     def log_rollover(self) -> bool:
         """Indicate if new log is required"""
         return (
-            self._rollover_log_consumption or self._rollover_log_production
+            self._rollover_log_consumption
+            or self._rollover_log_production
+            or self._rollover_pulses_consumption
+            or self._rollover_pulses_production
         )
 
     @property
