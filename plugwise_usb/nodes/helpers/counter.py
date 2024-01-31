@@ -68,7 +68,7 @@ class EnergyCounters:
         self._calibration: EnergyCalibration | None = None
         self._counters: dict[EnergyType, EnergyCounter] = {}
         for energy_type in ENERGY_COUNTERS:
-            self._counters[energy_type] = EnergyCounter(energy_type)
+            self._counters[energy_type] = EnergyCounter(energy_type, mac)
         self._pulse_collection = PulseCollection(mac)
         self._energy_statistics = EnergyStatistics()
 
@@ -214,8 +214,10 @@ class EnergyCounter:
     def __init__(
         self,
         energy_id: EnergyType,
+        mac: str,
     ) -> None:
         """Initialize energy counter based on energy id."""
+        self._mac = mac
         if energy_id not in ENERGY_COUNTERS:
             raise EnergyError(
                 f"Invalid energy id '{energy_id}' for Energy counter"
@@ -322,7 +324,8 @@ class EnergyCounter:
             last_reset, self._is_consumption
         )
         _LOGGER.debug(
-            "collected_pulses : pulses=%s | last_update=%s",
+            "Counter Update | %s | pulses=%s | last_update=%s",
+            self._mac,
             pulses,
             last_update,
         )
