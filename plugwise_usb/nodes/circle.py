@@ -857,6 +857,8 @@ class PlugwiseCircle(PlugwiseNode):
 
     async def unload(self) -> None:
         """Deactivate and unload node features."""
+        if self._retrieve_energy_logs_task is not None and not self._retrieve_energy_logs_task.done():
+            self._retrieve_energy_logs_task.cancel()
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
             await self.save_cache()
