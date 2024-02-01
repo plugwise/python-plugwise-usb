@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 import logging
 
 from .helpers import raise_not_loaded
@@ -131,7 +131,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             minute=clock_response.time.value.minute,
             second=clock_response.time.value.second,
             microsecond=0,
-            tzinfo=UTC,
+            tzinfo=timezone.utc,
         )
         clock_offset = (
             clock_response.timestamp.replace(microsecond=0) - _dt_of_circle
