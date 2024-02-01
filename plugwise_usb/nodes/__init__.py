@@ -149,7 +149,10 @@ class PlugwiseNode(FeaturePublisher, ABC):
     @property
     def energy(self) -> EnergyStatistics | None:
         """"Return energy statistics."""
-        raise NotImplementedError()
+        if NodeFeature.POWER not in self._features:
+            raise NodeError(
+                f"Energy state is not supported for node {self.mac}"
+            )
 
     @property
     def features(self) -> tuple[NodeFeature, ...]:
