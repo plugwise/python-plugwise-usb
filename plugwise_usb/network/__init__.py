@@ -476,8 +476,8 @@ class StickNetwork():
 # region - Network instance
     async def start(self) -> None:
         """Start and activate network"""
-        self._register.quick_scan_finished(self._discover_registered_nodes())
-        self._register.full_scan_finished(self._discover_registered_nodes())
+        self._register.quick_scan_finished(self._discover_registered_nodes)
+        self._register.full_scan_finished(self._discover_registered_nodes)
         await self._register.start()
         self._subscribe_to_protocol_events()
         self._is_running = True
