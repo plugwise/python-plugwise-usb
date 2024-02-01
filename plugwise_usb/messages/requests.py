@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from asyncio import Future, TimerHandle, get_running_loop
 from collections.abc import Callable
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from enum import Enum
 import logging
 
@@ -58,7 +58,7 @@ class PlugwiseRequest(PlugwiseMessage):
         self._mac = mac
         self._send_counter: int = 0
         self._max_retries: int = MAX_RETRIES
-        self.timestamp = datetime.now(UTC)
+        self.timestamp = datetime.now(timezone.utc)
         self._loop = get_running_loop()
         self._id = id(self)
         self._reply_identifier: bytes = b"0000"

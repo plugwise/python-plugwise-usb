@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC
 from asyncio import create_task, sleep
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 from typing import Any
 
@@ -48,7 +48,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         controller: StickController,
     ):
         self._features = NODE_FEATURES
-        self._last_update = datetime.now(UTC)
+        self._last_update = datetime.now(timezone.utc)
         self._node_info = NodeInfo(mac, address)
         self._ping = NetworkStatistics()
         self._power = PowerStatistics()
@@ -462,7 +462,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
                     hour=int(data[3]),
                     minute=int(data[4]),
                     second=int(data[5]),
-                    tzinfo=UTC
+                    tzinfo=timezone.utc
                 )
         if (node_type_str := self._get_cache("node_type")) is not None:
             node_type = NodeType(int(node_type_str))
@@ -478,7 +478,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
                     hour=int(data[3]),
                     minute=int(data[4]),
                     second=int(data[5]),
-                    tzinfo=UTC
+                    tzinfo=timezone.utc
                 )
         return self._node_info_update_state(
             firmware=firmware,
@@ -686,6 +686,6 @@ class PlugwiseNode(FeaturePublisher, ABC):
             return False
         if data_class.timestamp + timedelta(
             seconds=seconds
-        ) > datetime.now(UTC):
+        ) > datetime.now(timezone.utc):
             return True
         return False

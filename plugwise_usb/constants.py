@@ -33,7 +33,7 @@ UNIT_LUMEN: Final = "lm"
 VOLUME_CUBIC_METERS: Final = "m³"
 VOLUME_CUBIC_METERS_PER_HOUR: Final = "m³/h"
 
-LOCAL_TIMEZONE = dt.datetime.now(dt.UTC).astimezone().tzinfo
+LOCAL_TIMEZONE = dt.datetime.now(dt.timezone.utc).astimezone().tzinfo
 UTF8: Final = "utf-8"
 
 # Time
