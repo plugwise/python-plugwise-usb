@@ -2,7 +2,6 @@ import asyncio
 from datetime import datetime as dt, timedelta as td, timezone as tz
 import importlib
 import logging
-from unittest import mock
 from unittest.mock import Mock
 
 import crcmod
@@ -316,22 +315,22 @@ class TestStick:
             MockSerial(None).mock_connection,
         )
         stick = pw_stick.Stick(port="test_port", cache_enabled=False)
-        async with asyncio.timeout(10.0):
-            await stick.connect("test_port")
-            await stick.initialize()
-            assert stick.mac_stick == "0123456789012345"
-            assert stick.mac_coordinator == "0098765432101234"
-            assert not stick.network_discovered
-            assert stick.network_state
-            assert stick.network_id == 17185
-            assert stick.accept_join_request is None
-            # test failing of join requests without active discovery
-            with pytest.raises(pw_exceptions.StickError):
-                stick.accept_join_request = True
-            await stick.disconnect()
-            assert not stick.network_state
-            with pytest.raises(pw_exceptions.StickError):
-                assert stick.mac_stick
+
+        await stick.connect("test_port")
+        await stick.initialize()
+        assert stick.mac_stick == "0123456789012345"
+        assert stick.mac_coordinator == "0098765432101234"
+        assert not stick.network_discovered
+        assert stick.network_state
+        assert stick.network_id == 17185
+        assert stick.accept_join_request is None
+        # test failing of join requests without active discovery
+        with pytest.raises(pw_exceptions.StickError):
+            stick.accept_join_request = True
+        await stick.disconnect()
+        assert not stick.network_state
+        with pytest.raises(pw_exceptions.StickError):
+            assert stick.mac_stick
 
     async def disconnected(self, event):
         """Callback helper for stick disconnect event"""
@@ -446,8 +445,7 @@ class TestStick:
         stick = pw_stick.Stick("test_port", cache_enabled=False)
         await stick.connect()
         await stick.initialize()
-        async with asyncio.timeout(15.0):
-            await stick.discover_nodes(load=False)
+        await stick.discover_nodes(load=False)
         stick.accept_join_request = True
         self.test_node_awake = asyncio.Future()
         unsub_awake = stick.subscribe_to_node_events(
@@ -513,7 +511,6 @@ class TestStick:
         motion_off = await self.motion_off
         assert not motion_off
         unsub_motion()
-
 
         await stick.disconnect()
 
