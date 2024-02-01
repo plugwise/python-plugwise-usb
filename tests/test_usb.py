@@ -25,7 +25,7 @@ pw_sender = importlib.import_module("plugwise_usb.connection.sender")
 pw_constants = importlib.import_module("plugwise_usb.constants")
 pw_requests = importlib.import_module("plugwise_usb.messages.requests")
 pw_responses = importlib.import_module("plugwise_usb.messages.responses")
-pw_userdata = importlib.import_module("testdata.stick")
+pw_userdata = importlib.import_module("stick_test_data")
 pw_energy_counter = importlib.import_module(
     "plugwise_usb.nodes.helpers.counter"
 )
