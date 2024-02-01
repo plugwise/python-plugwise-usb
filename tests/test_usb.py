@@ -220,7 +220,9 @@ class TestStick:
         assert stick.joined_nodes is None
         with pytest.raises(pw_exceptions.StickError):
             assert stick.mac_stick
+        with pytest.raises(pw_exceptions.StickError):
             assert stick.mac_coordinator
+        with pytest.raises(pw_exceptions.StickError):
             assert stick.network_id
         assert not stick.network_discovered
         assert not stick.network_state
@@ -234,7 +236,8 @@ class TestStick:
         )
         with pytest.raises(pw_exceptions.StickError):
             await stick.connect()
-            stick.port = "null"
+        stick.port = "null"
+        with pytest.raises(pw_exceptions.StickError):
             await stick.connect()
 
     @pytest.mark.asyncio
@@ -478,11 +481,17 @@ class TestStick:
         # Check Scan is raising NodeError for unsupported features
         with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["5555555555555555"].relay
+        with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["5555555555555555"].relay_state
+        with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["5555555555555555"].switch
+        with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["5555555555555555"].power
+        with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["5555555555555555"].humidity
+        with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["5555555555555555"].temperature
+        with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["5555555555555555"].energy
 
         # Motion
@@ -675,14 +684,19 @@ class TestStick:
         # Test non-support init relay state
         with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["0098765432101234"].relay_init
+        with pytest.raises(pw_exceptions.NodeError):
             await stick.nodes["0098765432101234"].switch_init_relay(True)
+        with pytest.raises(pw_exceptions.NodeError):
             await stick.nodes["0098765432101234"].switch_init_relay(False)
 
         # Check Circle is raising NodeError for unsupported features
         with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["0098765432101234"].motion
+        with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["0098765432101234"].switch
+        with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["0098765432101234"].humidity
+        with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["0098765432101234"].temperature
 
         # Test relay init
