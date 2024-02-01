@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 import logging
 from typing import Final
 
@@ -102,7 +102,7 @@ class PulseCollection:
         if self._logs is None:
             return {}
         sorted_log: dict[int, dict[int, PulseLogRecord]] = {}
-        skip_before = datetime.now(UTC) - timedelta(hours=MAX_LOG_HOURS)
+        skip_before = datetime.now(timezone.utc) - timedelta(hours=MAX_LOG_HOURS)
         sorted_addresses = sorted(self._logs.keys(), reverse=True)
         for address in sorted_addresses:
             sorted_slots = sorted(self._logs[address].keys(), reverse=True)
@@ -320,7 +320,7 @@ class PulseCollection:
     def recalculate_missing_log_addresses(self) -> None:
         """Recalculate missing log addresses"""
         self._log_addresses_missing = self._logs_missing(
-            datetime.now(UTC) - timedelta(
+            datetime.now(timezone.utc) - timedelta(
                 hours=MAX_LOG_HOURS
             )
         )
@@ -336,7 +336,7 @@ class PulseCollection:
             return False
         # Drop unused log records
         if log_record.timestamp < (
-            datetime.now(UTC) - timedelta(hours=MAX_LOG_HOURS)
+            datetime.now(timezone.utc) - timedelta(hours=MAX_LOG_HOURS)
         ):
             return False
         if self._logs.get(address) is None:
