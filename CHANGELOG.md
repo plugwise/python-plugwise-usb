@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.31.4(a0)
+
+- Re-add python 3.12 checks and compatibility
+
 ## v0.31.3
 
 - Bugfix midnight rollover for cicrles without power usage registered during first hour(s)

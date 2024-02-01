@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "plugwise_usb"
-version         = "0.31.3"
+version         = "0.31.4a0"
 license         = {file = "LICENSE"}
 description     = "Plugwise USB (Stick) module for Python 3."
 readme          = "README.md"
@@ -14,9 +14,9 @@ classifiers     = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Home Automation",
 ]
 authors = [
@@ -213,7 +213,7 @@ omit= [
 ]
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py312"
 
 select = [
     "B002", # Python does not support the unary prefix increment
