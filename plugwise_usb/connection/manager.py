@@ -169,8 +169,6 @@ class StickConnectionManager():
             raise StickError(
                 f"Failed to open serial connection to {serial_path}"
             ) from err
-        finally:
-            connected_future.cancel()
 
         if self._receiver is None:
             raise StickError("Protocol is not loaded")
