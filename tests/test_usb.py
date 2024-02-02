@@ -520,11 +520,13 @@ class TestStick:
         mock_serial._transport.message_response(b"005655555555555555550001", b"FFFF")
         motion_on = await self.motion_on
         assert motion_on
+        assert stick.nodes["5555555555555555"].motion
 
         # Inject motion message to trigger a 'motion off' event
         mock_serial._transport.message_response(b"005655555555555555550000", b"FFFF")
         motion_off = await self.motion_off
         assert not motion_off
+        assert not stick.nodes["5555555555555555"].motion
         unsub_motion()
 
         await stick.disconnect()
