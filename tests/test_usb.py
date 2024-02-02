@@ -368,7 +368,7 @@ class TestStick:
         await stick.initialize()
         assert stick.network_state
         self.test_disconnected = asyncio.Future()
-        unsub_connect = stick.subscribe_to_stick_events(
+        unsub_disconnect = stick.subscribe_to_stick_events(
             stick_event_callback=self.disconnected,
             events=(pw_api.StickEvent.DISCONNECTED,),
         )
@@ -376,7 +376,7 @@ class TestStick:
         mock_serial._protocol.connection_lost()
         assert await self.test_disconnected
         assert not stick.network_state
-        unsub_connect()
+        unsub_disconnect()
         await stick.disconnect()
 
     async def node_discovered(self, event: pw_api.NodeEvent, mac: str):
