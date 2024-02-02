@@ -306,6 +306,13 @@ class TestStick:
             await stick.initialize()
         await stick.disconnect()
 
+    async def connected(self, event):
+        """Callback helper for stick connected event"""
+        if event is pw_api.StickEvent.CONNECTED:
+            self.test_connected.set_result(True)
+        else:
+            self.test_connected.set_exception(BaseException("Incorrect event"))
+
     @pytest.mark.asyncio
     async def test_stick_connect(self, monkeypatch):
         """Test connecting to stick"""
@@ -316,7 +323,14 @@ class TestStick:
         )
         stick = pw_stick.Stick(port="test_port", cache_enabled=False)
 
+        self.test_connected = asyncio.Future()
+        unsub_connect = stick.subscribe_to_stick_events(
+            stick_event_callback=self.connected,
+            events=(pw_api.StickEvent.CONNECTED,),
+        )
+
         await stick.connect("test_port")
+        assert await self.test_connected
         await stick.initialize()
         assert stick.mac_stick == "0123456789012345"
         assert stick.mac_coordinator == "0098765432101234"
@@ -327,6 +341,7 @@ class TestStick:
         # test failing of join requests without active discovery
         with pytest.raises(pw_exceptions.StickError):
             stick.accept_join_request = True
+        unsub_connect()
         await stick.disconnect()
         assert not stick.network_state
         with pytest.raises(pw_exceptions.StickError):
