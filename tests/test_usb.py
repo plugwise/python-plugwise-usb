@@ -639,7 +639,7 @@ class TestStick:
             )
 
     @pytest.mark.asyncio
-    async def test_node_relay(self, monkeypatch):
+    async def test_node_relay_and_power(self, monkeypatch):
         """Testing discovery of nodes"""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
@@ -688,6 +688,11 @@ class TestStick:
         assert await self.test_relay_state_on
         assert stick.nodes["0098765432101234"].relay
 
+        # Test power state without request
+        assert stick.nodes["0098765432101234"].power == pw_api.PowerStatistics(last_second=None, last_8_seconds=None, timestamp=None)
+        pu = await stick.nodes["0098765432101234"].power_update()
+        assert pu.last_second == 21.2780505980402
+        assert pu.last_8_seconds == 27.150578775440106
         unsub_relay()
 
         # Check if node is online
