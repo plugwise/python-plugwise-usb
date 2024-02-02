@@ -173,6 +173,7 @@ class StickConnectionManager():
         if self._receiver is None:
             raise StickError("Protocol is not loaded")
         self._sender = StickSender(self._receiver, self._serial_transport)
+        await connected_future
         if connected_future.result():
             await self._handle_stick_event(StickEvent.CONNECTED)
         self._connected = True
