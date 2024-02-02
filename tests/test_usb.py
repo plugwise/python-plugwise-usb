@@ -672,11 +672,13 @@ class TestStick:
         stick.nodes["0098765432101234"].relay = False
         assert not await self.test_relay_state_off
         assert not stick.nodes["0098765432101234"].relay
+        assert not stick.nodes["0098765432101234"].relay_state.relay_state
 
         # Test sync switching back from off to on
         stick.nodes["0098765432101234"].relay = True
         assert await self.test_relay_state_on
         assert stick.nodes["0098765432101234"].relay
+        assert stick.nodes["0098765432101234"].relay_state.relay_state
 
         # Test async switching back from on to off
         self.test_relay_state_off = asyncio.Future()
