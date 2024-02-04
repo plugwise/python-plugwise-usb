@@ -101,9 +101,10 @@ class PlugwiseNode(FeaturePublisher, ABC):
         # Energy
         self._energy_counters = EnergyCounters(mac)
 
-    def update_registry_address(self, address: int) -> None:
-        """Update network registration address"""
-        self._node_info.zigbee_address = address
+    @property
+    def network_address(self) -> int:
+        """Network (zigbee based) registration address of this node."""
+        return self._node_info.zigbee_address
 
     @property
     def cache_folder(self) -> str:
