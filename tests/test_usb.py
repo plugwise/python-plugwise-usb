@@ -692,6 +692,20 @@ class TestStick:
         assert await self.test_relay_state_on
         assert stick.nodes["0098765432101234"].relay
 
+        # Test sync switching back from on to off
+        self.test_relay_state_off = asyncio.Future()
+        await stick.nodes["0098765432101234"].relay_off()
+        assert not await self.test_relay_state_off
+        assert not stick.nodes["0098765432101234"].relay
+        assert not stick.nodes["0098765432101234"].relay_state.relay_state
+
+        # Test sync switching back from off to on
+        self.test_relay_state_on = asyncio.Future()
+        await stick.nodes["0098765432101234"].relay_on()
+        assert await self.test_relay_state_on
+        assert stick.nodes["0098765432101234"].relay
+        assert stick.nodes["0098765432101234"].relay_state.relay_state
+
         # Test power state without request
         assert stick.nodes["0098765432101234"].power == pw_api.PowerStatistics(last_second=None, last_8_seconds=None, timestamp=None)
         pu = await stick.nodes["0098765432101234"].power_update()
