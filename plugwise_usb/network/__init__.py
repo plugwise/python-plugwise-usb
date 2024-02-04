@@ -217,7 +217,8 @@ class StickNetwork():
             return
         address: int | None = self._register.network_address(mac)
         if self._nodes.get(mac) is None:
-            await self._discover_and_load_node(address, mac, None)
+            await self._discover_node(address, mac, None)
+            await self._load_node(mac)
             await self._notify_node_event_subscribers(NodeEvent.AWAKE, mac)
 
     async def node_join_available_message(
@@ -377,16 +378,6 @@ class StickNetwork():
             NodeInfoRequest(bytes(mac, UTF8), retries=1)
         )  # type: ignore [assignment]
         return (info_response, ping_response)
-
-    async def _discover_and_load_node(
-        self,
-        address: int,
-        mac: str,
-        node_type: NodeType | None
-    ) -> bool:
-        """Discover and load node"""
-        await self._discover_node(address, mac, node_type)
-        await self._load_node(mac)
 
     async def _discover_node(
         self,
