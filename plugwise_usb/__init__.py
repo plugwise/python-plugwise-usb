@@ -238,6 +238,7 @@ class Stick:
             events,
         )
 
+    @raise_not_initialized
     def subscribe_to_node_events(
         self,
         node_event_callback: Callable[[NodeEvent, str], Awaitable[None]],
