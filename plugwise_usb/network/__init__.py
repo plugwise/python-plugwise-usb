@@ -1,4 +1,5 @@
-""" Plugwise network """
+"""Plugwise network."""
+
 # region - Imports
 
 from __future__ import annotations
@@ -91,7 +92,7 @@ class StickNetwork():
 
     @property
     def cache_folder(self) -> str:
-        """path to cache data of network register."""
+        """Path to cache data of network register."""
         return self._cache_folder
 
     @cache_folder.setter
@@ -104,9 +105,7 @@ class StickNetwork():
 
     @property
     def controller_active(self) -> bool:
-        """
-        Return True if network controller (Circle+) is discovered and active.
-        """
+        """Return True if network controller (Circle+) is discovered and active."""
         if self._controller.mac_coordinator in self._nodes:
             return self._nodes[self._controller.mac_coordinator].available
         return False
@@ -120,10 +119,7 @@ class StickNetwork():
     def nodes(
         self,
     ) -> dict[str, PlugwiseNode]:
-        """
-        Return dictionary with all discovered network nodes
-        with the mac address as the key.
-        """
+        """Dictionary with all discovered network nodes with the mac address as the key."""
         return self._nodes
 
     @property
@@ -140,7 +136,7 @@ class StickNetwork():
         self._discover_node(address, mac, None)
 
     async def clear_cache(self) -> None:
-        """Clear register"""
+        """Clear register cache."""
         await self._register.clear_register_cache()
 
     async def unregister_node(self, mac: str) -> None:
@@ -174,7 +170,7 @@ class StickNetwork():
         )
 
     async def _handle_stick_event(self, event: StickEvent) -> None:
-        """Handle stick events"""
+        """Handle stick events."""
         if event == StickEvent.CONNECTED:
             await gather(
                 *[
@@ -210,8 +206,7 @@ class StickNetwork():
             return
         if self._register.network_address(mac) is None:
             _LOGGER.warning(
-                "Skip node awake message for %s because network " +
-                "registry address is unknown",
+                "Skip node awake message for %s because network registry address is unknown",
                 mac
             )
             return
@@ -286,7 +281,7 @@ class StickNetwork():
         address: int,
         node_type: NodeType,
     ) -> None:
-        """Create node object and update network registry"""
+        """Create node object and update network registry."""
         if self._nodes.get(mac) is not None:
             _LOGGER.warning(
                 "Skip creating node object because node object for mac " +
@@ -385,9 +380,9 @@ class StickNetwork():
         mac: str,
         node_type: NodeType | None
     ) -> bool:
-        """
-        Discover node and add it to list of nodes
-        Return True if discovery succeeded
+        """Discover node and add it to list of nodes.
+
+        Return True if discovery succeeded.
         """
         if self._nodes.get(mac) is not None:
             _LOGGER.warning("Skip discovery of already known node %s ", mac)
@@ -416,7 +411,7 @@ class StickNetwork():
         await self._notify_node_event_subscribers(NodeEvent.DISCOVERED, mac)
 
     async def _discover_registered_nodes(self) -> None:
-        """Discover nodes"""
+        """Discover nodes."""
         _LOGGER.debug("Start discovery of registered nodes")
         counter = 0
         for address, registration in self._register.registry.items():
@@ -433,7 +428,7 @@ class StickNetwork():
         )
 
     async def _load_node(self, mac: str) -> bool:
-        """Load node"""
+        """Load node."""
         if self._nodes.get(mac) is None:
             return False
         if self._nodes[mac].loaded:
@@ -444,8 +439,8 @@ class StickNetwork():
         return False
 
     async def _load_discovered_nodes(self) -> None:
-        """Load all nodes currently discovered"""
         await gather(
+        """Load all nodes currently discovered."""
             *[
                 self._load_node(mac)
                 for mac, node in self._nodes.items()
@@ -454,7 +449,7 @@ class StickNetwork():
         )
 
     async def _unload_discovered_nodes(self) -> None:
-        """Unload all nodes"""
+        """Unload all nodes."""
         await gather(
             *[
                 node.unload()
@@ -466,7 +461,7 @@ class StickNetwork():
 
 # region - Network instance
     async def start(self) -> None:
-        """Start and activate network"""
+        """Start and activate network."""
         self._register.quick_scan_finished(self._discover_registered_nodes)
         self._register.full_scan_finished(self._discover_registered_nodes)
         await self._register.start()
@@ -474,7 +469,7 @@ class StickNetwork():
         self._is_running = True
 
     async def discover_nodes(self, load: bool = True) -> None:
-        """Discover nodes"""
+        """Discover nodes."""
         if not self._is_running:
             await self.start()
         await self.discover_network_coordinator()
@@ -515,8 +510,8 @@ class StickNetwork():
         node_event_callback: Callable[[NodeEvent, str], Awaitable[None]],
         events: tuple[NodeEvent],
     ) -> Callable[[], None]:
-        """
-        Subscribe callback when specified NodeEvent occurs.
+        """Subscribe callback when specified NodeEvent occurs.
+
         Returns the function to be called to unsubscribe later.
         """
         def remove_subscription() -> None:
@@ -533,7 +528,7 @@ class StickNetwork():
         event: NodeEvent,
         mac: str
     ) -> None:
-        """Call callback for node event subscribers"""
+        """Call callback for node event subscribers."""
         callback_list: list[Callable] = []
         for callback, filtered_events in list(
             self._node_event_subscribers.values()

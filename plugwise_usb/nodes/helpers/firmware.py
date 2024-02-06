@@ -1,5 +1,4 @@
-"""
-Firmware protocol support definitions
+"""Firmware protocol support definitions.
 
 The minimum and maximum supported (custom) zigbee protocol versions
 are based on the utc timestamp of firmware.
@@ -17,6 +16,8 @@ from ...api import NodeFeature
 
 
 class SupportedVersions(NamedTuple):
+    """Range of supported version."""
+
     min: float
     max: float
 
