@@ -108,6 +108,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                 )
                 return False
         self._initialized = True
+        await self._loaded_callback(NodeEvent.LOADED, self.mac)
         return True
 
     async def realtime_clock_synchronize(self) -> bool:
