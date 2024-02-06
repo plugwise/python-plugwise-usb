@@ -70,6 +70,7 @@ class PlugwiseSense(NodeSED):
             SENSE_REPORT_ID,
         )
         self._initialized = True
+        await self._loaded_callback(NodeEvent.LOADED, self.mac)
         return True
 
     async def unload(self) -> None:
