@@ -1015,8 +1015,7 @@ class PlugwiseCircle(PlugwiseNode):
             await sleep(0)
             if feature not in self._features:
                 raise NodeError(
-                    f"Update of feature '{feature}' is "
-                    + f"not supported for {self.mac}"
+                    f"Update of feature '{feature}' is not supported for {self.mac}"
                 )
             if feature == NodeFeature.ENERGY:
                 states[feature] = await self.energy_update()

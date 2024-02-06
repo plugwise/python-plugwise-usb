@@ -96,8 +96,7 @@ class StickQueue:
         _LOGGER.debug("Queueing %s", request)
         if not self._running or self._stick is None:
             raise StickError(
-                f"Cannot send message {request.__class__.__name__} for" +
-                f"{request.mac_decoded} because queue manager is stopped"
+                f"Cannot send message {request.__class__.__name__} for {request.mac_decoded} because queue manager is stopped"
             )
 
         await self._add_request_to_queue(request)
