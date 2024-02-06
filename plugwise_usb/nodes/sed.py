@@ -15,6 +15,7 @@ from ..messages.responses import (
     NODE_AWAKE_RESPONSE_ID,
     NodeAwakeResponse,
     NodeAwakeResponseType,
+    NodeInfoResponse,
     NodePingResponse,
     NodeResponse,
     NodeResponseType,
@@ -100,6 +101,15 @@ class NodeSED(PlugwiseNode):
     def maintenance_interval(self) -> int | None:
         """Heartbeat maintenance interval (seconds)."""
         return self._maintenance_interval
+
+    async def node_info_update(
+        self, node_info: NodeInfoResponse | None = None
+    ) -> bool:
+        """Update Node (hardware) information."""
+        if node_info is None and self.skip_update(self._node_info, 86400):
+            return True
+        return await super().node_info_update(node_info)
+
 
     async def _awake_response(self, message: NodeAwakeResponse) -> None:
         """Process awake message."""
