@@ -231,7 +231,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         """Switch button value."""
         if NodeFeature.SWITCH not in self._features:
             raise NodeError(
-                f"Switch state is not supported for node {self.mac}"
+                f"Switch value is not supported for node {self.mac}"
             )
         return self._switch
 
@@ -249,10 +249,10 @@ class PlugwiseNode(FeaturePublisher, ABC):
         """Relay value."""
         if NodeFeature.RELAY not in self._features:
             raise NodeError(
-                f"Relay state is not supported for node {self.mac}"
+                f"Relay value is not supported for node {self.mac}"
             )
         if self._relay is None:
-            raise NodeError(f"Relay state is unknown for node {self.mac}")
+            raise NodeError(f"Relay value is unknown for node {self.mac}")
         return self._relay
 
     @relay.setter
