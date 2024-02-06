@@ -1146,3 +1146,18 @@ class TestStick:
         with pytest.raises(pw_exceptions.StickError):
             await stick.initialize()
 
+    @pytest.mark.asyncio
+    async def test_node_discovery_and_load(self, monkeypatch):
+        """Testing discovery of nodes."""
+        mock_serial = MockSerial(None)
+        monkeypatch.setattr(
+            pw_connection_manager,
+            "create_serial_connection",
+            mock_serial.mock_connection,
+        )
+        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
+        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
+        stick = pw_stick.Stick("test_port", cache_enabled=False)
+        await stick.connect()
+        await stick.initialize()
+        await stick.discover_nodes(load=True)
