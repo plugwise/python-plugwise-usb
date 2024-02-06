@@ -596,22 +596,20 @@ class PlugwiseNode(FeaturePublisher, ABC):
         """Switch relay state."""
         raise NodeError(f"Relay control is not supported for node {self.mac}")
 
+    @raise_not_loaded
     async def get_state(
         self, features: tuple[NodeFeature]
     ) -> dict[NodeFeature, Any]:
         """Update latest state for given feature."""
         states: dict[NodeFeature, Any] = {}
         for feature in features:
-            await sleep(0)
             if feature not in self._features:
                 raise NodeError(
                     f"Update of feature '{feature.name}' is "
                     + f"not supported for {self.mac}"
                 )
             if feature == NodeFeature.INFO:
-                # Only request node info when information is > 5 minutes old
-                if not self.skip_update(self._node_info, 300):
-                    await self.node_info_update(None)
+                await self.node_info_update(None)
                 states[NodeFeature.INFO] = self._node_info
             elif feature == NodeFeature.AVAILABLE:
                 states[NodeFeature.AVAILABLE] = self.available
