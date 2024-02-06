@@ -7,6 +7,7 @@ from enum import Enum, auto
 
 class StickEvent(Enum):
     """Plugwise USB Stick events for callback subscription."""
+
     CONNECTED = auto()
     DISCONNECTED = auto()
     MESSAGE_RECEIVED = auto()
@@ -16,6 +17,7 @@ class StickEvent(Enum):
 
 class NodeEvent(Enum):
     """Plugwise Node events for callback subscription."""
+
     AWAKE = auto()
     DISCOVERED = auto()
     LOADED = auto()
@@ -24,6 +26,7 @@ class NodeEvent(Enum):
 
 class NodeType(Enum):
     """USB Node types."""
+
     STICK = 0
     CIRCLE_PLUS = 1  # AME_NC
     CIRCLE = 2  # AME_NR
@@ -41,6 +44,7 @@ class NodeType(Enum):
 
 class NodeFeature(str, Enum):
     """USB Stick Node feature."""
+
     AVAILABLE = "available"
     ENERGY = "energy"
     HUMIDITY = "humidity"
@@ -65,6 +69,7 @@ PUSHING_FEATURES = (
 @dataclass
 class NodeInfo:
     """Node hardware information."""
+
     mac: str
     zigbee_address: int
     battery_powered: bool = False
@@ -80,6 +85,7 @@ class NodeInfo:
 @dataclass
 class NetworkStatistics:
     """Zigbee network information."""
+
     timestamp: datetime | None = None
     rssi_in: int | None = None
     rssi_out: int | None = None
@@ -89,6 +95,7 @@ class NetworkStatistics:
 @dataclass
 class PowerStatistics:
     """Power statistics collection."""
+
     last_second: float | None = None
     last_8_seconds: float | None = None
     timestamp: datetime | None = None
@@ -97,6 +104,7 @@ class PowerStatistics:
 @dataclass
 class RelayState:
     """Status of relay."""
+
     relay_state: bool | None = None
     timestamp: datetime | None = None
 
@@ -104,6 +112,7 @@ class RelayState:
 @dataclass
 class MotionState:
     """Status of motion sensor."""
+
     motion: bool | None = None
     timestamp: datetime | None = None
 
