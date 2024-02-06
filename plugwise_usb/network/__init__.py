@@ -442,14 +442,32 @@ class StickNetwork:
         return False
 
     async def _load_discovered_nodes(self) -> None:
-        await gather(
         """Load all nodes currently discovered."""
+        _LOGGER.debug("_load_discovered_nodes | START | %s", len(self._nodes))
+        for mac, node in self._nodes.items():
+            _LOGGER.debug("_load_discovered_nodes | mac=%s | loaded=%s", mac, node.loaded)
+
+        nodes_not_loaded = tuple(
+            mac
+            for mac, node in self._nodes.items()
+            if not node.loaded
+        )
+        _LOGGER.debug("_load_discovered_nodes | nodes_not_loaded=%s", nodes_not_loaded)
+        load_result = await gather(
             *[
                 self._load_node(mac)
-                for mac, node in self._nodes.items()
-                if not node.loaded
+                for mac in nodes_not_loaded
             ]
         )
+        _LOGGER.debug("_load_discovered_nodes | load_result=%s", load_result)
+        result_index = 0
+        for mac in nodes_not_loaded:
+            if load_result[result_index]:
+                await self._notify_node_event_subscribers(NodeEvent.LOADED, mac)
+            else:
+                _LOGGER.debug("_load_discovered_nodes | Load request for %s failed", mac)
+            result_index += 1
+        _LOGGER.debug("_load_discovered_nodes | END")
 
     async def _unload_discovered_nodes(self) -> None:
         """Unload all nodes."""
