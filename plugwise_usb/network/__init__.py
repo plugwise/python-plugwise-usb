@@ -495,7 +495,6 @@ class StickNetwork:
             await self.start()
         await self.discover_network_coordinator()
         await self._discover_registered_nodes()
-        await sleep(0)
         if load:
             await self._load_discovered_nodes()
 
@@ -504,9 +503,7 @@ class StickNetwork:
         _LOGGER.debug("Stopping")
         self._is_running = False
         self._unsubscribe_to_protocol_events()
-        await sleep(0)
         await self._unload_discovered_nodes()
-        await sleep(0)
         await self._register.stop()
         _LOGGER.debug("Stopping finished")
 
