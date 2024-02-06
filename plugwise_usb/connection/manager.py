@@ -20,7 +20,7 @@ from .sender import StickSender
 _LOGGER = logging.getLogger(__name__)
 
 
-class StickConnectionManager():
+class StickConnectionManager:
     """Manage the message flow to and from USB-Stick."""
 
     def __init__(self) -> None:
