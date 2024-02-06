@@ -144,7 +144,7 @@ class StickNetworkRegister:
             return None
         address = response.network_address
         mac_of_node = response.registered_mac
-        if (mac_of_node := response.registered_mac) == 'FFFFFFFFFFFFFFFF':
+        if (mac_of_node := response.registered_mac) == "FFFFFFFFFFFFFFFF":
             mac_of_node = ""
         return (address, mac_of_node)
 
