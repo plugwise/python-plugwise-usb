@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from asyncio import create_task, sleep
+from asyncio import create_task
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 import logging
@@ -25,6 +25,7 @@ from ..exceptions import NodeError, StickError
 from ..messages.requests import NodeInfoRequest, NodePingRequest
 from ..messages.responses import NodeInfoResponse, NodePingResponse
 from ..util import version_to_model
+from .helpers import raise_not_loaded
 from .helpers.cache import NodeCache
 from .helpers.counter import EnergyCalibration, EnergyCounters
 from .helpers.firmware import FEATURE_SUPPORTED_AT_FIRMWARE, SupportedVersions

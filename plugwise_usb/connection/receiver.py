@@ -15,29 +15,27 @@ and publish detected connection status changes
   1. Notify status subscribers to connection state changes
 
 """
-
 from __future__ import annotations
+
 from asyncio import (
     Future,
-    create_task,
-    gather,
     Protocol,
     Queue,
+    create_task,
+    gather,
     get_running_loop,
     sleep,
 )
-from serial_asyncio import SerialTransport
 from collections.abc import Awaitable, Callable
 from concurrent import futures
 import logging
+
+from serial_asyncio import SerialTransport
+
 from ..api import StickEvent
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER
 from ..exceptions import MessageError
-from ..messages.responses import (
-    PlugwiseResponse,
-    StickResponse,
-    get_message_object,
-)
+from ..messages.responses import PlugwiseResponse, StickResponse, get_message_object
 
 _LOGGER = logging.getLogger(__name__)
 STICK_RECEIVER_EVENTS = (

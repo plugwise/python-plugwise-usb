@@ -1,16 +1,16 @@
 """Plugwise switch node object."""
 
 from __future__ import annotations
-from collections.abc import Callable
 
+from collections.abc import Callable
 import logging
 
-from .helpers import raise_not_loaded
-from .helpers.firmware import SWITCH_FIRMWARE_SUPPORT
-from ..api import NodeFeature
+from ..api import NodeEvent, NodeFeature
 from ..exceptions import MessageError
 from ..messages.responses import NODE_SWITCH_GROUP_ID, NodeSwitchGroupResponse
 from ..nodes.sed import NodeSED
+from .helpers import raise_not_loaded
+from .helpers.firmware import SWITCH_FIRMWARE_SUPPORT
 
 _LOGGER = logging.getLogger(__name__)
 

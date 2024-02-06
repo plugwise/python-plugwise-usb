@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-import aiofiles
-import aiofiles.os
 import logging
 from pathlib import Path, PurePath
 
-from ..util import get_writable_cache_dir
+import aiofiles
+import aiofiles.os
+
 from ..api import NodeType
 from ..constants import CACHE_SEPARATOR, UTF8
 from ..exceptions import CacheError
+from ..util import get_writable_cache_dir
 
 _LOGGER = logging.getLogger(__name__)
 
