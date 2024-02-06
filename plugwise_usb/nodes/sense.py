@@ -52,7 +52,7 @@ class PlugwiseSense(NodeSED):
                         NodeFeature.HUMIDITY
                     ),
                 )
-                return True
+                return await self.initialize()
 
         _LOGGER.debug("Load of Sense node %s failed", self._node_info.mac)
         return False
