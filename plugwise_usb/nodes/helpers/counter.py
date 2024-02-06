@@ -1,3 +1,4 @@
+"""Energy counter."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -13,7 +14,8 @@ from .pulses import PulseCollection, PulseLogRecord
 
 
 class EnergyType(Enum):
-    """Energy collection types"""
+    """Energy collection types."""
+
     CONSUMPTION_HOUR = auto()
     PRODUCTION_HOUR = auto()
     CONSUMPTION_DAY = auto()
@@ -58,9 +60,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class EnergyCounters:
-    """
-    Class to hold all energy counters.
-    """
+    """Hold all energy counters."""
 
     def __init__(self, mac: str) -> None:
         """Initialize EnergyCounter class."""
@@ -74,7 +74,7 @@ class EnergyCounters:
 
     @property
     def collected_logs(self) -> int:
-        """Total collected logs"""
+        """Total collected logs."""
         return self._pulse_collection.collected_logs
 
     def add_pulse_log(
@@ -85,7 +85,7 @@ class EnergyCounters:
         pulses: int,
         import_only: bool = False
     ) -> None:
-        """Add pulse log"""
+        """Add pulse log."""
         if self._pulse_collection.add_log(
             address,
             slot,
@@ -97,13 +97,13 @@ class EnergyCounters:
                 self.update()
 
     def get_pulse_logs(self) -> dict[int, dict[int, PulseLogRecord]]:
-        """Return currently collected pulse logs"""
+        """Return currently collected pulse logs."""
         return self._pulse_collection.logs
 
     def add_pulse_stats(
         self, pulses_consumed: int, pulses_produced: int, timestamp: datetime
     ) -> None:
-        """Add pulse statistics"""
+        """Add pulse statistics."""
         _LOGGER.debug(
             "add_pulse_stats | consumed=%s, for %s",
             str(pulses_consumed),
@@ -131,7 +131,7 @@ class EnergyCounters:
 
     @property
     def log_addresses_missing(self) -> list[int] | None:
-        """Return list of addresses of energy logs"""
+        """Return list of addresses of energy logs."""
         return self._pulse_collection.log_addresses_missing
 
     @property
@@ -152,7 +152,7 @@ class EnergyCounters:
         self._calibration = calibration
 
     def update(self) -> None:
-        """Update counter collection"""
+        """Update counter collection."""
         if self._calibration is None:
             return
         (
@@ -196,7 +196,7 @@ class EnergyCounters:
 
     @property
     def timestamp(self) -> datetime | None:
-        """Return the last valid timestamp or None"""
+        """Return the last valid timestamp or None."""
         if self._calibration is None:
             return None
         if self._pulse_collection.log_addresses_missing is None:
@@ -207,9 +207,7 @@ class EnergyCounters:
 
 
 class EnergyCounter:
-    """
-    Energy counter to convert pulses into energy
-    """
+    """Energy counter to convert pulses into energy."""
 
     def __init__(
         self,
@@ -240,12 +238,12 @@ class EnergyCounter:
 
     @property
     def direction(self) -> str:
-        """Energy direction (consumption or production)"""
+        """Energy direction (consumption or production)."""
         return self._direction
 
     @property
     def duration(self) -> str:
-        """Energy timespan"""
+        """Energy time span."""
         return self._duration
 
     @property
@@ -303,7 +301,7 @@ class EnergyCounter:
     def update(
         self, pulse_collection: PulseCollection
     ) -> tuple[float | None, datetime | None]:
-        """Get pulse update"""
+        """Get pulse update."""
         last_reset = datetime.now(tz=LOCAL_TIMEZONE)
         if self._energy_id in ENERGY_HOUR_COUNTERS:
             last_reset = last_reset.replace(minute=0, second=0, microsecond=0)

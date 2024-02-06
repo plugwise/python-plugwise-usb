@@ -1,4 +1,5 @@
-"""
+"""Send data to USB-Stick.
+
 Serialize request message and pass data stream to legacy Plugwise USB-Stick
 Wait for stick to respond.
 When request is accepted by USB-Stick, return the Sequence ID of the session.
@@ -33,7 +34,7 @@ class StickSender():
     def __init__(
         self, stick_receiver: StickReceiver, transport: Transport
     ) -> None:
-        """Initialize the Stick Sender class"""
+        """Initialize the Stick Sender class."""
         self._loop = get_running_loop()
         self._receiver = stick_receiver
         self._transport = transport
@@ -50,10 +51,9 @@ class StickSender():
     async def write_request_to_port(
         self, request: PlugwiseRequest
     ) -> PlugwiseRequest:
-        """
-        Send message to serial port of USB stick.
-        Returns the updated request object.
-        Raises StickError
+        """Send message to serial port of USB stick.
+
+        Returns the updated request object. Raises StickError
         """
         await self._stick_lock.acquire()
         self._current_request = request
@@ -164,5 +164,5 @@ class StickSender():
         self._stick_lock.release()
 
     def stop(self) -> None:
-        """Stop sender"""
+        """Stop sender."""
         self._unsubscribe_stick_response()

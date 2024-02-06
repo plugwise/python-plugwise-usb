@@ -1,5 +1,4 @@
-"""
-Plugwise Celsius node object.
+"""Plugwise Celsius node.
 
 TODO: Finish node
 """
@@ -22,7 +21,7 @@ CELSIUS_FEATURES: Final = (
 
 
 class PlugwiseCelsius(NodeSED):
-    """provides interface to the Plugwise Celsius nodes"""
+    """provides interface to the Plugwise Celsius nodes."""
 
     async def load(self) -> bool:
         """Load and activate node features."""

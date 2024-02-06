@@ -1,4 +1,4 @@
-"""Caching for plugwise node"""
+"""Caching for plugwise node."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class NodeCache:
-    """Class to cache specific node configuration and states"""
+    """Class to cache specific node configuration and states."""
 
     def __init__(self, mac: str, cache_root_dir: str = "") -> None:
         """Initialize NodeCache class."""
@@ -44,7 +44,7 @@ class NodeCache:
 
     @property
     def states(self) -> dict[str, str]:
-        """cached node state information"""
+        """Cached node state information."""
         return self._states
 
     def add_state(self, state: str, value: str) -> None:
@@ -57,7 +57,7 @@ class NodeCache:
             self._states.pop(state)
 
     def get_state(self, state: str) -> str | None:
-        """Return current value for state"""
+        """Return current value for state."""
         return self._states.get(state, None)
 
     async def save_cache(self) -> None:
@@ -114,7 +114,7 @@ class NodeCache:
         return True
 
     async def delete_cache_file(self) -> None:
-        """Delete cache file"""
+        """Delete cache file."""
         if self._cache_file is None:
             return
         if not await aiofiles.os.path.exists(self._cache_file):

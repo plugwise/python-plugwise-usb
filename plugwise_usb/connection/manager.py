@@ -1,7 +1,5 @@
-"""
-The 'connection controller' manage the communication flow through the USB-Stick
-towards the Plugwise (propriety) Zigbee like network.
-"""
+"""Manage the communication flow through the USB-Stick towards the Plugwise (propriety) Zigbee like network."""
+
 from __future__ import annotations
 
 from asyncio import Future, gather, get_event_loop, wait_for
@@ -40,7 +38,7 @@ class StickConnectionManager():
 
     @property
     def serial_path(self) -> str:
-        """Return current port"""
+        """Return current port."""
         return self._port
 
     @property
@@ -53,7 +51,7 @@ class StickConnectionManager():
         return self._receiver.is_connected
 
     def _subscribe_to_stick_events(self) -> None:
-        """Subscribe to handle stick events by manager"""
+        """Subscribe to handle stick events by manager."""
         if not self.is_connected:
             raise StickError("Unable to subscribe to events")
         if self._unsubscribe_stick_events is None:
@@ -68,7 +66,7 @@ class StickConnectionManager():
         self,
         event: StickEvent,
     ) -> None:
-        """Call callback for stick event subscribers"""
+        """Call callback for stick event subscribers."""
         if len(self._stick_event_subscribers) == 0:
             return
         callback_list: list[Callable] = []
@@ -85,8 +83,8 @@ class StickConnectionManager():
         stick_event_callback: Callable[[StickEvent], Awaitable[None]],
         events: tuple[StickEvent],
     ) -> Callable[[], None]:
-        """
-        Subscribe callback when specified StickEvent occurs.
+        """Subscribe callback when specified StickEvent occurs.
+
         Returns the function to be called to unsubscribe later.
         """
         def remove_subscription() -> None:
@@ -118,9 +116,8 @@ class StickConnectionManager():
         mac: bytes | None = None,
         message_ids: tuple[bytes] | None = None,
     ) -> Callable[[], None]:
-        """
-        Subscribe a awaitable callback to be called when a specific
-        message is received.
+        """Subscribe a awaitable callback to be called when a specific message is received.
+
         Returns function to unsubscribe.
         """
         if self._receiver is None or not self._receiver.is_connected:
@@ -135,7 +132,7 @@ class StickConnectionManager():
     async def setup_connection_to_stick(
         self, serial_path: str
     ) -> None:
-        """Setup serial connection to USB-stick."""
+        """Create serial connection to USB-stick."""
         if self._connected:
             raise StickError("Cannot setup connection, already connected")
         loop = get_event_loop()
@@ -181,10 +178,7 @@ class StickConnectionManager():
     async def write_to_stick(
         self, request: PlugwiseRequest
     ) -> PlugwiseRequest:
-        """
-        Write message to USB stick.
-        Returns the updated request object.
-        """
+        """Write message to USB stick. Returns the updated request object."""
         if not request.resend:
             raise StickError(
                 f"Failed to send {request.__class__.__name__} " +

@@ -1,8 +1,7 @@
-"""
+"""Main stick object to control associated plugwise plugs.
+
 Use of this source code is governed by the MIT license found
 in the LICENSE file.
-
-Main stick object to control associated plugwise plugs
 """
 
 from __future__ import annotations
@@ -26,11 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def raise_not_connected(func: FuncT) -> FuncT:
-    """
-    Decorator function to validate existence of an active
-    connection to Stick.
-    Raise StickError when there is no active connection.
-    """
+    """Validate existence of an active connection to Stick. Raise StickError when there is no active connection."""
     @wraps(func)
     def decorated(*args: Any, **kwargs: Any) -> Any:
         if not args[0].is_connected:
@@ -42,11 +37,7 @@ def raise_not_connected(func: FuncT) -> FuncT:
 
 
 def raise_not_initialized(func: FuncT) -> FuncT:
-    """
-    Decorator function to validate if active connection is
-    initialized.
-    Raise StickError when not initialized.
-    """
+    """Validate if active connection is initialized. Raise StickError when not initialized."""
     @wraps(func)
     def decorated(*args: Any, **kwargs: Any) -> Any:
         if not args[0].is_initialized:
@@ -90,7 +81,7 @@ class Stick:
 
     @property
     def cache_enabled(self) -> bool:
-        """Return usage of cache."""
+        """Indicates if caching is active."""
         return self._cache_enabled
 
     @cache_enabled.setter
@@ -102,30 +93,24 @@ class Stick:
 
     @property
     def nodes(self) -> dict[str, PlugwiseNode]:
-        """
-        All discovered and supported plugwise devices
-        with the MAC address as their key
-        """
+        """Dictionary with all discovered and supported plugwise devices with the MAC address as their key."""
         if self._network is None:
             return {}
         return self._network.nodes
 
     @property
     def is_connected(self) -> bool:
-        """Return current connection state"""
+        """Current connection state to USB-Stick."""
         return self._controller.is_connected
 
     @property
     def is_initialized(self) -> bool:
-        """Return current initialization state"""
+        """Current initialization state of USB-Stick connection."""
         return self._controller.is_initialized
 
     @property
     def joined_nodes(self) -> int | None:
-        """
-        Total number of nodes registered to Circle+
-        including Circle+ itself.
-        """
+        """Total number of nodes registered to Circle+ including Circle+ itself."""
         if (
             not self._controller.is_connected
             or self._network is None
@@ -136,43 +121,31 @@ class Stick:
 
     @property
     def mac_stick(self) -> str:
-        """
-        Return mac address of USB-Stick.
-        Raises StickError is connection is missing.
-        """
+        """MAC address of USB-Stick. Raises StickError is connection is missing."""
         return self._controller.mac_stick
 
     @property
     def mac_coordinator(self) -> str:
-        """
-        Return mac address of the network coordinator (Circle+).
-        Raises StickError is connection is missing.
-        """
+        """MAC address of the network coordinator (Circle+). Raises StickError is connection is missing."""
         return self._controller.mac_coordinator
 
     @property
     def network_discovered(self) -> bool:
-        """
-        Return the discovery state of the Plugwise network.
-        Raises StickError is connection is missing.
-        """
+        """Indicate if discovery of network is active. Raises StickError is connection is missing."""
         if self._network is None:
             return False
         return self._network.is_running
 
     @property
     def network_state(self) -> bool:
-        """Return the state of the Plugwise network."""
+        """Indicate state of the Plugwise network."""
         if not self._controller.is_connected:
             return False
         return self._controller.network_online
 
     @property
     def network_id(self) -> int:
-        """
-        Return the id of the Plugwise network.
-        Raises StickError is connection is missing.
-        """
+        """Network id of the Plugwise network. Raises StickError is connection is missing."""
         return self._controller.network_id
 
     @property
@@ -206,7 +179,7 @@ class Stick:
 
     @accept_join_request.setter
     def accept_join_request(self, state: bool) -> None:
-        """Configure join requests"""
+        """Configure join request setting."""
         if not self._controller.is_connected:
             raise StickError(
                 "Cannot accept joining node"
@@ -229,8 +202,8 @@ class Stick:
         stick_event_callback: Callable[[StickEvent], Awaitable[None]],
         events: tuple[StickEvent],
     ) -> Callable[[], None]:
-        """
-        Subscribe callback when specified StickEvent occurs.
+        """Subscribe callback when specified StickEvent occurs.
+
         Returns the function to be called to unsubscribe later.
         """
         return self._controller.subscribe_to_stick_events(
@@ -244,8 +217,8 @@ class Stick:
         node_event_callback: Callable[[NodeEvent, str], Awaitable[None]],
         events: tuple[NodeEvent],
     ) -> Callable[[], None]:
-        """
-        Subscribe callback when specified NodeEvent occurs.
+        """Subscribe callback to be called when specific NodeEvent occurs.
+
         Returns the function to be called to unsubscribe later.
         """
         return self._network.subscribe_to_network_events(
@@ -254,8 +227,8 @@ class Stick:
         )
 
     def _validate_node_discovery(self) -> None:
-        """
-        Validate if network discovery is running
+        """Validate if network discovery is running.
+
         Raises StickError if network is not active.
         """
         if self._network is None or not self._network.is_running:
@@ -264,7 +237,7 @@ class Stick:
     async def setup(
         self, discover: bool = True, load: bool = True
     ) -> None:
-        """Setup connection to USB-Stick."""
+        """Fully connect, initialize USB-Stick and discover all connected nodes."""
         if not self.is_connected:
             await self.connect()
         if not self.is_initialized:
@@ -277,10 +250,7 @@ class Stick:
             await self.load_nodes()
 
     async def connect(self, port: str | None = None) -> None:
-        """
-        Try to open connection. Does not initialize connection.
-        Raises StickError if failed to create connection.
-        """
+        """Connect to USB-Stick. Raises StickError if connection fails."""
         if self._controller.is_connected:
             raise StickError(
                 f"Already connected to {self._port}, " +
@@ -300,10 +270,7 @@ class Stick:
 
     @raise_not_connected
     async def initialize(self) -> None:
-        """
-        Try to initialize existing connection to USB-Stick.
-        Raises StickError if failed to communicate with USB-stick.
-        """
+        """Initialize connection to USB-Stick."""
         await self._controller.initialize_stick()
         if self._network is None:
             self._network = StickNetwork(self._controller)
@@ -337,7 +304,7 @@ class Stick:
     @raise_not_connected
     @raise_not_initialized
     async def discover_coordinator(self, load: bool = False) -> None:
-        """Setup connection to Zigbee network coordinator."""
+        """Discover the network coordinator."""
         if self._network is None:
             raise StickError(
                 "Cannot load nodes when network is not initialized"
@@ -347,7 +314,7 @@ class Stick:
     @raise_not_connected
     @raise_not_initialized
     async def discover_nodes(self, load: bool = False) -> None:
-        """Setup connection to Zigbee network coordinator."""
+        """Discover all nodes."""
         if self._network is None:
             raise StickError(
                 "Cannot load nodes when network is not initialized"
