@@ -93,8 +93,7 @@ class NetworkRegistrationCache:
             )
         if not await aiofiles.os.path.exists(self._cache_file):
             _LOGGER.warning(
-                "Unable to restore from cache because " +
-                "file '%s' does not exists",
+                "Unable to restore from cache because file '%s' does not exists",
                 self._cache_file.name,
             )
             return False
@@ -129,8 +128,7 @@ class NetworkRegistrationCache:
                     node_type = NodeType[data[2][9:]]
                 except KeyError:
                     _LOGGER.warning(
-                        "Skip invalid NodeType '%s' " +
-                        "in data '%s' in cache file '%s'",
+                        "Skip invalid NodeType '%s' in data '%s' in cache file '%s'",
                         data[2][9:],
                         line,
                         self._cache_file.name,
@@ -138,8 +136,7 @@ class NetworkRegistrationCache:
                     break
             self._registrations[address] = (mac, node_type)
             _LOGGER.debug(
-                "Restore registry address %s with mac %s " +
-                "with node type %s",
+                "Restore registry address %s with mac %s with node type %s",
                 address,
                 mac if mac != "" else "<empty>",
                 str(node_type),

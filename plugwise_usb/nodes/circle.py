@@ -282,8 +282,7 @@ class PlugwiseCircle(PlugwiseNode):
         """Update energy usage statistics, returns True if successful."""
         if self._last_log_address is None:
             _LOGGER.warning(
-                "Unable to update energy logs for node %s "
-                + "because last_log_address is unknown.",
+                "Unable to update energy logs for node %s because last_log_address is unknown.",
                 self._node_info.mac,
             )
             if not await self.node_info_update():
@@ -350,8 +349,7 @@ class PlugwiseCircle(PlugwiseNode):
         self._energy_counters.update()
         if self._energy_counters.log_addresses_missing is None:
             _LOGGER.debug(
-                "Start with initial energy request for the last 10 log"
-                + " addresses for node %s.",
+                "Start with initial energy request for the last 10 log addresses for node %s.",
                 self._node_info.mac,
             )
             for address in range(
@@ -584,8 +582,7 @@ class PlugwiseCircle(PlugwiseNode):
             )
             return True
         _LOGGER.warning(
-            "Unexpected NodeResponseType %s response "
-            + "for CircleRelaySwitchRequest at node %s...",
+            "Unexpected NodeResponseType %s response for CircleRelaySwitchRequest at node %s...",
             str(response.ack_id),
             self.mac,
         )
@@ -607,8 +604,7 @@ class PlugwiseCircle(PlugwiseNode):
             await self._relay_update_state(relay_state)
             return True
         _LOGGER.info(
-            "Failed to restore relay state from cache for node %s, " +
-            "try to request node info",
+            "Failed to restore relay state from cache for node %s, try to request node info...",
             self.mac
         )
         return await self.node_info_update()
@@ -717,8 +713,7 @@ class PlugwiseCircle(PlugwiseNode):
         # Get node info
         if not await self.node_info_update():
             _LOGGER.warning(
-                "Failed to load Circle node %s because it is not responding"
-                + " to information request",
+                "Failed to load Circle node %s because it is not responding to information request",
                 self._node_info.mac
             )
             return False
@@ -984,8 +979,7 @@ class PlugwiseCircle(PlugwiseNode):
         # solar panels, so don't complain too loudly.
         if pulses == -1:
             _LOGGER.warning(
-                "Power pulse counter for node %s of "
-                + "value of -1, corrected to 0",
+                "Power pulse counter for node %s of value of -1, corrected to 0",
                 self._node_info.mac,
             )
             return 0.0
@@ -1010,7 +1004,7 @@ class PlugwiseCircle(PlugwiseNode):
         if not self._available:
             if not await self.is_online():
                 _LOGGER.warning(
-                    "Node %s does not respond, unable to update state",
+                    "Node %s did not respond, unable to update state",
                     self.mac
                 )
                 for feature in features:

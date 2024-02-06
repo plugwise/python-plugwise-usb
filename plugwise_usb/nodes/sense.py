@@ -119,8 +119,7 @@ class PlugwiseSense(NodeSED):
             )
             if feature not in self._features:
                 raise NodeError(
-                    f"Update of feature '{feature.name}' is "
-                    + f"not supported for {self.mac}"
+                    f"Update of feature '{feature.name}' is not supported for {self.mac}"
                 )
             if feature == NodeFeature.TEMPERATURE:
                 states[NodeFeature.TEMPERATURE] = self._temperature
