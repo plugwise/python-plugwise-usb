@@ -29,7 +29,7 @@ SENSE_FEATURES: Final = (
 
 
 class PlugwiseSense(NodeSED):
-    """provides interface to the Plugwise Sense nodes"""
+    """Plugwise Sense node."""
 
     _sense_subscription: Callable[[], None] | None = None
 
@@ -79,10 +79,7 @@ class PlugwiseSense(NodeSED):
         await super().unload()
 
     async def _sense_report(self, message: SenseReportResponse) -> None:
-        """
-        process sense report message to extract
-        current temperature and humidity values.
-        """
+        """Process sense report message to extract current temperature and humidity values."""
         await self._available_update_state(True)
         if message.temperature.value != 65535:
             self._temperature = int(

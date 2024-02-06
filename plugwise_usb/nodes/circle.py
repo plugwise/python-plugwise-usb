@@ -47,9 +47,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def raise_calibration_missing(func: FuncT) -> FuncT:
-    """
-    Decorator function to make sure energy calibration settings are available.
-    """
+    """Validate energy calibration settings are available."""
 
     @wraps(func)
     def decorated(*args: Any, **kwargs: Any) -> Any:
@@ -61,16 +59,14 @@ def raise_calibration_missing(func: FuncT) -> FuncT:
 
 
 class PlugwiseCircle(PlugwiseNode):
-    """
-    Provides interface to the Plugwise Circle nodes
-    and base class for Circle+ nodes
-    """
+    """Plugwise Circle node."""
+
     _retrieve_energy_logs_task: None | Awaitable = None
     _last_energy_log_requested: bool = False
 
     @property
     def calibrated(self) -> bool:
-        """Return calibration retrieval state"""
+        """State of calibration."""
         if self._calibration is not None:
             return True
         return False
@@ -83,12 +79,13 @@ class PlugwiseCircle(PlugwiseNode):
     @property
     @raise_not_loaded
     def relay(self) -> bool:
+        """Current value of relay."""
         return bool(self._relay)
 
     @relay.setter
     @raise_not_loaded
     def relay(self, state: bool) -> None:
-        """Request the relay to switch state."""
+        """Request to change relay state."""
         create_task(self.switch_relay(state))
 
     @raise_not_loaded
@@ -348,7 +345,7 @@ class PlugwiseCircle(PlugwiseNode):
         return None
 
     async def get_missing_energy_logs(self) -> None:
-        """Task to retrieve missing energy logs"""
+        """Task to retrieve missing energy logs."""
 
         self._energy_counters.update()
         if self._energy_counters.log_addresses_missing is None:
@@ -499,7 +496,7 @@ class PlugwiseCircle(PlugwiseNode):
         return True
 
     async def _energy_log_records_save_to_cache(self) -> None:
-        """Save currently collected energy logs to cached file"""
+        """Save currently collected energy logs to cached file."""
         if not self._cache_enabled:
             return
         logs: dict[int, dict[int, PulseLogRecord]] = (
@@ -558,8 +555,8 @@ class PlugwiseCircle(PlugwiseNode):
             self._set_cache("energy_collection", log_cache_record)
 
     async def switch_relay(self, state: bool) -> bool | None:
-        """
-        Switch state of relay.
+        """Switch state of relay.
+
         Return new state of relay
         """
         _LOGGER.debug("switch_relay() start")
@@ -640,7 +637,7 @@ class PlugwiseCircle(PlugwiseNode):
                 create_task(self.save_cache())
 
     async def clock_synchronize(self) -> bool:
-        """Synchronize clock. Returns true if successful"""
+        """Synchronize clock. Returns true if successful."""
         clock_response: CircleClockResponse | None = await self._send(
             CircleClockGetRequest(self._mac_in_bytes)
         )
@@ -814,9 +811,7 @@ class PlugwiseCircle(PlugwiseNode):
     async def node_info_update(
         self, node_info: NodeInfoResponse | None = None
     ) -> bool:
-        """
-        Update Node hardware information.
-        """
+        """Update Node (hardware) information."""
         if node_info is None:
             node_info: NodeInfoResponse = await self._send(
                 NodeInfoRequest(self._mac_in_bytes)
@@ -912,10 +907,7 @@ class PlugwiseCircle(PlugwiseNode):
         return self._relay_init_state
 
     async def _relay_init_load_from_cache(self) -> bool:
-        """
-        Load relay init state from cache.
-        Return True if retrieval was successful.
-        """
+        """Load relay init state from cache. Return True if retrieval was successful."""
         if (cached_relay_data := self._get_cache("relay_init")) is not None:
             relay_init_state = False
             if cached_relay_data == "True":
@@ -983,7 +975,7 @@ class PlugwiseCircle(PlugwiseNode):
         return 0.0
 
     def _correct_power_pulses(self, pulses: int, offset: int) -> float:
-        """Correct pulses based on given measurement time offset (ns)"""
+        """Correct pulses based on given measurement time offset (ns)."""
 
         # Sometimes the circle returns -1 for some of the pulse counters
         # likely this means the circle measures very little power and is
