@@ -38,7 +38,7 @@ SCAN_DAYLIGHT_MODE: Final = False
 
 
 class PlugwiseScan(NodeSED):
-    """provides interface to the Plugwise Scan nodes"""
+    """Plugwise Scan node."""
 
     async def load(self) -> bool:
         """Load and activate Scan node features."""

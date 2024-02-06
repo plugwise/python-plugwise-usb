@@ -1,5 +1,4 @@
-"""
-Protocol receiver
+"""Receive data from USB-Stick.
 
 Process incoming data stream from the Plugwise USB-Stick and
 convert it into response messages.
@@ -45,16 +44,13 @@ STICK_RECEIVER_EVENTS = (
 
 
 async def delayed_run(coroutine: Callable, seconds: float):
-    """Postpone a coroutine to be executed after given delay"""
+    """Postpone a coroutine to be executed after given delay."""
     await sleep(seconds)
     await coroutine
 
 
 class StickReceiver(Protocol):
-    """
-    Receive data from USB Stick connection and
-    convert it into response messages.
-    """
+    """Receive data from USB Stick connection and convert it into response messages."""
 
     def __init__(
         self,
@@ -248,7 +244,7 @@ class StickReceiver(Protocol):
         self,
         event: StickEvent,
     ) -> None:
-        """Call callback for stick event subscribers"""
+        """Call callback for stick event subscribers."""
         callback_list: list[Callable] = []
         for callback, filtered_events in (
             self._stick_event_subscribers.values()
@@ -289,9 +285,8 @@ class StickReceiver(Protocol):
         mac: bytes | None = None,
         message_ids: tuple[bytes] | None = None,
     ) -> Callable[[], None]:
-        """
-        Subscribe a awaitable callback to be called when a specific
-        message is received.
+        """Subscribe a awaitable callback to be called when a specific message is received.
+
         Returns function to unsubscribe.
         """
         def remove_listener() -> None:
@@ -306,7 +301,7 @@ class StickReceiver(Protocol):
     async def _notify_node_response_subscribers(
         self, node_response: PlugwiseResponse
     ) -> None:
-        """Call callback for all node response message subscribers"""
+        """Call callback for all node response message subscribers."""
         callback_list: list[Callable] = []
         for callback, mac, message_ids in list(
             self._node_response_subscribers.values()

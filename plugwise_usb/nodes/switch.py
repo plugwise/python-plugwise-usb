@@ -16,7 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class PlugwiseSwitch(NodeSED):
-    """provides interface to the Plugwise Switch nodes"""
+    """Plugwise Switch node."""
 
     _switch_subscription: Callable[[], None] | None = None
     _switch_state: bool | None = None

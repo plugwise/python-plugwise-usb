@@ -46,7 +46,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class NodeSED(PlugwiseNode):
-    """provides base class for SED based nodes like Scan, Sense & Switch"""
+    """provides base class for SED based nodes like Scan, Sense & Switch."""
 
     # SED configuration
     _sed_configure_at_awake = False
@@ -98,10 +98,7 @@ class NodeSED(PlugwiseNode):
 
     @property
     def maintenance_interval(self) -> int | None:
-        """
-        Return the maintenance interval (seconds) a
-        battery powered node sends it heartbeat.
-        """
+        """Heartbeat maintenance interval (seconds)."""
         return self._maintenance_interval
 
     async def _awake_response(self, message: NodeAwakeResponse) -> None:
@@ -169,10 +166,7 @@ class NodeSED(PlugwiseNode):
         clock_interval: int = SED_CLOCK_INTERVAL,
         awake: bool = False,
     ) -> None:
-        """
-        Reconfigure the sleep/awake settings for a SED
-        send at next awake of SED.
-        """
+        """Reconfigure the sleep/awake settings for a SED send at next awake of SED."""
         if not awake:
             self._sed_configure_at_awake = True
             self._sed_config_stay_active = stay_active

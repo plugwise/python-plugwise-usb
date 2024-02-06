@@ -1,7 +1,5 @@
-"""
-The 'Connection ' manage the connection and communication
-flow through the USB-Stick.
-"""
+"""Manage the connection and communication flow through the USB-Stick."""
+
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
@@ -45,15 +43,12 @@ class StickController():
 
     @property
     def is_connected(self) -> bool:
-        """Return connection state from connection manager"""
+        """Return connection state from connection manager."""
         return self._manager.is_connected
 
     @property
     def mac_stick(self) -> str:
-        """
-        Returns the MAC address of USB-Stick.
-        Raises StickError when not connected.
-        """
+        """MAC address of USB-Stick. Raises StickError when not connected."""
         if not self._manager.is_connected or self._mac_stick is None:
             raise StickError(
                 "No mac address available. " +
@@ -146,7 +141,7 @@ class StickController():
         )
 
     async def _handle_stick_event(self, event: StickEvent) -> None:
-        """Handle stick events"""
+        """Handle stick event."""
         if event == StickEvent.CONNECTED:
             if not self._queue.is_running:
                 self._queue.start(self._manager)
@@ -156,10 +151,7 @@ class StickController():
                 await self._queue.stop()
 
     async def initialize_stick(self) -> None:
-        """
-        Initialize connection to the USB-stick.
-        Raises StickError if initialization fails.
-        """
+        """Initialize connection to the USB-stick."""
         if not self._manager.is_connected:
             raise StickError(
                 "Cannot initialize USB-stick, connected to USB-stick first"

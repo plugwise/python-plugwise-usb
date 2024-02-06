@@ -1,4 +1,4 @@
-"""Caching for plugwise network"""
+"""Caching for plugwise network."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class NetworkRegistrationCache:
-    """Class to cache node network information"""
+    """Class to cache node network information."""
 
     def __init__(self, cache_root_dir: str = "") -> None:
         """Initialize NetworkCache class."""
@@ -49,7 +49,7 @@ class NetworkRegistrationCache:
 
     @property
     def registrations(self) -> dict[int, tuple[str, NodeType]]:
-        """Cached network information"""
+        """Cached network information."""
         return self._registrations
 
     async def save_cache(self) -> None:
@@ -147,7 +147,7 @@ class NetworkRegistrationCache:
         return True
 
     async def delete_cache_file(self) -> None:
-        """Delete cache file"""
+        """Delete cache file."""
         if self._cache_file is None:
             return
         if not await aiofiles.os.path.exists(self._cache_file):
@@ -157,7 +157,7 @@ class NetworkRegistrationCache:
     def update_registration(
         self, address: int, mac: str, node_type: NodeType | None
     ) -> None:
-        """Save node information in cache"""
+        """Save node information in cache."""
         if self._registrations.get(address) is not None:
             _, current_node_type = self._registrations[address]
             if current_node_type is not None and node_type is None:

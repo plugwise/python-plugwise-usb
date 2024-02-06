@@ -1,4 +1,4 @@
-"""Plugwise Circle+ node object."""
+"""Plugwise Circle+ node."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class PlugwiseCirclePlus(PlugwiseCircle):
-    """provides interface to the Plugwise Circle+ nodes"""
+    """Plugwise Circle+ node."""
 
     async def load(self) -> bool:
         """Load and activate Circle+ node features."""

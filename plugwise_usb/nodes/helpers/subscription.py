@@ -24,12 +24,12 @@ class FeaturePublisher():
         ],
         features: tuple[NodeFeature],
     ) -> Callable[[], None]:
-        """
-        Subscribe callback when specified NodeFeature state updates.
+        """Subscribe callback when specified NodeFeature state updates.
+
         Returns the function to be called to unsubscribe later.
         """
         def remove_subscription() -> None:
-            """Remove stick event subscription."""
+            """Remove stick feature subscription."""
             self._feature_update_subscribers.pop(remove_subscription)
 
         self._feature_update_subscribers[
