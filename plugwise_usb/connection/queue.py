@@ -1,6 +1,4 @@
-"""
-Manage the communication sessions towards the USB-Stick
-"""
+"""Manage the communication sessions towards the USB-Stick."""
 from __future__ import annotations
 
 from asyncio import (
@@ -28,6 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 @dataclass
 class RequestState:
     """Node hardware information."""
+
     session: bytes
     zigbee_address: int
 
@@ -46,14 +45,14 @@ class StickQueue:
 
     @property
     def is_running(self) -> bool:
-        """Return the state of the queue"""
+        """Return the state of the queue."""
         return self._running
 
     def start(
         self,
         stick_connection_manager: StickConnectionManager
     ) -> None:
-        """Start sending request from queue"""
+        """Start sending request from queue."""
         if self._running:
             raise StickError("Cannot start queue manager, already running")
         self._stick = stick_connection_manager
@@ -67,7 +66,7 @@ class StickQueue:
         )
 
     async def _handle_stick_event(self, event: StickEvent) -> None:
-        """Handle events from stick"""
+        """Handle events from stick."""
         if event is StickEvent.CONNECTED:
             self._running = True
         elif event is StickEvent.DISCONNECTED:
@@ -94,10 +93,7 @@ class StickQueue:
     async def submit(
         self, request: PlugwiseRequest
     ) -> PlugwiseResponse:
-        """
-        Add request to queue and return the response of node
-        Raises an error when something fails
-        """
+        """Add request to queue and return the response of node. Raises an error when something fails."""
         _LOGGER.debug("Queueing %s", request)
         if not self._running or self._stick is None:
             raise StickError(
@@ -121,7 +117,7 @@ class StickQueue:
         self._start_submit_worker()
 
     def _start_submit_worker(self) -> None:
-        """Start the submit worker if submit worker is not yet running"""
+        """Start the submit worker if submit worker is not yet running."""
         if self._submit_worker_task is None or self._submit_worker_task.done():
             self._submit_worker_task = self._loop.create_task(
                 self._submit_worker()

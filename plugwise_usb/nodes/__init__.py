@@ -114,7 +114,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     @cache_folder.setter
     def cache_folder(self, cache_folder: str) -> None:
-        """Set path to cache folder"""
+        """Set path to cache folder."""
         if cache_folder == self._cache_folder:
             return
         self._cache_folder = cache_folder
@@ -145,7 +145,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     @property
     def available(self) -> bool:
-        """Return network availability state"""
+        """Return network availability state."""
         return self._available
 
     @property
@@ -163,7 +163,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     @property
     def node_info(self) -> NodeInfo:
-        """"Return node information"""
+        """"Return node information."""
         return self._node_info
 
     @property
@@ -182,7 +182,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     @property
     def loaded(self) -> bool:
-        """Return load status. """
+        """Return load status."""
         return self._loaded
 
     @property
@@ -192,7 +192,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     @property
     def motion(self) -> bool | None:
-        """Return motion detection state."""
+        """Motion detection value."""
         if NodeFeature.MOTION not in self._features:
             raise NodeError(
                 f"Motion state is not supported for node {self.mac}"
@@ -201,7 +201,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     @property
     def motion_state(self) -> MotionState:
-        """Return last known state of motion sensor"""
+        """Motion detection state."""
         if NodeFeature.MOTION not in self._features:
             raise NodeError(
                 f"Motion state is not supported for node {self.mac}"
@@ -210,10 +210,12 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     @property
     def ping(self) -> NetworkStatistics:
+        """Ping statistics."""
         return self._ping
 
     @property
     def power(self) -> PowerStatistics:
+        """Power statistics."""
         if NodeFeature.POWER not in self._features:
             raise NodeError(
                 f"Power state is not supported for node {self.mac}"
@@ -222,6 +224,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     @property
     def switch(self) -> bool | None:
+        """Switch button value."""
         if NodeFeature.SWITCH not in self._features:
             raise NodeError(
                 f"Switch state is not supported for node {self.mac}"
@@ -230,7 +233,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     @property
     def relay_state(self) -> RelayState:
-        """Return last known state of relay"""
+        """State of relay."""
         if NodeFeature.RELAY not in self._features:
             raise NodeError(
                 f"Relay state is not supported for node {self.mac}"
@@ -239,7 +242,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     @property
     def relay(self) -> bool:
-        """Return state of relay"""
+        """Relay value."""
         if NodeFeature.RELAY not in self._features:
             raise NodeError(
                 f"Relay state is not supported for node {self.mac}"
@@ -250,12 +253,12 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     @relay.setter
     def relay(self, state: bool) -> None:
-        """Request the relay to switch state."""
+        """Change relay to state value."""
         raise NotImplementedError()
 
     @property
     def temperature(self) -> float | None:
-        """Temperature sensor"""
+        """Temperature value."""
         if NodeFeature.TEMPERATURE not in self._features:
             raise NodeError(
                 f"Temperature state is not supported for node {self.mac}"
@@ -279,10 +282,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         firmware: dict[datetime, SupportedVersions],
         node_features: tuple[NodeFeature],
     ) -> None:
-        """
-        Determine protocol version based on firmware version
-        and enable supported additional supported features
-        """
+        """Determine protocol version based on firmware version and enable supported additional supported features."""
         if self._node_info.firmware is None:
             return
         self._node_protocols = firmware.get(self._node_info.firmware, None)
@@ -496,10 +496,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         node_type: NodeType | None,
         timestamp: datetime | None,
     ) -> bool:
-        """
-        Process new node info and return true if
-        all fields are updated.
-        """
+        """Process new node info and return true if all fields are updated."""
         complete = True
         if firmware is None:
             complete = False
@@ -601,10 +598,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
     async def get_state(
         self, features: tuple[NodeFeature]
     ) -> dict[NodeFeature, Any]:
-        """
-        Retrieve latest state for given feature
-
-        Return dict with values per feature."""
+        """Update latest state for given feature."""
         states: dict[NodeFeature, Any] = {}
         for feature in features:
             await sleep(0)
@@ -676,10 +670,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     @staticmethod
     def skip_update(data_class: Any, seconds: int) -> bool:
-        """
-        Return True if timestamp attribute of given dataclass
-        is less than given seconds old.
-        """
+        """Check if update can be skipped when timestamp of given dataclass is less than given seconds old."""
         if data_class is None:
             return False
         if not hasattr(data_class, "timestamp"):
