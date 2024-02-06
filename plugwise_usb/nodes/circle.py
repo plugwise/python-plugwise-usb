@@ -287,11 +287,10 @@ class PlugwiseCircle(PlugwiseNode):
             )
             if not await self.node_info_update():
                 return None
-        else:
-            # request node info update every 30 minutes.
-            if not self.skip_update(self._node_info, 1800):
-                if not await self.node_info_update():
-                    return None
+        # request node info update every 30 minutes.
+        elif not self.skip_update(self._node_info, 1800):
+            if not await self.node_info_update():
+                return None
 
         # Always request last energy log records at initial startup
         if not self._last_energy_log_requested:
