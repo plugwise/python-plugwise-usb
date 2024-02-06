@@ -48,8 +48,8 @@ class PlugwiseScan(NodeSED):
             _LOGGER.debug(
                 "Load Scan node %s from cache", self._node_info.mac
             )
-            if await self._load_from_cache():
-                pass
+            await self._load_from_cache()
+
         self._loaded = True
         self._setup_protocol(
             SCAN_FIRMWARE_SUPPORT,
