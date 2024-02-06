@@ -221,7 +221,7 @@ class Stick:
 
         Returns the function to be called to unsubscribe later.
         """
-        return self._network.subscribe_to_network_events(
+        return self._network.subscribe_to_node_events(
             node_event_callback,
             events,
         )
