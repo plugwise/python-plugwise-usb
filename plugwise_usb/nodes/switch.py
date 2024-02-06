@@ -36,7 +36,7 @@ class PlugwiseSwitch(NodeSED):
                     SWITCH_FIRMWARE_SUPPORT,
                     (NodeFeature.INFO, NodeFeature.SWITCH),
                 )
-                return True
+                return await self.initialize()
 
         _LOGGER.debug("Load of Switch node %s failed", self._node_info.mac)
         return False
