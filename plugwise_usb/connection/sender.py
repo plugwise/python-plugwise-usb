@@ -114,7 +114,10 @@ class StickSender:
             if response.ack_id == StickResponseType.TIMEOUT:
                 _LOGGER.warning("%s TIMEOUT", response)
                 if (request := self._open_requests.get(response.seq_id, None)):
-                    _LOGGER.error("Failed to send %s because USB-Stick could not send the request to the node.", request)
+                    _LOGGER.error(
+                        "Failed to send %s because USB-Stick could not send the request to the node.",
+                        request
+                    )
                     request.assign_error(
                         BaseException(
                             StickTimeout(

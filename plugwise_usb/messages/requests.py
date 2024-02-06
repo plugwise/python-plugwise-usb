@@ -156,7 +156,7 @@ class PlugwiseRequest(PlugwiseMessage):
     async def _process_node_response(self, response: PlugwiseResponse) -> None:
         """Process incoming message from node."""
         if self._seq_id is not None and self._seq_id == response.seq_id:
-            _LOGGER.debug('Response %s for request %s id %d', response, self, self._id)
+            _LOGGER.debug("Response %s for request %s id %d", response, self, self._id)
             self._unsubscribe_stick_response()
             self._response = response
             self._response_timeout.cancel()
@@ -168,7 +168,7 @@ class PlugwiseRequest(PlugwiseMessage):
         if self._response_future.done():
             return
         if self._seq_id is not None and self._seq_id == stick_response.seq_id:
-            _LOGGER.debug('%s for request %s id %d', stick_response, self, self._id)
+            _LOGGER.debug("%s for request %s id %d", stick_response, self, self._id)
             if stick_response.ack_id == StickResponseType.TIMEOUT:
                 self._response_timeout_expired(stick_timeout=True)
             elif stick_response.ack_id == StickResponseType.FAILED:
@@ -182,7 +182,7 @@ class PlugwiseRequest(PlugwiseMessage):
                 pass
             else:
                 _LOGGER.debug(
-                    'Unknown StickResponseType %s at %s for request %s id %d',
+                    "Unknown StickResponseType %s at %s for request %s id %d",
                     str(stick_response.ack_id),
                     stick_response,
                     self,

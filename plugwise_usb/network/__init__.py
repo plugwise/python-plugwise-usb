@@ -284,8 +284,7 @@ class StickNetwork:
         """Create node object and update network registry."""
         if self._nodes.get(mac) is not None:
             _LOGGER.warning(
-                "Skip creating node object because node object for mac " +
-                "%s already exists",
+                "Skip creating node object because node object for mac %s already exists",
                 mac
             )
             return
@@ -385,12 +384,11 @@ class StickNetwork:
         Return True if discovery succeeded.
         """
         if self._nodes.get(mac) is not None:
-            _LOGGER.warning("Skip discovery of already known node %s ", mac)
+            _LOGGER.debug("Skip discovery of already known node %s ", mac)
             return True
 
         if node_type is not None:
             self._create_node_object(mac, address, node_type)
-            _LOGGER.debug("Publish NODE_DISCOVERED for %s", mac)
             await self._notify_node_event_subscribers(
                 NodeEvent.DISCOVERED, mac
             )
@@ -407,7 +405,6 @@ class StickNetwork:
         await self._nodes[mac].node_info_update(node_info)
         if node_ping is not None:
             await self._nodes[mac].ping_update(node_ping)
-        _LOGGER.debug("Publish NODE_DISCOVERED for %s", mac)
         await self._notify_node_event_subscribers(NodeEvent.DISCOVERED, mac)
 
     async def _discover_registered_nodes(self) -> None:
@@ -534,6 +531,7 @@ class StickNetwork:
             self._node_event_subscribers.values()
         ):
             if event in filtered_events:
+                _LOGGER.debug("Publish %s for %s", event, mac)
                 callback_list.append(callback(event, mac))
         if len(callback_list) > 0:
             await gather(*callback_list)

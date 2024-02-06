@@ -117,8 +117,7 @@ class StickNetworkRegister:
         """Load network registry from cache."""
         if self._network_cache is None:
             _LOGGER.error(
-                "Unable to restore network registry because " +
-                "cache is not initialized"
+                "Unable to restore network registry because cache is not initialized"
             )
             return
         if self._cache_restored:
@@ -240,8 +239,7 @@ class StickNetworkRegister:
         """Save network registry to cache."""
         if self._network_cache is None:
             _LOGGER.error(
-                "Unable to save network registry because " +
-                "cache is not initialized"
+                "Unable to save network registry because cache is not initialized"
             )
             return
         _LOGGER.debug(

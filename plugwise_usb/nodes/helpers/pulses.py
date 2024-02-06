@@ -160,7 +160,12 @@ class PulseCollection:
         if is_consumption and (
             self._rollover_log_consumption or self._rollover_pulses_consumption
         ):
-            _LOGGER.debug("collected_pulses | %s | is consumption: self._rollover_log_consumption=%s, self._rollover_pulses_consumption=%s", self._mac, self._rollover_log_consumption, self._rollover_pulses_consumption)
+            _LOGGER.debug(
+                "collected_pulses | %s | is consumption: self._rollover_log_consumption=%s, self._rollover_pulses_consumption=%s",
+                self._mac,
+                self._rollover_log_consumption,
+                self._rollover_pulses_consumption
+            )
             return (None, None)
         if not is_consumption and (
             self._rollover_log_production or self._rollover_pulses_production

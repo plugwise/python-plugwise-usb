@@ -178,7 +178,7 @@ class StickReceiver(Protocol):
         response = self._populate_message(
             _empty_message, self._buffer[: _footer_index + 2]
         )
-        _LOGGER.debug('USB Got %s', response)
+        _LOGGER.debug("USB Got %s", response)
         # Parse remaining buffer
         self._reset_buffer(self._buffer[_footer_index:])
 
