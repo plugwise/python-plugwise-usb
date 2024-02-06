@@ -2,12 +2,12 @@
 # region - Imports
 
 from __future__ import annotations
-from asyncio import gather, sleep
+
+from asyncio import gather
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta
 import logging
 
-from .registry import StickNetworkRegister
 from ..api import NodeEvent, NodeType, StickEvent
 from ..connection import StickController
 from ..constants import UTF8
@@ -24,7 +24,6 @@ from ..messages.responses import (
     NodeAwakeResponse,
     NodeInfoResponse,
     NodeJoinAvailableResponse,
-    #    NodeJoinAvailableResponse,
     NodePingResponse,
     NodeResponseType,
 )
@@ -36,6 +35,7 @@ from ..nodes.sense import PlugwiseSense
 from ..nodes.stealth import PlugwiseStealth
 from ..nodes.switch import PlugwiseSwitch
 from ..util import validate_mac
+from .registry import StickNetworkRegister
 
 _LOGGER = logging.getLogger(__name__)
 # endregion

@@ -9,16 +9,15 @@ from collections.abc import Awaitable, Callable
 import logging
 from typing import Any
 
-from serial import EIGHTBITS, PARITY_NONE, STOPBITS_ONE
-from serial import SerialException
-from serial_asyncio import create_serial_connection, SerialTransport
+from serial import EIGHTBITS, PARITY_NONE, STOPBITS_ONE, SerialException
+from serial_asyncio import SerialTransport, create_serial_connection
 
-from .sender import StickSender
-from .receiver import StickReceiver
 from ..api import StickEvent
 from ..exceptions import StickError
 from ..messages.requests import PlugwiseRequest
 from ..messages.responses import PlugwiseResponse, StickResponse
+from .receiver import StickReceiver
+from .sender import StickSender
 
 _LOGGER = logging.getLogger(__name__)
 

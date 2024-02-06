@@ -5,11 +5,11 @@ from enum import Enum, auto
 import logging
 from typing import Final
 
-from .pulses import PulseCollection, PulseLogRecord
-from ..helpers import EnergyCalibration
 from ...api import EnergyStatistics
 from ...constants import HOUR_IN_SECONDS, LOCAL_TIMEZONE, PULSES_PER_KW_SECOND
 from ...exceptions import EnergyError
+from ..helpers import EnergyCalibration
+from .pulses import PulseCollection, PulseLogRecord
 
 
 class EnergyType(Enum):
