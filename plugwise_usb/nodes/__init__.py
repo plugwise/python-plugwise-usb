@@ -288,8 +288,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         self._node_protocols = firmware.get(self._node_info.firmware, None)
         if self._node_protocols is None:
             _LOGGER.warning(
-                "Failed to determine the protocol version for node %s (%s)"
-                + " based on firmware version %s of list %s",
+                "Failed to determine the protocol version for node %s (%s) based on firmware version %s of list %s",
                 self._node_info.mac,
                 self.__class__.__name__,
                 self._node_info.firmware,
@@ -357,15 +356,13 @@ class PlugwiseNode(FeaturePublisher, ABC):
             return True
         if not self._cache_enabled:
             _LOGGER.warning(
-                "Unable to load node %s from cache " +
-                "because caching is disabled",
+                "Unable to load node %s from cache because caching is disabled",
                 self.mac,
             )
             return False
         if self._node_cache is None:
             _LOGGER.warning(
-                "Unable to load node %s from cache " +
-                "because cache configuration is not loaded",
+                "Unable to load node %s from cache because cache configuration is not loaded",
                 self.mac,
             )
             return False
@@ -639,8 +636,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
             return
         if self._node_cache is None:
             _LOGGER.warning(
-                "Failed to update '%s' in cache " +
-                "because cache is not initialized yet",
+                "Failed to update '%s' in cache because cache is not initialized yet",
                 setting
             )
             return
@@ -661,8 +657,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
             return
         if self._node_cache is None:
             _LOGGER.warning(
-                "Failed to save cache to disk " +
-                "because cache is not initialized yet"
+                "Failed to save cache to disk because cache is not initialized yet"
             )
             return
         _LOGGER.debug("Save cache file for node %s", self.mac)

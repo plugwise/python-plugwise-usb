@@ -5,12 +5,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
-import logging
 from typing import Any, TypeVar, cast
 
 from ...exceptions import NodeError
-
-_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
