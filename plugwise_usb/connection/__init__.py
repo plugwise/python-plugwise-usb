@@ -58,23 +58,19 @@ class StickController:
 
     @property
     def mac_coordinator(self) -> str:
-        """
-        Return MAC address of the Zigbee network coordinator (Circle+).
+        """Return MAC address of the Zigbee network coordinator (Circle+).
+
         Raises StickError when not connected.
         """
         if not self._manager.is_connected or self._mac_nc is None:
             raise StickError(
-                "No mac address available. " +
-                "Connect and initialize USB-Stick first."
+                "No mac address available. Connect and initialize USB-Stick first."
             )
         return self._mac_nc
 
     @property
     def network_id(self) -> int:
-        """
-        Returns the Zigbee network ID.
-        Raises StickError when not connected.
-        """
+        """Returns the Zigbee network ID. Raises StickError when not connected."""
         if not self._manager.is_connected or self._network_id is None:
             raise StickError(
                 "No network ID available. " +
@@ -93,7 +89,7 @@ class StickController:
         return self._network_online
 
     async def connect_to_stick(self, serial_path: str) -> None:
-        """Setup connection to USB stick."""
+        """Connect to USB stick."""
         if self._manager.is_connected:
             raise StickError("Already connected")
         await self._manager.setup_connection_to_stick(serial_path)
@@ -111,8 +107,8 @@ class StickController:
         stick_event_callback: Callable[[StickEvent], Awaitable[None]],
         events: tuple[StickEvent],
     ) -> Callable[[], None]:
-        """
-        Subscribe callback when specified StickEvent occurs.
+        """Subscribe callback when specified StickEvent occurs.
+
         Returns the function to be called to unsubscribe later.
         """
         if self._manager is None:
@@ -128,9 +124,8 @@ class StickController:
         mac: bytes | None = None,
         message_ids: tuple[bytes] | None = None,
     ) -> Callable[[], None]:
-        """
-        Subscribe a awaitable callback to be called when a specific
-        message is received.
+        """Subscribe a awaitable callback to be called when a specific message is received.
+
         Returns function to unsubscribe.
         """
 
@@ -185,7 +180,7 @@ class StickController:
     async def send(
         self, request: PlugwiseRequest, suppress_node_errors: bool = True
     ) -> PlugwiseResponse | None:
-        """Submit request to queue and return response"""
+        """Submit request to queue and return response."""
         if not suppress_node_errors:
             return await self._queue.submit(request)
         try:
