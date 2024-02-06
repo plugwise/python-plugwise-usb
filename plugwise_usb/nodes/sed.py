@@ -71,10 +71,11 @@ class NodeSED(PlugwiseNode):
         mac: str,
         address: int,
         controller: StickController,
+        loaded_callback: Callable,
     ):
-        """Initialize SED"""
-        super().__init__(mac, address, controller)
-        self._message_subscribe = controller.subscribe_to_node_responses
+        """Initialize base class for Sleeping End Device."""
+        super().__init__(mac, address, controller, loaded_callback)
+        self._node_info.battery_powered = True
 
     async def unload(self) -> None:
         """Deactivate and unload node features."""
