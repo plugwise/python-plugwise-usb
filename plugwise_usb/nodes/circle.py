@@ -808,6 +808,8 @@ class PlugwiseCircle(PlugwiseNode):
     ) -> bool:
         """Update Node (hardware) information."""
         if node_info is None:
+            if self.skip_update(self._node_info, 30):
+                return True
             node_info: NodeInfoResponse = await self._send(
                 NodeInfoRequest(self._mac_in_bytes)
             )
@@ -991,15 +993,11 @@ class PlugwiseCircle(PlugwiseNode):
             return pulses
         return 0.0
 
+    @raise_not_loaded
     async def get_state(
         self, features: tuple[NodeFeature]
     ) -> dict[NodeFeature, Any]:
         """Update latest state for given feature."""
-        if not self._loaded:
-            if not await self.load():
-                _LOGGER.warning(
-                    "Unable to update state because load node %s failed", self.mac
-                )
         states: dict[NodeFeature, Any] = {}
         if not self._available:
             if not await self.is_online():
@@ -1012,7 +1010,6 @@ class PlugwiseCircle(PlugwiseNode):
                 return states
 
         for feature in features:
-            await sleep(0)
             if feature not in self._features:
                 raise NodeError(
                     f"Update of feature '{feature}' is not supported for {self.mac}"

@@ -178,16 +178,11 @@ class PlugwiseScan(NodeSED):
             return True
         return False
 
+    @raise_not_loaded
     async def get_state(
         self, features: tuple[NodeFeature]
     ) -> dict[NodeFeature, Any]:
         """Update latest state for given feature."""
-        if not self._loaded:
-            if not await self.load():
-                _LOGGER.warning(
-                    "Unable to update state because load node %s failed",
-                    self.mac
-                )
         states: dict[NodeFeature, Any] = {}
         for feature in features:
             _LOGGER.debug(
