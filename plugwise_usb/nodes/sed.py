@@ -152,7 +152,7 @@ class NodeSED(PlugwiseNode):
                 self._maintenance_future,
                 timeout=(self._maintenance_interval * 1.05),
             )
-        except AsyncTimeOutError:
+        except TimeoutError:
             # No maintenance awake message within expected time frame
             # Mark node as unavailable
             if self._available:
