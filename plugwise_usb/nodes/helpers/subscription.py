@@ -9,7 +9,7 @@ from typing import Any
 from ...api import NodeFeature
 
 
-class FeaturePublisher():
+class FeaturePublisher:
     """Base Class to call awaitable of subscription when event happens."""
 
     _feature_update_subscribers: dict[
