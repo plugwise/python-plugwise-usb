@@ -5,9 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import logging
 
-from .helpers import raise_not_loaded
-from .helpers.firmware import CIRCLE_PLUS_FIRMWARE_SUPPORT
-from ..api import NodeFeature
+from ..api import NodeEvent, NodeFeature
 from ..constants import MAX_TIME_DRIFT
 from ..messages.requests import (
     CirclePlusRealTimeClockGetRequest,
@@ -19,6 +17,8 @@ from ..messages.responses import (
     NodeResponseType,
 )
 from .circle import PlugwiseCircle
+from .helpers import raise_not_loaded
+from .helpers.firmware import CIRCLE_PLUS_FIRMWARE_SUPPORT
 
 _LOGGER = logging.getLogger(__name__)
 

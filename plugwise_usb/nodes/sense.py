@@ -5,12 +5,12 @@ from collections.abc import Callable
 import logging
 from typing import Any, Final
 
-from .helpers import raise_not_loaded
-from .helpers.firmware import SENSE_FIRMWARE_SUPPORT
-from ..api import NodeFeature
+from ..api import NodeEvent, NodeFeature
 from ..exceptions import NodeError
 from ..messages.responses import SENSE_REPORT_ID, SenseReportResponse
 from ..nodes.sed import NodeSED
+from .helpers import raise_not_loaded
+from .helpers.firmware import SENSE_FIRMWARE_SUPPORT
 
 _LOGGER = logging.getLogger(__name__)
 

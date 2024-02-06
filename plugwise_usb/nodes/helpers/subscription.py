@@ -1,11 +1,12 @@
 """Base class for plugwise node publisher."""
 
 from __future__ import annotations
+
 from asyncio import gather
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from ...api import NodeEvent, NodeFeature
+from ...api import NodeFeature
 
 
 class FeaturePublisher():
