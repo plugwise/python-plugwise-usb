@@ -801,6 +801,7 @@ class PlugwiseCircle(PlugwiseNode):
                 )
                 self._initialized = False
                 return False
+        await self._loaded_callback(NodeEvent.LOADED, self.mac)
         return True
 
     async def node_info_update(

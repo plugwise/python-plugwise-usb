@@ -47,7 +47,11 @@ class PlugwiseNode(FeaturePublisher, ABC):
         mac: str,
         address: int,
         controller: StickController,
+        loaded_callback: Callable,
     ):
+        """Initialize Plugwise base node class."""
+        self._loaded_callback = loaded_callback
+        self._message_subscribe = controller.subscribe_to_node_responses
         self._features = NODE_FEATURES
         self._last_update = datetime.now(timezone.utc)
         self._node_info = NodeInfo(mac, address)
