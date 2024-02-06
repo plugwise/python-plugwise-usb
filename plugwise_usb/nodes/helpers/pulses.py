@@ -274,19 +274,17 @@ class PulseCollection:
         if pulses_consumed < self._pulses_consumption:
             _LOGGER.debug("update_pulse_counter | %s | pulses_consumed=%s, _pulses_consumption=%s", self._mac, pulses_consumed, self._pulses_consumption)
             self._rollover_pulses_consumption = True
-        else:
-            if self._log_interval_consumption is not None and timestamp > (
+        elif self._log_interval_consumption is not None and timestamp > (
                 self._next_log_consumption_timestamp
                 + timedelta(minutes=self._log_interval_consumption)
-            ):
-                _LOGGER.debug("update_pulse_counter | %s | _log_interval_consumption=%s, timestamp=%s, _next_log_consumption_timestamp=%s", self._mac, self._log_interval_consumption, timestamp, self._next_log_consumption_timestamp)
-                self._rollover_pulses_consumption = True
+        ):
+            _LOGGER.debug("update_pulse_counter | %s | _log_interval_consumption=%s, timestamp=%s, _next_log_consumption_timestamp=%s", self._mac, self._log_interval_consumption, timestamp, self._next_log_consumption_timestamp)
+            self._rollover_pulses_consumption = True
 
         if self._log_production:
             if self._pulses_production < pulses_produced:
                 self._rollover_pulses_production = True
-            else:
-                if (
+            elif (
                     self._next_log_production_timestamp is not None
                     and self._log_interval_production is not None
                     and timestamp
@@ -294,8 +292,8 @@ class PulseCollection:
                         self._next_log_production_timestamp
                         + timedelta(minutes=self._log_interval_production)
                     )
-                ):
-                    self._rollover_pulses_production = True
+            ):
+                self._rollover_pulses_production = True
 
         self._pulses_consumption = pulses_consumed
         self._pulses_production = pulses_produced
@@ -374,9 +372,8 @@ class PulseCollection:
                 # mark direction as production of next log
                 self._logs[next_address][next_slot].is_consumption = False
                 self._log_production = True
-            else:
-                if self._log_production is None:
-                    self._log_production = False
+            elif self._log_production is None:
+                self._log_production = False
 
     def _update_log_rollover(self, address: int, slot: int) -> None:
         if self._last_update is None:
