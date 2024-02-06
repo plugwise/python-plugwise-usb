@@ -294,6 +294,7 @@ class StickNetwork:
                 mac,
                 address,
                 self._controller,
+                self._notify_node_event_subscribers,
             )
             _LOGGER.debug("Circle+ node %s added", mac)
         elif node_type == NodeType.CIRCLE:
@@ -301,6 +302,7 @@ class StickNetwork:
                 mac,
                 address,
                 self._controller,
+                self._notify_node_event_subscribers,
             )
             _LOGGER.debug("Circle node %s added", mac)
         elif node_type == NodeType.SWITCH:
@@ -308,6 +310,7 @@ class StickNetwork:
                 mac,
                 address,
                 self._controller,
+                self._notify_node_event_subscribers,
             )
             _LOGGER.debug("Switch node %s added", mac)
         elif node_type == NodeType.SENSE:
@@ -315,6 +318,7 @@ class StickNetwork:
                 mac,
                 address,
                 self._controller,
+                self._notify_node_event_subscribers,
             )
             _LOGGER.debug("Sense node %s added", mac)
         elif node_type == NodeType.SCAN:
@@ -322,6 +326,7 @@ class StickNetwork:
                 mac,
                 address,
                 self._controller,
+                self._notify_node_event_subscribers,
             )
             _LOGGER.debug("Scan node %s added", mac)
         elif node_type == NodeType.STEALTH:
@@ -329,6 +334,7 @@ class StickNetwork:
                 mac,
                 address,
                 self._controller,
+                self._notify_node_event_subscribers,
             )
             _LOGGER.debug("Stealth node %s added", mac)
         else:
