@@ -502,7 +502,7 @@ class StickNetwork:
                 f"Unknown NodeResponseType '{response.ack_id!r}' received"
             )
 
-    def subscribe_to_network_events(
+    def subscribe_to_node_events(
         self,
         node_event_callback: Callable[[NodeEvent, str], Awaitable[None]],
         events: tuple[NodeEvent],
