@@ -8,15 +8,15 @@ from datetime import datetime, timezone
 from functools import wraps
 import logging
 from typing import Any, TypeVar, cast
-from ..exceptions import PlugwiseException
-from ..api import NodeFeature
+
+from ..api import NodeEvent, NodeFeature
 from ..constants import (
     MAX_TIME_DRIFT,
     MINIMAL_POWER_UPDATE,
     PULSES_PER_KW_SECOND,
     SECOND_IN_NANOSECONDS,
 )
-from ..exceptions import NodeError
+from ..exceptions import NodeError, PlugwiseException
 from ..messages.requests import (
     CircleClockGetRequest,
     CircleClockSetRequest,

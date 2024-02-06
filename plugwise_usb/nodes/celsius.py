@@ -9,8 +9,8 @@ import logging
 from typing import Final
 
 from ..api import NodeFeature
-from .helpers.firmware import CELSIUS_FIRMWARE_SUPPORT
 from ..nodes.sed import NodeSED
+from .helpers.firmware import CELSIUS_FIRMWARE_SUPPORT
 
 _LOGGER = logging.getLogger(__name__)
 

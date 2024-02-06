@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from enum import Enum
 import logging
 
-from . import PlugwiseMessage
 from ..constants import (
     DAY_IN_MINUTES,
     HOUR_IN_MINUTES,
@@ -17,8 +16,8 @@ from ..constants import (
     MESSAGE_HEADER,
     NODE_TIME_OUT,
 )
-from ..messages.responses import PlugwiseResponse, StickResponse, StickResponseType
 from ..exceptions import NodeError, StickError
+from ..messages.responses import PlugwiseResponse, StickResponse, StickResponseType
 from ..util import (
     DateTime,
     Int,
