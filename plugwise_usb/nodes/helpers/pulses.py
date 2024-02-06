@@ -1,3 +1,4 @@
+"""Energy pulse helper."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,7 +16,7 @@ MAX_LOG_HOURS = WEEK_IN_HOURS
 
 
 def calc_log_address(address: int, slot: int, offset: int) -> tuple[int, int]:
-    """Calculate address and slot for log based for specified offset"""
+    """Calculate address and slot for log based for specified offset."""
 
     # FIXME: Handle max address (max is currently unknown) to guard
     # against address rollovers
@@ -40,10 +41,7 @@ class PulseLogRecord:
 
 
 class PulseCollection:
-    """
-    Class to store consumed and produced energy pulses of
-    the current interval and past (history log) intervals.
-    """
+    """Store consumed and produced energy pulses of the current interval and past (history log) intervals."""
 
     def __init__(self, mac: str) -> None:
         """Initialize PulseCollection class."""
@@ -88,7 +86,7 @@ class PulseCollection:
 
     @property
     def collected_logs(self) -> int:
-        """Total collected logs"""
+        """Total collected logs."""
         counter = 0
         if self._logs is None:
             return counter
@@ -98,7 +96,7 @@ class PulseCollection:
 
     @property
     def logs(self) -> dict[int, dict[int, PulseLogRecord]]:
-        """Return currently collected pulse logs in reversed order"""
+        """Return currently collected pulse logs in reversed order."""
         if self._logs is None:
             return {}
         sorted_log: dict[int, dict[int, PulseLogRecord]] = {}
@@ -115,12 +113,12 @@ class PulseCollection:
 
     @property
     def last_log(self) -> tuple[int, int] | None:
-        """Return address and slot of last imported log"""
+        """Return address and slot of last imported log."""
         return (self._last_log_consumption_address, self._last_log_consumption_slot)
 
     @property
     def production_logging(self) -> bool | None:
-        """Indicate if production logging is active"""
+        """Indicate if production logging is active."""
         return self._log_production
 
     @property
@@ -135,7 +133,7 @@ class PulseCollection:
 
     @property
     def log_rollover(self) -> bool:
-        """Indicate if new log is required"""
+        """Indicate if new log is required."""
         return (
             self._rollover_log_consumption
             or self._rollover_log_production
@@ -151,7 +149,7 @@ class PulseCollection:
     def collected_pulses(
         self, from_timestamp: datetime, is_consumption: bool
     ) -> tuple[int | None, datetime | None]:
-        """Calculate total pulses from given timestamp"""
+        """Calculate total pulses from given timestamp."""
 
         # _LOGGER.debug("collected_pulses | %s | is_cons=%s, from=%s", self._mac, is_consumption, from_timestamp)
 
@@ -196,7 +194,7 @@ class PulseCollection:
     def _collect_pulses_from_logs(
         self, from_timestamp: datetime, is_consumption: bool
     ) -> int | None:
-        """Collect all pulses from logs"""
+        """Collect all pulses from logs."""
         if self._logs is None:
             _LOGGER.debug("_collect_pulses_from_logs | %s | self._logs=None", self._mac)
             return None
@@ -231,7 +229,7 @@ class PulseCollection:
     def update_pulse_counter(
         self, pulses_consumed: int, pulses_produced: int, timestamp: datetime
     ) -> None:
-        """Update pulse counter"""
+        """Update pulse counter."""
         if self._pulses_consumption is None:
             self._pulses_consumption = pulses_consumed
         if self._pulses_production is None:
@@ -318,7 +316,7 @@ class PulseCollection:
         return True
 
     def recalculate_missing_log_addresses(self) -> None:
-        """Recalculate missing log addresses"""
+        """Recalculate missing log addresses."""
         self._log_addresses_missing = self._logs_missing(
             datetime.now(timezone.utc) - timedelta(
                 hours=MAX_LOG_HOURS
@@ -348,8 +346,8 @@ class PulseCollection:
     def _update_log_direction(
         self, address: int, slot: int, timestamp: datetime
     ) -> None:
-        """
-        Update Energy direction of log record.
+        """Update Energy direction of log record.
+
         Two subsequential logs with the same timestamp indicates the first
         is consumption and second production.
         """
@@ -367,7 +365,7 @@ class PulseCollection:
         next_address, next_slot = calc_log_address(address, slot, 1)
         if self._log_exists(next_address, next_slot):
             if self._logs[next_address][next_slot].timestamp == timestamp:
-                # Given log the first log with same timestamp,
+                # Given log is the first log with same timestamp,
                 # mark direction as production of next log
                 self._logs[next_address][next_slot].is_consumption = False
                 self._log_production = True
@@ -401,10 +399,7 @@ class PulseCollection:
                 self._rollover_log_production = True
 
     def _update_log_interval(self) -> None:
-        """
-        Update the detected log interval based on
-        the most recent two logs.
-        """
+        """Update the detected log interval based on the most recent two logs."""
         if self._logs is None or self._log_production is None:
             _LOGGER.debug("_update_log_interval | %s | _logs=%s, _log_production=%s", self._mac, self._logs, self._log_production)
             return
@@ -467,7 +462,7 @@ class PulseCollection:
     def _update_last_log_reference(
         self, address: int, slot: int, timestamp
     ) -> None:
-        """Update references to last (most recent) log record"""
+        """Update references to last (most recent) log record."""
         if (
             self._last_log_timestamp is None or
             self._last_log_timestamp < timestamp
@@ -497,7 +492,7 @@ class PulseCollection:
     def _update_last_production_log_reference(
         self, address: int, slot: int, timestamp: datetime
     ) -> None:
-        """Update references to last (most recent) log production record"""
+        """Update references to last (most recent) log production record."""
         if (
             self._last_log_production_timestamp is None or
             self._last_log_production_timestamp < timestamp
@@ -513,7 +508,7 @@ class PulseCollection:
     def _update_first_log_reference(
         self, address: int, slot: int, timestamp: datetime
     ) -> None:
-        """Update references to first (oldest) log record"""
+        """Update references to first (oldest) log record."""
         if (
             self._first_log_timestamp is None or
             self._first_log_timestamp > timestamp
@@ -577,13 +572,13 @@ class PulseCollection:
 
     @property
     def log_addresses_missing(self) -> list[int] | None:
-        """Return the addresses of missing logs"""
+        """Return the addresses of missing logs."""
         return self._log_addresses_missing
 
     def _last_log_reference(
         self, is_consumption: bool | None = None
     ) -> tuple[int | None, int | None]:
-        """Address and slot of last log"""
+        """Address and slot of last log."""
         if is_consumption is None:
             return (
                 self._last_log_address,
@@ -602,7 +597,7 @@ class PulseCollection:
     def _first_log_reference(
         self, is_consumption: bool | None = None
     ) -> tuple[int | None, int | None]:
-        """Address and slot of first log"""
+        """Address and slot of first log."""
         if is_consumption is None:
             return (
                 self._first_log_address,
@@ -619,9 +614,7 @@ class PulseCollection:
         )
 
     def _logs_missing(self, from_timestamp: datetime) -> list[int] | None:
-        """
-        Calculate list of missing log addresses
-        """
+        """Calculate list of missing log addresses."""
         if self._logs is None:
             self._log_addresses_missing = None
             return None
@@ -686,7 +679,7 @@ class PulseCollection:
         return missing
 
     def _last_known_duration(self) -> timedelta:
-        """Duration for last known logs"""
+        """Duration for last known logs."""
         if len(self.logs) < 2:
             return timedelta(hours=1)
         address, slot = self._last_log_reference()

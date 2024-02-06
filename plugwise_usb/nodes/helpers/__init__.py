@@ -1,3 +1,5 @@
+"""Helpers for Plugwise nodes."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -25,9 +27,7 @@ FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
 
 def raise_not_loaded(func: FuncT) -> FuncT:
-    """
-    Decorator function to raise NodeError when node is not loaded.
-    """
+    """Raise NodeError when node is not loaded."""
     @wraps(func)
     def decorated(*args: Any, **kwargs: Any) -> Any:
 

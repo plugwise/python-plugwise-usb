@@ -28,6 +28,7 @@ from ..util import (
     String,
     Time,
 )
+from . import PlugwiseMessage
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,6 +52,7 @@ class PlugwiseRequest(PlugwiseMessage):
         identifier: bytes,
         mac: bytes | None,
     ) -> None:
+        """Initialize request message."""
         super().__init__(identifier)
 
         self._args = []
@@ -71,15 +73,16 @@ class PlugwiseRequest(PlugwiseMessage):
         )
 
     def __repr__(self) -> str:
+        """Convert request into writable str."""
         return f"{self.__class__.__name__} for {self.mac_decoded}"
 
     def response_future(self) -> Future[PlugwiseResponse]:
-        """Return awaitable future with response message"""
+        """Return awaitable future with response message."""
         return self._response_future
 
     @property
     def response(self) -> PlugwiseResponse:
-        """Return response message"""
+        """Return response message."""
         if not self._response_future.done():
             raise StickError("No response available")
         return self._response_future.result()
@@ -105,7 +108,7 @@ class PlugwiseRequest(PlugwiseMessage):
         stick_subscription_fn: Callable[[], None],
         node_subscription_fn: Callable[[], None]
     ) -> None:
-        """Register for response messages"""
+        """Register for response messages."""
         self._unsubscribe_node_response = (
             node_subscription_fn(
                 self._process_node_response,
@@ -116,7 +119,7 @@ class PlugwiseRequest(PlugwiseMessage):
         self._stick_subscription_fn = stick_subscription_fn
 
     def start_response_timeout(self) -> None:
-        """Start timeout for node response"""
+        """Start timeout for node response."""
         if self._response_timeout is not None:
             self._response_timeout.cancel()
         self._response_timeout = self._loop.call_later(
@@ -124,7 +127,7 @@ class PlugwiseRequest(PlugwiseMessage):
         )
 
     def _response_timeout_expired(self, stick_timeout: bool = False) -> None:
-        """Handle response timeout"""
+        """Handle response timeout."""
         if self._response_future.done():
             return
         self._unsubscribe_node_response()
@@ -161,7 +164,7 @@ class PlugwiseRequest(PlugwiseMessage):
             self._unsubscribe_node_response()
 
     async def _process_stick_response(self, stick_response: StickResponse) -> None:
-        """Process incoming stick response"""
+        """Process incoming stick response."""
         if self._response_future.done():
             return
         if self._seq_id is not None and self._seq_id == stick_response.seq_id:
@@ -188,7 +191,7 @@ class PlugwiseRequest(PlugwiseMessage):
 
     @property
     def object_id(self) -> int:
-        """return the object id."""
+        """Return the object id."""
         return self._id
 
     @property
@@ -212,11 +215,11 @@ class PlugwiseRequest(PlugwiseMessage):
         return self._max_retries > self._send_counter
 
     def add_send_attempt(self):
-        """Increase the number of retries"""
+        """Increase the number of retries."""
         self._send_counter += 1
 
     def __gt__(self, other: PlugwiseRequest) -> bool:
-        """Greater than"""
+        """Greater than."""
         if self.priority.value == other.priority.value:
             return self.timestamp > other.timestamp
         if self.priority.value < other.priority.value:
@@ -224,7 +227,7 @@ class PlugwiseRequest(PlugwiseMessage):
         return False
 
     def __lt__(self, other: PlugwiseRequest) -> bool:
-        """Less than"""
+        """Less than."""
         if self.priority.value == other.priority.value:
             return self.timestamp < other.timestamp
         if self.priority.value > other.priority.value:
@@ -232,7 +235,7 @@ class PlugwiseRequest(PlugwiseMessage):
         return False
 
     def __ge__(self, other: PlugwiseRequest) -> bool:
-        """Greater than or equal"""
+        """Greater than or equal."""
         if self.priority.value == other.priority.value:
             return self.timestamp >= other.timestamp
         if self.priority.value < other.priority.value:
@@ -240,7 +243,7 @@ class PlugwiseRequest(PlugwiseMessage):
         return False
 
     def __le__(self, other: PlugwiseRequest) -> bool:
-        """Less than or equal"""
+        """Less than or equal."""
         if self.priority.value == other.priority.value:
             return self.timestamp <= other.timestamp
         if self.priority.value > other.priority.value:
@@ -256,7 +259,7 @@ class StickNetworkInfoRequest(PlugwiseRequest):
     """
 
     def __init__(self) -> None:
-        """Initialize StickNetworkInfoRequest message object"""
+        """Initialize StickNetworkInfoRequest message object."""
         self._reply_identifier = b"0002"
         super().__init__(b"0001", None)
 
@@ -269,13 +272,14 @@ class CirclePlusConnectRequest(PlugwiseRequest):
     """
 
     def __init__(self, mac: bytes) -> None:
-        """Initialize CirclePlusConnectRequest message object"""
+        """Initialize CirclePlusConnectRequest message object."""
         self._reply_identifier = b"0005"
         super().__init__(b"0004", mac)
 
     # This message has an exceptional format and therefore
     # need to override the serialize method
     def serialize(self) -> bytes:
+        """Convert message to serialized list of bytes."""
         # This command has
         # args: byte
         # key, byte
@@ -290,15 +294,14 @@ class CirclePlusConnectRequest(PlugwiseRequest):
 
 
 class NodeAddRequest(PlugwiseRequest):
-    """
-    Add node to the Plugwise Network and add it to memory of Circle+ node
+    """Add node to the Plugwise Network and add it to memory of Circle+ node.
 
     Supported protocols : 1.0, 2.0
     Response message    : TODO
     """
 
     def __init__(self, mac: bytes, accept: bool) -> None:
-        """Initialize NodeAddRequest message object"""
+        """Initialize NodeAddRequest message object."""
         super().__init__(b"0007", mac)
         accept_value = 1 if accept else 0
         self._args.append(Int(accept_value, length=2))
@@ -306,6 +309,7 @@ class NodeAddRequest(PlugwiseRequest):
     # This message has an exceptional format (MAC at end of message)
     # and therefore a need to override the serialize method
     def serialize(self) -> bytes:
+        """Convert message to serialized list of bytes."""
         args = b"".join(a.serialize() for a in self._args)
         msg: bytes = self._identifier + args
         if self._mac is not None:
@@ -314,13 +318,13 @@ class NodeAddRequest(PlugwiseRequest):
         return MESSAGE_HEADER + msg + checksum + MESSAGE_FOOTER
 
     def validate_reply(self, node_response: PlugwiseResponse) -> bool:
-        """"Validate node response"""
+        """"Validate node response."""
         return True
 
 
 class CirclePlusAllowJoiningRequest(PlugwiseRequest):
-    """
-    Enable or disable receiving joining request of unjoined nodes.
+    """Enable or disable receiving joining request of unjoined nodes.
+
     Circle+ node will respond
 
     Supported protocols : 1.0, 2.0,
@@ -329,7 +333,7 @@ class CirclePlusAllowJoiningRequest(PlugwiseRequest):
     """
 
     def __init__(self, enable: bool) -> None:
-        """Initialize NodeAddRequest message object"""
+        """Initialize NodeAddRequest message object."""
         super().__init__(b"0008", None)
         self._reply_identifier = b"0003"
         val = 1 if enable else 0
@@ -337,15 +341,14 @@ class CirclePlusAllowJoiningRequest(PlugwiseRequest):
 
 
 class NodeResetRequest(PlugwiseRequest):
-    """
-    TODO: Some kind of reset request
+    """TODO:Some kind of reset request.
 
     Supported protocols : 1.0, 2.0, 2.1
     Response message    : <UNKNOWN>
     """
 
     def __init__(self, mac: bytes, moduletype: int, timeout: int) -> None:
-        """Initialize NodeResetRequest message object"""
+        """Initialize NodeResetRequest message object."""
         super().__init__(b"0009", mac)
         self._args += [
             Int(moduletype, length=2),
@@ -354,65 +357,60 @@ class NodeResetRequest(PlugwiseRequest):
 
 
 class StickInitRequest(PlugwiseRequest):
-    """
-    Initialize USB-Stick.
+    """Initialize USB-Stick.
 
     Supported protocols : 1.0, 2.0
     Response message    : StickInitResponse
     """
 
     def __init__(self) -> None:
-        """Initialize StickInitRequest message object"""
+        """Initialize StickInitRequest message object."""
         super().__init__(b"000A", None)
         self._reply_identifier = b"0011"
         self._max_retries = 1
 
 
 class NodeImagePrepareRequest(PlugwiseRequest):
-    """
-    TODO: Some kind of request to prepare node for a firmware image.
+    """TODO: Some kind of request to prepare node for a firmware image.
 
     Supported protocols : 1.0, 2.0
     Response message    : <UNKNOWN>
     """
 
     def __init__(self) -> None:
-        """Initialize NodeImagePrepareRequest message object"""
+        """Initialize NodeImagePrepareRequest message object."""
         super().__init__(b"000B", None)
 
 
 class NodeImageValidateRequest(PlugwiseRequest):
-    """
-    TODO: Some kind of request to validate a firmware image for a node.
+    """TODO: Some kind of request to validate a firmware image for a node.
 
     Supported protocols : 1.0, 2.0
     Response message    : NodeImageValidationResponse
     """
 
     def __init__(self) -> None:
-        """Initialize NodeImageValidateRequest message object"""
+        """Initialize NodeImageValidateRequest message object."""
         super().__init__(b"000C", None)
         self._reply_identifier = b"0010"
 
 
 class NodePingRequest(PlugwiseRequest):
-    """
-    Ping node
+    """Ping node.
 
     Supported protocols : 1.0, 2.0
     Response message    : NodePingResponse
     """
 
     def __init__(self, mac: bytes, retries: int = MAX_RETRIES) -> None:
-        """Initialize NodePingRequest message object"""
+        """Initialize NodePingRequest message object."""
         super().__init__(b"000D", mac)
         self._reply_identifier = b"000E"
         self._max_retries = retries
 
 
 class NodeImageActivateRequest(PlugwiseRequest):
-    """
-    TODO: Some kind of request to activate a firmware image for a node.
+    """TODO: Some kind of request to activate a firmware image for a node.
 
     Supported protocols : 1.0, 2.0
     Response message    : <UNKNOWN>
@@ -421,7 +419,7 @@ class NodeImageActivateRequest(PlugwiseRequest):
     def __init__(
         self, mac: bytes, request_type: int, reset_delay: int
     ) -> None:
-        """Initialize NodeImageActivateRequest message object"""
+        """Initialize NodeImageActivateRequest message object."""
         super().__init__(b"000F", mac)
         _type = Int(request_type, 2)
         _reset_delay = Int(reset_delay, 2)
@@ -429,22 +427,21 @@ class NodeImageActivateRequest(PlugwiseRequest):
 
 
 class CirclePowerUsageRequest(PlugwiseRequest):
-    """
-    Request current power usage.
+    """Request current power usage.
 
     Supported protocols : 1.0, 2.0, 2.1, 2.3
     Response message    : CirclePowerUsageResponse
     """
 
     def __init__(self, mac: bytes) -> None:
-        """Initialize CirclePowerUsageRequest message object"""
+        """Initialize CirclePowerUsageRequest message object."""
         super().__init__(b"0012", mac)
         self._reply_identifier = b"0013"
 
 
 class CircleLogDataRequest(PlugwiseRequest):
-    """
-    TODO: Some kind of request to get log data from a node.
+    """TODO: Some kind of request to get log data from a node.
+
     Only supported at protocol version 1.0 !
 
           <argument name="fromAbs" length="8"/>
@@ -455,7 +452,7 @@ class CircleLogDataRequest(PlugwiseRequest):
     """
 
     def __init__(self, mac: bytes, start: datetime, end: datetime) -> None:
-        """Initialize CircleLogDataRequest message object"""
+        """Initialize CircleLogDataRequest message object."""
         super().__init__(b"0014", mac)
         self._reply_identifier = b"0015"
         passed_days_start = start.day - 1
@@ -476,8 +473,7 @@ class CircleLogDataRequest(PlugwiseRequest):
 
 
 class CircleClockSetRequest(PlugwiseRequest):
-    """
-    Set internal clock of node and flash address
+    """Set internal clock of node and flash address.
 
     reset=True, will reset all locally stored energy logs
 
@@ -492,7 +488,7 @@ class CircleClockSetRequest(PlugwiseRequest):
         protocol_version: float,
         reset: bool = False,
     ) -> None:
-        """Initialize CircleLogDataRequest message object"""
+        """Initialize CircleLogDataRequest message object."""
         super().__init__(b"0016", mac)
         self._reply_identifier = b"0000"
         self.priority = Priority.HIGH
@@ -517,15 +513,14 @@ class CircleClockSetRequest(PlugwiseRequest):
 
 
 class CircleRelaySwitchRequest(PlugwiseRequest):
-    """
-    Request to switches relay on/off
+    """Request to switches relay on/off.
 
     Supported protocols : 1.0, 2.0
     Response message    : NodeResponse
     """
 
     def __init__(self, mac: bytes, on: bool) -> None:
-        """Initialize CircleRelaySwitchRequest message object"""
+        """Initialize CircleRelaySwitchRequest message object."""
         super().__init__(b"0017", mac)
         self._reply_identifier = b"0000"
         self.priority = Priority.HIGH
@@ -534,9 +529,9 @@ class CircleRelaySwitchRequest(PlugwiseRequest):
 
 
 class CirclePlusScanRequest(PlugwiseRequest):
-    """
-    Request all linked Circle plugs from Circle+
-    a Plugwise network (Circle+) can have 64 devices the node ID value
+    """Request all linked Circle plugs from Circle+.
+
+    A Plugwise network (Circle+) can have 64 devices the node ID value
     has a range from 0 to 63
 
     Supported protocols : 1.0, 2.0
@@ -544,7 +539,7 @@ class CirclePlusScanRequest(PlugwiseRequest):
     """
 
     def __init__(self, mac: bytes, network_address: int) -> None:
-        """Initialize CirclePlusScanRequest message object"""
+        """Initialize CirclePlusScanRequest message object."""
         super().__init__(b"0018", mac)
         self._reply_identifier = b"0019"
         self._args.append(Int(network_address, length=2))
@@ -552,60 +547,55 @@ class CirclePlusScanRequest(PlugwiseRequest):
 
 
 class NodeRemoveRequest(PlugwiseRequest):
-    """
-    Request node to be removed from Plugwise network by
-    removing it from memory of Circle+ node.
+    """Request node to be removed from Plugwise network by removing it from memory of Circle+ node.
 
     Supported protocols : 1.0, 2.0
     Response message    : NodeRemoveResponse
     """
 
     def __init__(self, mac_circle_plus: bytes, mac_to_unjoined: str) -> None:
-        """Initialize NodeRemoveRequest message object"""
+        """Initialize NodeRemoveRequest message object."""
         super().__init__(b"001C", mac_circle_plus)
         self._reply_identifier = b"001D"
         self._args.append(String(mac_to_unjoined, length=16))
 
 
 class NodeInfoRequest(PlugwiseRequest):
-    """
-    Request status info of node
+    """Request status info of node.
 
     Supported protocols : 1.0, 2.0, 2.3
     Response message    : NodeInfoResponse
     """
 
     def __init__(self, mac: bytes, retries: int = MAX_RETRIES) -> None:
-        """Initialize NodeInfoRequest message object"""
+        """Initialize NodeInfoRequest message object."""
         super().__init__(b"0023", mac)
         self._reply_identifier = b"0024"
         self._max_retries = retries
 
 
 class EnergyCalibrationRequest(PlugwiseRequest):
-    """
-    Request power calibration settings of node
+    """Request power calibration settings of node.
 
     Supported protocols : 1.0, 2.0
     Response message    : EnergyCalibrationResponse
     """
 
     def __init__(self, mac: bytes) -> None:
-        """Initialize EnergyCalibrationRequest message object"""
+        """Initialize EnergyCalibrationRequest message object."""
         super().__init__(b"0026", mac)
         self._reply_identifier = b"0027"
 
 
 class CirclePlusRealTimeClockSetRequest(PlugwiseRequest):
-    """
-    Set real time clock of Circle+
+    """Set real time clock of Circle+.
 
     Supported protocols : 1.0, 2.0
     Response message    : NodeResponse
     """
 
     def __init__(self, mac: bytes, dt: datetime):
-        """Initialize CirclePlusRealTimeClockSetRequest message object"""
+        """Initialize CirclePlusRealTimeClockSetRequest message object."""
         super().__init__(b"0028", mac)
         self._reply_identifier = b"0000"
         self.priority = Priority.HIGH
@@ -616,15 +606,14 @@ class CirclePlusRealTimeClockSetRequest(PlugwiseRequest):
 
 
 class CirclePlusRealTimeClockGetRequest(PlugwiseRequest):
-    """
-    Request current real time clock of CirclePlus
+    """Request current real time clock of CirclePlus.
 
     Supported protocols : 1.0, 2.0
     Response message    : CirclePlusRealTimeClockResponse
     """
 
     def __init__(self, mac: bytes):
-        """Initialize CirclePlusRealTimeClockGetRequest message object"""
+        """Initialize CirclePlusRealTimeClockGetRequest message object."""
         super().__init__(b"0029", mac)
         self._reply_identifier = b"003A"
 
@@ -635,29 +624,27 @@ class CirclePlusRealTimeClockGetRequest(PlugwiseRequest):
 
 
 class CircleClockGetRequest(PlugwiseRequest):
-    """
-    Request current internal clock of node
+    """Request current internal clock of node.
 
     Supported protocols : 1.0, 2.0
     Response message    :  CircleClockResponse
     """
 
     def __init__(self, mac: bytes):
-        """Initialize CircleClockGetRequest message object"""
+        """Initialize CircleClockGetRequest message object."""
         super().__init__(b"003E", mac)
         self._reply_identifier = b"003F"
 
 
 class CircleActivateScheduleRequest(PlugwiseRequest):
-    """
-    Request to switch Schedule on or off
+    """Request to switch Schedule on or off.
 
     Supported protocols : 1.0, 2.0
     Response message    : <UNKNOWN> TODO:
     """
 
     def __init__(self, mac: bytes, on: bool) -> None:
-        """Initialize CircleActivateScheduleRequest message object"""
+        """Initialize CircleActivateScheduleRequest message object."""
         super().__init__(b"0040", mac)
         val = 1 if on else 0
         self._args.append(Int(val, length=2))
@@ -666,8 +653,7 @@ class CircleActivateScheduleRequest(PlugwiseRequest):
 
 
 class NodeAddToGroupRequest(PlugwiseRequest):
-    """
-    Add node to group
+    """Add node to group.
 
     Response message: TODO:
     """
@@ -675,7 +661,7 @@ class NodeAddToGroupRequest(PlugwiseRequest):
     def __init__(
         self, mac: bytes, group_mac: bytes, task_id: str, port_mask: str
     ) -> None:
-        """Initialize NodeAddToGroupRequest message object"""
+        """Initialize NodeAddToGroupRequest message object."""
         super().__init__(b"0045", mac)
         group_mac_val = String(group_mac, length=16)
         task_id_val = String(task_id, length=16)
@@ -684,42 +670,39 @@ class NodeAddToGroupRequest(PlugwiseRequest):
 
 
 class NodeRemoveFromGroupRequest(PlugwiseRequest):
-    """
-    Remove node from group
+    """Remove node from group.
 
     Response message: TODO:
     """
 
     def __init__(self, mac: bytes, group_mac: bytes) -> None:
-        """Initialize NodeRemoveFromGroupRequest message object"""
+        """Initialize NodeRemoveFromGroupRequest message object."""
         super().__init__(b"0046", mac)
         group_mac_val = String(group_mac, length=16)
         self._args += [group_mac_val]
 
 
 class NodeBroadcastGroupSwitchRequest(PlugwiseRequest):
-    """
-    Broadcast to group to switch
+    """Broadcast to group to switch.
 
     Response message: TODO:
     """
 
     def __init__(self, group_mac: bytes, switch_state: bool) -> None:
-        """Initialize NodeBroadcastGroupSwitchRequest message object"""
+        """Initialize NodeBroadcastGroupSwitchRequest message object."""
         super().__init__(b"0047", group_mac)
         val = 1 if switch_state else 0
         self._args.append(Int(val, length=2))
 
 
 class CircleEnergyLogsRequest(PlugwiseRequest):
-    """
-    Request energy usage counters stored a given memory address
+    """Request energy usage counters stored a given memory address.
 
     Response message: CircleEnergyLogsResponse
     """
 
     def __init__(self, mac: bytes, log_address: int) -> None:
-        """Initialize CircleEnergyLogsRequest message object"""
+        """Initialize CircleEnergyLogsRequest message object."""
         super().__init__(b"0048", mac)
         self._reply_identifier = b"0049"
         self.priority = Priority.LOW
@@ -727,32 +710,29 @@ class CircleEnergyLogsRequest(PlugwiseRequest):
 
 
 class CircleHandlesOffRequest(PlugwiseRequest):
-    """
-    ?PWSetHandlesOffRequestV1_0
+    """?PWSetHandlesOffRequestV1_0.
 
     Response message: ?
     """
 
     def __init__(self, mac: bytes) -> None:
-        """Initialize CircleHandlesOffRequest message object"""
+        """Initialize CircleHandlesOffRequest message object."""
         super().__init__(b"004D", mac)
 
 
 class CircleHandlesOnRequest(PlugwiseRequest):
-    """
-    ?PWSetHandlesOnRequestV1_0
+    """?PWSetHandlesOnRequestV1_0.
 
     Response message: ?
     """
 
     def __init__(self, mac: bytes) -> None:
-        """Initialize CircleHandlesOnRequest message object"""
+        """Initialize CircleHandlesOnRequest message object."""
         super().__init__(b"004E", mac)
 
 
 class NodeSleepConfigRequest(PlugwiseRequest):
-    """
-    Configure timers for SED nodes to minimize battery usage
+    """Configure timers for SED nodes to minimize battery usage.
 
     stay_active             : Duration in seconds the SED will be
                               awake for receiving commands
@@ -777,7 +757,7 @@ class NodeSleepConfigRequest(PlugwiseRequest):
         sync_clock: bool,
         clock_interval: int,
     ):
-        """Initialize NodeSleepConfigRequest message object"""
+        """Initialize NodeSleepConfigRequest message object."""
         super().__init__(b"0050", mac)
         self._reply_identifier = b"0100"
         stay_active_val = Int(stay_active, length=2)
@@ -796,8 +776,8 @@ class NodeSleepConfigRequest(PlugwiseRequest):
 
 
 class NodeSelfRemoveRequest(PlugwiseRequest):
-    """
-    TODO:
+    """TODO: Remove node?.
+
     <command number="0051" vnumber="1.0"
     implementation="Plugwise.IO.Commands.V20.PWSelfRemovalRequestV1_0">
       <arguments>
@@ -808,13 +788,12 @@ class NodeSelfRemoveRequest(PlugwiseRequest):
     """
 
     def __init__(self, mac: bytes) -> None:
-        """Initialize NodeSelfRemoveRequest message object"""
+        """Initialize NodeSelfRemoveRequest message object."""
         super().__init__(b"0051", mac)
 
 
 class CircleMeasureIntervalRequest(PlugwiseRequest):
-    """
-    Configure the logging interval of energy measurement in minutes
+    """Configure the logging interval of energy measurement in minutes.
 
     FIXME: Make sure production interval is a multiply of consumption !!
 
@@ -822,55 +801,51 @@ class CircleMeasureIntervalRequest(PlugwiseRequest):
     """
 
     def __init__(self, mac: bytes, consumption: int, production: int):
-        """Initialize CircleMeasureIntervalRequest message object"""
+        """Initialize CircleMeasureIntervalRequest message object."""
         super().__init__(b"0057", mac)
         self._args.append(Int(consumption, length=4))
         self._args.append(Int(production, length=4))
 
 
 class NodeClearGroupMacRequest(PlugwiseRequest):
-    """
-    TODO:
+    """TODO: usage?.
 
     Response message: ????
     """
 
     def __init__(self, mac: bytes, taskId: int) -> None:
-        """Initialize NodeClearGroupMacRequest message object"""
+        """Initialize NodeClearGroupMacRequest message object."""
         super().__init__(b"0058", mac)
         self._args.append(Int(taskId, length=2))
 
 
 class CircleSetScheduleValueRequest(PlugwiseRequest):
-    """
-    Send chunk of On/Off/StandbyKiller Schedule to Circle(+)
+    """Send chunk of On/Off/StandbyKiller Schedule to Circle(+).
 
     Response message: TODO:
     """
 
     def __init__(self, mac: bytes, val: int) -> None:
-        """Initialize CircleSetScheduleValueRequest message object"""
+        """Initialize CircleSetScheduleValueRequest message object."""
         super().__init__(b"0059", mac)
         self._args.append(SInt(val, length=4))
 
 
 class NodeFeaturesRequest(PlugwiseRequest):
-    """
-    Request feature set node supports
+    """Request feature set node supports.
 
     Response message: NodeFeaturesResponse
     """
 
     def __init__(self, mac: bytes, val: int) -> None:
-        """Initialize NodeFeaturesRequest message object"""
+        """Initialize NodeFeaturesRequest message object."""
         super().__init__(b"005F", mac)
         self._reply_identifier = b"0060"
         self._args.append(SInt(val, length=4))
 
 
 class ScanConfigureRequest(PlugwiseRequest):
-    """
-    Configure a Scan node
+    """Configure a Scan node.
 
     reset_timer : Delay in minutes when signal is send
                   when no motion is detected
@@ -885,7 +860,7 @@ class ScanConfigureRequest(PlugwiseRequest):
     def __init__(
         self, mac: bytes, reset_timer: int, sensitivity: int, light: bool
     ):
-        """Initialize ScanConfigureRequest message object"""
+        """Initialize ScanConfigureRequest message object."""
         super().__init__(b"0101", mac)
         self._reply_identifier = b"0100"
         reset_timer_value = Int(reset_timer, length=2)
@@ -901,44 +876,41 @@ class ScanConfigureRequest(PlugwiseRequest):
 
 
 class ScanLightCalibrateRequest(PlugwiseRequest):
-    """
-    Calibrate light sensitivity
+    """Calibrate light sensitivity.
 
     Response message: NodeAckResponse
     """
 
     def __init__(self, mac: bytes):
-        """Initialize ScanLightCalibrateRequest message object"""
+        """Initialize ScanLightCalibrateRequest message object."""
         super().__init__(b"0102", mac)
         self._reply_identifier = b"0100"
 
 
 class SenseReportIntervalRequest(PlugwiseRequest):
-    """
-    Sets the Sense temperature and humidity measurement
-    report interval in minutes. Based on this interval, periodically
-    a 'SenseReportResponse' message is sent by the Sense node
+    """Sets the Sense temperature and humidity measurement report interval in minutes.
+
+    Based on this interval, periodically a 'SenseReportResponse' message is sent by the Sense node
 
     Response message: NodeAckResponse
     """
 
     def __init__(self, mac: bytes, interval: int):
-        """Initialize ScanLightCalibrateRequest message object"""
+        """Initialize ScanLightCalibrateRequest message object."""
         super().__init__(b"0103", mac)
         self._reply_identifier = b"0100"
         self._args.append(Int(interval, length=2))
 
 
 class CircleRelayInitStateRequest(PlugwiseRequest):
-    """
-    Get or set initial relay state after power-up of Circle.
+    """Get or set initial relay state after power-up of Circle.
 
     Supported protocols : 2.6
     Response message    : CircleInitRelayStateResponse
     """
 
     def __init__(self, mac: bytes, configure: bool, relay_state: bool) -> None:
-        """Initialize CircleRelayInitStateRequest message object"""
+        """Initialize CircleRelayInitStateRequest message object."""
         super().__init__(b"0138", mac)
         self._reply_identifier = b"0139"
         self.priority = Priority.LOW
