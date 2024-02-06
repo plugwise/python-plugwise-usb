@@ -44,7 +44,6 @@ class PlugwiseScan(NodeSED):
         """Load and activate Scan node features."""
         if self._loaded:
             return True
-        self._node_info.battery_powered = True
         if self._cache_enabled:
             _LOGGER.debug(
                 "Load Scan node %s from cache", self._node_info.mac
