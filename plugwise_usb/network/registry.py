@@ -1,16 +1,17 @@
 """Network register"""
 
 from __future__ import annotations
+
 from asyncio import Task, create_task, sleep
 from collections.abc import Awaitable, Callable, Coroutine
 from copy import deepcopy
 import logging
 from typing import Any
 
-from .cache import NetworkRegistrationCache
 from ..api import NodeType
 from ..constants import UTF8
 from ..exceptions import NodeError
+from ..messages.requests import CirclePlusScanRequest, NodeAddRequest, NodeRemoveRequest
 from ..messages.responses import (
     CirclePlusScanResponse,
     NodeRemoveResponse,
@@ -18,12 +19,8 @@ from ..messages.responses import (
     NodeResponseType,
     PlugwiseResponse,
 )
-from ..messages.requests import (
-    CirclePlusScanRequest,
-    NodeRemoveRequest,
-    NodeAddRequest,
-)
 from ..util import validate_mac
+from .cache import NetworkRegistrationCache
 
 _LOGGER = logging.getLogger(__name__)
 

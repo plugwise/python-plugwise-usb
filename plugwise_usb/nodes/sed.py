@@ -2,19 +2,12 @@
 
 from __future__ import annotations
 
-from asyncio import (
-    CancelledError,
-    Future,
-    get_event_loop,
-    wait_for,
-)
-from asyncio import TimeoutError as AsyncTimeOutError
+from asyncio import CancelledError, Future, get_event_loop, wait_for
 from collections.abc import Callable
 from datetime import datetime
 import logging
 from typing import Final
 
-from .helpers import raise_not_loaded
 from ..connection import StickController
 from ..exceptions import NodeError, NodeTimeout
 from ..messages.requests import NodeSleepConfigRequest
@@ -27,6 +20,7 @@ from ..messages.responses import (
     NodeResponseType,
 )
 from ..nodes import PlugwiseNode
+from .helpers import raise_not_loaded
 
 # Defaults for 'Sleeping End Devices'
 

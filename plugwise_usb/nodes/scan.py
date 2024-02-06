@@ -1,15 +1,13 @@
 """Plugwise Scan node object."""
 
 from __future__ import annotations
-from asyncio import create_task
 
+from asyncio import create_task
 from datetime import datetime
 import logging
 from typing import Any, Final
 
-from .helpers import raise_not_loaded
-from .helpers.firmware import SCAN_FIRMWARE_SUPPORT
-from ..api import NodeFeature
+from ..api import NodeEvent, NodeFeature
 from ..constants import MotionSensitivity
 from ..exceptions import MessageError, NodeError, NodeTimeout
 from ..messages.requests import ScanConfigureRequest, ScanLightCalibrateRequest
@@ -20,6 +18,8 @@ from ..messages.responses import (
     NodeSwitchGroupResponse,
 )
 from ..nodes.sed import NodeSED
+from .helpers import raise_not_loaded
+from .helpers.firmware import SCAN_FIRMWARE_SUPPORT
 
 _LOGGER = logging.getLogger(__name__)
 

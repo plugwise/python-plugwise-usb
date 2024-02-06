@@ -8,18 +8,19 @@ from asyncio import (
     InvalidStateError,
     PriorityQueue,
     Task,
-    sleep,
     get_running_loop,
+    sleep,
 )
 from collections.abc import Callable
+import contextlib
 from dataclasses import dataclass
 import logging
 
-from .manager import StickConnectionManager
 from ..api import StickEvent
 from ..exceptions import StickError
 from ..messages.requests import PlugwiseRequest
 from ..messages.responses import PlugwiseResponse
+from .manager import StickConnectionManager
 
 _LOGGER = logging.getLogger(__name__)
 
