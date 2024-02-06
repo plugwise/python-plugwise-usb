@@ -84,10 +84,9 @@ class StickQueue:
             not self._submit_worker_task.done()
         ):
             self._submit_worker_task.cancel()
-            try:
+            with contextlib.suppress(CancelledError, InvalidStateError):
                 await self._submit_worker_task.result()
-            except (CancelledError, InvalidStateError):
-                pass
+
         _LOGGER.debug("queue stopped")
 
     async def submit(
