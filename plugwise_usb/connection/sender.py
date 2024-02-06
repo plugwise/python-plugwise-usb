@@ -28,7 +28,7 @@ from .receiver import StickReceiver
 _LOGGER = logging.getLogger(__name__)
 
 
-class StickSender():
+class StickSender:
     """Send request messages though USB Stick transport connection."""
 
     def __init__(

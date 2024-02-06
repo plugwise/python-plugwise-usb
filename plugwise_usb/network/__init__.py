@@ -42,7 +42,7 @@ _LOGGER = logging.getLogger(__name__)
 # endregion
 
 
-class StickNetwork():
+class StickNetwork:
     """USB-Stick zigbee network class."""
 
     accept_join_request = False
