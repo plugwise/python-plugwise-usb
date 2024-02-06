@@ -16,7 +16,7 @@ from .queue import StickQueue
 _LOGGER = logging.getLogger(__name__)
 
 
-class StickController():
+class StickController:
     """Manage the connection and communication towards USB-Stick."""
 
     def __init__(self) -> None:
