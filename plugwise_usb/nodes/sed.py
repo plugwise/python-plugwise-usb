@@ -146,8 +146,7 @@ class NodeSED(PlugwiseNode):
             # Mark node as unavailable
             if self._available:
                 _LOGGER.info(
-                    "No maintenance awake message received for %s within "
-                    + "expected %s seconds. Mark node to be unavailable",
+                    "No maintenance awake message received for %s within expected %s seconds.",
                     self.mac,
                     str(self._maintenance_interval * 1.05),
                 )

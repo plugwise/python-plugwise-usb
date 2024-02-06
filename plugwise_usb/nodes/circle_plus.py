@@ -64,8 +64,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         # Get node info
         if not await self.node_info_update():
             _LOGGER.warning(
-                "Failed to load Circle+ node %s because it is not responding"
-                + " to information request",
+                "Failed to load Circle+ node %s because it is not responding to information request",
                 self._node_info.mac
             )
             return False
