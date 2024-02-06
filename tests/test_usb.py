@@ -720,6 +720,8 @@ class TestStick:
         with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["0098765432101234"].relay_init
         with pytest.raises(pw_exceptions.NodeError):
+            stick.nodes["0098765432101234"].relay_init = True
+        with pytest.raises(pw_exceptions.NodeError):
             await stick.nodes["0098765432101234"].switch_init_relay(True)
         with pytest.raises(pw_exceptions.NodeError):
             await stick.nodes["0098765432101234"].switch_init_relay(False)
