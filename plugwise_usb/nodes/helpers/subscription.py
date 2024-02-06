@@ -14,7 +14,7 @@ class FeaturePublisher:
 
     _feature_update_subscribers: dict[
             Callable[[], None],
-            tuple[Callable[[NodeEvent], Awaitable[None]], NodeEvent | None]
+            tuple[Callable[[NodeFeature], Awaitable[None]], NodeFeature | None]
         ] = {}
 
     def subscribe_to_feature_update(
