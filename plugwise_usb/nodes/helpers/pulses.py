@@ -549,13 +549,13 @@ class PulseCollection:
             return
         if not self._log_exists(address, slot):
             return
-        log_time_stamp = self.logs[address][slot].timestamp
+        log_time_stamp = self._logs[address][slot].timestamp
 
         # Update log references
         self._update_first_log_reference(address, slot, log_time_stamp)
         self._update_last_log_reference(address, slot, log_time_stamp)
 
-        if self.logs[address][slot].is_consumption:
+        if self._logs[address][slot].is_consumption:
             # Consumption
             self._update_first_consumption_log_reference(
                 address, slot, log_time_stamp
@@ -658,18 +658,18 @@ class PulseCollection:
             _LOGGER.debug("_logs_missing | %s | missing in range=%s", self._mac, missing)
             return missing
 
-        if first_address not in self.logs:
+        if first_address not in self._logs:
             return missing
 
-        if first_slot not in self.logs[first_address]:
+        if first_slot not in self._logs[first_address]:
             return missing
 
-        if self.logs[first_address][first_slot].timestamp < from_timestamp:
+        if self._logs[first_address][first_slot].timestamp < from_timestamp:
             return missing
 
         # calculate missing log addresses prior to first collected log
         address, slot = calc_log_address(first_address, first_slot, -1)
-        calculated_timestamp = self.logs[first_address][first_slot].timestamp - timedelta(hours=1)
+        calculated_timestamp = self._logs[first_address][first_slot].timestamp - timedelta(hours=1)
         while from_timestamp < calculated_timestamp:
             if address not in missing:
                 missing.append(address)
@@ -682,17 +682,17 @@ class PulseCollection:
 
     def _last_known_duration(self) -> timedelta:
         """Duration for last known logs."""
-        if len(self.logs) < 2:
+        if len(self._logs) < 2:
             return timedelta(hours=1)
         address, slot = self._last_log_reference()
-        last_known_timestamp = self.logs[address][slot].timestamp
+        last_known_timestamp = self._logs[address][slot].timestamp
         address, slot = calc_log_address(address, slot, -1)
         while (
             self._log_exists(address, slot) or
-            self.logs[address][slot].timestamp == last_known_timestamp
+            self._logs[address][slot].timestamp == last_known_timestamp
         ):
             address, slot = calc_log_address(address, slot, -1)
-        return self.logs[address][slot].timestamp - last_known_timestamp
+        return self._logs[address][slot].timestamp - last_known_timestamp
 
     def _missing_addresses_before(
         self, address: int, slot: int, target: datetime
