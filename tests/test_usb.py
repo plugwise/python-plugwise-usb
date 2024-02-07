@@ -776,8 +776,9 @@ class TestStick:
         await stick.disconnect()
 
     @freeze_time(dt.now())
-    def test_pulse_collection(self):
-        """Testing pulse collection class"""
+    def test_pulse_collection(self, monkeypatch):
+        """Testing pulse collection class."""
+        monkeypatch.setattr(pw_energy_pulses, "MAX_LOG_HOURS", 24)
 
         fixed_timestamp_utc = dt.now(tz.utc)
         fixed_this_hour = fixed_timestamp_utc.replace(
@@ -797,17 +798,14 @@ class TestStick:
         assert tst_consumption.log_interval_consumption is None
         assert tst_consumption.log_interval_production is None
         assert tst_consumption.production_logging is None
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (
-            None,
-            None,
-        )
+        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (None, None)
         assert tst_consumption.log_addresses_missing == missing_check
 
         # Test consumption - Log import #2, random log
         # return intermediate missing addresses
         test_timestamp = fixed_this_hour - td(hours=18)
         tst_consumption.add_log(95, 4, test_timestamp, 1000)
-        missing_check += [99, 98, 97, 96]
+        missing_check = [99, 98, 97, 96]
         assert tst_consumption.log_interval_consumption is None
         assert tst_consumption.log_interval_production is None
         assert tst_consumption.production_logging is None
@@ -835,7 +833,6 @@ class TestStick:
         # Complete log import for address 95 so it must drop from missing list
         test_timestamp = fixed_this_hour - td(hours=21)
         tst_consumption.add_log(95, 1, test_timestamp, 1000)
-
         assert tst_consumption.log_interval_consumption is None
         assert tst_consumption.log_interval_production is None
         assert tst_consumption.production_logging is False
@@ -849,65 +846,35 @@ class TestStick:
         assert tst_consumption.log_interval_production is None
         assert tst_consumption.production_logging is False
         assert tst_consumption.log_addresses_missing == missing_check
-        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=True) == (
-            None,
-            None,
-        )
+        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=True) == (None, None)
 
         # Test consumption - pulse update #1
         pulse_update_1 = fixed_this_hour + td(minutes=5)
         tst_consumption.update_pulse_counter(1234, 0, pulse_update_1)
-        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=True) == (
-            1234,
-            pulse_update_1,
-        )
-        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=False) == (
-            None,
-            None,
-        )
+        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=True) == (1234, pulse_update_1)
+        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=False) == (None, None)
+
         # Test consumption - pulse update #2
         pulse_update_2 = fixed_this_hour + td(minutes=7)
         test_timestamp = fixed_this_hour
         tst_consumption.update_pulse_counter(2345, 0, pulse_update_2)
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (
-            2345,
-            pulse_update_2,
-        )
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=False) == (
-            None,
-            None,
-        )
+        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (2345, pulse_update_2)
+        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=False) == (None, None)
+
         # Test consumption - pulses + log (address=100, slot=1)
         test_timestamp = fixed_this_hour - td(hours=1)
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (
-            2345 + 1000,
-            pulse_update_2,
-        )
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=False) == (
-            None,
-            None,
-        )
+        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (2345 + 1000, pulse_update_2)
+        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=False) == (None, None)
+
         # Test consumption - pulses + logs (address=100, slot=1 & address=99, slot=4)
         test_timestamp = fixed_this_hour - td(hours=2)
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (
-            2345 + 1000 + 750,
-            pulse_update_2,
-        )
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=False) == (
-            None,
-            None,
-        )
+        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (2345 + 1000 + 750, pulse_update_2)
+        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=False) == (None, None)
 
         # Test consumption - pulses + missing logs
         test_timestamp = fixed_this_hour - td(hours=3)
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (
-            None,
-            None,
-        )
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=False) == (
-            None,
-            None,
-        )
+        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (None, None)
+        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=False) == (None, None)
 
         # add missing logs
         test_timestamp = fixed_this_hour - td(hours=3)
@@ -931,7 +898,7 @@ class TestStick:
         tst_consumption.add_log(94, 2, (fixed_this_hour - td(hours=24)), 1000)
         tst_consumption.add_log(94, 1, (fixed_this_hour - td(hours=25)), 1000)
 
-        # Test rollover by updating pulses first
+        # Test log rollover by updating pulses first before log record
         assert not tst_consumption.log_rollover
         pulse_update_3 = fixed_this_hour + td(hours=1, seconds=3)
         tst_consumption.update_pulse_counter(45, 0, pulse_update_3)
@@ -941,6 +908,17 @@ class TestStick:
         tst_consumption.add_log(100, 2, (fixed_this_hour + td(hours=1)), 2222)
         assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (45, pulse_update_3)
         assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=True) == (45 + 2222, pulse_update_3)
+        assert not tst_consumption.log_rollover
+
+        # Test log rollover by updating log first before updating pulses
+        tst_consumption.add_log(100, 3, (fixed_this_hour + td(hours=2)), 3333)
+        assert tst_consumption.log_rollover
+        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=True) == (None, None)
+        # fix log rollover
+        pulse_update_4 = fixed_this_hour + td(hours=2, seconds=10)
+        tst_consumption.update_pulse_counter(321, 0, pulse_update_4)
+        assert not tst_consumption.log_rollover
+        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=True) == (2222 + 3333 + 321, pulse_update_4)
 
         # Set log hours back to 1 week
         monkeypatch.setattr(pw_energy_pulses, "MAX_LOG_HOURS", 168)
@@ -950,7 +928,7 @@ class TestStick:
         assert tst_production.log_addresses_missing is None
         assert tst_production.production_logging is None
 
-        # Test consumption & production - Log import #1
+        # Test consumption & production - Log import #1 - production
         # Missing addresses must be populated
         test_timestamp = fixed_this_hour - td(hours=1)
         tst_production.add_log(200, 2, test_timestamp, 2000)
@@ -958,24 +936,24 @@ class TestStick:
         assert tst_production.log_addresses_missing == missing_check
         assert tst_production.production_logging is None
 
-        # Test consumption & production - Log import #2
+        # Test consumption & production - Log import #2 - consumption
         # production must be enabled & intervals are unknown
         # Log at address 200 is known and expect production logs too
         test_timestamp = fixed_this_hour - td(hours=1)
         tst_production.add_log(200, 1, test_timestamp, 1000)
         assert tst_production.log_addresses_missing == missing_check
-        assert tst_production.log_interval_consumption == 0
+        assert tst_production.log_interval_consumption is None
         assert tst_production.log_interval_production is None
         assert tst_production.production_logging
 
-        # Test consumption & production - Log import #3
-        # Interval of production is not yet available
+        # Test consumption & production - Log import #3 - production
+        # Interval of consumption is not yet available
         test_timestamp = fixed_this_hour - td(hours=2)
         tst_production.add_log(199, 4, test_timestamp, 4000)
         missing_check = list(range(199, 157, -1))
         assert tst_production.log_addresses_missing == missing_check
-        assert tst_production.log_interval_consumption == 0 # FIXME
-        assert tst_production.log_interval_production is None
+        assert tst_production.log_interval_consumption is None
+        assert tst_production.log_interval_production == 60
         assert tst_production.production_logging
 
         # Test consumption & production - Log import #4
@@ -983,9 +961,16 @@ class TestStick:
         test_timestamp = fixed_this_hour - td(hours=2)
         tst_production.add_log(199, 3, test_timestamp, 3000)
         assert tst_production.log_addresses_missing == missing_check
-        assert tst_production.log_interval_consumption == 0 # FIXME
+        assert tst_production.log_interval_consumption == 60
         assert tst_production.log_interval_production == 60
         assert tst_production.production_logging
+
+        pulse_update_1 = fixed_this_hour + td(minutes=5)
+        tst_production.update_pulse_counter(100, 50, pulse_update_1)
+        assert tst_production.collected_pulses(fixed_this_hour, is_consumption=True) == (100, pulse_update_1)
+        assert tst_production.collected_pulses(fixed_this_hour, is_consumption=False) == (50, pulse_update_1)
+        assert tst_production.collected_pulses(fixed_this_hour - td(hours=1), is_consumption=True) == (1000 + 100, pulse_update_1)
+        assert tst_production.collected_pulses(fixed_this_hour - td(hours=1), is_consumption=False) == (2000 + 50, pulse_update_1)
 
     _pulse_update = 0
 
