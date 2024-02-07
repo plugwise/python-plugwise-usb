@@ -249,12 +249,16 @@ class PulseCollection:
             self._log_production
             and self._next_log_production_timestamp is None
         ):
+            self._pulses_consumption = pulses_consumed
+            self._pulses_production = pulses_produced
             return
 
         if (
             self._log_addresses_missing is None or
             len(self._log_addresses_missing) > 0
         ):
+            self._pulses_consumption = pulses_consumed
+            self._pulses_production = pulses_produced
             return
 
         # Rollover of logs first
