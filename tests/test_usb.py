@@ -909,6 +909,42 @@ class TestStick:
             None,
         )
 
+        # add missing logs
+        test_timestamp = fixed_this_hour - td(hours=3)
+        tst_consumption.add_log(99, 3, (fixed_this_hour - td(hours=3)), 1000)
+        tst_consumption.add_log(99, 2, (fixed_this_hour - td(hours=4)), 1000)
+        tst_consumption.add_log(99, 1, (fixed_this_hour - td(hours=5)), 1000)
+        tst_consumption.add_log(98, 4, (fixed_this_hour - td(hours=6)), 1000)
+        tst_consumption.add_log(98, 3, (fixed_this_hour - td(hours=7)), 1000)
+        tst_consumption.add_log(98, 2, (fixed_this_hour - td(hours=8)), 1000)
+        tst_consumption.add_log(98, 1, (fixed_this_hour - td(hours=9)), 1000)
+        tst_consumption.add_log(97, 4, (fixed_this_hour - td(hours=10)), 1000)
+        tst_consumption.add_log(97, 3, (fixed_this_hour - td(hours=11)), 1000)
+        tst_consumption.add_log(97, 2, (fixed_this_hour - td(hours=12)), 1000)
+        tst_consumption.add_log(97, 1, (fixed_this_hour - td(hours=13)), 1000)
+        tst_consumption.add_log(96, 4, (fixed_this_hour - td(hours=14)), 1000)
+        tst_consumption.add_log(96, 3, (fixed_this_hour - td(hours=15)), 1000)
+        tst_consumption.add_log(96, 2, (fixed_this_hour - td(hours=16)), 1000)
+        tst_consumption.add_log(96, 1, (fixed_this_hour - td(hours=17)), 1000)
+        tst_consumption.add_log(94, 4, (fixed_this_hour - td(hours=22)), 1000)
+        tst_consumption.add_log(94, 3, (fixed_this_hour - td(hours=23)), 1000)
+        tst_consumption.add_log(94, 2, (fixed_this_hour - td(hours=24)), 1000)
+        tst_consumption.add_log(94, 1, (fixed_this_hour - td(hours=25)), 1000)
+
+        # Test rollover by updating pulses first
+        assert not tst_consumption.log_rollover
+        pulse_update_3 = fixed_this_hour + td(hours=1, seconds=3)
+        tst_consumption.update_pulse_counter(45, 0, pulse_update_3)
+        assert tst_consumption.log_rollover
+        test_timestamp = fixed_this_hour + td(hours=1, seconds=5)
+        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (None, None)
+        tst_consumption.add_log(100, 2, (fixed_this_hour + td(hours=1)), 2222)
+        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (45, pulse_update_3)
+        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=True) == (45 + 2222, pulse_update_3)
+
+        # Set log hours back to 1 week
+        monkeypatch.setattr(pw_energy_pulses, "MAX_LOG_HOURS", 168)
+
         # Test consumption and production logs
         tst_production = pw_energy_pulses.PulseCollection(mac="0098765432101234")
         assert tst_production.log_addresses_missing is None
