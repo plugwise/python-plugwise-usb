@@ -484,12 +484,10 @@ class PulseCollection:
             self._last_log_consumption_timestamp = timestamp
             self._last_log_consumption_address = address
             self._last_log_consumption_slot = slot
-            if self._log_interval_consumption is not None:
-                self._next_log_consumption_timestamp = (
-                    timestamp + timedelta(
-                        minutes=self.log_interval_consumption
-                    )
-                )
+        if self._log_interval_consumption is not None:
+            self._next_log_consumption_timestamp = (
+                self._last_log_consumption_timestamp + timedelta(minutes=self._log_interval_consumption)
+            )
 
     def _update_last_production_log_reference(
         self, address: int, slot: int, timestamp: datetime
@@ -502,10 +500,10 @@ class PulseCollection:
             self._last_log_production_timestamp = timestamp
             self._last_log_production_address = address
             self._last_log_production_slot = slot
-            if self._log_interval_production is not None:
-                self._next_log_production_timestamp = (
-                    timestamp + timedelta(minutes=self.log_interval_production)
-                )
+        if self._log_interval_production is not None:
+            self._next_log_production_timestamp = (
+                self._last_log_production_timestamp + timedelta(minutes=self._log_interval_production)
+            )
 
     def _update_first_log_reference(
         self, address: int, slot: int, timestamp: datetime
