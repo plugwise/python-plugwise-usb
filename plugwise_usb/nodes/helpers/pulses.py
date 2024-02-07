@@ -264,7 +264,7 @@ class PulseCollection:
         # Rollover of logs first
         if (
             self._rollover_log_consumption
-            and pulses_consumed <= self._pulses_consumption
+            and timestamp > self._last_log_timestamp
         ):
             self._rollover_log_consumption = False
         if (
