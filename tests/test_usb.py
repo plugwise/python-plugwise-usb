@@ -117,7 +117,7 @@ class DummyTransport:
 
     async def _delayed_response(self, data: bytes, seq_id: bytes) -> None:
         import random
-        delay = random.uniform(0.05, 0.25)
+        delay = random.uniform(0.005, 0.015)
         await asyncio.sleep(delay)
         self.message_response(data, seq_id)
 
@@ -282,6 +282,7 @@ class TestStick:
         # Still raise StickError connected but without response
         with pytest.raises(pw_exceptions.StickError):
             await stick.initialize()
+        await stick.disconnect()
 
     @pytest.mark.asyncio
     async def test_stick_connect_timeout(self, monkeypatch):
@@ -346,6 +347,7 @@ class TestStick:
         assert not stick.network_state
         with pytest.raises(pw_exceptions.StickError):
             assert stick.mac_stick
+            
 
     async def disconnected(self, event):
         """Callback helper for stick disconnect event"""
@@ -707,7 +709,9 @@ class TestStick:
         assert stick.nodes["0098765432101234"].relay_state.relay_state
 
         # Test power state without request
-        assert stick.nodes["0098765432101234"].power == pw_api.PowerStatistics(last_second=None, last_8_seconds=None, timestamp=None)
+        assert stick.nodes["0098765432101234"].power == pw_api.PowerStatistics(last_second=None,
+                                                                               last_8_seconds=None, 
+                                                                               timestamp=None)
         pu = await stick.nodes["0098765432101234"].power_update()
         assert pu.last_second == 21.2780505980402
         assert pu.last_8_seconds == 27.150578775440106
@@ -1147,6 +1151,7 @@ class TestStick:
         await stick.connect()
         with pytest.raises(pw_exceptions.StickError):
             await stick.initialize()
+        await stick.disconnect()
 
     @pytest.mark.asyncio
     async def test_node_discovery_and_load(self, monkeypatch):
