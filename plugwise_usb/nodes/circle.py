@@ -90,12 +90,12 @@ class PlugwiseCircle(PlugwiseNode):
 
     @raise_not_loaded
     async def relay_off(self) -> None:
-        """Switch relay off"""
+        """Switch relay off."""
         await self.switch_relay(False)
 
     @raise_not_loaded
     async def relay_on(self) -> None:
-        """Switch relay on"""
+        """Switch relay on."""
         await self.switch_relay(True)
 
     @property
@@ -121,10 +121,7 @@ class PlugwiseCircle(PlugwiseNode):
         create_task(self._relay_init_set(state))
 
     async def calibration_update(self) -> bool:
-        """
-        Retrieve and update calibration settings.
-        Returns True if successful.
-        """
+        """Retrieve and update calibration settings. Returns True if successful."""
         _LOGGER.debug(
             "Start updating energy calibration for node %s",
             self._node_info.mac,
@@ -194,10 +191,7 @@ class PlugwiseCircle(PlugwiseNode):
         off_noise: float | None,
         off_tot: float | None,
     ) -> bool:
-        """
-        Process new energy calibration settings.
-        Returns True if successful.
-        """
+        """Process new energy calibration settings. Returns True if successful."""
         if (
             gain_a is None or
             gain_b is None or
@@ -225,8 +219,7 @@ class PlugwiseCircle(PlugwiseNode):
 
     @raise_calibration_missing
     async def power_update(self) -> PowerStatistics | None:
-        """
-        Update the current power usage statistics.
+        """Update the current power usage statistics.
 
         Return power usage or None if retrieval failed
         """
@@ -387,10 +380,7 @@ class PlugwiseCircle(PlugwiseNode):
             await self._energy_log_records_save_to_cache()
 
     async def energy_log_update(self, address: int) -> bool:
-        """
-        Request energy log statistics from node.
-        Return true if successful
-        """
+        """Request energy log statistics from node. Returns true if successful."""
         if address <= 0:
             return False
         request = CircleEnergyLogsRequest(self._mac_in_bytes, address)
@@ -723,10 +713,7 @@ class PlugwiseCircle(PlugwiseNode):
         return await self.initialize()
 
     async def _load_from_cache(self) -> bool:
-        """
-        Load states from previous cached information.
-        Return True if successful.
-        """
+        """Load states from previous cached information. Returns True if successful."""
         if not await super()._load_from_cache():
             return False
 
@@ -862,19 +849,12 @@ class PlugwiseCircle(PlugwiseNode):
         self._loaded = False
 
     async def switch_init_relay(self, state: bool) -> bool:
-        """
-        Switch state of initial power-up relay state.
-        Return new state of relay
-        """
+        """Switch state of initial power-up relay state. Returns new state of relay."""
         await self._relay_init_set(state)
         return self._relay_init_state
 
     async def _relay_init_get(self) -> bool | None:
-        """
-        Get current configuration of the power-up state of the relay.
-
-        Returns None if retrieval failed
-        """
+        """Get current configuration of the power-up state of the relay. Returns None if retrieval failed."""
         if NodeFeature.RELAY_INIT not in self._features:
             raise NodeError(
                 "Retrieval of initial state of relay is not "
@@ -904,7 +884,7 @@ class PlugwiseCircle(PlugwiseNode):
         return self._relay_init_state
 
     async def _relay_init_load_from_cache(self) -> bool:
-        """Load relay init state from cache. Return True if retrieval was successful."""
+        """Load relay init state from cache. Returns True if retrieval was successful."""
         if (cached_relay_data := self._get_cache("relay_init")) is not None:
             relay_init_state = False
             if cached_relay_data == "True":
