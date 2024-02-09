@@ -393,7 +393,6 @@ class PlugwiseCircle(PlugwiseNode):
             response: CircleEnergyLogsResponse | None = await self._send(request)
         except PlugwiseException:
             response = None
-        await sleep(0)
         if response is None:
             _LOGGER.warning(
                 "Retrieving of energy log at address %s for node %s failed",
