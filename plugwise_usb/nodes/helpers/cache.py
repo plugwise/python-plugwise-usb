@@ -91,7 +91,7 @@ class NodeCache:
             ) as file_data:
                 lines = await file_data.readlines()
         except OSError:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Failed to read cache file %s", str(self._cache_file)
             )
             return False
