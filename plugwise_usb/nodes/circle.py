@@ -680,7 +680,7 @@ class PlugwiseCircle(PlugwiseNode):
                     ),
                 )
                 return await self.initialize()
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Load Circle node %s from cache failed",
                 self._node_info.mac,
             )
