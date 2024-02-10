@@ -92,7 +92,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         self._new_sensitivity: MotionSensitivity | None = None
 
         # Node info
-        self._last_log_address: int | None = None
+        self._current_log_address: int | None = None
 
         # Relay
         self._relay: bool | None = None

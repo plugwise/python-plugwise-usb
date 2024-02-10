@@ -272,7 +272,7 @@ class PlugwiseCircle(PlugwiseNode):
         self
     ) -> EnergyStatistics | None:
         """Update energy usage statistics, returns True if successful."""
-        if self._last_log_address is None:
+        if self._current_log_address is None:
             _LOGGER.info(
                 "Unable to update energy logs for node %s because last_log_address is unknown.",
                 self._node_info.mac,
@@ -286,7 +286,7 @@ class PlugwiseCircle(PlugwiseNode):
 
         # Always request last energy log records at initial startup
         if not self._last_energy_log_requested:
-            self._last_energy_log_requested = await self.energy_log_update(self._last_log_address)
+            self._last_energy_log_requested = await self.energy_log_update(self._current_log_address)
 
         if self._energy_counters.log_rollover:
             if not await self.node_info_update():
@@ -295,20 +295,20 @@ class PlugwiseCircle(PlugwiseNode):
                 )
                 return None
 
-            if not await self.energy_log_update(self._last_log_address):
+            if not await self.energy_log_update(self._current_log_address):
                 _LOGGER.debug(
                     "async_energy_update | %s | Log rollover | energy_log_update failed", self._node_info.mac,
                 )
                 return None
 
             if self._energy_counters.log_rollover:
-                # Retry with previous log address as Circle node pointer to self._last_log_address
-                # is the address of the current log period, not the address of the last log
-                if not await self.energy_log_update(self._last_log_address - 1):
+                # Retry with previous log address as Circle node pointer to self._current_log_address
+                # could be rolled over while the last log is at previous address/slot
+                if not await self.energy_log_update(self._current_log_address - 1):
                     _LOGGER.debug(
                         "async_energy_update | %s | Log rollover | energy_log_update %s failed",
                         self._node_info.mac,
-                        self._last_log_address - 1,
+                        self._current_log_address - 1,
                     )
                     return
 
@@ -360,8 +360,8 @@ class PlugwiseCircle(PlugwiseNode):
                 self._node_info.mac,
             )
             for address in range(
-                self._last_log_address,
-                self._last_log_address - 11,
+                self._current_log_address,
+                self._current_log_address - 11,
                 -1,
             ):
                 if not await self.energy_log_update(address):
@@ -822,18 +822,18 @@ class PlugwiseCircle(PlugwiseNode):
             node_info.relay_state, timestamp=node_info.timestamp
         )
         if (
-            self._last_log_address is not None and
-            self._last_log_address > node_info.last_logaddress
+            self._current_log_address is not None and
+            self._current_log_address > node_info.last_logaddress
         ):
             # Rollover of log address
             _LOGGER.debug(
                 "Rollover log address from %s into %s for node %s",
-                self._last_log_address,
+                self._current_log_address,
                 node_info.last_logaddress,
                 self.mac
             )
-        if self._last_log_address != node_info.last_logaddress:
-            self._last_log_address = node_info.last_logaddress
+        if self._current_log_address != node_info.last_logaddress:
+            self._current_log_address = node_info.last_logaddress
             self._set_cache(
                 "last_log_address", node_info.last_logaddress
             )
@@ -847,7 +847,7 @@ class PlugwiseCircle(PlugwiseNode):
         if (
             last_log_address := self._get_cache("last_log_address")
         ) is not None:
-            self._last_log_address = int(last_log_address)
+            self._current_log_address = int(last_log_address)
             return result
         return False
 
