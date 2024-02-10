@@ -273,7 +273,7 @@ class PlugwiseCircle(PlugwiseNode):
     ) -> EnergyStatistics | None:
         """Update energy usage statistics, returns True if successful."""
         if self._last_log_address is None:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Unable to update energy logs for node %s because last_log_address is unknown.",
                 self._node_info.mac,
             )
@@ -365,7 +365,7 @@ class PlugwiseCircle(PlugwiseNode):
                 -1,
             ):
                 if not await self.energy_log_update(address):
-                    _LOGGER.warning(
+                    _LOGGER.debug(
                         "Failed to update energy log %s for %s",
                         str(address),
                         self._mac_in_str,
@@ -406,7 +406,7 @@ class PlugwiseCircle(PlugwiseNode):
         )
         response: CircleEnergyLogsResponse | None = await self._send(request)
         if response is None:
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "Retrieving of energy log at address %s for node %s failed",
                 str(address),
                 self._mac_in_str,
@@ -705,7 +705,7 @@ class PlugwiseCircle(PlugwiseNode):
 
         # Check if node is online
         if not self._available and not await self.is_online():
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Failed to load Circle node %s because it is not online",
                 self._node_info.mac
             )
@@ -713,7 +713,7 @@ class PlugwiseCircle(PlugwiseNode):
 
         # Get node info
         if not await self.node_info_update():
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Failed to load Circle node %s because it is not responding to information request",
                 self._node_info.mac
             )
@@ -826,7 +826,7 @@ class PlugwiseCircle(PlugwiseNode):
             self._last_log_address > node_info.last_logaddress
         ):
             # Rollover of log address
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "Rollover log address from %s into %s for node %s",
                 self._last_log_address,
                 node_info.last_logaddress,
@@ -972,7 +972,7 @@ class PlugwiseCircle(PlugwiseNode):
         # pulse values are valid for power producing appliances, like
         # solar panels, so don't complain too loudly.
         if pulses == -1:
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "Power pulse counter for node %s of value of -1, corrected to 0",
                 self._node_info.mac,
             )
