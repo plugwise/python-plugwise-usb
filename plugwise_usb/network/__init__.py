@@ -190,7 +190,7 @@ class StickNetwork:
             )
             self._is_running = False
 
-    async def node_awake_message(self, response: NodeAwakeResponse) -> None:
+    async def node_awake_message(self, response: NodeAwakeResponse) -> bool:
         """Handle NodeAwakeResponse message."""
         mac = response.mac_decoded
         if self._awake_discovery.get(mac) is None:
@@ -203,25 +203,28 @@ class StickNetwork:
             ):
                 await self._notify_node_event_subscribers(NodeEvent.AWAKE, mac)
             self._awake_discovery[mac] = response.timestamp
-            return
+            return True
         if self._register.network_address(mac) is None:
             _LOGGER.warning(
                 "Skip node awake message for %s because network registry address is unknown",
                 mac
             )
-            return
+            return False
         address: int | None = self._register.network_address(mac)
         if self._nodes.get(mac) is None:
             await self._discover_node(address, mac, None)
             await self._load_node(mac)
             await self._notify_node_event_subscribers(NodeEvent.AWAKE, mac)
+        return False
+            
 
     async def node_join_available_message(
         self, response: NodeJoinAvailableResponse
-    ) -> None:
+    ) -> bool:
         """Handle NodeJoinAvailableResponse messages."""
         mac = response.mac_decoded
         await self._notify_node_event_subscribers(NodeEvent.JOIN, mac)
+        return True
 
     def _unsubscribe_to_protocol_events(self) -> None:
         """Unsubscribe to events from protocol."""
