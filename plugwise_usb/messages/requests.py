@@ -16,8 +16,9 @@ from ..constants import (
     MESSAGE_HEADER,
     NODE_TIME_OUT,
 )
-from ..exceptions import NodeError, StickError
-from ..messages.responses import PlugwiseResponse, StickResponse, StickResponseType
+from ..messages.responses import PlugwiseResponse, StickResponse, \
+    StickResponseType
+from ..exceptions import NodeError, StickError, NodeTimeout
 from ..util import (
     DateTime,
     Int,
@@ -71,6 +72,7 @@ class PlugwiseRequest(PlugwiseMessage):
         self._response_future: Future[PlugwiseResponse] = (
             self._loop.create_future()
         )
+        self._other = False
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
@@ -79,6 +81,10 @@ class PlugwiseRequest(PlugwiseMessage):
     def response_future(self) -> Future[PlugwiseResponse]:
         """Return awaitable future with response message."""
         return self._response_future
+
+    def reset_future(self):
+        """Return awaitable future with response message"""
+        self._response_future = self._loop.create_future()
 
     @property
     def response(self) -> PlugwiseResponse:
@@ -139,7 +145,7 @@ class PlugwiseRequest(PlugwiseMessage):
             )
         else:
             self._response_future.set_exception(
-                NodeError(
+                NodeTimeout(
                     f"No response within {NODE_TIME_OUT} seconds from node " +
                     f"{self.mac_decoded}"
                 )
@@ -153,15 +159,33 @@ class PlugwiseRequest(PlugwiseMessage):
             return
         self._response_future.set_exception(error)
 
-    async def _process_node_response(self, response: PlugwiseResponse) -> None:
+    async def _process_node_response(self, response: PlugwiseResponse) -> bool:
         """Process incoming message from node."""
         if self._seq_id is not None and self._seq_id == response.seq_id:
-            _LOGGER.debug("Response %s for request %s id %d", response, self, self._id)
             self._unsubscribe_stick_response()
             self._response = response
             self._response_timeout.cancel()
-            self._response_future.set_result(response)
+            if not self._response_future.done():
+                if self._send_counter > 1:
+                    _LOGGER.info('Response %s for retried request %s id %d', response, self, self._id)                    
+                else:
+                    if self._other:
+                        _LOGGER.debug('Response %s for request %s after other', response, self)
+                    else: 
+                        _LOGGER.debug('Response %s for request %s id %d', response, self, self._id)
+                self._response_future.set_result(response)
+            else:
+                _LOGGER.warning('Response %s for request %s id %d already done', response, self, self._id)
+
             self._unsubscribe_node_response()
+            return True
+        self._other = True
+        if self._seq_id:
+            _LOGGER.warning('Response %s for request %s is not mine %s', response, self, str(response.seq_id))                
+        else:
+            _LOGGER.warning('Response %s for request %s has not received seq_id', response, self)                       
+        return False
+
 
     async def _process_stick_response(self, stick_response: StickResponse) -> None:
         """Process incoming stick response."""
