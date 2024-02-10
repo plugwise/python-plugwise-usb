@@ -153,6 +153,7 @@ class EnergyCounters:
 
     def update(self) -> None:
         """Update counter collection."""
+        self._pulse_collection.recalculate_missing_log_addresses()
         if self._calibration is None:
             return
         (
@@ -192,7 +193,6 @@ class EnergyCounters:
         ) = self._counters[EnergyType.PRODUCTION_WEEK].update(
             self._pulse_collection
         )
-        self._pulse_collection.recalculate_missing_log_addresses()
 
     @property
     def timestamp(self) -> datetime | None:
