@@ -6,8 +6,7 @@ from asyncio import (
     InvalidStateError,
     PriorityQueue,
     Task,
-    get_running_loop,
-    sleep,
+    get_running_loop
 )
 from collections.abc import Callable
 import contextlib
@@ -15,7 +14,7 @@ from dataclasses import dataclass
 import logging
 
 from ..api import StickEvent
-from ..exceptions import StickError
+from ..exceptions import StickError, StickTimeout, NodeTimeout
 from ..messages.requests import PlugwiseRequest
 from ..messages.responses import PlugwiseResponse
 from .manager import StickConnectionManager
@@ -64,6 +63,9 @@ class StickQueue:
                 (StickEvent.CONNECTED, StickEvent.DISCONNECTED)
             )
         )
+        self._submit_worker_task = self._loop.create_task(
+            self._submit_worker()
+        )        
 
     async def _handle_stick_event(self, event: StickEvent) -> None:
         """Handle events from stick."""
@@ -94,39 +96,50 @@ class StickQueue:
     ) -> PlugwiseResponse:
         """Add request to queue and return the response of node. Raises an error when something fails."""
         _LOGGER.debug("Queueing %s", request)
-        if not self._running or self._stick is None:
-            raise StickError(
-                f"Cannot send message {request.__class__.__name__} for {request.mac_decoded} because queue manager is stopped"
-            )
-
-        await self._add_request_to_queue(request)
-        try:
-            response: PlugwiseResponse = await request.response_future()
-        except BaseException as exception:  # [broad-exception-caught]
-            raise StickError(
-                f"No response received for {request.__class__.__name__} " +
-                f"to {request.mac_decoded}"
-            ) from exception
-        return response
+        while request.resend:
+            if not self._running or self._stick is None:
+                raise StickError(
+                    f"Cannot send message {request.__class__.__name__} for" +
+                    f"{request.mac_decoded} because queue manager is stopped"
+                )
+            await self._add_request_to_queue(request)
+            try:
+                response: PlugwiseResponse = await request.response_future()
+                return response
+            except (NodeTimeout, StickTimeout) as e:
+                logging.warning('Node timeout %s on %s, retrying', e, request)
+                request.reset_future()
+            except StickError as exception:  # [broad-exception-caught]\
+                logging.exception(exception)
+                raise StickError(
+                    f"No response received for {request.__class__.__name__} " +
+                    f"to {request.mac_decoded}"
+                ) from exception
+            except BaseException as exception:  # [broad-exception-caught]
+                raise StickError(
+                    f"No response received for {request.__class__.__name__} " +
+                    f"to {request.mac_decoded}"
+                ) from exception            
+ 
+            
+        raise StickError(
+            f"Failed to send {request.__class__.__name__} " +
+            f"to node {request.mac_decoded}, maximum number " +
+            f"of retries ({request.max_retries}) has been reached"
+        )
 
     async def _add_request_to_queue(self, request: PlugwiseRequest) -> None:
         """Add request to send queue and return the session id."""
-        await self._queue.put(request)
-        self._start_submit_worker()
+        await self._queue.put((request.priority, request))
 
-    def _start_submit_worker(self) -> None:
-        """Start the submit worker if submit worker is not yet running."""
-        if self._submit_worker_task is None or self._submit_worker_task.done():
-            self._submit_worker_task = self._loop.create_task(
-                self._submit_worker()
-            )
 
     async def _submit_worker(self) -> None:
         """Send messages from queue at the order of priority."""
-        while (size := self._queue.qsize()) > 0:
+        #while self._queue.qsize() > 0:
+        while self._running:
             # Get item with highest priority from queue first
-            request = await self._queue.get()
-            sleeptime = (2**size) * 0.0001
-            sleeptime = min(sleeptime, 0.05)
-            await sleep(sleeptime)
+            
+            _priority, request = await self._queue.get()
             await self._stick.write_to_stick(request)
+
+            self._queue.task_done()

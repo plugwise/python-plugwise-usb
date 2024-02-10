@@ -136,7 +136,7 @@ class PlugwiseResponse(PlugwiseMessage):
         """Set number of notification retries."""
         self._notify_retries = retries
 
-    def deserialize(self, response: bytes) -> None:
+    def deserialize(self, response: bytes, has_footer: bool = True) -> None:
         """Deserialize bytes to actual message properties."""
         self.timestamp = datetime.now(timezone.utc)
         # Header
@@ -150,14 +150,15 @@ class PlugwiseResponse(PlugwiseMessage):
         response = response[4:]
 
         # Footer
-        if response[-2:] != MESSAGE_FOOTER:
-            raise MessageError(
-                "Invalid message footer "
-                + str(response[-2:])
-                + " for "
-                + self.__class__.__name__
-            )
-        response = response[:-2]
+        if has_footer:
+            if response[-2:] != MESSAGE_FOOTER:
+                raise MessageError(
+                    "Invalid message footer "
+                    + str(response[-2:])
+                    + " for "
+                    + self.__class__.__name__
+                )
+            response = response[:-2]
 
         # Checksum
         if (check := self.calculate_checksum(response[:-4])) != response[-4:]:
@@ -273,9 +274,9 @@ class StickNetworkInfoResponse(PlugwiseResponse):
             self.idx,
         ]
 
-    def deserialize(self, response: bytes) -> None:
+    def deserialize(self, response: bytes, has_footer: bool = True) -> None:
         """Extract data from bytes."""
-        super().deserialize(response)
+        super().deserialize(response, has_footer)
         # Clear first two characters of mac ID, as they contain
         # part of the short PAN-ID
         self.new_node_mac_id.value = b"00" + self.new_node_mac_id.value[2:]
