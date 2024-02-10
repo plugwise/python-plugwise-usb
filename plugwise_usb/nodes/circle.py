@@ -16,7 +16,7 @@ from ..constants import (
     PULSES_PER_KW_SECOND,
     SECOND_IN_NANOSECONDS,
 )
-from ..exceptions import NodeError, PlugwiseException
+from ..exceptions import NodeError
 from ..messages.requests import (
     CircleClockGetRequest,
     CircleClockSetRequest,
@@ -389,10 +389,7 @@ class PlugwiseCircle(PlugwiseNode):
             str(address),
             self._mac_in_str,
         )
-        try:
-            response: CircleEnergyLogsResponse | None = await self._send(request)
-        except PlugwiseException:
-            response = None
+        response: CircleEnergyLogsResponse | None = await self._send(request)
         if response is None:
             _LOGGER.warning(
                 "Retrieving of energy log at address %s for node %s failed",
