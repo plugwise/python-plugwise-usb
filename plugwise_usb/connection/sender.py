@@ -69,7 +69,7 @@ class StickSender:
             self._receiver.subscribe_to_node_responses,
         )
 
-        _LOGGER.debug("Sending %s", request)
+        _LOGGER.debug("Sending %s %d", request, request.retries_left)
         # Write message to serial port buffer
         _LOGGER.debug("USB write [%s]", str(serialized_data))
         self._transport.write(serialized_data)
@@ -95,7 +95,7 @@ class StickSender:
             request.assign_error(exc)
         else:
             # Update request with session id
-            _LOGGER.debug("Request %s assigned seq_id %s", request, str(seq_id))
+            _LOGGER.debug("SeqId %s : %s", request, str(seq_id))
             request.seq_id = seq_id
             self._open_requests[seq_id] = request
         finally:
@@ -119,10 +119,8 @@ class StickSender:
                         request
                     )
                     request.assign_error(
-                        BaseException(
-                            StickTimeout(
-                                f"Failed to send {request.__class__.__name__} because USB-Stick could not send the {request} to the {request.mac}."
-                            )
+                        StickTimeout(
+                            f"Failed to send {request.__class__.__name__} because USB-Stick could not send the {request} to the {request.mac}."
                         )
                     )
                     del self._open_requests[response.seq_id]
@@ -150,13 +148,10 @@ class StickSender:
             )
         elif response.ack_id == StickResponseType.TIMEOUT:
             self._stick_response.set_exception(
-                BaseException(
-                    StickTimeout(
-                        "USB-Stick timeout to submit "
-                        + f"{self._current_request.__class__.__name__} to "
-                        + f"node '{self._current_request.mac_decoded}'."
-                    )
-                )
+                StickTimeout(
+                    "USB-Stick timeout to submit "
+                    + f"{self._current_request.__class__.__name__} to "
+                    + f"node '{self._current_request.mac_decoded}'.")
             )
             return
         await self._stick_lock.acquire()

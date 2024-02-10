@@ -10,7 +10,6 @@ import logging
 from typing import Any
 
 from ..api import (
-    EnergyStatistics,
     MotionState,
     NetworkStatistics,
     NodeFeature,
@@ -21,13 +20,13 @@ from ..api import (
 )
 from ..connection import StickController
 from ..constants import UTF8, MotionSensitivity
-from ..exceptions import NodeError, StickError
+from ..exceptions import NodeError, StickError, PlugwiseException
 from ..messages.requests import NodeInfoRequest, NodePingRequest
 from ..messages.responses import NodeInfoResponse, NodePingResponse
 from ..util import version_to_model
 from .helpers import raise_not_loaded
 from .helpers.cache import NodeCache
-from .helpers.counter import EnergyCalibration, EnergyCounters
+from .helpers.counter import EnergyStatistics, EnergyCalibration, EnergyCounters
 from .helpers.firmware import FEATURE_SUPPORTED_AT_FIRMWARE, SupportedVersions
 from .helpers.subscription import FeaturePublisher
 
@@ -61,6 +60,8 @@ class PlugwiseNode(FeaturePublisher, ABC):
         self._mac_in_bytes = bytes(mac, encoding=UTF8)
         self._mac_in_str = mac
         self._send = controller.send
+        self._parent_mac: str = controller.mac_coordinator
+
         self._node_cache: NodeCache | None = None
         self._cache_enabled: bool = False
         self._cache_folder: str = ""
@@ -110,6 +111,10 @@ class PlugwiseNode(FeaturePublisher, ABC):
     def network_address(self) -> int:
         """Network (zigbee based) registration address of this node."""
         return self._node_info.zigbee_address
+
+    @property
+    def parent_mac(self) -> str:
+        return self._parent_mac
 
     @property
     def cache_folder(self) -> str:
@@ -423,16 +428,29 @@ class PlugwiseNode(FeaturePublisher, ABC):
     ) -> bool:
         """Update Node hardware information."""
         if node_info is None:
-            node_info = await self._send(
-                NodeInfoRequest(self._mac_in_bytes)
-            )
+            try:
+                node_info = await self._send(
+                    NodeInfoRequest(self._mac_in_bytes)
+                )
+            except PlugwiseException as e:
+                _LOGGER.warning(
+                    "%s for node_info_update() for %s",
+                    str(e),
+                    self.mac
+                )
+                await self._available_update_state(False)
+                return False                
+        
         if node_info is None:
             _LOGGER.debug(
                 "No response for node_info_update() for %s",
                 self.mac
             )
+            _LOGGER.warning('Unavailable due to missing node_info_update')
             await self._available_update_state(False)
             return False
+        self._last_update = datetime.utcnow()
+        
         if node_info.mac_decoded != self.mac:
             raise NodeError(
                 f"Incorrect node_info {node_info.mac_decoded} " +
@@ -536,57 +554,39 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     async def is_online(self) -> bool:
         """Check if node is currently online."""
-        try:
-            ping_response: NodePingResponse | None = await self._send(
-                NodePingRequest(
-                    self._mac_in_bytes, retries=1
-                )
-            )
-        except StickError:
-            _LOGGER.warning(
-                "StickError for is_online() for %s",
-                self.mac
-            )
-            await self._available_update_state(False)
-            return False
-        except NodeError:
-            _LOGGER.warning(
-                "NodeError for is_online() for %s",
-                self.mac
-            )
-            await self._available_update_state(False)
-            return False
-
-        if ping_response is None:
-            _LOGGER.info(
-                "No response to ping for %s",
-                self.mac
-            )
-            await self._available_update_state(False)
-            return False
-        await self.ping_update(ping_response)
-        return True
+        result = await self.ping_update()
+        return result is not None
 
     async def ping_update(
         self, ping_response: NodePingResponse | None = None, retries: int = 1
     ) -> NetworkStatistics | None:
         """Update ping statistics."""
         if ping_response is None:
-            ping_response = await self._send(
-                NodePingRequest(
-                    self._mac_in_bytes, retries
+            try:
+                ping_response: NodePingResponse | None = await self._send(
+                    NodePingRequest(
+                        self._mac_in_bytes, retries=1
+                    )
                 )
-            )
+            except (StickError, NodeError) as e:
+                _LOGGER.warning(
+                    "%s for ping_update() for %s",
+                    str(e),
+                    self.mac
+                )
+                await self._available_update_state(False)
+                return False
         if ping_response is None:
             await self._available_update_state(False)
-            return None
+            return False
+        self._last_update = datetime.utcnow()
         await self._available_update_state(True)
 
         self._ping.timestamp = ping_response.timestamp
         self._ping.rssi_in = ping_response.rssi_in
         self._ping.rssi_out = ping_response.rssi_out
         self._ping.rtt = ping_response.rtt
-
+        
         await self.publish_feature_update_to_subscribers(
             NodeFeature.PING, self._ping
         )
@@ -609,7 +609,9 @@ class PlugwiseNode(FeaturePublisher, ABC):
                     + f"not supported for {self.mac}"
                 )
             if feature == NodeFeature.INFO:
-                await self.node_info_update(None)
+                # Only request node info when information is > 5 minutes old
+                if not self.skip_update(self._node_info, 300) or not self.available:
+                    await self.node_info_update(None)
                 states[NodeFeature.INFO] = self._node_info
             elif feature == NodeFeature.AVAILABLE:
                 states[NodeFeature.AVAILABLE] = self.available
