@@ -185,8 +185,11 @@ class StickController:
             return await self._queue.submit(request)
         try:
             return await self._queue.submit(request)
-        except (NodeError, StickError):
+        except (NodeError, StickError) as e:
+            logging.warning('%s : %s', request, str(e))
             return None
+        except BaseException as e:
+            logging.error('Uncaught async exception on %s : %s', request, str(e))  
 
     def _reset_states(self) -> None:
         """Reset internal connection information."""
@@ -197,6 +200,8 @@ class StickController:
 
     async def disconnect_from_stick(self) -> None:
         """Disconnect from USB-Stick."""
+        if self._queue.is_running:
+            await self._queue.stop()
         if self._unsubscribe_stick_event is not None:
             self._unsubscribe_stick_event()
             self._unsubscribe_stick_event = None

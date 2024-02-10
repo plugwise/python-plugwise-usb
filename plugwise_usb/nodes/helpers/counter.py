@@ -143,6 +143,7 @@ class EnergyCounters:
     def calibration(self) -> EnergyCalibration | None:
         """Energy calibration configuration."""
         return self._calibration
+    
 
     @calibration.setter
     def calibration(self, calibration: EnergyCalibration) -> None:
@@ -155,43 +156,29 @@ class EnergyCounters:
         """Update counter collection."""
         if self._calibration is None:
             return
-        (
-            self._energy_statistics.hour_consumption,
-            self._energy_statistics.hour_consumption_reset,
-        ) = self._counters[EnergyType.CONSUMPTION_HOUR].update(
-            self._pulse_collection
-        )
-        (
-            self._energy_statistics.day_consumption,
-            self._energy_statistics.day_consumption_reset,
-        ) = self._counters[EnergyType.CONSUMPTION_DAY].update(
-            self._pulse_collection
-        )
-        (
-            self._energy_statistics.week_consumption,
-            self._energy_statistics.week_consumption_reset,
-        ) = self._counters[EnergyType.CONSUMPTION_WEEK].update(
-            self._pulse_collection
-        )
-
-        (
-            self._energy_statistics.hour_production,
-            self._energy_statistics.hour_production_reset,
-        ) = self._counters[EnergyType.PRODUCTION_HOUR].update(
-            self._pulse_collection
-        )
-        (
-            self._energy_statistics.day_production,
-            self._energy_statistics.day_production_reset,
-        ) = self._counters[EnergyType.PRODUCTION_DAY].update(
-            self._pulse_collection
-        )
-        (
-            self._energy_statistics.week_production,
-            self._energy_statistics.week_production_reset,
-        ) = self._counters[EnergyType.PRODUCTION_WEEK].update(
-            self._pulse_collection
-        )
+        
+        for energy_type in ENERGY_CONSUMPTION_COUNTERS:
+            attr_name_split = energy_type.name.lower().split('_')
+            attr_name = attr_name_split[1]+'_'+attr_name_split[0]
+            value, reset = self._counters[energy_type].update(self._pulse_collection)
+            if value and reset:
+                setattr(self._energy_statistics, attr_name, value)
+                setattr(self._energy_statistics, attr_name+"_reset", reset)
+            else:
+                break
+        if self._energy_statistics.day_consumption == self._energy_statistics.hour_consumption:
+            # this is odd
+            if self._energy_statistics.day_consumption is not None:
+                _LOGGER.warning('%s has same hour and day pulse counter (logs missing?)', self._mac)
+        for energy_type in ENERGY_PRODUCTION_COUNTERS:
+            attr_name_split = energy_type.name.lower().split('_')
+            attr_name = attr_name_split[1]+'_'+attr_name_split[0]
+            value, reset = self._counters[energy_type].update(self._pulse_collection)
+            if value and reset:
+                setattr(self._energy_statistics, attr_name, value)
+                setattr(self._energy_statistics, attr_name+"_reset", reset)
+            else:
+                break
         self._pulse_collection.recalculate_missing_log_addresses()
 
     @property
@@ -309,6 +296,7 @@ class EnergyCounter:
             last_reset = last_reset.replace(
                 hour=0, minute=0, second=0, microsecond=0
             )
+
         elif self._energy_id in ENERGY_WEEK_COUNTERS:
             last_reset = last_reset - timedelta(days=last_reset.weekday())
             last_reset = last_reset.replace(

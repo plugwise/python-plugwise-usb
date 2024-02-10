@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from asyncio import create_task, sleep
 from collections.abc import Awaitable, Callable
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from functools import wraps
 import logging
 from typing import Any, TypeVar, cast
-
 from ..api import NodeEvent, NodeFeature
 from ..constants import (
     MAX_TIME_DRIFT,
@@ -16,7 +15,7 @@ from ..constants import (
     PULSES_PER_KW_SECOND,
     SECOND_IN_NANOSECONDS,
 )
-from ..exceptions import NodeError, PlugwiseException
+from ..exceptions import NodeError
 from ..messages.requests import (
     CircleClockGetRequest,
     CircleClockSetRequest,
@@ -29,7 +28,6 @@ from ..messages.requests import (
 )
 from ..messages.responses import (
     CircleClockResponse,
-    CircleEnergyLogsResponse,
     CirclePowerUsageResponse,
     CircleRelayInitStateResponse,
     EnergyCalibrationResponse,
@@ -37,8 +35,9 @@ from ..messages.responses import (
     NodeResponse,
     NodeResponseType,
 )
-from ..nodes import EnergyStatistics, PlugwiseNode, PowerStatistics
+from ..nodes import PlugwiseNode, PowerStatistics
 from .helpers import EnergyCalibration, raise_not_loaded
+from .helpers.counter import EnergyStatistics
 from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
 from .helpers.pulses import PulseLogRecord
 
@@ -62,8 +61,10 @@ class PlugwiseCircle(PlugwiseNode):
     """Plugwise Circle node."""
 
     _retrieve_energy_logs_task: None | Awaitable = None
+    _previous_log_address: int | None = None
     _last_energy_log_requested: bool = False
-
+    _last_time_sync: datetime | None = None
+    
     @property
     def calibrated(self) -> bool:
         """State of calibration."""
@@ -297,11 +298,15 @@ class PlugwiseCircle(PlugwiseNode):
             self._last_energy_log_requested = await self.energy_log_update(self._last_log_address)
 
         if self._energy_counters.log_rollover:
-            _LOGGER.debug(
+            _LOGGER.info(
                 "async_energy_update | Log rollover for %s",
                 self._node_info.mac,
             )
             if await self.node_info_update():
+                # if the log_address changes big chance we did not see slot 4, request it once
+                if self._previous_log_address:
+                    await self.energy_log_update(self._previous_log_address)
+                    self._previous_log_address = None
                 await self.energy_log_update(self._last_log_address)
 
         if (
@@ -330,13 +335,13 @@ class PlugwiseCircle(PlugwiseNode):
             self._retrieve_energy_logs_task is None
             or self._retrieve_energy_logs_task.done()
         ):
-            _LOGGER.debug(
+            _LOGGER.warning(
                 "Create task to update energy logs for node %s",
                 self._node_info.mac,
             )
             self._retrieve_energy_logs_task = create_task(self.get_missing_energy_logs())
         else:
-            _LOGGER.debug(
+            _LOGGER.warning(
                 "Skip creating task to update energy logs for node %s",
                 self._node_info.mac,
             )
@@ -349,11 +354,11 @@ class PlugwiseCircle(PlugwiseNode):
         if self._energy_counters.log_addresses_missing is None:
             _LOGGER.debug(
                 "Start with initial energy request for the last 10 log addresses for node %s.",
+
                 self._node_info.mac,
             )
             for address in range(
-                self._last_log_address,
-                self._last_log_address - 11,
+                self._last_log_address, self._last_log_address - 11,
                 -1,
             ):
                 if not await self.energy_log_update(address):
@@ -363,6 +368,7 @@ class PlugwiseCircle(PlugwiseNode):
                         self._mac_in_str,
                     )
                     break
+                await sleep(0.25)
             if self._cache_enabled:
                 await self._energy_log_records_save_to_cache()
             return
@@ -391,20 +397,16 @@ class PlugwiseCircle(PlugwiseNode):
         Request energy log statistics from node.
         Return true if successful
         """
-        if address <= 0:
-            return False
-        request = CircleEnergyLogsRequest(self._mac_in_bytes, address)
-        _LOGGER.debug(
+        _LOGGER.info(
             "Request of energy log at address %s for node %s",
             str(address),
             self._mac_in_str,
-        )
-        try:
-            response: CircleEnergyLogsResponse | None = await self._send(request)
-        except PlugwiseException:
-            response = None
-        await sleep(0)
-        if response is None:
+        )        
+        if address <= 0:
+            return False
+        
+        request = CircleEnergyLogsRequest(self._mac_in_bytes, address)
+        if (response := await self._send(request)) is None:
             _LOGGER.warning(
                 "Retrieving of energy log at address %s for node %s failed",
                 str(address),
@@ -423,6 +425,7 @@ class PlugwiseCircle(PlugwiseNode):
             ).value
             _log_pulses: int = getattr(response, "pulses%d" % (_slot,)).value
             if _log_timestamp is not None:
+                _LOGGER.debug("%s, %d|%d : %s %d", self._mac_in_str,address, _slot, _log_timestamp, _log_pulses)
                 await self._energy_log_record_update_state(
                     response.logaddr.value,
                     _slot,
@@ -535,7 +538,7 @@ class PlugwiseCircle(PlugwiseNode):
         log_cache_record += f"-{timestamp.second}:{pulses}"
         if (cached_logs := self._get_cache('energy_collection')) is not None:
             if log_cache_record not in cached_logs:
-                _LOGGER.debug(
+                _LOGGER.info(
                     "Add logrecord (%s, %s) to log cache of %s",
                     str(address),
                     str(slot),
@@ -632,13 +635,16 @@ class PlugwiseCircle(PlugwiseNode):
                 create_task(self.save_cache())
 
     async def clock_synchronize(self) -> bool:
-        """Synchronize clock. Returns true if successful."""
+        utcnow = datetime.utcnow()
+        if self._last_time_sync is not None and (utcnow - self._last_time_sync > timedelta(hours=1)):
+            self._last_time_sync = utcnow
+
         clock_response: CircleClockResponse | None = await self._send(
             CircleClockGetRequest(self._mac_in_bytes)
         )
         if clock_response is None or clock_response.timestamp is None:
             return False
-        _dt_of_circle = datetime.utcnow().replace(
+        _dt_of_circle = utcnow.replace(
             hour=clock_response.time.hour.value,
             minute=clock_response.time.minute.value,
             second=clock_response.time.second.value,
@@ -834,7 +840,11 @@ class PlugwiseCircle(PlugwiseNode):
                 self.mac
             )
         if self._last_log_address != node_info.last_logaddress:
+            self._previous_log_address = self._last_log_address
+            _LOGGER.debug('%s update last_log_address %d -> %d', self.mac, 
+                          self._last_log_address, node_info.last_logaddress)            
             self._last_log_address = node_info.last_logaddress
+
             self._set_cache(
                 "last_log_address", node_info.last_logaddress
             )
@@ -1038,6 +1048,7 @@ class PlugwiseCircle(PlugwiseNode):
                     states[feature],
                 )
             else:
+                await self.clock_synchronize()
                 state_result = await super().get_state([feature])
                 states[feature] = state_result[feature]
         return states

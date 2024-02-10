@@ -35,7 +35,7 @@ def calc_log_address(address: int, slot: int, offset: int) -> tuple[int, int]:
 class PulseLogRecord:
     """Total pulses collected at specific timestamp."""
 
-    timestamp: datetime
+    timestamp: datetime # in UTC
     pulses: int
     is_consumption: bool
 
@@ -276,7 +276,6 @@ class PulseCollection:
             self._rollover_pulses_consumption = True
         elif self._log_interval_consumption is not None and timestamp > (
                 self._next_log_consumption_timestamp
-                + timedelta(minutes=self._log_interval_consumption)
         ):
             _LOGGER.debug("update_pulse_counter | %s | _log_interval_consumption=%s, timestamp=%s, _next_log_consumption_timestamp=%s", self._mac, self._log_interval_consumption, timestamp, self._next_log_consumption_timestamp)
             self._rollover_pulses_consumption = True
@@ -287,11 +286,7 @@ class PulseCollection:
             elif (
                     self._next_log_production_timestamp is not None
                     and self._log_interval_production is not None
-                    and timestamp
-                    > (
-                        self._next_log_production_timestamp
-                        + timedelta(minutes=self._log_interval_production)
-                    )
+                    and (timestamp > self._next_log_production_timestamp)
             ):
                 self._rollover_pulses_production = True
 
@@ -309,7 +304,10 @@ class PulseCollection:
         """Store pulse log."""
         log_record = PulseLogRecord(timestamp, pulses, CONSUMED)
         if not self._add_log_record(address, slot, log_record):
+            self._update_log_references(address, slot)
+            self._update_log_rollover(address, slot)
             return False
+        
         self._update_log_direction(address, slot, timestamp)
         self._update_log_interval()
         self._update_log_references(address, slot)
@@ -394,8 +392,9 @@ class PulseCollection:
         ):
             self._rollover_pulses_production = False
 
-        if self._logs[address][slot].timestamp > self._last_update:
-            if self._logs[address][slot].is_consumption:
+        log = self._get_log(address, slot)
+        if log.timestamp > self._last_update:
+            if log.is_consumption:
                 self._rollover_log_consumption = True
             else:
                 self._rollover_log_production = True
@@ -452,15 +451,16 @@ class PulseCollection:
                 break
             address3, slot3 = calc_log_address(address3, slot3, -1)
 
-    def _log_exists(self, address: int, slot: int) -> bool:
-        if self._logs is None:
-            return False
-        if self._logs.get(address) is None:
-            return False
-        if self._logs[address].get(slot) is None:
-            return False
-        return True
+    def _get_log(self, address: int, slot: int) -> PulseLogRecord:
+        if self._logs is not None:
+            if (log := self._logs.get(address)) is not None:
+                if (slot := log.get(slot)) is not None:
+                    return slot
+        return None
 
+    def _log_exists(self, address: int, slot: int) -> bool:
+        return self._get_log(address, slot) is not None
+    
     def _update_last_log_reference(
         self, address: int, slot: int, timestamp
     ) -> None:
@@ -545,17 +545,16 @@ class PulseCollection:
 
     def _update_log_references(self, address: int, slot: int) -> None:
         """Update next expected log timestamps."""
-        if self._logs is None:
+        if (log_record := self._get_log(address, slot)) is None:
             return
-        if not self._log_exists(address, slot):
-            return
-        log_time_stamp = self.logs[address][slot].timestamp
+
+        log_time_stamp = log_record.timestamp
 
         # Update log references
         self._update_first_log_reference(address, slot, log_time_stamp)
         self._update_last_log_reference(address, slot, log_time_stamp)
 
-        if self.logs[address][slot].is_consumption:
+        if log_record.is_consumption:
             # Consumption
             self._update_first_consumption_log_reference(
                 address, slot, log_time_stamp
@@ -636,26 +635,21 @@ class PulseCollection:
         if last_address <= first_address:
             return []
 
-        finished = False
         # Collect any missing address in current range
         for address in range(last_address - 1, first_address, -1):
+            if address in missing:
+                continue
             for slot in range(4, 0, -1):
-                if address in missing:
-                    break
-                if not self._log_exists(address, slot):
+                if (log := self._get_log(address, slot)) is not None:
+                    if log.timestamp <= from_timestamp:
+                        return missing
+                else:
                     missing.append(address)
                     break
-                if self._logs[address][slot].timestamp <= from_timestamp:
-                    finished = True
-                    break
-            if finished:
-                break
-        if finished:
-            return missing
-
+                
         # return missing logs in range first
         if len(missing) > 0:
-            _LOGGER.debug("_logs_missing | %s | missing in range=%s", self._mac, missing)
+            _LOGGER.warning("_logs_missing | %s | missing in range=%s", self._mac, missing)
             return missing
 
         if first_address not in self.logs:
@@ -675,9 +669,22 @@ class PulseCollection:
                 missing.append(address)
             address, slot = calc_log_address(address, slot, -1)
             calculated_timestamp -= timedelta(hours=1)
+            
+        # calculate missing log addresses after to last collected log until now
+        address, slot = (last_address, last_slot)
+        calculated_timestamp = self.logs[last_address][last_slot].timestamp
 
-        missing.sort(reverse=True)
-        _LOGGER.debug("_logs_missing | %s | calculated missing=%s", self._mac, missing)
+        now_timestamp = datetime.now(timezone.utc)
+        if (last_timediff := now_timestamp - calculated_timestamp) > timedelta(hours=1):
+            _LOGGER.warning('%s last logdata %d/%d lies %s in the past', self._mac, address, slot, str(last_timediff))
+        while calculated_timestamp < now_timestamp:
+            if not self._log_exists(address, slot) and address not in missing:
+                missing.append(address)
+            address, slot = calc_log_address(address, slot, +1)
+            calculated_timestamp += timedelta(hours=1)         
+        if len(missing) > 0:
+            missing.sort(reverse=True)
+            _LOGGER.debug("_logs_missing | %s | calculated missing=%s", self._mac, missing)
         return missing
 
     def _last_known_duration(self) -> timedelta:

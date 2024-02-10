@@ -940,7 +940,7 @@ class TestStick:
         # Interval of production is not yet available
         test_timestamp = fixed_this_hour - td(hours=2)
         tst_production.add_log(199, 4, test_timestamp, 4000)
-        missing_check = list(range(199, 157, -1))
+        missing_check = list(range(200, 157, -1))
         assert tst_production.log_addresses_missing == missing_check
         assert tst_production.log_interval_consumption == 0 # FIXME
         assert tst_production.log_interval_production is None
