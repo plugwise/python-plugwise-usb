@@ -28,7 +28,6 @@ from ..messages.requests import (
 )
 from ..messages.responses import (
     CircleClockResponse,
-    CircleEnergyLogsResponse,
     CirclePowerUsageResponse,
     CircleRelayInitStateResponse,
     EnergyCalibrationResponse,
@@ -291,6 +290,7 @@ class PlugwiseCircle(PlugwiseNode):
             self._last_energy_log_requested = await self.energy_log_update(self._current_log_address)
 
         if self._energy_counters.log_rollover:
+
             if not await self.node_info_update():
                 _LOGGER.debug(
                     "async_energy_update | %s | Log rollover | node_info_update failed", self._node_info.mac,
@@ -313,7 +313,6 @@ class PlugwiseCircle(PlugwiseNode):
                         self._current_log_address - 1,
                     )
                     return
-
         if (
             missing_addresses := self._energy_counters.log_addresses_missing
         ) is not None:
@@ -363,6 +362,7 @@ class PlugwiseCircle(PlugwiseNode):
                 self._node_info.mac,
             )
             for address in range(
+
                 self._current_log_address,
                 self._current_log_address - 11,
                 -1,
@@ -399,6 +399,7 @@ class PlugwiseCircle(PlugwiseNode):
             await self._energy_log_records_save_to_cache()
 
     async def energy_log_update(self, address: int) -> bool:
+
         """Request energy log statistics from node. Returns true if successful."""
         _LOGGER.info(
             "Request of energy log at address %s for node %s",
@@ -406,9 +407,9 @@ class PlugwiseCircle(PlugwiseNode):
             self._mac_in_str,
         )
         request = CircleEnergyLogsRequest(self._mac_in_bytes, address)
-        response: CircleEnergyLogsResponse | None = None
         if (response := await self._send(request)) is None:
-            _LOGGER.warning(
+            _LOGGER.debug(
+
                 "Retrieving of energy log at address %s for node %s failed",
                 str(address),
                 self._mac_in_str,
@@ -425,7 +426,9 @@ class PlugwiseCircle(PlugwiseNode):
                 response, "logdate%d" % (_slot,)
             ).value
             _log_pulses: int = getattr(response, "pulses%d" % (_slot,)).value
+
             if _log_timestamp is None:
+                _LOGGER.debug("%s, %d|%d : %s %d", self._mac_in_str,address, _slot, _log_timestamp, _log_pulses)
                 self._energy_counters.add_empty_log(response.log_address, _slot)
             else:
                 _LOGGER.debug("%s, %d|%d : %s %d", self._mac_in_str,address, _slot, _log_timestamp, _log_pulses)
@@ -847,8 +850,12 @@ class PlugwiseCircle(PlugwiseNode):
                 node_info.last_logaddress,
                 self.mac
             )
+
         if self._current_log_address != node_info.last_logaddress:
+            _LOGGER.debug('%s update last_log_address %d -> %d', self.mac, 
+                          self._current_log_address, node_info.last_logaddress)               
             self._current_log_address = node_info.last_logaddress
+
             self._set_cache(
                 "last_log_address", node_info.last_logaddress
             )

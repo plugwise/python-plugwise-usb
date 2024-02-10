@@ -161,6 +161,7 @@ class EnergyCounters:
         self._pulse_collection.recalculate_missing_log_addresses()
         if self._calibration is None:
             return
+
         self._energy_statistics.log_interval_consumption = self._pulse_collection.log_interval_consumption
         self._energy_statistics.log_interval_production = self._pulse_collection.log_interval_production
 
