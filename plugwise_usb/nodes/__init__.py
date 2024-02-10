@@ -99,11 +99,8 @@ class PlugwiseNode(FeaturePublisher, ABC):
         self._relay_state = RelayState()
         self._relay_init_state: bool | None = None
 
-        # Local power & energy
+        # Power & energy
         self._calibration: EnergyCalibration | None = None
-        self._next_power: datetime | None = None
-
-        # Energy
         self._energy_counters = EnergyCounters(mac)
 
     @property
