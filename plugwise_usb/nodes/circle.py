@@ -264,7 +264,6 @@ class PlugwiseCircle(PlugwiseNode):
         await self.publish_feature_update_to_subscribers(
             NodeFeature.ENERGY, self._energy_counters.energy_statistics
         )
-        response = None
         return self._power
 
     @raise_not_loaded
@@ -290,12 +289,28 @@ class PlugwiseCircle(PlugwiseNode):
             self._last_energy_log_requested = await self.energy_log_update(self._last_log_address)
 
         if self._energy_counters.log_rollover:
-            _LOGGER.debug(
-                "async_energy_update | Log rollover for %s",
-                self._node_info.mac,
-            )
-            if await self.node_info_update():
-                await self.energy_log_update(self._last_log_address)
+            if not await self.node_info_update():
+                _LOGGER.debug(
+                    "async_energy_update | %s | Log rollover | node_info_update failed", self._node_info.mac,
+                )
+                return None
+
+            if not await self.energy_log_update(self._last_log_address):
+                _LOGGER.debug(
+                    "async_energy_update | %s | Log rollover | energy_log_update failed", self._node_info.mac,
+                )
+                return None
+
+            if self._energy_counters.log_rollover:
+                # Retry with previous log address as Circle node pointer to self._last_log_address
+                # is the address of the current log period, not the address of the last log
+                if not await self.energy_log_update(self._last_log_address - 1):
+                    _LOGGER.debug(
+                        "async_energy_update | %s | Log rollover | energy_log_update %s failed",
+                        self._node_info.mac,
+                        self._last_log_address - 1,
+                    )
+                    return
 
         if (
             missing_addresses := self._energy_counters.log_addresses_missing
@@ -408,15 +423,16 @@ class PlugwiseCircle(PlugwiseNode):
                 response, "logdate%d" % (_slot,)
             ).value
             _log_pulses: int = getattr(response, "pulses%d" % (_slot,)).value
-            if _log_timestamp is not None:
+            if _log_timestamp is None:
+                self._energy_counters.add_empty_log(response.log_address, _slot)
+            else:
                 await self._energy_log_record_update_state(
-                    response.logaddr.value,
+                    response.log_address,
                     _slot,
                     _log_timestamp.replace(tzinfo=timezone.utc),
                     _log_pulses,
                     import_only=True
                 )
-                await sleep(0)
         self._energy_counters.update()
         if self._cache_enabled:
             create_task(self.save_cache())
