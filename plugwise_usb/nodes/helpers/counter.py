@@ -77,6 +77,10 @@ class EnergyCounters:
         """Total collected logs."""
         return self._pulse_collection.collected_logs
 
+    def add_empty_log(self, address: int, slot: int) -> None:
+        """Add empty energy log record to mark any start of beginning of energy log collection."""
+        self._pulse_collection.add_empty_log(address, slot)
+
     def add_pulse_log(
         self,
         address: int,
