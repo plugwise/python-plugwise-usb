@@ -328,10 +328,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     @property
     def maintenance_interval(self) -> int | None:
-        """
-        Return the maintenance interval (seconds)
-        a battery powered node sends it heartbeat.
-        """
+        """Maintenance interval (seconds) a battery powered node sends it heartbeat."""
         raise NotImplementedError()
 
     async def scan_calibrate_light(self) -> bool:
