@@ -324,6 +324,25 @@ class PlugwiseNode(FeaturePublisher, ABC):
             await self.publish_event(NodeFeature.AVAILABLE, False)
 
     @property
+    def energy_consumption_interval(self) -> int | None:
+        """Interval (minutes) energy consumption counters are locally logged at Circle devices."""
+        if NodeFeature.ENERGY not in self._features:
+            raise NodeError(
+                f"Energy log interval is not supported for node {self.mac}"
+            )
+        return self._energy_counters.consumption_interval
+
+    @property
+    def energy_production_interval(self) -> int | None:
+        """Interval (minutes) energy production counters are locally logged at Circle devices."""
+        if NodeFeature.ENERGY not in self._features:
+            raise NodeError(
+                f"Energy log interval is not supported for node {self.mac}"
+            )
+        return self._energy_counters.production_interval
+
+
+    @property
     def maintenance_interval(self) -> int | None:
         """Maintenance interval (seconds) a battery powered node sends it heartbeat."""
         raise NotImplementedError()
