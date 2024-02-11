@@ -402,8 +402,8 @@ class PlugwiseCircle(PlugwiseNode):
             str(address),
             self._mac_in_str,
         )
-        response: CircleEnergyLogsResponse | None = await self._send(request)
-        if response is None:
+        response: CircleEnergyLogsResponse | None = None
+        if (response := await self._send(request)) is None:
             _LOGGER.debug(
                 "Retrieving of energy log at address %s for node %s failed",
                 str(address),
