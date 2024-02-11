@@ -45,7 +45,9 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                         NodeFeature.POWER,
                     ),
                 )
-                return await self.initialize()
+                if await self.initialize():
+                    await self._loaded_callback(NodeEvent.LOADED, self.mac)
+                    return True
             _LOGGER.info(
                 "Load Circle+ node %s from cache failed",
                 self._node_info.mac,
@@ -78,7 +80,10 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                 NodeFeature.POWER,
             ),
         )
-        return await self.initialize()
+        if not await self.initialize():
+            return False
+        await self._loaded_callback(NodeEvent.LOADED, self.mac)
+        return True
 
     @raise_not_loaded
     async def initialize(self) -> bool:

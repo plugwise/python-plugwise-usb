@@ -395,6 +395,7 @@ class StickNetwork:
 
         if node_type is not None:
             self._create_node_object(mac, address, node_type)
+            self._nodes[mac].initialize()
             await self._notify_node_event_subscribers(
                 NodeEvent.DISCOVERED, mac
             )
