@@ -315,13 +315,12 @@ class PlugwiseNode(FeaturePublisher, ABC):
         """Reconnect node to Plugwise Zigbee network."""
         if await self.ping_update() is not None:
             self._connected = True
+            await self._available_update_state(True)
 
     async def disconnect(self) -> None:
         """Disconnect node from Plugwise Zigbee network."""
         self._connected = False
-        if self._available:
-            self._available = False
-            await self.publish_event(NodeFeature.AVAILABLE, False)
+        await self._available_update_state(False)
 
     @property
     def energy_consumption_interval(self) -> int | None:
