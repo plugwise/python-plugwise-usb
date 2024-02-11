@@ -1332,3 +1332,4 @@ class TestStick:
         await stick.connect()
         await stick.initialize()
         await stick.discover_nodes(load=True)
+        await stick.disconnect()
