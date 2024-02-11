@@ -779,7 +779,7 @@ class TestStick:
             "create_serial_connection",
             mock_serial.mock_connection,
         )
-        monkeypatch.setattr(pw_energy_pulses, "MAX_LOG_HOURS", 24)
+        monkeypatch.setattr(pw_energy_pulses, "MAX_LOG_HOURS", 25)
         monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
         monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
         stick = pw_stick.Stick("test_port", cache_enabled=False)
@@ -929,6 +929,7 @@ class TestStick:
         test_timestamp = fixed_this_hour - td(hours=1)
         assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (2345 + 1000, pulse_update_2)
         assert tst_consumption.collected_pulses(test_timestamp, is_consumption=False) == (None, None)
+        assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
 
         # Test consumption - pulses + logs (address=100, slot=1 & address=99, slot=4)
         test_timestamp = fixed_this_hour - td(hours=2)
@@ -1024,6 +1025,9 @@ class TestStick:
         assert tst_pc.log_addresses_missing == []
 
         tst_pc.add_log(101, 2, fixed_this_hour - td(hours=1), 1234)
+        assert tst_pc.log_addresses_missing == [101, 100]
+
+        tst_pc.add_log(101, 1, fixed_this_hour - td(hours=1), 1234)
         assert tst_pc.log_addresses_missing == [100]
 
     @freeze_time(dt.now())
