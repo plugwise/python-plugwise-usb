@@ -52,8 +52,9 @@ class PlugwiseSense(NodeSED):
                         NodeFeature.HUMIDITY
                     ),
                 )
-                return await self.initialize()
-
+                if await self.initialize():
+                    await self._loaded_callback(NodeEvent.LOADED, self.mac)
+                    return True
         _LOGGER.debug("Load of Sense node %s failed", self._node_info.mac)
         return False
 
@@ -70,7 +71,6 @@ class PlugwiseSense(NodeSED):
             SENSE_REPORT_ID,
         )
         self._initialized = True
-        await self._loaded_callback(NodeEvent.LOADED, self.mac)
         return True
 
     async def unload(self) -> None:
