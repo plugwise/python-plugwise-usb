@@ -705,8 +705,13 @@ class CircleEnergyLogsRequest(PlugwiseRequest):
         """Initialize CircleEnergyLogsRequest message object."""
         super().__init__(b"0048", mac)
         self._reply_identifier = b"0049"
+        self._log_address = log_address
         self.priority = Priority.LOW
         self._args.append(LogAddr(log_address, 8))
+
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return f"{self.__class__.__name__} for {self.mac_decoded} | log_address={self._log_address}"
 
 
 class CircleHandlesOffRequest(PlugwiseRequest):
