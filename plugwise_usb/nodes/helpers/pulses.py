@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 import logging
 from typing import Final
 
-from ...constants import MINUTE_IN_SECONDS, WEEK_IN_HOURS
+from ...constants import LOGADDR_MAX, MINUTE_IN_SECONDS, WEEK_IN_HOURS
 
 _LOGGER = logging.getLogger(__name__)
 CONSUMED: Final = True
@@ -18,15 +18,19 @@ MAX_LOG_HOURS = WEEK_IN_HOURS
 def calc_log_address(address: int, slot: int, offset: int) -> tuple[int, int]:
     """Calculate address and slot for log based for specified offset."""
 
-    # FIXME: Handle max address (max is currently unknown) to guard
-    # against address rollovers
     if offset < 0:
         while offset + slot < 1:
             address -= 1
+            # Check for log address rollover
+            if address <= -1:
+                address = LOGADDR_MAX - 1
             offset += 4
     if offset > 0:
         while offset + slot > 4:
             address += 1
+            # Check for log address rollover
+            if address >= LOGADDR_MAX:
+                address = 0
             offset -= 4
     return (address, slot + offset)
 
@@ -649,27 +653,24 @@ class PulseCollection:
 
         if (
             last_address == first_address
+            and last_slot == first_slot
             and self._logs[first_address][first_slot].timestamp == self._logs[last_address][last_slot].timestamp
         ):
             # Power consumption logging, so we need at least 4 logs.
             return None
 
-        finished = False
         # Collect any missing address in current range
-        for address in range(last_address - 1, first_address, -1):
-            for slot in range(4, 0, -1):
-                if address in missing:
-                    break
-                if not self._log_exists(address, slot):
-                    missing.append(address)
-                    break
-                if self._logs[address][slot].timestamp <= from_timestamp:
-                    finished = True
-                    break
-            if finished:
+        address = last_address
+        slot = last_slot
+        while not (address == first_address and slot == first_slot):
+            address, slot = calc_log_address(address, slot, -1)
+            if address in missing:
+                continue
+            if not self._log_exists(address, slot):
+                missing.append(address)
+                continue
+            if self._logs[address][slot].timestamp <= from_timestamp:
                 break
-        if finished:
-            return missing
 
         # return missing logs in range first
         if len(missing) > 0:
