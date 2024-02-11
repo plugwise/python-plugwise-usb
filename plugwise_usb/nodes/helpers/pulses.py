@@ -686,14 +686,23 @@ class PulseCollection:
         if self._logs[first_address][first_slot].timestamp < from_timestamp:
             return missing
 
-        # calculate missing log addresses prior to first collected log
+        # Check if we are able to calculate log interval
         address, slot = calc_log_address(first_address, first_slot, -1)
-        log_interval = 60
+        log_interval: int | None = None
         if self._log_interval_consumption is not None:
             log_interval = self._log_interval_consumption
-        if self._log_interval_production is not None and self._log_interval_production < log_interval:
+        elif self._log_interval_production is not None:
             log_interval = self._log_interval_production
+        if (
+            self._log_interval_production is not None
+            and log_interval is not None
+            and self._log_interval_production < log_interval
+        ):
+            log_interval = self._log_interval_production
+        if log_interval is None:
+            return None
 
+        # We have an suspected interval, so try to calculate missing log addresses prior to first collected log
         calculated_timestamp = self._logs[first_address][first_slot].timestamp - timedelta(minutes=log_interval)
         while from_timestamp < calculated_timestamp:
             if address == self._first_empty_log_address and slot == self._first_empty_log_slot:
