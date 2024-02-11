@@ -830,19 +830,19 @@ class PlugwiseCircle(PlugwiseNode):
         )
         if (
             self._current_log_address is not None
-            and (self._current_log_address > node_info.last_logaddress or self._current_log_address == 1)
+            and (self._current_log_address > node_info.current_logaddress_pointer or self._current_log_address == 1)
         ):
             # Rollover of log address
             _LOGGER.debug(
                 "Rollover log address from %s into %s for node %s",
                 self._current_log_address,
-                node_info.last_logaddress,
+                node_info.current_logaddress_pointer,
                 self.mac
             )
-        if self._current_log_address != node_info.last_logaddress:
-            self._current_log_address = node_info.last_logaddress
+        if self._current_log_address != node_info.current_logaddress_pointer:
+            self._current_log_address = node_info.current_logaddress_pointer
             self._set_cache(
-                "last_log_address", node_info.last_logaddress
+                "last_log_address", node_info.current_logaddress_pointer
             )
             if self.cache_enabled and self._loaded and self._initialized:
                 create_task(self.save_cache())
