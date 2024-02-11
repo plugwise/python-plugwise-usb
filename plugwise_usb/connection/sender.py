@@ -71,7 +71,6 @@ class StickSender:
 
         _LOGGER.debug("Sending %s", request)
         # Write message to serial port buffer
-        _LOGGER.debug("USB write [%s]", str(serialized_data))
         self._transport.write(serialized_data)
         request.add_send_attempt()
         request.start_response_timeout()
