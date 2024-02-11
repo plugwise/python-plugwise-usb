@@ -721,7 +721,7 @@ class CircleEnergyLogsResponse(PlugwiseResponse):
         self.pulses3 = Int(0, 8)
         self.logdate4 = DateTime()
         self.pulses4 = Int(0, 8)
-        self.logaddr = LogAddr(0, length=8)
+        self._logaddr = LogAddr(0, length=8)
         self._params += [
             self.logdate1,
             self.pulses1,
@@ -731,8 +731,18 @@ class CircleEnergyLogsResponse(PlugwiseResponse):
             self.pulses3,
             self.logdate4,
             self.pulses4,
-            self.logaddr,
+            self._logaddr,
         ]
+
+    @property
+    def log_address(self) -> int:
+        """Return the gain A."""
+        return self._logaddr.value
+
+
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return "StickResponse " + str(StickResponseType(self.ack_id).name) + " seq_id" + str(self.seq_id) + " | log_address=" + str(self._logaddr.value)
 
 
 class NodeAwakeResponse(PlugwiseResponse):

@@ -8,7 +8,7 @@ utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
 
 
 # generate energy log timestamps with fixed hour timestamp used in tests
-hour_timestamp = utc_now.replace(hour=23, minute=0, second=0, microsecond=0)
+hour_timestamp = utc_now.replace(minute=0, second=0, microsecond=0)
 
 LOG_TIMESTAMPS = {}
 _one_hour = timedelta(hours=1)

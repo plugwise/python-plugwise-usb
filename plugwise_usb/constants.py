@@ -68,7 +68,7 @@ PULSES_PER_KW_SECOND: Final = 468.9385193
 
 # Energy log memory addresses
 LOGADDR_OFFSET: Final = 278528  # = b"00044000"
-LOGADDR_MAX: Final = 65535  # TODO: Determine last log address, not used yet
+LOGADDR_MAX: Final = 6016  # last address for energy log
 
 # Max seconds the internal clock of plugwise nodes
 # are allowed to drift in seconds

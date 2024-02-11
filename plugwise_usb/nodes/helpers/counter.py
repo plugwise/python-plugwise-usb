@@ -77,6 +77,10 @@ class EnergyCounters:
         """Total collected logs."""
         return self._pulse_collection.collected_logs
 
+    def add_empty_log(self, address: int, slot: int) -> None:
+        """Add empty energy log record to mark any start of beginning of energy log collection."""
+        self._pulse_collection.add_empty_log(address, slot)
+
     def add_pulse_log(
         self,
         address: int,
@@ -154,9 +158,12 @@ class EnergyCounters:
 
     def update(self) -> None:
         """Update counter collection."""
+        self._pulse_collection.recalculate_missing_log_addresses()
         if self._calibration is None:
             return
-        
+        self._energy_statistics.log_interval_consumption = self._pulse_collection.log_interval_consumption
+        self._energy_statistics.log_interval_production = self._pulse_collection.log_interval_production
+
         for energy_type in ENERGY_CONSUMPTION_COUNTERS:
             attr_name_split = energy_type.name.lower().split('_')
             attr_name = attr_name_split[1]+'_'+attr_name_split[0]
@@ -179,7 +186,6 @@ class EnergyCounters:
                 setattr(self._energy_statistics, attr_name+"_reset", reset)
             else:
                 break
-        self._pulse_collection.recalculate_missing_log_addresses()
 
     @property
     def timestamp(self) -> datetime | None:

@@ -93,18 +93,15 @@ class PlugwiseNode(FeaturePublisher, ABC):
         self._new_sensitivity: MotionSensitivity | None = None
 
         # Node info
-        self._last_log_address: int | None = None
+        self._current_log_address: int | None = None
 
         # Relay
         self._relay: bool | None = None
         self._relay_state = RelayState()
         self._relay_init_state: bool | None = None
 
-        # Local power & energy
+        # Power & energy
         self._calibration: EnergyCalibration | None = None
-        self._next_power: datetime | None = None
-
-        # Energy
         self._energy_counters = EnergyCounters(mac)
 
     @property
@@ -332,11 +329,27 @@ class PlugwiseNode(FeaturePublisher, ABC):
             await self.publish_event(NodeFeature.AVAILABLE, False)
 
     @property
+    def energy_consumption_interval(self) -> int | None:
+        """Interval (minutes) energy consumption counters are locally logged at Circle devices."""
+        if NodeFeature.ENERGY not in self._features:
+            raise NodeError(
+                f"Energy log interval is not supported for node {self.mac}"
+            )
+        return self._energy_counters.consumption_interval
+
+    @property
+    def energy_production_interval(self) -> int | None:
+        """Interval (minutes) energy production counters are locally logged at Circle devices."""
+        if NodeFeature.ENERGY not in self._features:
+            raise NodeError(
+                f"Energy log interval is not supported for node {self.mac}"
+            )
+        return self._energy_counters.production_interval
+
+
+    @property
     def maintenance_interval(self) -> int | None:
-        """
-        Return the maintenance interval (seconds)
-        a battery powered node sends it heartbeat.
-        """
+        """Maintenance interval (seconds) a battery powered node sends it heartbeat."""
         raise NotImplementedError()
 
     async def scan_calibrate_light(self) -> bool:

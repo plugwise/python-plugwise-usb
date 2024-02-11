@@ -45,8 +45,10 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                         NodeFeature.POWER,
                     ),
                 )
-                return await self.initialize()
-            _LOGGER.warning(
+                if await self.initialize():
+                    await self._loaded_callback(NodeEvent.LOADED, self.mac)
+                    return True
+            _LOGGER.info(
                 "Load Circle+ node %s from cache failed",
                 self._node_info.mac,
             )
@@ -78,7 +80,10 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                 NodeFeature.POWER,
             ),
         )
-        return await self.initialize()
+        if not await self.initialize():
+            return False
+        await self._loaded_callback(NodeEvent.LOADED, self.mac)
+        return True
 
     @raise_not_loaded
     async def initialize(self) -> bool:
@@ -142,8 +147,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         ):
             return True
         _LOGGER.info(
-            "Reset realtime clock of node %s because time has drifted"
-            + " %s seconds while max drift is set to %s seconds)",
+            "Reset realtime clock of node %s because time has drifted %s seconds while max drift is set to %s seconds)",
             self._node_info.mac,
             str(clock_offset.seconds),
             str(MAX_TIME_DRIFT),
