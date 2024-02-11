@@ -340,17 +340,13 @@ class PlugwiseNode(FeaturePublisher, ABC):
             )
         return self._energy_counters.production_interval
 
-
     @property
     def maintenance_interval(self) -> int | None:
         """Maintenance interval (seconds) a battery powered node sends it heartbeat."""
         raise NotImplementedError()
 
     async def scan_calibrate_light(self) -> bool:
-        """
-        Request to calibration light sensitivity of Scan device.
-        Returns True if successful.
-        """
+        """Request to calibration light sensitivity of Scan device. Returns True if successful."""
         raise NotImplementedError()
 
     async def scan_configure(
@@ -390,10 +386,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
             await self._node_cache.clear_cache()
 
     async def _load_from_cache(self) -> bool:
-        """
-        Load states from previous cached information.
-        Return True if successful.
-        """
+        """Load states from previous cached information. Return True if successful."""
         if self._loaded:
             return True
         if not await self._load_cache_file():
