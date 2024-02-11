@@ -588,10 +588,10 @@ class PlugwiseNode(FeaturePublisher, ABC):
                     self.mac
                 )
                 await self._available_update_state(False)
-                return False
+                return None
         if ping_response is None:
             await self._available_update_state(False)
-            return False
+            return None
         self._last_update = datetime.utcnow()
         await self._available_update_state(True)
 

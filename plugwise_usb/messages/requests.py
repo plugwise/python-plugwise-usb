@@ -181,7 +181,7 @@ class PlugwiseRequest(PlugwiseMessage):
             return True
         self._other = True
         if self._seq_id:
-            _LOGGER.warning('Response %s for request %s is not mine %s', response, self, str(response.seq_id))                
+            _LOGGER.debug('Response %s for request %s is not mine %s, requesting a lot of Energy logs?', response, self, str(response.seq_id))                
         else:
             _LOGGER.warning('Response %s for request %s has not received seq_id', response, self)                       
         return False

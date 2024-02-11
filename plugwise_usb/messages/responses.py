@@ -742,7 +742,7 @@ class CircleEnergyLogsResponse(PlugwiseResponse):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return "StickResponse " + str(StickResponseType(self.ack_id).name) + " seq_id" + str(self.seq_id) + " | log_address=" + str(self._logaddr.value)
+        return super().__repr__() + " | log_address=" + str(self._logaddr.value)
 
 
 class NodeAwakeResponse(PlugwiseResponse):
