@@ -1,7 +1,9 @@
 """Plugwise messages."""
 
 from __future__ import annotations
+
 from typing import Any
+
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER, UTF8
 from ..util import crc_fun
 
