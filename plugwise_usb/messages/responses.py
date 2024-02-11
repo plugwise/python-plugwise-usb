@@ -620,6 +620,10 @@ class NodeInfoResponse(PlugwiseResponse):
         """Return frequency config of node."""
         return self._frequency
 
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return super().__repr__() + f" | log_address={self._logaddress_pointer.value}"
+
 
 class EnergyCalibrationResponse(PlugwiseResponse):
     """Returns the calibration settings of node.
