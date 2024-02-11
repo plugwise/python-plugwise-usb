@@ -28,6 +28,7 @@ from ..messages.requests import (
 )
 from ..messages.responses import (
     CircleClockResponse,
+    CircleEnergyLogsResponse,
     CirclePowerUsageResponse,
     CircleRelayInitStateResponse,
     EnergyCalibrationResponse,
@@ -399,7 +400,7 @@ class PlugwiseCircle(PlugwiseNode):
 
     async def energy_log_update(self, address: int) -> bool:
         """Request energy log statistics from node. Returns true if successful."""
-         _LOGGER.info(
+        _LOGGER.info(
             "Request of energy log at address %s for node %s",
             str(address),
             self._mac_in_str,
