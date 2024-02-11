@@ -36,8 +36,9 @@ class PlugwiseSwitch(NodeSED):
                     SWITCH_FIRMWARE_SUPPORT,
                     (NodeFeature.INFO, NodeFeature.SWITCH),
                 )
-                return await self.initialize()
-
+                if await self.initialize():
+                    await self._loaded_callback(NodeEvent.LOADED, self.mac)
+                    return True
         _LOGGER.debug("Load of Switch node %s failed", self._node_info.mac)
         return False
 
@@ -55,7 +56,6 @@ class PlugwiseSwitch(NodeSED):
             NODE_SWITCH_GROUP_ID,
         )
         self._initialized = True
-        await self._loaded_callback(NodeEvent.LOADED, self.mac)
         return True
 
     async def unload(self) -> None:
