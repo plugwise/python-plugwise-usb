@@ -166,8 +166,7 @@ class PulseCollection:
             _LOGGER.debug("collected_pulses | %s | _rollover_production", self._mac)
             return (None, None)
 
-        log_pulses = self._collect_pulses_from_logs(from_timestamp, is_consumption)
-        if log_pulses is None:
+        if (log_pulses := self._collect_pulses_from_logs(from_timestamp, is_consumption)) is None:
             _LOGGER.debug("collected_pulses | %s | log_pulses:None", self._mac)
             return (None, None)
 
