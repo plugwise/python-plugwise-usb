@@ -249,16 +249,16 @@ class PulseCollection:
             return
         if self._pulses_timestamp > self._next_log_consumption_timestamp:
             self._rollover_consumption = True
-            _LOGGER.warning("_update_rollover | %s | set consumption rollover => pulses newer", self._mac)
+            _LOGGER.debug("_update_rollover | %s | set consumption rollover => pulses newer", self._mac)
         elif self._pulses_timestamp < self._last_log_consumption_timestamp:
             self._rollover_consumption = True
-            _LOGGER.warning("_update_rollover | %s | set consumption rollover => log newer", self._mac)
+            _LOGGER.debug("_update_rollover | %s | set consumption rollover => log newer", self._mac)
         elif self._last_log_consumption_timestamp < self._pulses_timestamp < self._next_log_consumption_timestamp:
             if self._rollover_consumption:
-                _LOGGER.warning("_update_rollover | %s | reset consumption", self._mac)
+                _LOGGER.debug("_update_rollover | %s | reset consumption", self._mac)
             self._rollover_consumption = False
         else:
-            _LOGGER.warning("_update_rollover | %s | unexpected consumption", self._mac)
+            _LOGGER.debug("_update_rollover | %s | unexpected consumption", self._mac)
 
         if not self._log_production:
             return
@@ -267,16 +267,16 @@ class PulseCollection:
             return
         if self._pulses_timestamp > self._next_log_production_timestamp:
             self._rollover_production = True
-            _LOGGER.warning("_update_rollover | %s | set production rollover => pulses newer", self._mac)
+            _LOGGER.debug("_update_rollover | %s | set production rollover => pulses newer", self._mac)
         elif self._pulses_timestamp < self._last_log_production_timestamp:
             self._rollover_production = True
-            _LOGGER.warning("_update_rollover | %s | reset production rollover => log newer", self._mac)
+            _LOGGER.debug("_update_rollover | %s | reset production rollover => log newer", self._mac)
         elif self._last_log_production_timestamp < self._pulses_timestamp < self._next_log_production_timestamp:
             if self._rollover_production:
-                _LOGGER.warning("_update_rollover | %s | reset production", self._mac)
+                _LOGGER.debug("_update_rollover | %s | reset production", self._mac)
             self._rollover_production = False
         else:
-            _LOGGER.warning("_update_rollover | %s | unexpected production", self._mac)
+            _LOGGER.debug("_update_rollover | %s | unexpected production", self._mac)
 
     def add_empty_log(self, address: int, slot: int) -> None:
         """Add empty energy log record to mark any start of beginning of energy log collection."""
@@ -639,12 +639,12 @@ class PulseCollection:
             return None
         last_address, last_slot = self._last_log_reference()
         if last_address is None or last_slot is None:
-            _LOGGER.warning("_logs_missing | %s | last_address=%s, last_slot=%s", self._mac, last_address, last_slot)
+            _LOGGER.debug("_logs_missing | %s | last_address=%s, last_slot=%s", self._mac, last_address, last_slot)
             return None
 
         first_address, first_slot = self._first_log_reference()
         if first_address is None or first_slot is None:
-            _LOGGER.warning("_logs_missing | %s | first_address=%s, first_slot=%s", self._mac, first_address, first_slot)
+            _LOGGER.debug("_logs_missing | %s | first_address=%s, first_slot=%s", self._mac, first_address, first_slot)
             return None
 
         missing = []
