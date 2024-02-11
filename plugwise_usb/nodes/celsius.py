@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 from typing import Final
 
-from ..api import NodeFeature
+from ..api import NodeEvent, NodeFeature
 from ..nodes.sed import NodeSED
 from .helpers.firmware import CELSIUS_FIRMWARE_SUPPORT
 
@@ -41,6 +41,7 @@ class PlugwiseCelsius(NodeSED):
             (NodeFeature.INFO, NodeFeature.TEMPERATURE),
         )
         if await self.initialize():
+            await self._loaded_callback(NodeEvent.LOADED, self.mac)
             return True
         _LOGGER.debug("Load of Celsius node %s failed", self._node_info.mac)
         return False
