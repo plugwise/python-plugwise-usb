@@ -149,7 +149,6 @@ class StickReceiver(Protocol):
 
         This function is called by inherited asyncio.Protocol class
         """
-        #_LOGGER.info("USB stick received [%s]", data)
         self._buffer += data
         if MESSAGE_FOOTER in self._buffer:
             msgs = self._buffer.split(MESSAGE_FOOTER)
