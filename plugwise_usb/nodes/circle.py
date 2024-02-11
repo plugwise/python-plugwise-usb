@@ -695,7 +695,9 @@ class PlugwiseCircle(PlugwiseNode):
                         NodeFeature.POWER,
                     ),
                 )
-                return await self.initialize()
+                if await self.initialize():
+                    await self._loaded_callback(NodeEvent.LOADED, self.mac)
+                    return True
             _LOGGER.info(
                 "Load Circle node %s from cache failed",
                 self._node_info.mac,
@@ -720,9 +722,17 @@ class PlugwiseCircle(PlugwiseNode):
             return False
         self._loaded = True
         self._setup_protocol(
-            CIRCLE_FIRMWARE_SUPPORT, (NodeFeature.RELAY_INIT,)
+            CIRCLE_FIRMWARE_SUPPORT, (
+                NodeFeature.RELAY,
+                NodeFeature.RELAY_INIT,
+                NodeFeature.ENERGY,
+                NodeFeature.POWER,
+            )
         )
-        return await self.initialize()
+        if not await self.initialize():
+            return False
+        await self._loaded_callback(NodeEvent.LOADED, self.mac)
+        return True
 
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
@@ -799,7 +809,6 @@ class PlugwiseCircle(PlugwiseNode):
                 )
                 self._initialized = False
                 return False
-        await self._loaded_callback(NodeEvent.LOADED, self.mac)
         return True
 
     async def node_info_update(

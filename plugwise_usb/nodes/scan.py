@@ -56,6 +56,7 @@ class PlugwiseScan(NodeSED):
             (NodeFeature.INFO, NodeFeature.MOTION),
         )
         if await self.initialize():
+            await self._loaded_callback(NodeEvent.LOADED, self.mac)
             return True
         _LOGGER.debug("Load of Scan node %s failed", self._node_info.mac)
         return False
@@ -75,7 +76,6 @@ class PlugwiseScan(NodeSED):
             (NODE_SWITCH_GROUP_ID,),
         )
         self._initialized = True
-        await self._loaded_callback(NodeEvent.LOADED, self.mac)
         return True
 
     async def unload(self) -> None:
