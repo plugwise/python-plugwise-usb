@@ -829,8 +829,8 @@ class PlugwiseCircle(PlugwiseNode):
             node_info.relay_state, timestamp=node_info.timestamp
         )
         if (
-            self._current_log_address is not None and
-            self._current_log_address > node_info.last_logaddress
+            self._current_log_address is not None
+            and (self._current_log_address > node_info.last_logaddress or self._current_log_address == 1)
         ):
             # Rollover of log address
             _LOGGER.debug(
