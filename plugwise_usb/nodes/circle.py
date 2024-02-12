@@ -9,7 +9,7 @@ from functools import wraps
 import logging
 from typing import Any, TypeVar, cast
 
-from ..api import NodeEvent, NodeFeature
+from ..api import NodeEvent, NodeFeature, NodeInfo
 from ..constants import (
     MAX_TIME_DRIFT,
     MINIMAL_POWER_UPDATE,
@@ -277,11 +277,11 @@ class PlugwiseCircle(PlugwiseNode):
                 "Unable to update energy logs for node %s because last_log_address is unknown.",
                 self._node_info.mac,
             )
-            if not await self.node_info_update():
+            if await self.node_info_update() is None:
                 return None
         # request node info update every 30 minutes.
         elif not self.skip_update(self._node_info, 1800):
-            if not await self.node_info_update():
+            if await self.node_info_update() is None:
                 return None
 
         # Always request last energy log records at initial startup
@@ -289,7 +289,7 @@ class PlugwiseCircle(PlugwiseNode):
             self._last_energy_log_requested = await self.energy_log_update(self._current_log_address)
 
         if self._energy_counters.log_rollover:
-            if not await self.node_info_update():
+            if await self.node_info_update() is None:
                 _LOGGER.debug(
                     "async_energy_update | %s | Log rollover | node_info_update failed", self._node_info.mac,
                 )
@@ -606,7 +606,9 @@ class PlugwiseCircle(PlugwiseNode):
             "Failed to restore relay state from cache for node %s, try to request node info...",
             self.mac
         )
-        return await self.node_info_update()
+        if await self.node_info_update() is None:
+            return False
+        return True
 
     async def _relay_update_state(
         self, state: bool, timestamp: datetime | None = None
@@ -712,7 +714,7 @@ class PlugwiseCircle(PlugwiseNode):
             return False
 
         # Get node info
-        if not await self.node_info_update():
+        if await self.node_info_update() is None:
             _LOGGER.info(
                 "Failed to load Circle node %s because it is not responding to information request",
                 self._node_info.mac
@@ -782,7 +784,7 @@ class PlugwiseCircle(PlugwiseNode):
             )
             self._initialized = False
             return False
-        if not await self.node_info_update():
+        if await self.node_info_update() is None:
             _LOGGER.debug(
                 "Failed to retrieve node info for %s",
                 self.mac
@@ -811,20 +813,17 @@ class PlugwiseCircle(PlugwiseNode):
 
     async def node_info_update(
         self, node_info: NodeInfoResponse | None = None
-    ) -> bool:
+    ) -> NodeInfo | None:
         """Update Node (hardware) information."""
         if node_info is None:
             if self.skip_update(self._node_info, 30):
-                return True
+                return self._node_info
             node_info: NodeInfoResponse = await self._send(
                 NodeInfoRequest(self._mac_in_bytes)
             )
-        if not await super().node_info_update(node_info):
-            return False
-
         if node_info is None:
-            return False
-
+            return None
+        await super().node_info_update(node_info)
         await self._relay_update_state(
             node_info.relay_state, timestamp=node_info.timestamp
         )
@@ -846,7 +845,7 @@ class PlugwiseCircle(PlugwiseNode):
             )
             if self.cache_enabled and self._loaded and self._initialized:
                 create_task(self.save_cache())
-        return True
+        return self._node_info
 
     async def _node_info_load_from_cache(self) -> bool:
         """Load node info settings from cache."""
