@@ -1340,4 +1340,14 @@ class TestStick:
         await stick.connect()
         await stick.initialize()
         await stick.discover_nodes(load=True)
+
+        assert stick.nodes["0098765432101234"].node_info.firmware == dt(
+            2011, 6, 27, 8, 47, 37, tzinfo=tz.utc
+        )
+        assert stick.nodes["0098765432101234"].node_info.version == "000000730007"
+        assert stick.nodes["0098765432101234"].node_info.model == "Circle+ type F"
+        assert stick.nodes["0098765432101234"].node_info.name == "Circle+ 01234"
+        assert stick.nodes["0098765432101234"].available
+        assert not stick.nodes["0098765432101234"].node_info.battery_powered
+
         await stick.disconnect()
