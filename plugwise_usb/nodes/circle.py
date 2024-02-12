@@ -42,6 +42,8 @@ from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
 from .helpers.pulses import PulseLogRecord
 
+CURRENT_LOG_ADDRESS = "current_log_address"
+
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 _LOGGER = logging.getLogger(__name__)
 
@@ -841,7 +843,7 @@ class PlugwiseCircle(PlugwiseNode):
         if self._current_log_address != node_info.current_logaddress_pointer:
             self._current_log_address = node_info.current_logaddress_pointer
             self._set_cache(
-                "last_log_address", node_info.current_logaddress_pointer
+                CURRENT_LOG_ADDRESS, node_info.current_logaddress_pointer
             )
             if self.cache_enabled and self._loaded and self._initialized:
                 create_task(self.save_cache())
@@ -851,9 +853,9 @@ class PlugwiseCircle(PlugwiseNode):
         """Load node info settings from cache."""
         result = await super()._node_info_load_from_cache()
         if (
-            last_log_address := self._get_cache("last_log_address")
+            current_log_address := self._get_cache(CURRENT_LOG_ADDRESS)
         ) is not None:
-            self._current_log_address = int(last_log_address)
+            self._current_log_address = int(current_log_address)
             return result
         return False
 
