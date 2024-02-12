@@ -215,7 +215,7 @@ class PulseCollection:
             for slot_item in log_item.values():
                 if (
                     slot_item.is_consumption == is_consumption
-                    and slot_item.timestamp >= from_timestamp
+                    and slot_item.timestamp > from_timestamp
                 ):
                     log_pulses += slot_item.pulses
         return log_pulses
