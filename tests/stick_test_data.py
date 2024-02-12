@@ -47,7 +47,7 @@ RESPONSE_MESSAGES = {
         + b"00044280"  # log address 20
         + b"01"  # relay
         + b"01"  # hz
-        + b"000000070073"  # hw_ver
+        + b"000000730007"  # hw_ver
         + b"4E0843A9"  # fw_ver
         + b"01",  # node_type (Circle+)
     ),
