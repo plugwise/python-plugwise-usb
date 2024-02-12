@@ -42,7 +42,14 @@ from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
 from .helpers.pulses import PulseLogRecord
 
-CURRENT_LOG_ADDRESS = "current_log_address"
+CACHE_CURRENT_LOG_ADDRESS = "current_log_address"
+CACHE_CALIBRATION_GAIN_A = "calibration_gain_a"
+CACHE_CALIBRATION_GAIN_B = "calibration_gain_b"
+CACHE_CALIBRATION_NOISE = "calibration_noise"
+CACHE_CALIBRATION_TOT = "calibration_tot"
+CACHE_ENERGY_COLLECTION = "energy_collection"
+CACHE_RELAY = "relay"
+CACHE_RELAY_INIT = "relay_init"
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 _LOGGER = logging.getLogger(__name__)
@@ -158,13 +165,13 @@ class PlugwiseCircle(PlugwiseNode):
         cal_gain_b: float | None = None
         cal_noise: float | None = None
         cal_tot: float | None = None
-        if (gain_a := self._get_cache("calibration_gain_a")) is not None:
+        if (gain_a := self._get_cache(CACHE_CALIBRATION_GAIN_A)) is not None:
             cal_gain_a = float(gain_a)
-        if (gain_b := self._get_cache("calibration_gain_b")) is not None:
+        if (gain_b := self._get_cache(CACHE_CALIBRATION_GAIN_B)) is not None:
             cal_gain_b = float(gain_b)
-        if (noise := self._get_cache("calibration_noise")) is not None:
+        if (noise := self._get_cache(CACHE_CALIBRATION_NOISE)) is not None:
             cal_noise = float(noise)
-        if (tot := self._get_cache("calibration_tot")) is not None:
+        if (tot := self._get_cache(CACHE_CALIBRATION_TOT)) is not None:
             cal_tot = float(tot)
 
         # Restore calibration
@@ -211,10 +218,10 @@ class PlugwiseCircle(PlugwiseNode):
         self._energy_counters.calibration = self._calibration
 
         if self._cache_enabled:
-            self._set_cache("calibration_gain_a", gain_a)
-            self._set_cache("calibration_gain_b", gain_b)
-            self._set_cache("calibration_noise", off_noise)
-            self._set_cache("calibration_tot", off_tot)
+            self._set_cache(CACHE_CALIBRATION_GAIN_A, gain_a)
+            self._set_cache(CACHE_CALIBRATION_GAIN_B, gain_b)
+            self._set_cache(CACHE_CALIBRATION_NOISE, off_noise)
+            self._set_cache(CACHE_CALIBRATION_TOT, off_tot)
             if self._loaded and self._initialized:
                 create_task(self.save_cache())
         return True
@@ -441,14 +448,14 @@ class PlugwiseCircle(PlugwiseNode):
 
     async def _energy_log_records_load_from_cache(self) -> bool:
         """Load energy_log_record from cache."""
-        if self._get_cache("energy_collection") is None:
+        if self._get_cache(CACHE_ENERGY_COLLECTION) is None:
             _LOGGER.info(
                 "Failed to restore energy log records from cache for node %s",
                 self.mac
             )
             return False
         restored_logs: dict[int, list[int]] = {}
-        log_data = self._get_cache("energy_collection").split("|")
+        log_data = self._get_cache(CACHE_ENERGY_COLLECTION).split("|")
         for log_record in log_data:
             log_fields = log_record.split(":")
             if len(log_fields) == 4:
@@ -511,7 +518,7 @@ class PlugwiseCircle(PlugwiseNode):
                 cached_logs += f"-{log.timestamp.month}-{log.timestamp.day}"
                 cached_logs += f"-{log.timestamp.hour}-{log.timestamp.minute}"
                 cached_logs += f"-{log.timestamp.second}:{log.pulses}"
-        self._set_cache("energy_collection", cached_logs)
+        self._set_cache(CACHE_ENERGY_COLLECTION, cached_logs)
 
     async def _energy_log_record_update_state(
         self,
@@ -535,7 +542,7 @@ class PlugwiseCircle(PlugwiseNode):
         log_cache_record += f"-{timestamp.month}-{timestamp.day}"
         log_cache_record += f"-{timestamp.hour}-{timestamp.minute}"
         log_cache_record += f"-{timestamp.second}:{pulses}"
-        if (cached_logs := self._get_cache("energy_collection")) is not None:
+        if (cached_logs := self._get_cache(CACHE_ENERGY_COLLECTION)) is not None:
             if log_cache_record not in cached_logs:
                 _LOGGER.debug(
                     "Add logrecord (%s, %s) to log cache of %s",
@@ -544,14 +551,14 @@ class PlugwiseCircle(PlugwiseNode):
                     self.mac
                 )
                 self._set_cache(
-                    "energy_collection", cached_logs + "|" + log_cache_record
+                    CACHE_ENERGY_COLLECTION, cached_logs + "|" + log_cache_record
                 )
         else:
             _LOGGER.debug(
                 "No existing energy collection log cached for %s",
                 self.mac
             )
-            self._set_cache("energy_collection", log_cache_record)
+            self._set_cache(CACHE_ENERGY_COLLECTION, log_cache_record)
 
     async def switch_relay(self, state: bool) -> bool | None:
         """Switch state of relay.
@@ -594,7 +601,7 @@ class PlugwiseCircle(PlugwiseNode):
         if self._relay is not None:
             # State already known, no need to load from cache
             return True
-        if (cached_relay_data := self._get_cache("relay")) is not None:
+        if (cached_relay_data := self._get_cache(CACHE_RELAY)) is not None:
             _LOGGER.debug(
                 "Restore relay state cache for node %s",
                 self.mac
@@ -620,11 +627,11 @@ class PlugwiseCircle(PlugwiseNode):
         self._relay_state.timestamp = timestamp
         state_update = False
         if state:
-            self._set_cache("relay", "True")
+            self._set_cache(CACHE_RELAY, "True")
             if (self._relay is None or not self._relay):
                 state_update = True
         if not state:
-            self._set_cache("relay", "False")
+            self._set_cache(CACHE_RELAY, "False")
             if (self._relay is None or self._relay):
                 state_update = True
         self._relay = state
@@ -843,7 +850,7 @@ class PlugwiseCircle(PlugwiseNode):
         if self._current_log_address != node_info.current_logaddress_pointer:
             self._current_log_address = node_info.current_logaddress_pointer
             self._set_cache(
-                CURRENT_LOG_ADDRESS, node_info.current_logaddress_pointer
+                CACHE_CURRENT_LOG_ADDRESS, node_info.current_logaddress_pointer
             )
             if self.cache_enabled and self._loaded and self._initialized:
                 create_task(self.save_cache())
@@ -853,7 +860,7 @@ class PlugwiseCircle(PlugwiseNode):
         """Load node info settings from cache."""
         result = await super()._node_info_load_from_cache()
         if (
-            current_log_address := self._get_cache(CURRENT_LOG_ADDRESS)
+            current_log_address := self._get_cache(CACHE_CURRENT_LOG_ADDRESS)
         ) is not None:
             self._current_log_address = int(current_log_address)
             return result
@@ -905,7 +912,7 @@ class PlugwiseCircle(PlugwiseNode):
 
     async def _relay_init_load_from_cache(self) -> bool:
         """Load relay init state from cache. Returns True if retrieval was successful."""
-        if (cached_relay_data := self._get_cache("relay_init")) is not None:
+        if (cached_relay_data := self._get_cache(CACHE_RELAY_INIT)) is not None:
             relay_init_state = False
             if cached_relay_data == "True":
                 relay_init_state = True
@@ -917,11 +924,11 @@ class PlugwiseCircle(PlugwiseNode):
         """Process relay init state update."""
         state_update = False
         if state:
-            self._set_cache("relay_init", "True")
+            self._set_cache(CACHE_RELAY_INIT, "True")
             if self._relay_init_state is None or not self._relay_init_state:
                 state_update = True
         if not state:
-            self._set_cache("relay_init", "False")
+            self._set_cache(CACHE_RELAY_INIT, "False")
             if self._relay_init_state is None or self._relay_init_state:
                 state_update = True
         if state_update:

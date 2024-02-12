@@ -23,6 +23,7 @@ from .helpers.firmware import SCAN_FIRMWARE_SUPPORT
 
 _LOGGER = logging.getLogger(__name__)
 
+CACHE_MOTION = "motion"
 
 # Defaults for Scan Devices
 
@@ -107,11 +108,11 @@ class PlugwiseScan(NodeSED):
         self._motion_state.timestamp = timestamp
         state_update = False
         if motion_state:
-            self._set_cache("motion", "True")
+            self._set_cache(CACHE_MOTION, "True")
             if self._motion is None or not self._motion:
                 state_update = True
         if not motion_state:
-            self._set_cache("motion", "False")
+            self._set_cache(CACHE_MOTION, "False")
             if self._motion is None or self._motion:
                 state_update = True
         if state_update:
