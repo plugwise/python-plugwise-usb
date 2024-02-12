@@ -521,7 +521,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
                         hardware,
                     )
                 if self._node_info.model is not None:
-                    self._node_info.name = str(self._node_info.mac[-5:])
+                    self._node_info.name = f"{self._node_info.model.split(' ')[0]} {self._node_info.mac[-5:]}"
             self._set_cache(CACHE_HARDWARE, hardware)
         if timestamp is None:
             complete = False
