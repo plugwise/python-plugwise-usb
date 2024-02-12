@@ -425,7 +425,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     async def node_info_update(
         self, node_info: NodeInfoResponse | None = None
-    ) -> bool:
+    ) -> NodeInfo | None:
         """Update Node hardware information."""
         if node_info is None:
             node_info = await self._send(
@@ -437,22 +437,16 @@ class PlugwiseNode(FeaturePublisher, ABC):
                 self.mac
             )
             await self._available_update_state(False)
-            return False
-        if node_info.mac_decoded != self.mac:
-            raise NodeError(
-                f"Incorrect node_info {node_info.mac_decoded} " +
-                f"!= {self.mac}, id={node_info}"
-            )
+            return self._node_info
 
         await self._available_update_state(True)
-
         self._node_info_update_state(
             firmware=node_info.firmware,
             node_type=node_info.node_type,
             hardware=node_info.hardware,
             timestamp=node_info.timestamp,
         )
-        return True
+        return self._node_info
 
     async def _node_info_load_from_cache(self) -> bool:
         """Load node info settings from cache."""
@@ -614,8 +608,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
                     + f"not supported for {self.mac}"
                 )
             if feature == NodeFeature.INFO:
-                await self.node_info_update(None)
-                states[NodeFeature.INFO] = self._node_info
+                states[NodeFeature.INFO] = await self.node_info_update()
             elif feature == NodeFeature.AVAILABLE:
                 states[NodeFeature.AVAILABLE] = self.available
             elif feature == NodeFeature.PING:
