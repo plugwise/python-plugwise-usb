@@ -37,6 +37,10 @@ NODE_FEATURES = (
     NodeFeature.INFO,
     NodeFeature.PING,
 )
+CACHE_FIRMWARE = "firmware"
+CACHE_NODE_TYPE = "node_type"
+CACHE_HARDWARE = "hardware"
+CACHE_NODE_INFO_TIMESTAMP = "node_info_timestamp"
 
 
 class PlugwiseNode(FeaturePublisher, ABC):
@@ -452,9 +456,9 @@ class PlugwiseNode(FeaturePublisher, ABC):
         """Load node info settings from cache."""
         firmware: datetime | None = None
         node_type: NodeType | None = None
-        hardware: str | None = self._get_cache("hardware")
+        hardware: str | None = self._get_cache(CACHE_HARDWARE)
         timestamp: datetime | None = None
-        if (firmware_str := self._get_cache("firmware")) is not None:
+        if (firmware_str := self._get_cache(CACHE_FIRMWARE)) is not None:
             data = firmware_str.split("-")
             if len(data) == 6:
                 firmware = datetime(
@@ -466,10 +470,10 @@ class PlugwiseNode(FeaturePublisher, ABC):
                     second=int(data[5]),
                     tzinfo=timezone.utc
                 )
-        if (node_type_str := self._get_cache("node_type")) is not None:
+        if (node_type_str := self._get_cache(CACHE_NODE_TYPE)) is not None:
             node_type = NodeType(int(node_type_str))
         if (
-            timestamp_str := self._get_cache("node_info_timestamp")
+            timestamp_str := self._get_cache(CACHE_NODE_INFO_TIMESTAMP)
         ) is not None:
             data = timestamp_str.split("-")
             if len(data) == 6:
@@ -502,7 +506,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
             complete = False
         else:
             self._node_info.firmware = firmware
-            self._set_cache("firmware", firmware)
+            self._set_cache(CACHE_FIRMWARE, firmware)
         if hardware is None:
             complete = False
         else:
@@ -518,17 +522,17 @@ class PlugwiseNode(FeaturePublisher, ABC):
                     )
                 if self._node_info.model is not None:
                     self._node_info.name = str(self._node_info.mac[-5:])
-            self._set_cache("hardware", hardware)
+            self._set_cache(CACHE_HARDWARE, hardware)
         if timestamp is None:
             complete = False
         else:
             self._node_info.timestamp = timestamp
-            self._set_cache("node_info_timestamp", timestamp)
+            self._set_cache(CACHE_NODE_INFO_TIMESTAMP, timestamp)
         if node_type is None:
             complete = False
         else:
             self._node_info.type = NodeType(node_type)
-            self._set_cache("node_type", self._node_info.type.value)
+            self._set_cache(CACHE_NODE_TYPE, self._node_info.type.value)
         if self._loaded and self._initialized:
             create_task(self.save_cache())
         return complete
