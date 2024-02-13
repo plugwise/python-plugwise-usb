@@ -8,6 +8,7 @@ from datetime import datetime
 import logging
 from typing import Final
 
+from ..api import NodeInfo
 from ..connection import StickController
 from ..exceptions import NodeError, NodeTimeout
 from ..messages.requests import NodeSleepConfigRequest
@@ -105,12 +106,11 @@ class NodeSED(PlugwiseNode):
 
     async def node_info_update(
         self, node_info: NodeInfoResponse | None = None
-    ) -> bool:
+    ) -> NodeInfo | None:
         """Update Node (hardware) information."""
         if node_info is None and self.skip_update(self._node_info, 86400):
-            return True
+            return self._node_info
         return await super().node_info_update(node_info)
-
 
     async def _awake_response(self, message: NodeAwakeResponse) -> None:
         """Process awake message."""

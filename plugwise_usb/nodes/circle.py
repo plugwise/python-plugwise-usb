@@ -8,7 +8,7 @@ from datetime import datetime, timezone, timedelta
 from functools import wraps
 import logging
 from typing import Any, TypeVar, cast
-from ..api import NodeEvent, NodeFeature
+from ..api import NodeEvent, NodeFeature, NodeInfo
 from ..constants import (
     MAX_TIME_DRIFT,
     MINIMAL_POWER_UPDATE,
@@ -40,6 +40,8 @@ from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.counter import EnergyStatistics
 from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
 from .helpers.pulses import PulseLogRecord
+
+CURRENT_LOG_ADDRESS = "current_log_address"
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 _LOGGER = logging.getLogger(__name__)
@@ -278,11 +280,11 @@ class PlugwiseCircle(PlugwiseNode):
                 "Unable to update energy logs for node %s because last_log_address is unknown.",
                 self._node_info.mac,
             )
-            if not await self.node_info_update():
+            if await self.node_info_update() is None:
                 return None
         # request node info update every 30 minutes.
         elif not self.skip_update(self._node_info, 1800):
-            if not await self.node_info_update():
+            if await self.node_info_update() is None:
                 return None
 
         # Always request last energy log records at initial startup
@@ -290,8 +292,7 @@ class PlugwiseCircle(PlugwiseNode):
             self._last_energy_log_requested = await self.energy_log_update(self._current_log_address)
 
         if self._energy_counters.log_rollover:
-
-            if not await self.node_info_update():
+            if await self.node_info_update() is None:
                 _LOGGER.debug(
                     "async_energy_update | %s | Log rollover | node_info_update failed", self._node_info.mac,
                 )
@@ -406,7 +407,6 @@ class PlugwiseCircle(PlugwiseNode):
             str(address),
             self._mac_in_str,
         )
-        request = CircleEnergyLogsRequest(self._mac_in_bytes, address)
         if (response := await self._send(request)) is None:
             _LOGGER.debug(
 
@@ -614,7 +614,9 @@ class PlugwiseCircle(PlugwiseNode):
             "Failed to restore relay state from cache for node %s, try to request node info...",
             self.mac
         )
-        return await self.node_info_update()
+        if await self.node_info_update() is None:
+            return False
+        return True
 
     async def _relay_update_state(
         self, state: bool, timestamp: datetime | None = None
@@ -723,7 +725,7 @@ class PlugwiseCircle(PlugwiseNode):
             return False
 
         # Get node info
-        if not await self.node_info_update():
+        if await self.node_info_update() is None:
             _LOGGER.info(
                 "Failed to load Circle node %s because it is not responding to information request",
                 self._node_info.mac
@@ -793,7 +795,7 @@ class PlugwiseCircle(PlugwiseNode):
             )
             self._initialized = False
             return False
-        if not await self.node_info_update():
+        if await self.node_info_update() is None:
             _LOGGER.debug(
                 "Failed to retrieve node info for %s",
                 self.mac
@@ -822,54 +824,48 @@ class PlugwiseCircle(PlugwiseNode):
 
     async def node_info_update(
         self, node_info: NodeInfoResponse | None = None
-    ) -> bool:
+    ) -> NodeInfo | None:
         """Update Node (hardware) information."""
         if node_info is None:
             if self.skip_update(self._node_info, 30):
-                return True
+                return self._node_info
             node_info: NodeInfoResponse = await self._send(
                 NodeInfoRequest(self._mac_in_bytes)
             )
-        if not await super().node_info_update(node_info):
-            return False
-
         if node_info is None:
-            return False
-
+            return None
+        await super().node_info_update(node_info)
         await self._relay_update_state(
             node_info.relay_state, timestamp=node_info.timestamp
         )
         if (
             self._current_log_address is not None
-            and (self._current_log_address > node_info.last_logaddress or self._current_log_address == 1)
+            and (self._current_log_address > node_info.current_logaddress_pointer or self._current_log_address == 1)
         ):
             # Rollover of log address
             _LOGGER.debug(
                 "Rollover log address from %s into %s for node %s",
                 self._current_log_address,
-                node_info.last_logaddress,
+                node_info.current_logaddress_pointer,
                 self.mac
             )
 
-        if self._current_log_address != node_info.last_logaddress:
-            _LOGGER.debug('%s update last_log_address %d -> %d', self.mac, 
-                          self._current_log_address, node_info.last_logaddress)               
-            self._current_log_address = node_info.last_logaddress
-
+        if self._current_log_address != node_info.current_logaddress_pointer:
+            self._current_log_address = node_info.current_logaddress_pointer
             self._set_cache(
-                "last_log_address", node_info.last_logaddress
+                CURRENT_LOG_ADDRESS, node_info.current_logaddress_pointer
             )
             if self.cache_enabled and self._loaded and self._initialized:
                 create_task(self.save_cache())
-        return True
+        return self._node_info
 
     async def _node_info_load_from_cache(self) -> bool:
         """Load node info settings from cache."""
         result = await super()._node_info_load_from_cache()
         if (
-            last_log_address := self._get_cache("last_log_address")
+            current_log_address := self._get_cache(CURRENT_LOG_ADDRESS)
         ) is not None:
-            self._current_log_address = int(last_log_address)
+            self._current_log_address = int(current_log_address)
             return result
         return False
 

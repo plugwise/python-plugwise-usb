@@ -320,13 +320,12 @@ class PlugwiseNode(FeaturePublisher, ABC):
         """Reconnect node to Plugwise Zigbee network."""
         if await self.ping_update() is not None:
             self._connected = True
+            await self._available_update_state(True)
 
     async def disconnect(self) -> None:
         """Disconnect node from Plugwise Zigbee network."""
         self._connected = False
-        if self._available:
-            self._available = False
-            await self.publish_event(NodeFeature.AVAILABLE, False)
+        await self._available_update_state(False)
 
     @property
     def energy_consumption_interval(self) -> int | None:
@@ -346,17 +345,13 @@ class PlugwiseNode(FeaturePublisher, ABC):
             )
         return self._energy_counters.production_interval
 
-
     @property
     def maintenance_interval(self) -> int | None:
         """Maintenance interval (seconds) a battery powered node sends it heartbeat."""
         raise NotImplementedError()
 
     async def scan_calibrate_light(self) -> bool:
-        """
-        Request to calibration light sensitivity of Scan device.
-        Returns True if successful.
-        """
+        """Request to calibration light sensitivity of Scan device. Returns True if successful."""
         raise NotImplementedError()
 
     async def scan_configure(
@@ -396,10 +391,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
             await self._node_cache.clear_cache()
 
     async def _load_from_cache(self) -> bool:
-        """
-        Load states from previous cached information.
-        Return True if successful.
-        """
+        """Load states from previous cached information. Return True if successful."""
         if self._loaded:
             return True
         if not await self._load_cache_file():
@@ -438,7 +430,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     async def node_info_update(
         self, node_info: NodeInfoResponse | None = None
-    ) -> bool:
+    ) -> NodeInfo | None:
         """Update Node hardware information."""
         if node_info is None:
             try:
@@ -461,7 +453,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
             )
             _LOGGER.warning('Unavailable due to missing node_info_update')
             await self._available_update_state(False)
-            return False
+            return None
         self._last_update = datetime.utcnow()
         
         if node_info.mac_decoded != self.mac:
@@ -469,16 +461,16 @@ class PlugwiseNode(FeaturePublisher, ABC):
                 f"Incorrect node_info {node_info.mac_decoded} " +
                 f"!= {self.mac}, id={node_info}"
             )
+            return self._node_info
 
         await self._available_update_state(True)
-
         self._node_info_update_state(
             firmware=node_info.firmware,
             node_type=node_info.node_type,
             hardware=node_info.hardware,
             timestamp=node_info.timestamp,
         )
-        return True
+        return self._node_info
 
     async def _node_info_load_from_cache(self) -> bool:
         """Load node info settings from cache."""
@@ -622,10 +614,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
                     + f"not supported for {self.mac}"
                 )
             if feature == NodeFeature.INFO:
-                # Only request node info when information is > 5 minutes old
-                if not self.skip_update(self._node_info, 300) or not self.available:
-                    await self.node_info_update(None)
-                states[NodeFeature.INFO] = self._node_info
+                states[NodeFeature.INFO] = await self.node_info_update()
             elif feature == NodeFeature.AVAILABLE:
                 states[NodeFeature.AVAILABLE] = self.available
             elif feature == NodeFeature.PING:

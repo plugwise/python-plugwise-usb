@@ -554,14 +554,14 @@ class NodeInfoResponse(PlugwiseResponse):
         """Initialize NodeInfoResponse message object."""
         super().__init__(b"0024")
 
-        self._last_logaddress = LogAddr(0, length=8)
+        self._logaddress_pointer = LogAddr(0, length=8)
         if protocol_version == "1.0":
             # FIXME: Define "absoluteHour" variable
             self.datetime = DateTime()
             self._relay_state = Int(0, length=2)
             self._params += [
                 self.datetime,
-                self._last_logaddress,
+                self._logaddress_pointer,
                 self._relay_state,
             ]
         elif protocol_version == "2.0":
@@ -569,7 +569,7 @@ class NodeInfoResponse(PlugwiseResponse):
             self._relay_state = Int(0, length=2)
             self._params += [
                 self.datetime,
-                self._last_logaddress,
+                self._logaddress_pointer,
                 self._relay_state,
             ]
         elif protocol_version == "2.3":
@@ -577,7 +577,7 @@ class NodeInfoResponse(PlugwiseResponse):
             self.state_mask = Int(0, length=2)
             self._params += [
                 self.datetime,
-                self._last_logaddress,
+                self._logaddress_pointer,
                 self.state_mask,
             ]
         self._frequency = Int(0, length=2)
@@ -607,9 +607,9 @@ class NodeInfoResponse(PlugwiseResponse):
         return NodeType(self._node_type.value)
 
     @property
-    def last_logaddress(self) -> int:
+    def current_logaddress_pointer(self) -> int:
         """Return the current energy log address."""
-        return self._last_logaddress.value
+        return self._logaddress_pointer.value
 
     @property
     def relay_state(self) -> bool:
@@ -620,6 +620,10 @@ class NodeInfoResponse(PlugwiseResponse):
     def frequency(self) -> int:
         """Return frequency config of node."""
         return self._frequency
+
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return super().__repr__() + f" | log_address={self._logaddress_pointer.value}"
 
 
 class EnergyCalibrationResponse(PlugwiseResponse):
