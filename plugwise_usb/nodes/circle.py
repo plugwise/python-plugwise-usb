@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import create_task, sleep
+from asyncio import create_task, gather, sleep
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 from functools import wraps
@@ -40,7 +40,7 @@ from ..messages.responses import (
 from ..nodes import EnergyStatistics, PlugwiseNode, PowerStatistics
 from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
-from .helpers.pulses import PulseLogRecord
+from .helpers.pulses import PulseLogRecord, calc_log_address
 
 CACHE_CURRENT_LOG_ADDRESS = "current_log_address"
 CACHE_CALIBRATION_GAIN_A = "calibration_gain_a"
@@ -313,11 +313,12 @@ class PlugwiseCircle(PlugwiseNode):
             if self._energy_counters.log_rollover:
                 # Retry with previous log address as Circle node pointer to self._current_log_address
                 # could be rolled over while the last log is at previous address/slot
-                if not await self.energy_log_update(self._current_log_address - 1):
+                _prev_log_address, _ = calc_log_address(self._current_log_address, 1, -4)
+                if not await self.energy_log_update(_prev_log_address):
                     _LOGGER.debug(
                         "async_energy_update | %s | Log rollover | energy_log_update %s failed",
                         self._node_info.mac,
-                        self._current_log_address - 1,
+                        _prev_log_address,
                     )
                     return
 
@@ -368,18 +369,20 @@ class PlugwiseCircle(PlugwiseNode):
                 "Start with initial energy request for the last 10 log addresses for node %s.",
                 self._node_info.mac,
             )
-            for address in range(
-                self._current_log_address,
-                self._current_log_address - 11,
-                -1,
-            ):
-                if not await self.energy_log_update(address):
-                    _LOGGER.debug(
-                        "Failed to update energy log %s for %s",
-                        str(address),
-                        self._mac_in_str,
-                    )
-                    break
+            total_addresses = 11
+            log_address = self._current_log_address
+            log_update_tasks = []
+            while total_addresses > 0:
+                log_update_tasks.append(self.energy_log_update(log_address))
+                log_address, _ = calc_log_address(log_address, 1, -4)
+                total_addresses -= 1
+
+            if not await gather(*log_update_tasks):
+                _LOGGER.warning(
+                    "Failed to request one or more update energy log for %s",
+                    self._mac_in_str,
+                )
+
             if self._cache_enabled:
                 await self._energy_log_records_save_to_cache()
             return
@@ -405,12 +408,12 @@ class PlugwiseCircle(PlugwiseNode):
 
     async def energy_log_update(self, address: int) -> bool:
         """Request energy log statistics from node. Returns true if successful."""
-        request = CircleEnergyLogsRequest(self._mac_in_bytes, address)
-        _LOGGER.debug(
+        _LOGGER.info(
             "Request of energy log at address %s for node %s",
             str(address),
             self._mac_in_str,
         )
+        request = CircleEnergyLogsRequest(self._mac_in_bytes, address)
         response: CircleEnergyLogsResponse | None = None
         if (response := await self._send(request)) is None:
             _LOGGER.debug(
