@@ -6,7 +6,7 @@ from asyncio import (
     InvalidStateError,
     PriorityQueue,
     Task,
-    get_running_loop
+    get_running_loop,
 )
 from collections.abc import Callable
 import contextlib
@@ -14,7 +14,7 @@ from dataclasses import dataclass
 import logging
 
 from ..api import StickEvent
-from ..exceptions import StickError, StickTimeout, NodeTimeout
+from ..exceptions import NodeTimeout, StickError, StickTimeout
 from ..messages.requests import PlugwiseRequest
 from ..messages.responses import PlugwiseResponse
 from .manager import StickConnectionManager
@@ -65,7 +65,7 @@ class StickQueue:
         )
         self._submit_worker_task = self._loop.create_task(
             self._submit_worker()
-        )        
+        )
 
     async def _handle_stick_event(self, event: StickEvent) -> None:
         """Handle events from stick."""
@@ -107,7 +107,7 @@ class StickQueue:
                 response: PlugwiseResponse = await request.response_future()
                 return response
             except (NodeTimeout, StickTimeout) as e:
-                logging.warning('Node timeout %s on %s, retrying', e, request)
+                logging.warning("Node timeout %s on %s, retrying", e, request)
                 request.reset_future()
             except StickError as exception:  # [broad-exception-caught]\
                 logging.exception(exception)
@@ -119,9 +119,8 @@ class StickQueue:
                 raise StickError(
                     f"No response received for {request.__class__.__name__} " +
                     f"to {request.mac_decoded}"
-                ) from exception            
- 
-            
+                ) from exception
+
         raise StickError(
             f"Failed to send {request.__class__.__name__} " +
             f"to node {request.mac_decoded}, maximum number " +
@@ -132,13 +131,10 @@ class StickQueue:
         """Add request to send queue and return the session id."""
         await self._queue.put((request.priority, request))
 
-
     async def _submit_worker(self) -> None:
         """Send messages from queue at the order of priority."""
-        #while self._queue.qsize() > 0:
         while self._running:
             # Get item with highest priority from queue first
-            
             _priority, request = await self._queue.get()
             await self._stick.write_to_stick(request)
 
