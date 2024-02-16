@@ -129,13 +129,13 @@ class StickQueue:
 
     async def _add_request_to_queue(self, request: PlugwiseRequest) -> None:
         """Add request to send queue and return the session id."""
-        await self._queue.put((request.priority, request))
+        await self._queue.put(request)
 
     async def _submit_worker(self) -> None:
         """Send messages from queue at the order of priority."""
         while self._running:
             # Get item with highest priority from queue first
-            _priority, request = await self._queue.get()
+            request = await self._queue.get()
             await self._stick.write_to_stick(request)
 
             self._queue.task_done()
