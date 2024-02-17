@@ -135,7 +135,9 @@ class PlugwiseRequest(PlugwiseMessage):
         """Handle response timeout."""
         if self._response_future.done():
             return
-        self._unsubscribe_node_response()
+        if self._unsubscribe_node_response is not None:
+            self._unsubscribe_node_response()
+            self._unsubscribe_node_response = None
         if stick_timeout:
             self._response_future.set_exception(
                 NodeError(
@@ -193,7 +195,9 @@ class PlugwiseRequest(PlugwiseMessage):
             if stick_response.ack_id == StickResponseType.TIMEOUT:
                 self._response_timeout_expired(stick_timeout=True)
             elif stick_response.ack_id == StickResponseType.FAILED:
-                self._unsubscribe_node_response()
+                if self._unsubscribe_node_response is not None:
+                    self._unsubscribe_node_response()
+                    self._unsubscribe_node_response = None
                 self._response_future.set_exception(
                     NodeError(
                         f"Stick failed request {self._seq_id}"
