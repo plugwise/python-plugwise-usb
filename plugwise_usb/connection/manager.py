@@ -90,10 +90,7 @@ class StickConnectionManager:
         def remove_subscription() -> None:
             """Remove stick event subscription."""
             self._stick_event_subscribers.pop(remove_subscription)
-
-        self._stick_event_subscribers[
-            remove_subscription
-        ] = (stick_event_callback, events)
+        self._stick_event_subscribers[remove_subscription] = (stick_event_callback, events)
         return remove_subscription
 
     def subscribe_to_stick_replies(
