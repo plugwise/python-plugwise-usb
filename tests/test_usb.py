@@ -1340,13 +1340,66 @@ class TestStick:
         await stick.initialize()
         await stick.discover_nodes(load=True)
 
-        assert stick.nodes["0098765432101234"].node_info.firmware == dt(
-            2011, 6, 27, 8, 47, 37, tzinfo=tz.utc
-        )
+        assert stick.nodes["0098765432101234"].node_info.firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=tz.utc)
         assert stick.nodes["0098765432101234"].node_info.version == "000000730007"
         assert stick.nodes["0098765432101234"].node_info.model == "Circle+ type F"
         assert stick.nodes["0098765432101234"].node_info.name == "Circle+ 01234"
         assert stick.nodes["0098765432101234"].available
         assert not stick.nodes["0098765432101234"].node_info.battery_powered
+
+        # Get state
+        get_state_timestamp = dt.now(tz.utc).replace(minute=0, second=0, microsecond=0)
+        state = await stick.nodes["0098765432101234"].get_state((pw_api.NodeFeature.PING, pw_api.NodeFeature.INFO))
+
+        # Check Ping
+        assert state[pw_api.NodeFeature.PING].rssi_in == 69
+        assert state[pw_api.NodeFeature.PING].rssi_out == 70
+        assert state[pw_api.NodeFeature.PING].rtt == 1074
+        assert state[pw_api.NodeFeature.PING].timestamp.replace(minute=0, second=0, microsecond=0) == get_state_timestamp
+
+        # Check INFO
+        assert state[pw_api.NodeFeature.INFO].mac == "0098765432101234"
+        assert state[pw_api.NodeFeature.INFO].zigbee_address == -1
+        assert not state[pw_api.NodeFeature.INFO].battery_powered
+        assert sorted(state[pw_api.NodeFeature.INFO].features) == sorted(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.PING,
+                pw_api.NodeFeature.RELAY,
+                pw_api.NodeFeature.ENERGY,
+                pw_api.NodeFeature.POWER,
+            )
+        )
+        assert state[pw_api.NodeFeature.INFO].firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=tz.utc)
+        assert state[pw_api.NodeFeature.INFO].name == "Circle+ 01234"
+        assert state[pw_api.NodeFeature.INFO].model == "Circle+ type F"
+        assert state[pw_api.NodeFeature.INFO].type == pw_api.NodeType.CIRCLE_PLUS
+        assert state[pw_api.NodeFeature.INFO].timestamp.replace(minute=0, second=0, microsecond=0) == get_state_timestamp
+        assert state[pw_api.NodeFeature.INFO].version == "000000730007"
+
+        # Check 1111111111111111
+        get_state_timestamp = dt.now(tz.utc).replace(minute=0, second=0, microsecond=0)
+        state = await stick.nodes["1111111111111111"].get_state(
+            (pw_api.NodeFeature.PING, pw_api.NodeFeature.INFO, pw_api.NodeFeature.RELAY)
+        )
+
+        assert state[pw_api.NodeFeature.INFO].mac == "1111111111111111"
+        assert state[pw_api.NodeFeature.INFO].zigbee_address == 0
+        assert not state[pw_api.NodeFeature.INFO].battery_powered
+        assert state[pw_api.NodeFeature.INFO].version == "000000070140"
+        assert state[pw_api.NodeFeature.INFO].type == pw_api.NodeType.CIRCLE
+        assert state[pw_api.NodeFeature.INFO].timestamp.replace(minute=0, second=0, microsecond=0) == get_state_timestamp
+        assert sorted(state[pw_api.NodeFeature.INFO].features) == sorted(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.PING,
+                pw_api.NodeFeature.RELAY,
+                pw_api.NodeFeature.ENERGY,
+                pw_api.NodeFeature.POWER,
+            )
+        )
+        assert state[pw_api.NodeFeature.RELAY].relay_state
 
         await stick.disconnect()
