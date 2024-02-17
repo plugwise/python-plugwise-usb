@@ -1,12 +1,24 @@
 # Changelog
 
+## v0.40.0 (a4)
+
+Full rewrite of library into async version. Main list of changes:
+
+- Full async and typed
+- Improved protocol handling
+- Support for local caching of collected data to improve startup and device detection
+- Improved handling of edge cases especially for energy data collection
+- Based on detected firmware version enable the supported features
+- API details about supported data is combined into api.py
+- Added tests
+
 ## v0.31.4(a0)
 
 - Re-add python 3.12 checks and compatibility
 
 ## v0.31.3
 
-- Bugfix midnight rollover for cicrles without power usage registered during first hour(s)
+- Bugfix midnight rollover for circles without power usage registered during first hour(s)
 
 ## v0.31.2
 
