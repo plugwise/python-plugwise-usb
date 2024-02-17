@@ -1,7 +1,7 @@
 """Manage the communication sessions towards the USB-Stick."""
 from __future__ import annotations
 
-from asyncio import PriorityQueue, Task, get_running_loop, sleep, wait
+from asyncio import PriorityQueue, Task, get_running_loop, wait
 from collections.abc import Callable
 from dataclasses import dataclass
 import logging
