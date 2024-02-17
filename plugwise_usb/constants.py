@@ -12,27 +12,6 @@ LOGGER = logging.getLogger(__name__)
 CACHE_DIR: Final = ".plugwise-cache"
 CACHE_SEPARATOR: str = ";"
 
-# Copied homeassistant.consts
-ATTR_NAME: Final = "name"
-ATTR_STATE: Final = "state"
-ATTR_STATE_CLASS: Final = "state_class"
-ATTR_UNIT_OF_MEASUREMENT: Final = "unit_of_measurement"
-DEGREE: Final = "°"
-ELECTRIC_POTENTIAL_VOLT: Final = "V"
-ENERGY_KILO_WATT_HOUR: Final = "kWh"
-ENERGY_WATT_HOUR: Final = "Wh"
-PERCENTAGE: Final = "%"
-POWER_WATT: Final = "W"
-PRESET_AWAY: Final = "away"
-PRESSURE_BAR: Final = "bar"
-SIGNAL_STRENGTH_DECIBELS_MILLIWATT: Final = "dBm"
-TEMP_CELSIUS: Final = "°C"
-TEMP_KELVIN: Final = "°K"
-TIME_MILLISECONDS: Final = "ms"
-UNIT_LUMEN: Final = "lm"
-VOLUME_CUBIC_METERS: Final = "m³"
-VOLUME_CUBIC_METERS_PER_HOUR: Final = "m³/h"
-
 LOCAL_TIMEZONE = dt.datetime.now(dt.timezone.utc).astimezone().tzinfo
 UTF8: Final = "utf-8"
 
@@ -55,12 +34,7 @@ STICK_ACCEPT_TIME_OUT: Final = 6  # Stick accept respond.
 STICK_TIME_OUT: Final = 15  # Stick responds with timeout messages after 10s.
 QUEUE_TIME_OUT: Final = 45  # Total seconds to wait for queue
 NODE_TIME_OUT: Final = 5
-DISCOVERY_TIME_OUT: Final = 45
-REQUEST_TIMEOUT: Final = 0.5
 MAX_RETRIES: Final = 3
-
-# Default sleep between sending messages
-SLEEP_TIME: Final = 0.01
 
 # plugwise year information is offset from y2k
 PLUGWISE_EPOCH: Final = 2000
