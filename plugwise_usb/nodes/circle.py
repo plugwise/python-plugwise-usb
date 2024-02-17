@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from asyncio import create_task, gather, sleep
-from collections.abc import Awaitable, Callable
+from asyncio import Task, create_task, gather, sleep, wait
+from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import wraps
 import logging
@@ -70,7 +70,7 @@ def raise_calibration_missing(func: FuncT) -> FuncT:
 class PlugwiseCircle(PlugwiseNode):
     """Plugwise Circle node."""
 
-    _retrieve_energy_logs_task: None | Awaitable = None
+    _retrieve_energy_logs_task: None | Task = None
     _last_energy_log_requested: bool = False
 
     @property
@@ -873,6 +873,7 @@ class PlugwiseCircle(PlugwiseNode):
         """Deactivate and unload node features."""
         if self._retrieve_energy_logs_task is not None and not self._retrieve_energy_logs_task.done():
             self._retrieve_energy_logs_task.cancel()
+            await wait([self._retrieve_energy_logs_task])
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
             await self.save_cache()
