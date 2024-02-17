@@ -16,9 +16,8 @@ from ..constants import (
     MESSAGE_HEADER,
     NODE_TIME_OUT,
 )
-from ..messages.responses import PlugwiseResponse, StickResponse, \
-    StickResponseType
-from ..exceptions import NodeError, StickError, NodeTimeout
+from ..exceptions import NodeError, NodeTimeout, StickError
+from ..messages.responses import PlugwiseResponse, StickResponse, StickResponseType
 from ..util import (
     DateTime,
     Int,
@@ -83,7 +82,7 @@ class PlugwiseRequest(PlugwiseMessage):
         return self._response_future
 
     def reset_future(self):
-        """Return awaitable future with response message"""
+        """Return awaitable future with response message."""
         self._response_future = self._loop.create_future()
 
     @property
@@ -167,25 +166,23 @@ class PlugwiseRequest(PlugwiseMessage):
             self._response_timeout.cancel()
             if not self._response_future.done():
                 if self._send_counter > 1:
-                    _LOGGER.info('Response %s for retried request %s id %d', response, self, self._id)                    
+                    _LOGGER.info("Response %s for retried request %s id %d", response, self, self._id)
+                elif self._other:
+                    _LOGGER.debug("Response %s for request %s after other", response, self)
                 else:
-                    if self._other:
-                        _LOGGER.debug('Response %s for request %s after other', response, self)
-                    else: 
-                        _LOGGER.debug('Response %s for request %s id %d', response, self, self._id)
+                    _LOGGER.debug("Response %s for request %s id %d", response, self, self._id)
                 self._response_future.set_result(response)
             else:
-                _LOGGER.warning('Response %s for request %s id %d already done', response, self, self._id)
+                _LOGGER.warning("Response %s for request %s id %d already done", response, self, self._id)
 
             self._unsubscribe_node_response()
             return True
         self._other = True
         if self._seq_id:
-            _LOGGER.warning('Response %s for request %s is not mine %s', response, self, str(response.seq_id))                
+            _LOGGER.warning("Response %s for request %s is not mine %s", response, self, str(response.seq_id))
         else:
-            _LOGGER.warning('Response %s for request %s has not received seq_id', response, self)                       
+            _LOGGER.warning("Response %s for request %s has not received seq_id", response, self)
         return False
-
 
     async def _process_stick_response(self, stick_response: StickResponse) -> None:
         """Process incoming stick response."""
