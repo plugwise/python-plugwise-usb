@@ -168,7 +168,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_sorting_request_messages(self):
-        """Test request message priority sorting"""
+        """Test request message priority sorting."""
 
         node_add_request = pw_requests.NodeAddRequest(
             b"1111222233334444", True
@@ -212,7 +212,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_connect_without_port(self):
-        """Test connecting to stick without port config"""
+        """Test connecting to stick without port config."""
         stick = pw_stick.Stick()
         assert stick.accept_join_request is None
         assert stick.nodes == {}
@@ -258,7 +258,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_connect_without_response(self, monkeypatch):
-        """Test connecting to stick without response"""
+        """Test connecting to stick without response."""
         monkeypatch.setattr(
             pw_connection_manager,
             "create_serial_connection",
@@ -285,7 +285,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_connect_timeout(self, monkeypatch):
-        """Test connecting to stick"""
+        """Test connecting to stick."""
         monkeypatch.setattr(
             pw_connection_manager,
             "create_serial_connection",
@@ -307,7 +307,7 @@ class TestStick:
         await stick.disconnect()
 
     async def connected(self, event):
-        """Callback helper for stick connected event"""
+        """Set connected state helper."""
         if event is pw_api.StickEvent.CONNECTED:
             self.test_connected.set_result(True)
         else:
@@ -315,7 +315,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_connect(self, monkeypatch):
-        """Test connecting to stick"""
+        """Test connecting to stick."""
         monkeypatch.setattr(
             pw_connection_manager,
             "create_serial_connection",
@@ -348,7 +348,7 @@ class TestStick:
             assert stick.mac_stick
 
     async def disconnected(self, event):
-        """Callback helper for stick disconnect event"""
+        """Handle disconnect event callback."""
         if event is pw_api.StickEvent.DISCONNECTED:
             self.test_disconnected.set_result(True)
         else:
@@ -356,7 +356,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_connection_lost(self, monkeypatch):
-        """Test connecting to stick"""
+        """Test connecting to stick."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
             pw_connection_manager,
@@ -380,7 +380,7 @@ class TestStick:
         await stick.disconnect()
 
     async def node_discovered(self, event: pw_api.NodeEvent, mac: str):
-        """Callback helper for node discovery"""
+        """Handle discovered event callback."""
         if event == pw_api.NodeEvent.DISCOVERED:
             self.test_node_discovered.set_result(mac)
         else:
@@ -392,7 +392,7 @@ class TestStick:
             )
 
     async def node_awake(self, event: pw_api.NodeEvent, mac: str):
-        """Callback helper for node discovery"""
+        """Handle awake event callback."""
         if event == pw_api.NodeEvent.AWAKE:
             self.test_node_awake.set_result(mac)
         else:
@@ -408,7 +408,7 @@ class TestStick:
         feature: pw_api.NodeFeature,
         state: pw_api.MotionState,
     ):
-        """Callback helper for node_motion event"""
+        """Handle motion event callback."""
         if feature == pw_api.NodeFeature.MOTION:
             if state.motion:
                 self.motion_on.set_result(state.motion)
@@ -448,7 +448,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_node_discovered_subscription(self, monkeypatch):
-        """Testing "new_node" subscription for Scan"""
+        """Testing "new_node" subscription for Scan."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
             pw_connection_manager,
@@ -532,7 +532,7 @@ class TestStick:
         await stick.disconnect()
 
     async def node_join(self, event: pw_api.NodeEvent, mac: str):
-        """Callback helper for node_join event"""
+        """Handle join event callback."""
         if event == pw_api.NodeEvent.JOIN:
             self.test_node_join.set_result(mac)
         else:
@@ -545,7 +545,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_node_join_subscription(self, monkeypatch):
-        """Testing "new_node" subscription"""
+        """Testing "new_node" subscription."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
             pw_connection_manager,
@@ -573,7 +573,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_node_discovery(self, monkeypatch):
-        """Testing discovery of nodes"""
+        """Testing discovery of nodes."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
             pw_connection_manager,
@@ -595,7 +595,7 @@ class TestStick:
         feature: pw_api.NodeFeature,
         state: pw_api.RelayState,
     ):
-        """Callback helper for relay event"""
+        """Handle relay event callback."""
         if feature == pw_api.NodeFeature.RELAY:
             if state.relay_state:
                 self.test_relay_state_on.set_result(state.relay_state)
@@ -620,7 +620,7 @@ class TestStick:
         feature: pw_api.NodeFeature,
         state: bool,
     ):
-        """Callback helper for relay event"""
+        """Callback helper for relay event."""
         if feature == pw_api.NodeFeature.RELAY_INIT:
             if state:
                 self.test_init_relay_state_on.set_result(state)
@@ -1131,7 +1131,7 @@ class TestStick:
         assert tst_pc.log_addresses_missing == [1, 0]
 
     def pulse_update(self, timestamp: dt, is_consumption: bool):
-        """Callback helper for pulse updates for energy counter"""
+        """Update pulse helper for energy counter."""
         self._pulse_update += 1
         if self._pulse_update == 1:
             return (None, None)
@@ -1145,7 +1145,7 @@ class TestStick:
 
     @freeze_time(dt.now())
     def test_energy_counter(self):
-        """Testing energy counter class"""
+        """Testing energy counter class."""
         pulse_col_mock = Mock()
         pulse_col_mock.collected_pulses.side_effect = self.pulse_update
 
