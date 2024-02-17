@@ -156,19 +156,20 @@ class StickReceiver(Protocol):
                 if (response := self.extract_message_from_line_buffer(msg)):
                     self._request_queue.put_nowait(response)
             if len(msgs) > 4:
-                _LOGGER.debug('Stick gave %d messages at once', len(msgs))
+                _LOGGER.debug("Stick gave %d messages at once", len(msgs))
             self._buffer = msgs[-1]  # whatever was left over
             if self._buffer == b"\x83":
                 self._buffer = b''
 
     def extract_message_from_line_buffer(self, msg: bytes) -> PlugwiseResponse:
-        # Lookup header of message, there are stray \x83 
+        """Extract message from buffer."""
+        # Lookup header of message, there are stray \x83
         if (_header_index := msg.find(MESSAGE_HEADER)) == -1:
             return False
         msg = msg[_header_index:]
         # Detect response message type
         identifier = msg[4:8]
-        seq_id = msg[8:12]       
+        seq_id = msg[8:12]
         msg_length = len(msg)
         if (response := get_message_object(identifier, msg_length, seq_id)) is None:
             _raw_msg_data = msg[2:][: msg_length - 4]
@@ -182,9 +183,9 @@ class StickReceiver(Protocol):
             _LOGGER.warning(err)
             return None
 
-        _LOGGER.debug('USB Got %s', response)
+        _LOGGER.debug("USB Got %s", response)
         return response
-    
+
     def _populate_message(
         self, message: PlugwiseResponse, data: bytes
     ) -> PlugwiseResponse | None:
@@ -311,18 +312,18 @@ class StickReceiver(Protocol):
                 if node_response.identifier not in message_ids:
                     continue
             processed = await callback(node_response)
-        
+
         if processed:
             self._last_20_processed_messages.append(node_response.seq_id)
             if len(self._last_20_processed_messages) > 20:
                 self._last_20_processed_messages = self._last_20_processed_messages[:-20]
             return
-          
+
         if node_response.seq_id in self._last_20_processed_messages:
             _LOGGER.warning("Got duplicate %s", node_response)
             return
+
         # No subscription for response, retry in 0.5 sec.
-        
         node_response.notify_retries += 1
         if node_response.notify_retries > 10:
             _LOGGER.warning(
