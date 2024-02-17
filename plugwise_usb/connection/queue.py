@@ -1,15 +1,8 @@
 """Manage the communication sessions towards the USB-Stick."""
 from __future__ import annotations
 
-from asyncio import (
-    CancelledError,
-    InvalidStateError,
-    PriorityQueue,
-    Task,
-    get_running_loop,
-)
+from asyncio import PriorityQueue, Task, get_running_loop, sleep, wait
 from collections.abc import Callable
-import contextlib
 from dataclasses import dataclass
 import logging
 
@@ -37,7 +30,7 @@ class StickQueue:
         """Initialize the message session controller."""
         self._stick: StickConnectionManager | None = None
         self._loop = get_running_loop()
-        self._queue: PriorityQueue[PlugwiseRequest] = PriorityQueue()
+        self._submit_queue: PriorityQueue[PlugwiseRequest | None] = PriorityQueue()
         self._submit_worker_task: Task | None = None
         self._unsubscribe_connection_events: Callable[[], None] | None = None
         self._running = False
@@ -63,9 +56,6 @@ class StickQueue:
                 (StickEvent.CONNECTED, StickEvent.DISCONNECTED)
             )
         )
-        self._submit_worker_task = self._loop.create_task(
-            self._submit_worker()
-        )
 
     async def _handle_stick_event(self, event: StickEvent) -> None:
         """Handle events from stick."""
@@ -81,14 +71,11 @@ class StickQueue:
             self._unsubscribe_connection_events()
         self._running = False
         self._stick = None
-        if (
-            self._submit_worker_task is not None and
-            not self._submit_worker_task.done()
-        ):
-            self._submit_worker_task.cancel()
-            with contextlib.suppress(CancelledError, InvalidStateError):
-                await self._submit_worker_task.result()
-
+        if self._submit_worker_task is not None:
+            self._submit_queue.put_nowait(None)
+            if self._submit_worker_task.cancel():
+                await wait([self._submit_worker_task])
+            self._submit_worker_task = None
         _LOGGER.debug("queue stopped")
 
     async def submit(
@@ -129,13 +116,16 @@ class StickQueue:
 
     async def _add_request_to_queue(self, request: PlugwiseRequest) -> None:
         """Add request to send queue and return the session id."""
-        await self._queue.put(request)
+        await self._submit_queue.put(request)
+        if self._submit_worker_task is None or self._submit_worker_task.done():
+            self._submit_worker_task = self._loop.create_task(
+                self._submit_worker()
+            )
 
     async def _submit_worker(self) -> None:
         """Send messages from queue at the order of priority."""
-        while self._running:
-            # Get item with highest priority from queue first
-            request = await self._queue.get()
+        while self._running and self._submit_queue.qsize() > 0:
+            if (request := await self._submit_queue.get()) is None:
+                return
             await self._stick.write_to_stick(request)
-
-            self._queue.task_done()
+            self._submit_queue.task_done()
