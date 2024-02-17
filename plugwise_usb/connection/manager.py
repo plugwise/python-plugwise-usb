@@ -196,6 +196,8 @@ class StickConnectionManager:
             self._unsubscribe_stick_events()
             self._unsubscribe_stick_events = None
         self._connected = False
+        if self._sender is not None:
+            self._sender.stop()
         if self._receiver is not None:
             await self._receiver.close()
             self._receiver = None
