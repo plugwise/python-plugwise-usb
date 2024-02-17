@@ -414,21 +414,20 @@ class TestStick:
                 self.motion_on.set_result(state.motion)
             else:
                 self.motion_off.set_result(state.motion)
+        elif state.motion:
+            self.motion_on.set_exception(
+                BaseException(
+                    f"Invalid {feature} feature, expected " +
+                    f"{pw_api.NodeFeature.MOTION}"
+                )
+            )
         else:
-            if state.motion:
-                self.motion_on.set_exception(
-                    BaseException(
-                        f"Invalid {feature} feature, expected " +
-                        f"{pw_api.NodeFeature.MOTION}"
-                    )
+            self.motion_off.set_exception(
+                BaseException(
+                    f"Invalid {feature} feature, expected " +
+                    f"{pw_api.NodeFeature.MOTION}"
                 )
-            else:
-                self.motion_off.set_exception(
-                    BaseException(
-                        f"Invalid {feature} feature, expected " +
-                        f"{pw_api.NodeFeature.MOTION}"
-                    )
-                )
+            )
 
     async def node_ping(
         self,
