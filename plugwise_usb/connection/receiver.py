@@ -16,15 +16,7 @@ and publish detected connection status changes
 """
 from __future__ import annotations
 
-from asyncio import (
-    Future,
-    gather,
-    Task,
-    Protocol,
-    Queue,
-    get_running_loop,
-    sleep,
-)
+from asyncio import Future, Protocol, Queue, Task, gather, get_running_loop, sleep, wait
 from collections.abc import Awaitable, Callable
 from concurrent import futures
 import logging
@@ -64,7 +56,8 @@ class StickReceiver(Protocol):
         self._buffer: bytes = bytes([])
         self._connection_state = False
         self._request_queue = Queue()
-        self._last_20_processed_messages = []
+        self._last_20_processed_messages: list[bytes] = []
+        self._delayed_response_task: dict[bytes, Task] = {}
         self._stick_future: futures.Future | None = None
         self._responses: dict[bytes, Callable[[PlugwiseResponse], None]] = {}
         self._stick_response_future: futures.Future | None = None
@@ -94,19 +87,13 @@ class StickReceiver(Protocol):
     def connection_lost(self, exc: Exception | None = None) -> None:
         """Call when port was closed expectedly or unexpectedly."""
         _LOGGER.debug("Connection lost")
-        if (
-            self._connected_future is not None
-            and not self._connected_future.done()
-        ):
-            if exc is None:
-                self._connected_future.set_result(True)
-            else:
-                self._connected_future.set_exception(exc)
+        if exc is not None:
+            _LOGGER.warning("Connection lost %s", exc)
+        self._loop.create_task(self.close())
         if len(self._stick_event_subscribers) > 0:
             self._loop.create_task(
                 self._notify_stick_event_subscribers(StickEvent.DISCONNECTED)
             )
-
         self._transport = None
         self._connection_state = False
 
@@ -129,20 +116,28 @@ class StickReceiver(Protocol):
             self._loop.create_task(
                 self._notify_stick_event_subscribers(StickEvent.CONNECTED)
             )
-        self._msg_processing_task = self._loop.create_task(
-                         self._msg_queue_processing_function()
-                     )
 
     async def close(self) -> None:
         """Close connection."""
-
         if self._transport is None:
             return
         if self._stick_future is not None and not self._stick_future.done():
             self._stick_future.cancel()
-
         self._transport.close()
-        self._msg_processing_task.cancel()
+        await self._stop_running_tasks()
+
+    async def _stop_running_tasks(self) -> None:
+        """Cancel and stop any running task."""
+        cancelled_tasks: list[Task] = []
+        self._request_queue.put_nowait(None)
+        if self._msg_processing_task is not None and not self._msg_processing_task.done():
+            self._msg_processing_task.cancel()
+            cancelled_tasks.append(self._msg_processing_task)
+        for task in self._delayed_response_task.values():
+            task.cancel()
+            cancelled_tasks.append(task)
+        if cancelled_tasks:
+            await wait(cancelled_tasks)
 
     def data_received(self, data: bytes) -> None:
         """Receive data from USB-Stick connection.
@@ -154,12 +149,21 @@ class StickReceiver(Protocol):
             msgs = self._buffer.split(MESSAGE_FOOTER)
             for msg in msgs[:-1]:
                 if (response := self.extract_message_from_line_buffer(msg)):
-                    self._request_queue.put_nowait(response)
+                    self._put_message_in_receiver_queue(response)
             if len(msgs) > 4:
                 _LOGGER.debug("Stick gave %d messages at once", len(msgs))
             self._buffer = msgs[-1]  # whatever was left over
             if self._buffer == b"\x83":
-                self._buffer = b''
+                self._buffer = b""
+
+    def _put_message_in_receiver_queue(self, response: PlugwiseResponse) -> None:
+        """Put message in queue."""
+        self._request_queue.put_nowait(response)
+        if self._msg_processing_task is None or self._msg_processing_task.done():
+            self._msg_processing_task = self._loop.create_task(
+                self._msg_queue_processing_function(),
+                name="Process received messages"
+            )
 
     def extract_message_from_line_buffer(self, msg: bytes) -> PlugwiseResponse:
         """Extract message from buffer."""
@@ -198,18 +202,18 @@ class StickReceiver(Protocol):
         return message
 
     async def _msg_queue_processing_function(self):
-        
-        while self.is_connected:
-        #while self._request_queue.qsize() > 0:
+        """Process queue items."""
+        while self.is_connected and self._request_queue.qsize() > 0:
             response: PlugwiseResponse | None = await self._request_queue.get()
-            
             if isinstance(response, StickResponse):
                 await self._notify_stick_response_subscribers(response)
             elif response is None:
+                self._request_queue.task_done()
                 return
             else:
                 _LOGGER.debug("Processing %s", response)
                 await self._notify_node_response_subscribers(response)
+            self._request_queue.task_done()
 
     def _reset_buffer(self, new_buffer: bytes) -> None:
         if new_buffer[:2] == MESSAGE_FOOTER:
@@ -295,12 +299,10 @@ class StickReceiver(Protocol):
         ] = (node_response_callback, mac, message_ids)
         return remove_listener
 
-    async def _notify_node_response_subscribers(
-        self, node_response: PlugwiseResponse
-    ) -> None:
-
-        """Call callback for all node response message subscribers"""
-        #callback_list: list[Callable] = []
+    async def _notify_node_response_subscribers(self, node_response: PlugwiseResponse, delayed: bool = False) -> None:
+        """Call callback for all node response message subscribers."""
+        if delayed:
+            await sleep(0.5)
         processed = False
         for callback, mac, message_ids in list(
             self._node_response_subscribers.values()
@@ -317,6 +319,8 @@ class StickReceiver(Protocol):
             self._last_20_processed_messages.append(node_response.seq_id)
             if len(self._last_20_processed_messages) > 20:
                 self._last_20_processed_messages = self._last_20_processed_messages[:-20]
+            if self._delayed_response_task.get(node_response.seq_id):
+                del self._delayed_response_task[node_response.seq_id]
             return
 
         if node_response.seq_id in self._last_20_processed_messages:
@@ -332,12 +336,11 @@ class StickReceiver(Protocol):
                 node_response.seq_id,
                 node_response.mac_decoded,
             )
+            if self._delayed_response_task.get(node_response.seq_id):
+                del self._delayed_response_task[node_response.seq_id]
             return
-        self._loop.create_task(
-            delayed_run(
-                self._notify_node_response_subscribers(
-                    node_response
-                ),
-                0.5,
-            )
+        self._delayed_response_task[node_response.seq_id] = self._loop.create_task(
+            self._notify_node_response_subscribers(
+                node_response, delayed=True
+            ),
         )
