@@ -115,7 +115,7 @@ class PlugwiseResponse(PlugwiseMessage):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return f"{self.__class__.__name__} from {self.mac_decoded} seq_id {self.seq_id}"
+        return f"{self.__class__.__name__} from {self.mac_decoded} seq_id={self.seq_id}"
 
     @property
     def ack_id(self) -> bytes | None:
@@ -230,7 +230,7 @@ class StickResponse(PlugwiseResponse):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return "StickResponse " + str(StickResponseType(self.ack_id).name) + " seq_id" + str(self.seq_id)
+        return f"StickResponse {StickResponseType(self.ack_id).name} seq_id={str(self.seq_id)}"
 
 
 class NodeResponse(PlugwiseResponse):
@@ -246,6 +246,10 @@ class NodeResponse(PlugwiseResponse):
     def __init__(self) -> None:
         """Initialize NodeResponse message object."""
         super().__init__(b"0000", decode_ack=True)
+
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return f"{super().__repr__()} | ack={str(NodeResponseType(self.ack_id).name)}"
 
 
 class StickNetworkInfoResponse(PlugwiseResponse):
@@ -624,7 +628,7 @@ class NodeInfoResponse(PlugwiseResponse):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return super().__repr__() + f" | log_address={self._logaddress_pointer.value}"
+        return f"{super().__repr__()} | log_address_pointer={self._logaddress_pointer.value}"
 
 
 class EnergyCalibrationResponse(PlugwiseResponse):
@@ -746,7 +750,7 @@ class CircleEnergyLogsResponse(PlugwiseResponse):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return super().__repr__() + " | log_address=" + str(self._logaddr.value)
+        return f"{super().__repr__()}  | log_address={self._logaddr.value}"
 
 
 class NodeAwakeResponse(PlugwiseResponse):
@@ -777,6 +781,10 @@ class NodeAwakeResponse(PlugwiseResponse):
     def awake_type(self) -> NodeAwakeResponseType:
         """Return the node awake type."""
         return NodeAwakeResponseType(self._awake_type.value)
+
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return f"{super().__repr__()} | awake_type={self.awake_type.name}"
 
 
 class NodeSwitchGroupResponse(PlugwiseResponse):
@@ -849,6 +857,10 @@ class NodeAckResponse(PlugwiseResponse):
     def node_ack_type(self) -> NodeAckResponseType:
         """Return acknowledge response type."""
         return NodeAckResponseType(self._node_ack_type.value)
+
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return f"{super().__repr__()} | Ack={self.node_ack_type.name}"
 
 
 class SenseReportResponse(PlugwiseResponse):
