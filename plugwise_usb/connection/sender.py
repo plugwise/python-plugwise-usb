@@ -20,7 +20,7 @@ from asyncio import Future, Lock, Transport, get_running_loop, wait_for
 import logging
 
 from ..constants import STICK_TIME_OUT
-from ..exceptions import StickError, StickFailed, StickTimeout
+from ..exceptions import StickError
 from ..messages.requests import PlugwiseRequest
 from ..messages.responses import StickResponse, StickResponseType
 from .receiver import StickReceiver
@@ -109,55 +109,19 @@ class StickSender:
             self._stick_response is None
             or self._stick_response.done()
         ):
-
-            if response.ack_id == StickResponseType.TIMEOUT:
-                _LOGGER.warning("%s TIMEOUT", response)
-                if (request := self._open_requests.get(response.seq_id, None)):
-                    _LOGGER.error(
-                        "Failed to send %s because USB-Stick could not send the request to the node.",
-                        request
-                    )
-                    request.assign_error(
-                        BaseException(
-                            StickTimeout(
-                                f"Failed to send {request.__class__.__name__} because USB-Stick could not send the {request} to the {request.mac}."
-                            )
-                        )
-                    )
-                    del self._open_requests[response.seq_id]
-                    return
-
-            _LOGGER.warning(
-                "Unexpected stick response (ack_id=%s, seq_id=%s) received",
-                str(response.ack_id),
-                str(response.seq_id),
-            )
+            _LOGGER.debug("No open request for %s", str(response))
             return
-        _LOGGER.debug("Received stick %s", response)
 
-        if response.ack_id == StickResponseType.ACCEPT:
-            self._stick_response.set_result(response.seq_id)
-        elif response.ack_id == StickResponseType.FAILED:
-            self._stick_response.set_exception(
-                BaseException(
-                    StickFailed(
-                        "USB-Stick failed to submit "
-                        + f"{self._current_request.__class__.__name__} to "
-                        + f"node '{self._current_request.mac_decoded}'."
-                    )
-                )
-            )
-        elif response.ack_id == StickResponseType.TIMEOUT:
-            self._stick_response.set_exception(
-                BaseException(
-                    StickTimeout(
-                        "USB-Stick timeout to submit "
-                        + f"{self._current_request.__class__.__name__} to "
-                        + f"node '{self._current_request.mac_decoded}'."
-                    )
-                )
-            )
+        if response.ack_id != StickResponseType.ACCEPT:
+            #
+            # TODO
+            # Verify if we actually do receive any non ACCEPT stick response as the first response
+            # after submitting an request.
+            #
+            _LOGGER.warning("Received %s as POSSIBLE reply to %s", response, self._current_request)
             return
+        _LOGGER.debug("Received %s as reply to %s", response, self._current_request)
+        self._stick_response.set_result(response.seq_id)
         await self._stick_lock.acquire()
         if response.seq_id in self._open_requests:
             del self._open_requests[response.seq_id]
