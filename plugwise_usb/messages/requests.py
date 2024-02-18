@@ -125,11 +125,15 @@ class PlugwiseRequest(PlugwiseMessage):
 
     def start_response_timeout(self) -> None:
         """Start timeout for node response."""
-        if self._response_timeout is not None:
-            self._response_timeout.cancel()
+        self.stop_response_timeout()
         self._response_timeout = self._loop.call_later(
             NODE_TIME_OUT, self._response_timeout_expired
         )
+
+    def stop_response_timeout(self) -> None:
+        """Stop timeout for node response."""
+        if self._response_timeout is not None:
+            self._response_timeout.cancel()
 
     def _response_timeout_expired(self, stick_timeout: bool = False) -> None:
         """Handle response timeout."""
@@ -154,8 +158,7 @@ class PlugwiseRequest(PlugwiseMessage):
 
     def assign_error(self, error: StickError) -> None:
         """Assign error for this request."""
-        if self._response_timeout is not None:
-            self._response_timeout.cancel()
+        self.stop_response_timeout()
         if self._response_future.done():
             return
         self._response_future.set_exception(error)
@@ -165,7 +168,7 @@ class PlugwiseRequest(PlugwiseMessage):
         if self._seq_id is not None and self._seq_id == response.seq_id:
             self._unsubscribe_stick_response()
             self._response = response
-            self._response_timeout.cancel()
+            self.stop_response_timeout()
             if not self._response_future.done():
                 if self._send_counter > 1:
                     _LOGGER.info("Response %s for retried request %s id %d", response, self, self._id)
