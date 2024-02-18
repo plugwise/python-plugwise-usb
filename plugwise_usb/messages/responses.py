@@ -9,6 +9,7 @@ from ..api import NodeType
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER, UTF8
 from ..exceptions import MessageError
 from ..util import (
+    BaseType,
     DateTime,
     Float,
     Int,
@@ -769,8 +770,13 @@ class NodeAwakeResponse(PlugwiseResponse):
     def __init__(self) -> None:
         """Initialize NodeAwakeResponse message object."""
         super().__init__(NODE_AWAKE_RESPONSE_ID)
-        self.awake_type = Int(0, 2, False)
-        self._params += [self.awake_type]
+        self._awake_type = Int(0, 2, False)
+        self._params += [self._awake_type]
+
+    @property
+    def awake_type(self) -> NodeAwakeResponseType:
+        """Return the node awake type."""
+        return NodeAwakeResponseType(self._awake_type.value)
 
 
 class NodeSwitchGroupResponse(PlugwiseResponse):
