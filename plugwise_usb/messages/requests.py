@@ -156,7 +156,7 @@ class PlugwiseRequest(PlugwiseMessage):
                 )
             )
 
-    def assign_error(self, error: StickError) -> None:
+    def assign_error(self, error: BaseException) -> None:
         """Assign error for this request."""
         self.stop_response_timeout()
         if self._response_future.done():
