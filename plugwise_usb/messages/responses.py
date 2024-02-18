@@ -836,6 +836,13 @@ class NodeAckResponse(PlugwiseResponse):
     def __init__(self) -> None:
         """Initialize NodeAckResponse message object."""
         super().__init__(b"0100")
+        self._node_ack_type = BaseType(0, length=4)
+        self._params += [self._node_ack_type]
+
+    @property
+    def node_ack_type(self) -> NodeAckResponseType:
+        """Return acknowledge response type."""
+        return NodeAckResponseType(self._node_ack_type.value)
 
 
 class SenseReportResponse(PlugwiseResponse):
