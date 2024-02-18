@@ -150,11 +150,11 @@ class PlugwiseScan(NodeSED):
                 f"No response from Scan device {self.mac} "
                 + "for configuration request."
             )
-        if response.ack_id == NodeAckResponseType.SCAN_CONFIG_FAILED:
+        if response.node_ack_type == NodeAckResponseType.SCAN_CONFIG_FAILED:
             raise NodeError(
                 f"Scan {self.mac} failed to configure scan settings"
             )
-        if response.ack_id == NodeAckResponseType.SCAN_CONFIG_ACCEPTED:
+        if response.node_ack_type == NodeAckResponseType.SCAN_CONFIG_ACCEPTED:
             self._motion_reset_timer = motion_reset_timer
             self._sensitivity_level = sensitivity_level
             self._daylight_mode = daylight_mode
@@ -171,10 +171,7 @@ class PlugwiseScan(NodeSED):
                 f"No response from Scan device {self.mac} "
                 + "to light calibration request."
             )
-        if (
-            response.ack_id
-            == NodeAckResponseType.SCAN_LIGHT_CALIBRATION_ACCEPTED
-        ):
+        if response.node_ack_type == NodeAckResponseType.SCAN_LIGHT_CALIBRATION_ACCEPTED:
             return True
         return False
 

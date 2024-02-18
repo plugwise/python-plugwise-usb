@@ -521,7 +521,7 @@ class StickNetwork:
             raise NodeError(
                 "No response to get notifications for join request."
             )
-        if response.ack_id != NodeResponseType.JOIN_ACCEPTED:
+        if response.node_ack_type != NodeResponseType.JOIN_ACCEPTED:
             raise MessageError(
                 f"Unknown NodeResponseType '{response.ack_id!r}' received"
             )
