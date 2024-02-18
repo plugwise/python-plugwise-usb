@@ -118,10 +118,7 @@ class NodeSED(PlugwiseNode):
         await self._available_update_state(True)
         if message.timestamp is None:
             return False
-        if (
-            NodeAwakeResponseType(message.awake_type.value)
-            == NodeAwakeResponseType.MAINTENANCE
-        ):
+        if message.awake_type == NodeAwakeResponseType.MAINTENANCE:
             if self._ping_at_awake:
                 ping_response: NodePingResponse | None = (
                     await self.ping_update()  # type: ignore [assignment]
