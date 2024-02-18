@@ -16,7 +16,7 @@ from ..constants import (
     MESSAGE_HEADER,
     NODE_TIME_OUT,
 )
-from ..exceptions import NodeError, NodeTimeout, StickError
+from ..exceptions import NodeError, NodeTimeout, StickError, StickTimeout
 from ..messages.responses import PlugwiseResponse, StickResponse, StickResponseType
 from ..util import (
     DateTime,
@@ -144,15 +144,14 @@ class PlugwiseRequest(PlugwiseMessage):
             self._unsubscribe_node_response = None
         if stick_timeout:
             self._response_future.set_exception(
-                NodeError(
-                    "Timeout by stick to {self.mac_decoded}"
+                StickTimeout(
+                    f"Stick Timeout: USB-stick responded with time out to {self}"
                 )
             )
         else:
             self._response_future.set_exception(
                 NodeTimeout(
-                    f"No response within {NODE_TIME_OUT} seconds from node " +
-                    f"{self.mac_decoded}"
+                    f"Node Timeout: No response to {self} within {NODE_TIME_OUT} seconds"
                 )
             )
 
