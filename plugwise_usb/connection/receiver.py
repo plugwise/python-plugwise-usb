@@ -313,7 +313,7 @@ class StickReceiver(Protocol):
             return
 
         if node_response.seq_id in self._last_20_processed_messages:
-            _LOGGER.warning("Got duplicate %s", node_response)
+            _LOGGER.debug("Drop duplicate %s", node_response)
             return
 
         _LOGGER.warning(
