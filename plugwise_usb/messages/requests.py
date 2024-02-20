@@ -80,11 +80,9 @@ class PlugwiseRequest(PlugwiseMessage):
 
     def response_future(self) -> Future[PlugwiseResponse]:
         """Return awaitable future with response message."""
+        if self._response_future.done():
+            self._response_future = self._loop.create_future()
         return self._response_future
-
-    def reset_future(self):
-        """Return awaitable future with response message."""
-        self._response_future = self._loop.create_future()
 
     @property
     def response(self) -> PlugwiseResponse:
@@ -152,7 +150,7 @@ class PlugwiseRequest(PlugwiseMessage):
         else:
             self._response_future.set_exception(
                 NodeTimeout(
-                    f"Node Timeout: No response to {self} within {NODE_TIME_OUT} seconds"
+                    f"No response to {self} within {NODE_TIME_OUT} seconds"
                 )
             )
 
@@ -186,7 +184,7 @@ class PlugwiseRequest(PlugwiseMessage):
         if self._seq_id:
             _LOGGER.warning("Response %s for request %s is not mine %s", response, self, str(response.seq_id))
         else:
-            _LOGGER.warning("Response %s for request %s has not received seq_id", response, self)
+            _LOGGER.debug("Response %s for request %s has not received seq_id", response, self)
         return False
 
     async def _process_stick_response(self, stick_response: StickResponse) -> None:
