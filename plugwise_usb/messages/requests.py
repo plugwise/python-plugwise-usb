@@ -144,7 +144,7 @@ class PlugwiseRequest(PlugwiseMessage):
         if stick_timeout:
             self._response_future.set_exception(
                 StickTimeout(
-                    f"Stick Timeout: USB-stick responded with time out to {self}"
+                    f"USB-stick responded with time out to {self}"
                 )
             )
         else:
