@@ -98,10 +98,7 @@ class StickSender:
 
     async def _process_stick_response(self, response: StickResponse) -> None:
         """Process stick response."""
-        if (
-            self._stick_response is None
-            or self._stick_response.done()
-        ):
+        if self._stick_response is None or self._stick_response.done():
             _LOGGER.debug("No open request for %s", str(response))
             return
 
