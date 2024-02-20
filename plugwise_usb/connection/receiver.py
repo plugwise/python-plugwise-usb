@@ -57,7 +57,6 @@ class StickReceiver(Protocol):
         self._connection_state = False
         self._request_queue = Queue()
         self._last_20_processed_messages: list[bytes] = []
-        self._delayed_response_task: dict[bytes, Task] = {}
         self._stick_future: futures.Future | None = None
         self._responses: dict[bytes, Callable[[PlugwiseResponse], None]] = {}
         self._stick_response_future: futures.Future | None = None
@@ -133,9 +132,6 @@ class StickReceiver(Protocol):
         if self._msg_processing_task is not None and not self._msg_processing_task.done():
             self._msg_processing_task.cancel()
             cancelled_tasks.append(self._msg_processing_task)
-        for task in self._delayed_response_task.values():
-            task.cancel()
-            cancelled_tasks.append(task)
         if cancelled_tasks:
             await wait(cancelled_tasks)
 
@@ -301,8 +297,6 @@ class StickReceiver(Protocol):
 
     async def _notify_node_response_subscribers(self, node_response: PlugwiseResponse, delayed: bool = False) -> None:
         """Call callback for all node response message subscribers."""
-        if delayed:
-            await sleep(0.5)
         processed = False
         for callback, mac, message_ids in list(
             self._node_response_subscribers.values()
@@ -319,28 +313,15 @@ class StickReceiver(Protocol):
             self._last_20_processed_messages.append(node_response.seq_id)
             if len(self._last_20_processed_messages) > 20:
                 self._last_20_processed_messages = self._last_20_processed_messages[:-20]
-            if self._delayed_response_task.get(node_response.seq_id):
-                del self._delayed_response_task[node_response.seq_id]
             return
 
         if node_response.seq_id in self._last_20_processed_messages:
             _LOGGER.warning("Got duplicate %s", node_response)
             return
 
-        # No subscription for response, retry in 0.5 sec.
-        node_response.notify_retries += 1
-        if node_response.notify_retries > 10:
-            _LOGGER.warning(
-                "No subscriber to handle %s, seq_id=%s from %s",
-                node_response.__class__.__name__,
-                node_response.seq_id,
-                node_response.mac_decoded,
-            )
-            if self._delayed_response_task.get(node_response.seq_id):
-                del self._delayed_response_task[node_response.seq_id]
-            return
-        self._delayed_response_task[node_response.seq_id] = self._loop.create_task(
-            self._notify_node_response_subscribers(
-                node_response, delayed=True
-            ),
+        _LOGGER.warning(
+            "No subscriber to handle %s, seq_id=%s from %s",
+            node_response.__class__.__name__,
+            node_response.seq_id,
+            node_response.mac_decoded,
         )
