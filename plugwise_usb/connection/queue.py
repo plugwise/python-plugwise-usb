@@ -8,7 +8,7 @@ import logging
 
 from ..api import StickEvent
 from ..exceptions import NodeTimeout, StickError, StickTimeout
-from ..messages.requests import PlugwiseRequest
+from ..messages.requests import PlugwiseRequest, Priority
 from ..messages.responses import PlugwiseResponse
 from .manager import StickConnectionManager
 
@@ -30,7 +30,7 @@ class StickQueue:
         """Initialize the message session controller."""
         self._stick: StickConnectionManager | None = None
         self._loop = get_running_loop()
-        self._submit_queue: PriorityQueue[PlugwiseRequest | None] = PriorityQueue()
+        self._submit_queue: PriorityQueue[PlugwiseRequest] = PriorityQueue()
         self._submit_worker_task: Task | None = None
         self._unsubscribe_connection_events: Callable[[], None] | None = None
         self._running = False
@@ -70,12 +70,12 @@ class StickQueue:
         if self._unsubscribe_connection_events is not None:
             self._unsubscribe_connection_events()
         self._running = False
+        if self._submit_worker_task is not None and not self._submit_worker_task.done():
+            cancel_request = PlugwiseRequest(b"0000", None)
+            cancel_request.priority = Priority.CANCEL
+            await self._submit_queue.put(cancel_request)
+        self._submit_worker_task = None
         self._stick = None
-        if self._submit_worker_task is not None:
-            self._submit_queue.put_nowait(None)
-            if self._submit_worker_task.cancel():
-                await wait([self._submit_worker_task])
-            self._submit_worker_task = None
         _LOGGER.debug("queue stopped")
 
     async def submit(
@@ -124,8 +124,10 @@ class StickQueue:
 
     async def _submit_worker(self) -> None:
         """Send messages from queue at the order of priority."""
-        while self._running and self._submit_queue.qsize() > 0:
-            if (request := await self._submit_queue.get()) is None:
+        while self._running:
+            request = await self._submit_queue.get()
+            if request.priority == Priority.CANCEL:
+                self._submit_queue.task_done()
                 return
             await self._stick.write_to_stick(request)
             self._submit_queue.task_done()
