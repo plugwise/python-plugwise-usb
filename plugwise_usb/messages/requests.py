@@ -117,7 +117,7 @@ class PlugwiseRequest(PlugwiseMessage):
             node_subscription_fn(
                 self._process_node_response,
                 mac=self._mac,
-                message_ids=(b"0000", self._reply_identifier),
+                message_ids=(self._reply_identifier,),
             )
         )
         self._stick_subscription_fn = stick_subscription_fn
