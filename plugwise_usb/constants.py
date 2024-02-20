@@ -89,7 +89,7 @@ HW_MODELS: Final[dict[str, str]] = {
 
 
 class MotionSensitivity(Enum):
-    """Motion sensitivity levels for Scan devices"""
+    """Motion sensitivity levels for Scan devices."""
 
     HIGH = auto()
     MEDIUM = auto()
