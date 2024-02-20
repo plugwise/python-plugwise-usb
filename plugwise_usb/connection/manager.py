@@ -172,9 +172,7 @@ class StickConnectionManager:
         self._connected = True
         self._subscribe_to_stick_events()
 
-    async def write_to_stick(
-        self, request: PlugwiseRequest
-    ) -> PlugwiseRequest:
+    async def write_to_stick(self, request: PlugwiseRequest) -> None:
         """Write message to USB stick. Returns the updated request object."""
         if not request.resend:
             raise StickError(
@@ -187,7 +185,7 @@ class StickConnectionManager:
                 f"Failed to send {request.__class__.__name__}" +
                 "because USB-Stick connection is not setup"
             )
-        return await self._sender.write_request_to_port(request)
+        await self._sender.write_request_to_port(request)
 
     async def disconnect_from_stick(self) -> None:
         """Disconnect from USB-Stick."""

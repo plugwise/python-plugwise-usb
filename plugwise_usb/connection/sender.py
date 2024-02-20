@@ -48,13 +48,8 @@ class StickSender:
             )
         )
 
-    async def write_request_to_port(
-        self, request: PlugwiseRequest
-    ) -> PlugwiseRequest:
-        """Send message to serial port of USB stick.
-
-        Returns the updated request object. Raises StickError
-        """
+    async def write_request_to_port(self, request: PlugwiseRequest) -> None:
+        """Send message to serial port of USB stick."""
         await self._stick_lock.acquire()
         self._current_request = request
 
@@ -100,8 +95,6 @@ class StickSender:
         finally:
             self._stick_response = None
             self._stick_lock.release()
-
-        return request
 
     async def _process_stick_response(self, response: StickResponse) -> None:
         """Process stick response."""
