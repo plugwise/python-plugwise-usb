@@ -215,7 +215,7 @@ class StickNetwork:
             await self._discover_node(address, mac, None)
             await self._load_node(mac)
             await self._notify_node_event_subscribers(NodeEvent.AWAKE, mac)
-        return False
+        return True
 
     async def node_join_available_message(
         self, response: NodeJoinAvailableResponse
