@@ -36,6 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 class Priority(int, Enum):
     """Message priority levels for USB-stick message requests."""
 
+    CANCEL = 0
     HIGH = 1
     MEDIUM = 2
     LOW = 3
