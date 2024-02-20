@@ -2,12 +2,13 @@ import asyncio
 from datetime import datetime as dt, timedelta as td, timezone as tz
 import importlib
 import logging
+import random
 from unittest.mock import Mock
+
+import pytest
 
 import crcmod
 from freezegun import freeze_time
-import pytest
-
 
 crc_fun = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0x0000, xorOut=0x0000)
 
@@ -116,7 +117,6 @@ class DummyTransport:
         self._msg += 1
 
     async def _delayed_response(self, data: bytes, seq_id: bytes) -> None:
-        import random
         delay = random.uniform(0.05, 0.25)
         await asyncio.sleep(delay)
         self.message_response(data, seq_id)
