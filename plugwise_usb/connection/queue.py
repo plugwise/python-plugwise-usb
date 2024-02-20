@@ -94,10 +94,12 @@ class StickQueue:
                 response: PlugwiseResponse = await request.response_future()
                 return response
             except (NodeTimeout, StickTimeout) as e:
-                logging.warning("Node timeout %s on %s, retrying", e, request)
-                request.reset_future()
-            except StickError as exception:  # [broad-exception-caught]\
-                logging.exception(exception)
+                if request.resend:
+                    _LOGGER.info("%s, retrying", e)
+                else:
+                    _LOGGER.warning("%s after %s attempts. Cancel request", e, request.max_retries)
+            except StickError as exception:
+                _LOGGER.error(exception)
                 raise StickError(
                     f"No response received for {request.__class__.__name__} " +
                     f"to {request.mac_decoded}"
