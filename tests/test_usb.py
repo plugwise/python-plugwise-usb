@@ -225,14 +225,6 @@ class TestStick:
             assert stick.network_id
         assert not stick.network_discovered
         assert not stick.network_state
-        unsub_connect = stick.subscribe_to_stick_events(
-            stick_event_callback=lambda x: print(x),
-            events=(pw_api.StickEvent.CONNECTED,),
-        )
-        unsub_nw_online = stick.subscribe_to_stick_events(
-            stick_event_callback=lambda x: print(x),
-            events=(pw_api.StickEvent.NETWORK_ONLINE,),
-        )
         with pytest.raises(pw_exceptions.StickError):
             await stick.connect()
         stick.port = "null"
