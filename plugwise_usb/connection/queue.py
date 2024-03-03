@@ -1,14 +1,14 @@
 """Manage the communication sessions towards the USB-Stick."""
 from __future__ import annotations
 
-from asyncio import PriorityQueue, Task, get_running_loop, wait
+from asyncio import PriorityQueue, Task, get_running_loop
 from collections.abc import Callable
 from dataclasses import dataclass
 import logging
 
 from ..api import StickEvent
 from ..exceptions import NodeTimeout, StickError, StickTimeout
-from ..messages.requests import PlugwiseRequest, Priority
+from ..messages.requests import NodePingRequest, PlugwiseRequest, Priority
 from ..messages.responses import PlugwiseResponse
 from .manager import StickConnectionManager
 
@@ -96,6 +96,9 @@ class StickQueue:
             except (NodeTimeout, StickTimeout) as e:
                 if request.resend:
                     _LOGGER.debug("%s, retrying", e)
+                elif isinstance(request, NodePingRequest):
+                    # For ping requests it is expected to receive timeouts, so lower log level
+                    _LOGGER.debug("%s after %s attempts. Cancel request", e, request.max_retries)
                 else:
                     _LOGGER.warning("%s after %s attempts, cancel request", e, request.max_retries)
             except StickError as exception:
