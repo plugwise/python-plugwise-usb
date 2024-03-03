@@ -76,7 +76,9 @@ class PlugwiseRequest(PlugwiseMessage):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return f"{self.__class__.__name__} for {self.mac_decoded}"
+        if self._seq_id is None:
+            return f"{self.__class__.__name__} for {self.mac_decoded}"
+        return f"{self.__class__.__name__} (seq_id={self._seq_id}) for {self.mac_decoded}"
 
     def response_future(self) -> Future[PlugwiseResponse]:
         """Return awaitable future with response message."""
@@ -171,9 +173,9 @@ class PlugwiseRequest(PlugwiseMessage):
                 if self._send_counter > 1:
                     _LOGGER.info("Response %s for retried request %s id %d", response, self, self._id)
                 elif self._other:
-                    _LOGGER.debug("Response %s for request %s after other", response, self)
+                    _LOGGER.info("Received '%s' as reply to retried '%s' id %d", response, self, self._id)
                 else:
-                    _LOGGER.debug("Response %s for request %s id %d", response, self, self._id)
+                    _LOGGER.debug("Received '%s' as reply to '%s' id %d", response, self, self._id)
                 self._response_future.set_result(response)
             else:
                 _LOGGER.warning("Response %s for request %s id %d already done", response, self, self._id)
@@ -182,9 +184,9 @@ class PlugwiseRequest(PlugwiseMessage):
             return True
         self._other = True
         if self._seq_id:
-            _LOGGER.warning("Response %s for request %s is not mine %s", response, self, str(response.seq_id))
+            _LOGGER.warning("Received '%s' as reply to '%s' which is not correct (seq_id=%s)", response, self, str(response.seq_id))
         else:
-            _LOGGER.debug("Response %s for request %s has not received seq_id", response, self)
+            _LOGGER.debug("Received '%s' as reply to '%s' has not received seq_id", response, self)
         return False
 
     async def _process_stick_response(self, stick_response: StickResponse) -> None:
