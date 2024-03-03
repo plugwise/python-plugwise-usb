@@ -64,7 +64,7 @@ class StickSender:
             self._receiver.subscribe_to_node_responses,
         )
 
-        _LOGGER.debug("Sending %s", request)
+        _LOGGER.debug("Writing '%s' to USB-Stick", request)
         # Write message to serial port buffer
         self._transport.write(serialized_data)
         request.add_send_attempt()
@@ -79,9 +79,7 @@ class StickSender:
             request.assign_error(
                 BaseException(
                     StickError(
-                        f"Failed to send {request.__class__.__name__} " +
-                        "because USB-Stick did not respond " +
-                        f"within {STICK_TIME_OUT} seconds."
+                        f"USB-Stick did not respond within {STICK_TIME_OUT} seconds after writing {request}"
                     )
                 )
             )
@@ -89,7 +87,7 @@ class StickSender:
             request.assign_error(exc)
         else:
             # Update request with session id
-            _LOGGER.debug("Request %s assigned seq_id %s", request, str(seq_id))
+            _LOGGER.debug("Request '%s' was accepted by USB-stick with seq_id %s", request, str(seq_id))
             request.seq_id = seq_id
             self._open_requests[seq_id] = request
         finally:
