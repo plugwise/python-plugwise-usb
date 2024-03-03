@@ -1048,6 +1048,6 @@ class PlugwiseCircle(PlugwiseNode):
                     states[feature],
                 )
             else:
-                state_result = await super().get_state([feature])
+                state_result = await super().get_state((feature,))
                 states[feature] = state_result[feature]
         return states
