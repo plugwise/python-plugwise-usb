@@ -20,6 +20,7 @@ from asyncio import Future, Protocol, Queue, Task, gather, get_running_loop, sle
 from collections.abc import Awaitable, Callable
 from concurrent import futures
 import logging
+from typing import Final
 
 from serial_asyncio import SerialTransport
 
@@ -33,6 +34,7 @@ STICK_RECEIVER_EVENTS = (
     StickEvent.CONNECTED,
     StickEvent.DISCONNECTED
 )
+CACHED_REQUESTS: Final = 50
 
 
 async def delayed_run(coroutine: Callable, seconds: float):
@@ -55,8 +57,8 @@ class StickReceiver(Protocol):
         self._transport: SerialTransport | None = None
         self._buffer: bytes = bytes([])
         self._connection_state = False
-        self._request_queue = Queue()
-        self._last_20_processed_messages: list[bytes] = []
+        self._receive_queue: Queue[PlugwiseResponse | None] = Queue()
+        self._last_processed_messages: list[bytes] = []
         self._stick_future: futures.Future | None = None
         self._responses: dict[bytes, Callable[[PlugwiseResponse], None]] = {}
         self._stick_response_future: futures.Future | None = None
@@ -127,7 +129,7 @@ class StickReceiver(Protocol):
 
     async def _stop_running_tasks(self) -> None:
         """Cancel and stop any running task."""
-        await self._request_queue.put(None)
+        await self._receive_queue.put(None)
         if self._msg_processing_task is not None and not self._msg_processing_task.done():
             self._msg_processing_task.cancel()
             await wait([self._msg_processing_task])
@@ -151,7 +153,7 @@ class StickReceiver(Protocol):
 
     def _put_message_in_receiver_queue(self, response: PlugwiseResponse) -> None:
         """Put message in queue."""
-        self._request_queue.put_nowait(response)
+        self._receive_queue.put_nowait(response)
         if self._msg_processing_task is None or self._msg_processing_task.done():
             self._msg_processing_task = self._loop.create_task(
                 self._msg_queue_processing_function(),
@@ -196,19 +198,19 @@ class StickReceiver(Protocol):
 
     async def _msg_queue_processing_function(self):
         """Process queue items."""
-        while self.is_connected and self._request_queue.qsize() > 0:
-            response: PlugwiseResponse | None = await self._request_queue.get()
+        while self.is_connected:
+            response: PlugwiseResponse | None = await self._receive_queue.get()
             _LOGGER.debug("Processing started for %s", response)
             if isinstance(response, StickResponse):
                 await self._notify_stick_response_subscribers(response)
             elif response is None:
-                self._request_queue.task_done()
+                self._receive_queue.task_done()
                 return
             else:
-                _LOGGER.debug("Processing %s", response)
                 await self._notify_node_response_subscribers(response)
-            self._request_queue.task_done()
             _LOGGER.debug("Processing finished for %s", response)
+            self._receive_queue.task_done()
+            await sleep(0)
 
     def _reset_buffer(self, new_buffer: bytes) -> None:
         if new_buffer[:2] == MESSAGE_FOOTER:
@@ -280,6 +282,7 @@ class StickReceiver(Protocol):
         node_response_callback: Callable[[PlugwiseResponse], Awaitable[bool]],
         mac: bytes | None = None,
         message_ids: tuple[bytes] | None = None,
+        seq_id: bytes | None = None,
     ) -> Callable[[], None]:
         """Subscribe a awaitable callback to be called when a specific message is received.
 
@@ -291,36 +294,45 @@ class StickReceiver(Protocol):
 
         self._node_response_subscribers[
             remove_listener
-        ] = (node_response_callback, mac, message_ids)
+        ] = (node_response_callback, mac, message_ids, seq_id)
         return remove_listener
 
-    async def _notify_node_response_subscribers(self, node_response: PlugwiseResponse, delayed: bool = False) -> None:
+    async def _notify_node_response_subscribers(self, node_response: PlugwiseResponse, retries: int = 0) -> None:
         """Call callback for all node response message subscribers."""
         processed = False
-        for callback, mac, message_ids in list(
+        for callback, mac, message_ids, seq_id in list(
             self._node_response_subscribers.values()
         ):
-            if mac is not None:
-                if mac != node_response.mac:
-                    continue
-            if message_ids is not None:
-                if node_response.identifier not in message_ids:
-                    continue
-            processed = await callback(node_response)
+            if mac is not None and mac != node_response.mac:
+                continue
+            if message_ids is not None and node_response.identifier not in message_ids:
+                continue
+            if seq_id is not None and seq_id != node_response.seq_id:
+                continue
+            processed = True
+            try:
+                await callback(node_response)
+            except Exception as err:
+                _LOGGER.error("ERROR AT _notify_node_response_subscribers: %s", err)
 
         if processed:
-            self._last_20_processed_messages.append(node_response.seq_id)
-            if len(self._last_20_processed_messages) > 20:
-                self._last_20_processed_messages = self._last_20_processed_messages[:-20]
+            self._last_processed_messages.append(node_response.seq_id)
+            if len(self._last_processed_messages) > CACHED_REQUESTS:
+                self._last_processed_messages = self._last_processed_messages[:-CACHED_REQUESTS]
             return
 
-        if node_response.seq_id in self._last_20_processed_messages:
+        if node_response.seq_id in self._last_processed_messages:
             _LOGGER.debug("Drop duplicate %s", node_response)
             return
 
-        _LOGGER.warning(
-            "No subscriber to handle %s, seq_id=%s from %s",
-            node_response.__class__.__name__,
-            node_response.seq_id,
-            node_response.mac_decoded,
-        )
+        if retries > 10:
+            _LOGGER.warning(
+                "No subscriber to handle %s, seq_id=%s from %s after 10 retries",
+                node_response.__class__.__name__,
+                node_response.seq_id,
+                node_response.mac_decoded,
+            )
+            return
+        retries += 1
+        await sleep(0.01)
+        await self._notify_node_response_subscribers(node_response, retries)
