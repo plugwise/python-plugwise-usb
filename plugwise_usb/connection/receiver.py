@@ -144,7 +144,7 @@ class StickReceiver(Protocol):
                 if (response := self.extract_message_from_line_buffer(msg)):
                     self._put_message_in_receiver_queue(response)
             if len(msgs) > 4:
-                _LOGGER.debug("Stick gave %d messages at once", len(msgs))
+                _LOGGER.debug("Reading %d messages at once from USB-Stick", len(msgs))
             self._buffer = msgs[-1]  # whatever was left over
             if self._buffer == b"\x83":
                 self._buffer = b""
@@ -180,7 +180,7 @@ class StickReceiver(Protocol):
             _LOGGER.warning(err)
             return None
 
-        _LOGGER.debug("USB Got %s", response)
+        _LOGGER.debug("Reading '%s' from USB-Stick", response)
         return response
 
     def _populate_message(
@@ -198,6 +198,7 @@ class StickReceiver(Protocol):
         """Process queue items."""
         while self.is_connected and self._request_queue.qsize() > 0:
             response: PlugwiseResponse | None = await self._request_queue.get()
+            _LOGGER.debug("Processing started for %s", response)
             if isinstance(response, StickResponse):
                 await self._notify_stick_response_subscribers(response)
             elif response is None:
@@ -207,6 +208,7 @@ class StickReceiver(Protocol):
                 _LOGGER.debug("Processing %s", response)
                 await self._notify_node_response_subscribers(response)
             self._request_queue.task_done()
+            _LOGGER.debug("Processing finished for %s", response)
 
     def _reset_buffer(self, new_buffer: bytes) -> None:
         if new_buffer[:2] == MESSAGE_FOOTER:
