@@ -328,16 +328,15 @@ class PlugwiseCircle(PlugwiseNode):
             if len(missing_addresses) == 0:
                 await self.power_update()
                 _LOGGER.debug(
-                    "async_energy_update for %s | .. == 0 | %s",
+                    "async_energy_update for %s | no missing log records",
                     self.mac,
-                    missing_addresses,
                 )
                 return self._energy_counters.energy_statistics
             if len(missing_addresses) == 1:
                 if await self.energy_log_update(missing_addresses[0]):
                     await self.power_update()
                     _LOGGER.debug(
-                        "async_energy_update for %s | .. == 1 | %s",
+                        "async_energy_update for %s | single energy log is missing | %s",
                         self.mac,
                         missing_addresses,
                     )
