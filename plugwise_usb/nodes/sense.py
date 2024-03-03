@@ -124,7 +124,7 @@ class PlugwiseSense(NodeSED):
             elif feature == NodeFeature.PING:
                 states[NodeFeature.PING] = await self.ping_update()
             else:
-                state_result = await super().get_state([feature])
+                state_result = await super().get_state((feature,))
                 states[feature] = state_result[feature]
 
         return states
