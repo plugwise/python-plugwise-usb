@@ -41,7 +41,6 @@ class StickSender:
         self._stick_response: Future[bytes] | None = None
         self._stick_lock = Lock()
         self._current_request: None | PlugwiseRequest = None
-        self._open_requests: dict[bytes, PlugwiseRequest] = {}
         self._unsubscribe_stick_response = (
             self._receiver.subscribe_to_stick_responses(
                 self._process_stick_response
@@ -89,9 +88,8 @@ class StickSender:
             # Update request with session id
             _LOGGER.debug("Request '%s' was accepted by USB-stick with seq_id %s", request, str(seq_id))
             request.seq_id = seq_id
-            self._open_requests[seq_id] = request
         finally:
-            self._stick_response = None
+            self._stick_response.cancel()
             self._stick_lock.release()
 
     async def _process_stick_response(self, response: StickResponse) -> None:
@@ -101,21 +99,11 @@ class StickSender:
             return
 
         if response.ack_id != StickResponseType.ACCEPT:
-            #
-            # TODO
-            # Verify if we actually do receive any non ACCEPT stick response as the first response
-            # after submitting an request.
-            #
-            _LOGGER.warning("Received %s as POSSIBLE reply to %s", response, self._current_request)
+            # Only ACCEPT stick responses contain the seq_id we need for this request.
+            # Other stick responses are not related to this request.
             return
         _LOGGER.debug("Received %s as reply to %s", response, self._current_request)
         self._stick_response.set_result(response.seq_id)
-        await self._stick_lock.acquire()
-        if response.seq_id in self._open_requests:
-            del self._open_requests[response.seq_id]
-        else:
-            return
-        self._stick_lock.release()
 
     def stop(self) -> None:
         """Stop sender."""
