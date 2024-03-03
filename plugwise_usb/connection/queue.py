@@ -95,9 +95,9 @@ class StickQueue:
                 return response
             except (NodeTimeout, StickTimeout) as e:
                 if request.resend:
-                    _LOGGER.info("%s, retrying", e)
+                    _LOGGER.debug("%s, retrying", e)
                 else:
-                    _LOGGER.warning("%s after %s attempts. Cancel request", e, request.max_retries)
+                    _LOGGER.warning("%s after %s attempts, cancel request", e, request.max_retries)
             except StickError as exception:
                 _LOGGER.error(exception)
                 raise StickError(
