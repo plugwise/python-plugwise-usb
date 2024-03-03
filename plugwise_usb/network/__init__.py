@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from asyncio import gather
+from asyncio import create_task, gather, sleep
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta
 import logging
@@ -205,16 +205,16 @@ class StickNetwork:
             self._awake_discovery[mac] = response.timestamp
             return True
         if self._register.network_address(mac) is None:
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "Skip node awake message for %s because network registry address is unknown",
                 mac
             )
             return False
         address: int | None = self._register.network_address(mac)
         if self._nodes.get(mac) is None:
-            await self._discover_node(address, mac, None)
-            await self._load_node(mac)
-            await self._notify_node_event_subscribers(NodeEvent.AWAKE, mac)
+            create_task(
+                self._discover_battery_powered_node(address, mac)
+            )
         return True
 
     async def node_join_available_message(
@@ -381,11 +381,25 @@ class StickNetwork:
         )  # type: ignore [assignment]
         return (info_response, ping_response)
 
+    async def _discover_battery_powered_node(
+        self,
+        address: int,
+        mac: str,
+    ) -> bool:
+        """Discover a battery powered node and add it to list of nodes.
+
+        Return True if discovery succeeded.
+        """
+        await self._discover_node(address, mac, node_type=None, ping_first=False)
+        await self._load_node(mac)
+        await self._notify_node_event_subscribers(NodeEvent.AWAKE, mac)
+
     async def _discover_node(
         self,
         address: int,
         mac: str,
-        node_type: NodeType | None
+        node_type: NodeType | None,
+        ping_first: bool = True,
     ) -> bool:
         """Discover node and add it to list of nodes.
 
@@ -397,7 +411,6 @@ class StickNetwork:
 
         if node_type is not None:
             self._create_node_object(mac, address, node_type)
-            self._nodes[mac].initialize()
             await self._notify_node_event_subscribers(
                 NodeEvent.DISCOVERED, mac
             )
@@ -405,7 +418,7 @@ class StickNetwork:
 
         # Node type is unknown, so we need to discover it first
         _LOGGER.debug("Starting the discovery of node %s", mac)
-        node_info, node_ping = await self.get_node_details(mac, True)
+        node_info, node_ping = await self.get_node_details(mac, ping_first)
         if node_info is None:
             return False
         self._create_node_object(mac, address, node_info.node_type)
@@ -428,6 +441,7 @@ class StickNetwork:
                         address, mac, node_type
                     )
                 counter += 1
+                await sleep(0)
         _LOGGER.debug(
             "Total %s registered node(s)",
             str(counter)
