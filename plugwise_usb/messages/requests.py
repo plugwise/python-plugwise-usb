@@ -66,13 +66,13 @@ class PlugwiseRequest(PlugwiseMessage):
         self._reply_identifier: bytes = b"0000"
         self._response: PlugwiseResponse | None = None
         self._stick_subscription_fn: Callable[[], None] | None = None
+        self._node_subscription_fn: Callable[[], None] | None = None
         self._unsubscribe_stick_response: Callable[[], None] | None = None
         self._unsubscribe_node_response: Callable[[], None] | None = None
         self._response_timeout: TimerHandle | None = None
         self._response_future: Future[PlugwiseResponse] = (
             self._loop.create_future()
         )
-        self._other = False
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
@@ -102,12 +102,32 @@ class PlugwiseRequest(PlugwiseMessage):
     def seq_id(self, seq_id: bytes) -> None:
         """Assign sequence id."""
         self._seq_id = seq_id
-        if self._unsubscribe_stick_response is not None:
-            return
+        self._unsubscribe_from_stick()
         self._unsubscribe_stick_response = self._stick_subscription_fn(
             self._process_stick_response,
             seq_id=seq_id
         )
+        self._unsubscribe_from_node()
+        self._unsubscribe_node_response = (
+            self._node_subscription_fn(
+                self._process_node_response,
+                mac=self._mac,
+                message_ids=(self._reply_identifier,),
+                seq_id=seq_id
+            )
+        )
+
+    def _unsubscribe_from_stick(self) -> None:
+        """Unsubscribe from StickResponse messages."""
+        if self._unsubscribe_stick_response is not None:
+            self._unsubscribe_stick_response()
+            self._unsubscribe_stick_response = None
+
+    def _unsubscribe_from_node(self) -> None:
+        """Unsubscribe from NodeResponse messages."""
+        if self._unsubscribe_node_response is not None:
+            self._unsubscribe_node_response()
+            self._unsubscribe_node_response = None
 
     def subscribe_to_responses(
         self,
@@ -115,13 +135,7 @@ class PlugwiseRequest(PlugwiseMessage):
         node_subscription_fn: Callable[[], None]
     ) -> None:
         """Register for response messages."""
-        self._unsubscribe_node_response = (
-            node_subscription_fn(
-                self._process_node_response,
-                mac=self._mac,
-                message_ids=(self._reply_identifier,),
-            )
-        )
+        self._node_subscription_fn = node_subscription_fn
         self._stick_subscription_fn = stick_subscription_fn
 
     def start_response_timeout(self) -> None:
@@ -140,9 +154,8 @@ class PlugwiseRequest(PlugwiseMessage):
         """Handle response timeout."""
         if self._response_future.done():
             return
-        if self._unsubscribe_node_response is not None:
-            self._unsubscribe_node_response()
-            self._unsubscribe_node_response = None
+        self._unsubscribe_from_stick()
+        self._unsubscribe_from_node()
         if stick_timeout:
             self._response_future.set_exception(
                 StickTimeout(
@@ -166,23 +179,19 @@ class PlugwiseRequest(PlugwiseMessage):
     async def _process_node_response(self, response: PlugwiseResponse) -> bool:
         """Process incoming message from node."""
         if self._seq_id is not None and self._seq_id == response.seq_id:
-            self._unsubscribe_stick_response()
             self._response = response
             self.stop_response_timeout()
             if not self._response_future.done():
                 if self._send_counter > 1:
-                    _LOGGER.info("Response %s for retried request %s id %d", response, self, self._id)
-                elif self._other:
                     _LOGGER.info("Received '%s' as reply to retried '%s' id %d", response, self, self._id)
                 else:
                     _LOGGER.debug("Received '%s' as reply to '%s' id %d", response, self, self._id)
                 self._response_future.set_result(response)
             else:
-                _LOGGER.warning("Response %s for request %s id %d already done", response, self, self._id)
-
-            self._unsubscribe_node_response()
+                _LOGGER.warning("Received '%s' as reply to '%s' id %d already done", response, self, self._id)
+            self._unsubscribe_from_stick()
+            self._unsubscribe_from_node()
             return True
-        self._other = True
         if self._seq_id:
             _LOGGER.warning("Received '%s' as reply to '%s' which is not correct (seq_id=%s)", response, self, str(response.seq_id))
         else:
@@ -198,9 +207,7 @@ class PlugwiseRequest(PlugwiseMessage):
             if stick_response.ack_id == StickResponseType.TIMEOUT:
                 self._response_timeout_expired(stick_timeout=True)
             elif stick_response.ack_id == StickResponseType.FAILED:
-                if self._unsubscribe_node_response is not None:
-                    self._unsubscribe_node_response()
-                    self._unsubscribe_node_response = None
+                self._unsubscribe_from_node()
                 self._response_future.set_exception(
                     NodeError(
                         f"Stick failed request {self._seq_id}"
