@@ -154,6 +154,11 @@ class PlugwiseNode(FeaturePublisher, ABC):
         return self._available
 
     @property
+    def battery_powered(self) -> bool:
+        """Return if node is battery powered."""
+        return self._node_info.battery_powered
+
+    @property
     def energy(self) -> EnergyStatistics | None:
         """"Return energy statistics."""
         if NodeFeature.POWER not in self._features:
