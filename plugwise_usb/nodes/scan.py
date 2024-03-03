@@ -195,6 +195,6 @@ class PlugwiseScan(NodeSED):
             if feature == NodeFeature.MOTION:
                 states[NodeFeature.MOTION] = self._motion_state
             else:
-                state_result = await super().get_state([feature])
+                state_result = await super().get_state((feature,))
                 states[feature] = state_result[feature]
         return states
