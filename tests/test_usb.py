@@ -52,7 +52,7 @@ def inc_seq_id(seq_id: bytes) -> bytes:
 
 
 def construct_message(data: bytes, seq_id: bytes = b"0000") -> bytes:
-    """construct plugwise message."""
+    """Construct plugwise message."""
     body = data[:4] + seq_id + data[4:]
     return (
         pw_constants.MESSAGE_HEADER
@@ -225,15 +225,17 @@ class TestStick:
             assert stick.network_id
         assert not stick.network_discovered
         assert not stick.network_state
+
         with pytest.raises(pw_exceptions.StickError):
             await stick.connect()
         stick.port = "null"
         with pytest.raises(pw_exceptions.StickError):
             await stick.connect()
+        await stick.disconnect()
 
     @pytest.mark.asyncio
     async def test_stick_reconnect(self, monkeypatch):
-        """Test connecting to stick while already connected"""
+        """Test connecting to stick while already connected."""
         monkeypatch.setattr(
             pw_connection_manager,
             "create_serial_connection",
@@ -291,7 +293,7 @@ class TestStick:
                 }
             ).mock_connection,
         )
-        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 5)
+        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.5)
         stick = pw_stick.Stick()
         await stick.connect("test_port")
         with pytest.raises(pw_exceptions.StickError):
@@ -446,8 +448,8 @@ class TestStick:
             "create_serial_connection",
             mock_serial.mock_connection,
         )
-        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
-        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
+        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.1)
+        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 0.5)
         stick = pw_stick.Stick("test_port", cache_enabled=False)
         await stick.connect()
         await stick.initialize()
@@ -543,8 +545,8 @@ class TestStick:
             "create_serial_connection",
             mock_serial.mock_connection,
         )
-        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
-        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
+        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.1)
+        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 0.5)
         stick = pw_stick.Stick("test_port", cache_enabled=False)
         await stick.connect()
         await stick.initialize()
@@ -1310,7 +1312,7 @@ class TestStick:
             mock_serial.mock_connection,
         )
         monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
-        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
+        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 1.0)
         stick = pw_stick.Stick(port="test_port", cache_enabled=False)
         await stick.connect()
         with pytest.raises(pw_exceptions.StickError):
