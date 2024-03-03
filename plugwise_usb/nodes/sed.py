@@ -6,9 +6,9 @@ from asyncio import CancelledError, Future, get_event_loop, wait_for
 from collections.abc import Callable
 from datetime import datetime
 import logging
-from typing import Final
+from typing import Any, Final
 
-from ..api import NodeInfo
+from ..api import NodeFeature, NodeInfo
 from ..connection import StickController
 from ..exceptions import NodeError, NodeTimeout
 from ..messages.requests import NodeSleepConfigRequest
@@ -202,3 +202,21 @@ class NodeSED(PlugwiseNode):
             raise NodeError("SED failed to configure sleep settings")
         if response.ack_id == NodeResponseType.SLEEP_CONFIG_ACCEPTED:
             self._maintenance_interval = maintenance_interval
+
+    @raise_not_loaded
+    async def get_state(
+        self, features: tuple[NodeFeature]
+    ) -> dict[NodeFeature, Any]:
+        """Update latest state for given feature."""
+        states: dict[NodeFeature, Any] = {}
+        for feature in features:
+            if feature not in self._features:
+                raise NodeError(
+                    f"Update of feature '{feature.name}' is "
+                    + f"not supported for {self.mac}"
+                )
+            if feature == NodeFeature.INFO:
+                states[NodeFeature.INFO] = await self.node_info_update()
+            else:
+                state_result = await super().get_state((feature,))
+                states[feature] = state_result[feature]
