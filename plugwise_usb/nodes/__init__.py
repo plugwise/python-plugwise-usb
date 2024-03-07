@@ -619,7 +619,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
             if feature == NodeFeature.INFO:
                 states[NodeFeature.INFO] = await self.node_info_update()
             elif feature == NodeFeature.AVAILABLE:
-                states[NodeFeature.AVAILABLE] = self.available
+                states[NodeFeature.AVAILABLE] = self._available
             elif feature == NodeFeature.PING:
                 states[NodeFeature.PING] = await self.ping_update()
             else:
