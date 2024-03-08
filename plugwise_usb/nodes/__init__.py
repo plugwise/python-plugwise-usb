@@ -544,15 +544,12 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     async def is_online(self) -> bool:
         """Check if node is currently online."""
-        ping_response: NodePingResponse | None = await self.ping_update()
-        if ping_response is None:
+        if await self.ping_update() is None:
             _LOGGER.debug(
                 "No response to ping for %s",
                 self.mac
             )
-            await self._available_update_state(False)
             return False
-        await self._available_update_state(True)
         return True
 
     async def ping_update(
