@@ -21,7 +21,7 @@ from ..api import (
 )
 from ..connection import StickController
 from ..constants import UTF8, MotionSensitivity
-from ..exceptions import NodeError, StickError
+from ..exceptions import NodeError
 from ..messages.requests import NodeInfoRequest, NodePingRequest
 from ..messages.responses import NodeInfoResponse, NodePingResponse
 from ..util import version_to_model
