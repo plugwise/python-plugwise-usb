@@ -127,4 +127,5 @@ class PlugwiseSense(NodeSED):
                 state_result = await super().get_state((feature,))
                 states[feature] = state_result[feature]
 
+        states[NodeFeature.AVAILABLE] = self._available
         return states
