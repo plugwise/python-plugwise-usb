@@ -100,7 +100,7 @@ class StickQueue:
                     # For ping requests it is expected to receive timeouts, so lower log level
                     _LOGGER.debug("%s after %s attempts. Cancel request", e, request.max_retries)
                 else:
-                    _LOGGER.warning("%s after %s attempts, cancel request", e, request.max_retries)
+                    _LOGGER.info("%s after %s attempts, cancel request", e, request.max_retries)
             except StickError as exception:
                 _LOGGER.error(exception)
                 raise StickError(
