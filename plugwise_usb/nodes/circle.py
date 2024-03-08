@@ -1017,6 +1017,7 @@ class PlugwiseCircle(PlugwiseNode):
                 )
                 for feature in features:
                     states[feature] = None
+                states[NodeFeature.AVAILABLE] = False
                 return states
 
         for feature in features:
