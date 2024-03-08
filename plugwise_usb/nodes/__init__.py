@@ -546,7 +546,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         """Check if node is currently online."""
         ping_response: NodePingResponse | None = await self.ping_update()
         if ping_response is None:
-            _LOGGER.info(
+            _LOGGER.debug(
                 "No response to ping for %s",
                 self.mac
             )
