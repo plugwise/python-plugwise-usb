@@ -1011,7 +1011,7 @@ class PlugwiseCircle(PlugwiseNode):
         states: dict[NodeFeature, Any] = {}
         if not self._available:
             if not await self.is_online():
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "Node %s did not respond, unable to update state",
                     self.mac
                 )
