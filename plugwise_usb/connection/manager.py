@@ -90,10 +90,7 @@ class StickConnectionManager:
         def remove_subscription() -> None:
             """Remove stick event subscription."""
             self._stick_event_subscribers.pop(remove_subscription)
-
-        self._stick_event_subscribers[
-            remove_subscription
-        ] = (stick_event_callback, events)
+        self._stick_event_subscribers[remove_subscription] = (stick_event_callback, events)
         return remove_subscription
 
     def subscribe_to_stick_replies(
@@ -175,9 +172,7 @@ class StickConnectionManager:
         self._connected = True
         self._subscribe_to_stick_events()
 
-    async def write_to_stick(
-        self, request: PlugwiseRequest
-    ) -> PlugwiseRequest:
+    async def write_to_stick(self, request: PlugwiseRequest) -> None:
         """Write message to USB stick. Returns the updated request object."""
         if not request.resend:
             raise StickError(
@@ -190,7 +185,7 @@ class StickConnectionManager:
                 f"Failed to send {request.__class__.__name__}" +
                 "because USB-Stick connection is not setup"
             )
-        return await self._sender.write_request_to_port(request)
+        await self._sender.write_request_to_port(request)
 
     async def disconnect_from_stick(self) -> None:
         """Disconnect from USB-Stick."""
@@ -199,6 +194,8 @@ class StickConnectionManager:
             self._unsubscribe_stick_events()
             self._unsubscribe_stick_events = None
         self._connected = False
+        if self._sender is not None:
+            self._sender.stop()
         if self._receiver is not None:
             await self._receiver.close()
             self._receiver = None

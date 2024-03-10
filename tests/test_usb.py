@@ -2,12 +2,13 @@ import asyncio
 from datetime import datetime as dt, timedelta as td, timezone as tz
 import importlib
 import logging
+import random
 from unittest.mock import Mock
+
+import pytest
 
 import crcmod
 from freezegun import freeze_time
-import pytest
-
 
 crc_fun = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0x0000, xorOut=0x0000)
 
@@ -51,7 +52,7 @@ def inc_seq_id(seq_id: bytes) -> bytes:
 
 
 def construct_message(data: bytes, seq_id: bytes = b"0000") -> bytes:
-    """construct plugwise message."""
+    """Construct plugwise message."""
     body = data[:4] + seq_id + data[4:]
     return (
         pw_constants.MESSAGE_HEADER
@@ -116,7 +117,6 @@ class DummyTransport:
         self._msg += 1
 
     async def _delayed_response(self, data: bytes, seq_id: bytes) -> None:
-        import random
         delay = random.uniform(0.05, 0.25)
         await asyncio.sleep(delay)
         self.message_response(data, seq_id)
@@ -168,7 +168,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_sorting_request_messages(self):
-        """Test request message priority sorting"""
+        """Test request message priority sorting."""
 
         node_add_request = pw_requests.NodeAddRequest(
             b"1111222233334444", True
@@ -212,7 +212,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_connect_without_port(self):
-        """Test connecting to stick without port config"""
+        """Test connecting to stick without port config."""
         stick = pw_stick.Stick()
         assert stick.accept_join_request is None
         assert stick.nodes == {}
@@ -225,23 +225,17 @@ class TestStick:
             assert stick.network_id
         assert not stick.network_discovered
         assert not stick.network_state
-        unsub_connect = stick.subscribe_to_stick_events(
-            stick_event_callback=lambda x: print(x),
-            events=(pw_api.StickEvent.CONNECTED,),
-        )
-        unsub_nw_online = stick.subscribe_to_stick_events(
-            stick_event_callback=lambda x: print(x),
-            events=(pw_api.StickEvent.NETWORK_ONLINE,),
-        )
+
         with pytest.raises(pw_exceptions.StickError):
             await stick.connect()
         stick.port = "null"
         with pytest.raises(pw_exceptions.StickError):
             await stick.connect()
+        await stick.disconnect()
 
     @pytest.mark.asyncio
     async def test_stick_reconnect(self, monkeypatch):
-        """Test connecting to stick while already connected"""
+        """Test connecting to stick while already connected."""
         monkeypatch.setattr(
             pw_connection_manager,
             "create_serial_connection",
@@ -258,7 +252,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_connect_without_response(self, monkeypatch):
-        """Test connecting to stick without response"""
+        """Test connecting to stick without response."""
         monkeypatch.setattr(
             pw_connection_manager,
             "create_serial_connection",
@@ -285,7 +279,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_connect_timeout(self, monkeypatch):
-        """Test connecting to stick"""
+        """Test connecting to stick."""
         monkeypatch.setattr(
             pw_connection_manager,
             "create_serial_connection",
@@ -299,7 +293,7 @@ class TestStick:
                 }
             ).mock_connection,
         )
-        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 5)
+        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.5)
         stick = pw_stick.Stick()
         await stick.connect("test_port")
         with pytest.raises(pw_exceptions.StickError):
@@ -307,7 +301,7 @@ class TestStick:
         await stick.disconnect()
 
     async def connected(self, event):
-        """Callback helper for stick connected event"""
+        """Set connected state helper."""
         if event is pw_api.StickEvent.CONNECTED:
             self.test_connected.set_result(True)
         else:
@@ -315,7 +309,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_connect(self, monkeypatch):
-        """Test connecting to stick"""
+        """Test connecting to stick."""
         monkeypatch.setattr(
             pw_connection_manager,
             "create_serial_connection",
@@ -348,7 +342,7 @@ class TestStick:
             assert stick.mac_stick
 
     async def disconnected(self, event):
-        """Callback helper for stick disconnect event"""
+        """Handle disconnect event callback."""
         if event is pw_api.StickEvent.DISCONNECTED:
             self.test_disconnected.set_result(True)
         else:
@@ -356,7 +350,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_connection_lost(self, monkeypatch):
-        """Test connecting to stick"""
+        """Test connecting to stick."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
             pw_connection_manager,
@@ -380,7 +374,7 @@ class TestStick:
         await stick.disconnect()
 
     async def node_discovered(self, event: pw_api.NodeEvent, mac: str):
-        """Callback helper for node discovery"""
+        """Handle discovered event callback."""
         if event == pw_api.NodeEvent.DISCOVERED:
             self.test_node_discovered.set_result(mac)
         else:
@@ -392,7 +386,7 @@ class TestStick:
             )
 
     async def node_awake(self, event: pw_api.NodeEvent, mac: str):
-        """Callback helper for node discovery"""
+        """Handle awake event callback."""
         if event == pw_api.NodeEvent.AWAKE:
             self.test_node_awake.set_result(mac)
         else:
@@ -408,27 +402,26 @@ class TestStick:
         feature: pw_api.NodeFeature,
         state: pw_api.MotionState,
     ):
-        """Callback helper for node_motion event"""
+        """Handle motion event callback."""
         if feature == pw_api.NodeFeature.MOTION:
             if state.motion:
                 self.motion_on.set_result(state.motion)
             else:
                 self.motion_off.set_result(state.motion)
+        elif state.motion:
+            self.motion_on.set_exception(
+                BaseException(
+                    f"Invalid {feature} feature, expected " +
+                    f"{pw_api.NodeFeature.MOTION}"
+                )
+            )
         else:
-            if state.motion:
-                self.motion_on.set_exception(
-                    BaseException(
-                        f"Invalid {feature} feature, expected " +
-                        f"{pw_api.NodeFeature.MOTION}"
-                    )
+            self.motion_off.set_exception(
+                BaseException(
+                    f"Invalid {feature} feature, expected " +
+                    f"{pw_api.NodeFeature.MOTION}"
                 )
-            else:
-                self.motion_off.set_exception(
-                    BaseException(
-                        f"Invalid {feature} feature, expected " +
-                        f"{pw_api.NodeFeature.MOTION}"
-                    )
-                )
+            )
 
     async def node_ping(
         self,
@@ -448,15 +441,15 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_node_discovered_subscription(self, monkeypatch):
-        """Testing "new_node" subscription for Scan"""
+        """Testing "new_node" subscription for Scan."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
             pw_connection_manager,
             "create_serial_connection",
             mock_serial.mock_connection,
         )
-        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
-        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
+        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.1)
+        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 0.5)
         stick = pw_stick.Stick("test_port", cache_enabled=False)
         await stick.connect()
         await stick.initialize()
@@ -532,7 +525,7 @@ class TestStick:
         await stick.disconnect()
 
     async def node_join(self, event: pw_api.NodeEvent, mac: str):
-        """Callback helper for node_join event"""
+        """Handle join event callback."""
         if event == pw_api.NodeEvent.JOIN:
             self.test_node_join.set_result(mac)
         else:
@@ -545,15 +538,15 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_node_join_subscription(self, monkeypatch):
-        """Testing "new_node" subscription"""
+        """Testing "new_node" subscription."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
             pw_connection_manager,
             "create_serial_connection",
             mock_serial.mock_connection,
         )
-        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
-        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
+        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.1)
+        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 0.5)
         stick = pw_stick.Stick("test_port", cache_enabled=False)
         await stick.connect()
         await stick.initialize()
@@ -573,7 +566,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_node_discovery(self, monkeypatch):
-        """Testing discovery of nodes"""
+        """Testing discovery of nodes."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
             pw_connection_manager,
@@ -595,7 +588,7 @@ class TestStick:
         feature: pw_api.NodeFeature,
         state: pw_api.RelayState,
     ):
-        """Callback helper for relay event"""
+        """Handle relay event callback."""
         if feature == pw_api.NodeFeature.RELAY:
             if state.relay_state:
                 self.test_relay_state_on.set_result(state.relay_state)
@@ -620,7 +613,7 @@ class TestStick:
         feature: pw_api.NodeFeature,
         state: bool,
     ):
-        """Callback helper for relay event"""
+        """Callback helper for relay event."""
         if feature == pw_api.NodeFeature.RELAY_INIT:
             if state:
                 self.test_init_relay_state_on.set_result(state)
@@ -1131,7 +1124,7 @@ class TestStick:
         assert tst_pc.log_addresses_missing == [1, 0]
 
     def pulse_update(self, timestamp: dt, is_consumption: bool):
-        """Callback helper for pulse updates for energy counter"""
+        """Update pulse helper for energy counter."""
         self._pulse_update += 1
         if self._pulse_update == 1:
             return (None, None)
@@ -1145,7 +1138,7 @@ class TestStick:
 
     @freeze_time(dt.now())
     def test_energy_counter(self):
-        """Testing energy counter class"""
+        """Testing energy counter class."""
         pulse_col_mock = Mock()
         pulse_col_mock.collected_pulses.side_effect = self.pulse_update
 
@@ -1319,7 +1312,7 @@ class TestStick:
             mock_serial.mock_connection,
         )
         monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
-        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
+        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 1.0)
         stick = pw_stick.Stick(port="test_port", cache_enabled=False)
         await stick.connect()
         with pytest.raises(pw_exceptions.StickError):
@@ -1341,13 +1334,66 @@ class TestStick:
         await stick.initialize()
         await stick.discover_nodes(load=True)
 
-        assert stick.nodes["0098765432101234"].node_info.firmware == dt(
-            2011, 6, 27, 8, 47, 37, tzinfo=tz.utc
-        )
+        assert stick.nodes["0098765432101234"].node_info.firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=tz.utc)
         assert stick.nodes["0098765432101234"].node_info.version == "000000730007"
         assert stick.nodes["0098765432101234"].node_info.model == "Circle+ type F"
         assert stick.nodes["0098765432101234"].node_info.name == "Circle+ 01234"
         assert stick.nodes["0098765432101234"].available
         assert not stick.nodes["0098765432101234"].node_info.battery_powered
+
+        # Get state
+        get_state_timestamp = dt.now(tz.utc).replace(minute=0, second=0, microsecond=0)
+        state = await stick.nodes["0098765432101234"].get_state((pw_api.NodeFeature.PING, pw_api.NodeFeature.INFO))
+
+        # Check Ping
+        assert state[pw_api.NodeFeature.PING].rssi_in == 69
+        assert state[pw_api.NodeFeature.PING].rssi_out == 70
+        assert state[pw_api.NodeFeature.PING].rtt == 1074
+        assert state[pw_api.NodeFeature.PING].timestamp.replace(minute=0, second=0, microsecond=0) == get_state_timestamp
+
+        # Check INFO
+        assert state[pw_api.NodeFeature.INFO].mac == "0098765432101234"
+        assert state[pw_api.NodeFeature.INFO].zigbee_address == -1
+        assert not state[pw_api.NodeFeature.INFO].battery_powered
+        assert sorted(state[pw_api.NodeFeature.INFO].features) == sorted(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.PING,
+                pw_api.NodeFeature.RELAY,
+                pw_api.NodeFeature.ENERGY,
+                pw_api.NodeFeature.POWER,
+            )
+        )
+        assert state[pw_api.NodeFeature.INFO].firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=tz.utc)
+        assert state[pw_api.NodeFeature.INFO].name == "Circle+ 01234"
+        assert state[pw_api.NodeFeature.INFO].model == "Circle+ type F"
+        assert state[pw_api.NodeFeature.INFO].type == pw_api.NodeType.CIRCLE_PLUS
+        assert state[pw_api.NodeFeature.INFO].timestamp.replace(minute=0, second=0, microsecond=0) == get_state_timestamp
+        assert state[pw_api.NodeFeature.INFO].version == "000000730007"
+
+        # Check 1111111111111111
+        get_state_timestamp = dt.now(tz.utc).replace(minute=0, second=0, microsecond=0)
+        state = await stick.nodes["1111111111111111"].get_state(
+            (pw_api.NodeFeature.PING, pw_api.NodeFeature.INFO, pw_api.NodeFeature.RELAY)
+        )
+
+        assert state[pw_api.NodeFeature.INFO].mac == "1111111111111111"
+        assert state[pw_api.NodeFeature.INFO].zigbee_address == 0
+        assert not state[pw_api.NodeFeature.INFO].battery_powered
+        assert state[pw_api.NodeFeature.INFO].version == "000000070140"
+        assert state[pw_api.NodeFeature.INFO].type == pw_api.NodeType.CIRCLE
+        assert state[pw_api.NodeFeature.INFO].timestamp.replace(minute=0, second=0, microsecond=0) == get_state_timestamp
+        assert sorted(state[pw_api.NodeFeature.INFO].features) == sorted(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.PING,
+                pw_api.NodeFeature.RELAY,
+                pw_api.NodeFeature.ENERGY,
+                pw_api.NodeFeature.POWER,
+            )
+        )
+        assert state[pw_api.NodeFeature.RELAY].relay_state
 
         await stick.disconnect()

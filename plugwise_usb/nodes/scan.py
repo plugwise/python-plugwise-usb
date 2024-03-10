@@ -150,11 +150,11 @@ class PlugwiseScan(NodeSED):
                 f"No response from Scan device {self.mac} "
                 + "for configuration request."
             )
-        if response.ack_id == NodeAckResponseType.SCAN_CONFIG_FAILED:
+        if response.node_ack_type == NodeAckResponseType.SCAN_CONFIG_FAILED:
             raise NodeError(
                 f"Scan {self.mac} failed to configure scan settings"
             )
-        if response.ack_id == NodeAckResponseType.SCAN_CONFIG_ACCEPTED:
+        if response.node_ack_type == NodeAckResponseType.SCAN_CONFIG_ACCEPTED:
             self._motion_reset_timer = motion_reset_timer
             self._sensitivity_level = sensitivity_level
             self._daylight_mode = daylight_mode
@@ -171,10 +171,7 @@ class PlugwiseScan(NodeSED):
                 f"No response from Scan device {self.mac} "
                 + "to light calibration request."
             )
-        if (
-            response.ack_id
-            == NodeAckResponseType.SCAN_LIGHT_CALIBRATION_ACCEPTED
-        ):
+        if response.node_ack_type == NodeAckResponseType.SCAN_LIGHT_CALIBRATION_ACCEPTED:
             return True
         return False
 
@@ -198,6 +195,8 @@ class PlugwiseScan(NodeSED):
             if feature == NodeFeature.MOTION:
                 states[NodeFeature.MOTION] = self._motion_state
             else:
-                state_result = await super().get_state([feature])
+                state_result = await super().get_state((feature,))
                 states[feature] = state_result[feature]
+
+        states[NodeFeature.AVAILABLE] = self._available
         return states

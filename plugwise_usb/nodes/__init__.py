@@ -21,7 +21,7 @@ from ..api import (
 )
 from ..connection import StickController
 from ..constants import UTF8, MotionSensitivity
-from ..exceptions import NodeError, StickError
+from ..exceptions import NodeError
 from ..messages.requests import NodeInfoRequest, NodePingRequest
 from ..messages.responses import NodeInfoResponse, NodePingResponse
 from ..util import version_to_model
@@ -152,6 +152,11 @@ class PlugwiseNode(FeaturePublisher, ABC):
     def available(self) -> bool:
         """Return network availability state."""
         return self._available
+
+    @property
+    def battery_powered(self) -> bool:
+        """Return if node is battery powered."""
+        return self._node_info.battery_powered
 
     @property
     def energy(self) -> EnergyStatistics | None:
@@ -539,35 +544,12 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     async def is_online(self) -> bool:
         """Check if node is currently online."""
-        try:
-            ping_response: NodePingResponse | None = await self._send(
-                NodePingRequest(
-                    self._mac_in_bytes, retries=1
-                )
-            )
-        except StickError:
-            _LOGGER.warning(
-                "StickError for is_online() for %s",
-                self.mac
-            )
-            await self._available_update_state(False)
-            return False
-        except NodeError:
-            _LOGGER.warning(
-                "NodeError for is_online() for %s",
-                self.mac
-            )
-            await self._available_update_state(False)
-            return False
-
-        if ping_response is None:
-            _LOGGER.info(
+        if await self.ping_update() is None:
+            _LOGGER.debug(
                 "No response to ping for %s",
                 self.mac
             )
-            await self._available_update_state(False)
             return False
-        await self.ping_update(ping_response)
         return True
 
     async def ping_update(
@@ -614,7 +596,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
             if feature == NodeFeature.INFO:
                 states[NodeFeature.INFO] = await self.node_info_update()
             elif feature == NodeFeature.AVAILABLE:
-                states[NodeFeature.AVAILABLE] = self.available
+                states[NodeFeature.AVAILABLE] = self._available
             elif feature == NodeFeature.PING:
                 states[NodeFeature.PING] = await self.ping_update()
             else:

@@ -9,6 +9,7 @@ from ..api import NodeType
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER, UTF8
 from ..exceptions import MessageError
 from ..util import (
+    BaseType,
     DateTime,
     Float,
     Int,
@@ -110,11 +111,10 @@ class PlugwiseResponse(PlugwiseMessage):
         self._decode_mac = decode_mac
         self._params: list[Any] = []
         self._seq_id: bytes = b"FFFF"
-        self._notify_retries: int = 0
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return f"{self.__class__.__name__} from {self.mac_decoded} seq_id {self.seq_id}"
+        return f"{self.__class__.__name__} from {self.mac_decoded} (seq_id={self.seq_id})"
 
     @property
     def ack_id(self) -> bytes | None:
@@ -126,17 +126,7 @@ class PlugwiseResponse(PlugwiseMessage):
         """Sequence ID."""
         return self._seq_id
 
-    @property
-    def notify_retries(self) -> int:
-        """Return number of notifies."""
-        return self._notify_retries
-
-    @notify_retries.setter
-    def notify_retries(self, retries: int) -> None:
-        """Set number of notification retries."""
-        self._notify_retries = retries
-
-    def deserialize(self, response: bytes) -> None:
+    def deserialize(self, response: bytes, has_footer: bool = True) -> None:
         """Deserialize bytes to actual message properties."""
         self.timestamp = datetime.now(timezone.utc)
         # Header
@@ -150,14 +140,15 @@ class PlugwiseResponse(PlugwiseMessage):
         response = response[4:]
 
         # Footer
-        if response[-2:] != MESSAGE_FOOTER:
-            raise MessageError(
-                "Invalid message footer "
-                + str(response[-2:])
-                + " for "
-                + self.__class__.__name__
-            )
-        response = response[:-2]
+        if has_footer:
+            if response[-2:] != MESSAGE_FOOTER:
+                raise MessageError(
+                    "Invalid message footer "
+                    + str(response[-2:])
+                    + " for "
+                    + self.__class__.__name__
+                )
+            response = response[:-2]
 
         # Checksum
         if (check := self.calculate_checksum(response[:-4])) != response[-4:]:
@@ -228,7 +219,7 @@ class StickResponse(PlugwiseResponse):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return "StickResponse " + str(StickResponseType(self.ack_id).name) + " seq_id" + str(self.seq_id)
+        return f"StickResponse (ack={StickResponseType(self.ack_id).name}, seq_id={str(self.seq_id)})"
 
 
 class NodeResponse(PlugwiseResponse):
@@ -244,6 +235,10 @@ class NodeResponse(PlugwiseResponse):
     def __init__(self) -> None:
         """Initialize NodeResponse message object."""
         super().__init__(b"0000", decode_ack=True)
+
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return f"{super().__repr__()[:-1]}, ack={str(NodeResponseType(self.ack_id).name)})"
 
 
 class StickNetworkInfoResponse(PlugwiseResponse):
@@ -273,9 +268,9 @@ class StickNetworkInfoResponse(PlugwiseResponse):
             self.idx,
         ]
 
-    def deserialize(self, response: bytes) -> None:
+    def deserialize(self, response: bytes, has_footer: bool = True) -> None:
         """Extract data from bytes."""
-        super().deserialize(response)
+        super().deserialize(response, has_footer)
         # Clear first two characters of mac ID, as they contain
         # part of the short PAN-ID
         self.new_node_mac_id.value = b"00" + self.new_node_mac_id.value[2:]
@@ -622,7 +617,7 @@ class NodeInfoResponse(PlugwiseResponse):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return super().__repr__() + f" | log_address={self._logaddress_pointer.value}"
+        return f"{super().__repr__()[:-1]}, log_address_pointer={self._logaddress_pointer.value})"
 
 
 class EnergyCalibrationResponse(PlugwiseResponse):
@@ -742,10 +737,9 @@ class CircleEnergyLogsResponse(PlugwiseResponse):
         """Return the gain A."""
         return self._logaddr.value
 
-
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return "StickResponse " + str(StickResponseType(self.ack_id).name) + " seq_id" + str(self.seq_id) + " | log_address=" + str(self._logaddr.value)
+        return f"{super().__repr__()[:-1]}, log_address={self._logaddr.value})"
 
 
 class NodeAwakeResponse(PlugwiseResponse):
@@ -769,8 +763,17 @@ class NodeAwakeResponse(PlugwiseResponse):
     def __init__(self) -> None:
         """Initialize NodeAwakeResponse message object."""
         super().__init__(NODE_AWAKE_RESPONSE_ID)
-        self.awake_type = Int(0, 2, False)
-        self._params += [self.awake_type]
+        self._awake_type = Int(0, 2, False)
+        self._params += [self._awake_type]
+
+    @property
+    def awake_type(self) -> NodeAwakeResponseType:
+        """Return the node awake type."""
+        return NodeAwakeResponseType(self._awake_type.value)
+
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return f"{super().__repr__()[:-1]}, awake_type={self.awake_type.name})"
 
 
 class NodeSwitchGroupResponse(PlugwiseResponse):
@@ -836,6 +839,17 @@ class NodeAckResponse(PlugwiseResponse):
     def __init__(self) -> None:
         """Initialize NodeAckResponse message object."""
         super().__init__(b"0100")
+        self._node_ack_type = BaseType(0, length=4)
+        self._params += [self._node_ack_type]
+
+    @property
+    def node_ack_type(self) -> NodeAckResponseType:
+        """Return acknowledge response type."""
+        return NodeAckResponseType(self._node_ack_type.value)
+
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return f"{super().__repr__()[:-1]}, Ack={self.node_ack_type.name})"
 
 
 class SenseReportResponse(PlugwiseResponse):

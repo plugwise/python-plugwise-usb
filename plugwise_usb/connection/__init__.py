@@ -200,4 +200,6 @@ class StickController:
         if self._unsubscribe_stick_event is not None:
             self._unsubscribe_stick_event()
             self._unsubscribe_stick_event = None
+        if self._queue.is_running:
+            await self._queue.stop()
         await self._manager.disconnect_from_stick()

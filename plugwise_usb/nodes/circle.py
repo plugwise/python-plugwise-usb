@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from asyncio import create_task, sleep
-from collections.abc import Awaitable, Callable
+from asyncio import Task, create_task, gather, sleep, wait
+from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import wraps
 import logging
@@ -40,7 +40,7 @@ from ..messages.responses import (
 from ..nodes import EnergyStatistics, PlugwiseNode, PowerStatistics
 from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
-from .helpers.pulses import PulseLogRecord
+from .helpers.pulses import PulseLogRecord, calc_log_address
 
 CACHE_CURRENT_LOG_ADDRESS = "current_log_address"
 CACHE_CALIBRATION_GAIN_A = "calibration_gain_a"
@@ -70,7 +70,7 @@ def raise_calibration_missing(func: FuncT) -> FuncT:
 class PlugwiseCircle(PlugwiseNode):
     """Plugwise Circle node."""
 
-    _retrieve_energy_logs_task: None | Awaitable = None
+    _retrieve_energy_logs_task: None | Task = None
     _last_energy_log_requested: bool = False
 
     @property
@@ -313,11 +313,12 @@ class PlugwiseCircle(PlugwiseNode):
             if self._energy_counters.log_rollover:
                 # Retry with previous log address as Circle node pointer to self._current_log_address
                 # could be rolled over while the last log is at previous address/slot
-                if not await self.energy_log_update(self._current_log_address - 1):
+                _prev_log_address, _ = calc_log_address(self._current_log_address, 1, -4)
+                if not await self.energy_log_update(_prev_log_address):
                     _LOGGER.debug(
                         "async_energy_update | %s | Log rollover | energy_log_update %s failed",
                         self._node_info.mac,
-                        self._current_log_address - 1,
+                        _prev_log_address,
                     )
                     return
 
@@ -327,16 +328,15 @@ class PlugwiseCircle(PlugwiseNode):
             if len(missing_addresses) == 0:
                 await self.power_update()
                 _LOGGER.debug(
-                    "async_energy_update for %s | .. == 0 | %s",
+                    "async_energy_update for %s | no missing log records",
                     self.mac,
-                    missing_addresses,
                 )
                 return self._energy_counters.energy_statistics
             if len(missing_addresses) == 1:
                 if await self.energy_log_update(missing_addresses[0]):
                     await self.power_update()
                     _LOGGER.debug(
-                        "async_energy_update for %s | .. == 1 | %s",
+                        "async_energy_update for %s | single energy log is missing | %s",
                         self.mac,
                         missing_addresses,
                     )
@@ -368,18 +368,20 @@ class PlugwiseCircle(PlugwiseNode):
                 "Start with initial energy request for the last 10 log addresses for node %s.",
                 self._node_info.mac,
             )
-            for address in range(
-                self._current_log_address,
-                self._current_log_address - 11,
-                -1,
-            ):
-                if not await self.energy_log_update(address):
-                    _LOGGER.debug(
-                        "Failed to update energy log %s for %s",
-                        str(address),
-                        self._mac_in_str,
-                    )
-                    break
+            total_addresses = 11
+            log_address = self._current_log_address
+            log_update_tasks = []
+            while total_addresses > 0:
+                log_update_tasks.append(self.energy_log_update(log_address))
+                log_address, _ = calc_log_address(log_address, 1, -4)
+                total_addresses -= 1
+
+            if not await gather(*log_update_tasks):
+                _LOGGER.warning(
+                    "Failed to request one or more update energy log for %s",
+                    self._mac_in_str,
+                )
+
             if self._cache_enabled:
                 await self._energy_log_records_save_to_cache()
             return
@@ -405,12 +407,12 @@ class PlugwiseCircle(PlugwiseNode):
 
     async def energy_log_update(self, address: int) -> bool:
         """Request energy log statistics from node. Returns true if successful."""
-        request = CircleEnergyLogsRequest(self._mac_in_bytes, address)
-        _LOGGER.debug(
+        _LOGGER.info(
             "Request of energy log at address %s for node %s",
             str(address),
             self._mac_in_str,
         )
+        request = CircleEnergyLogsRequest(self._mac_in_bytes, address)
         response: CircleEnergyLogsResponse | None = None
         if (response := await self._send(request)) is None:
             _LOGGER.debug(
@@ -870,6 +872,7 @@ class PlugwiseCircle(PlugwiseNode):
         """Deactivate and unload node features."""
         if self._retrieve_energy_logs_task is not None and not self._retrieve_energy_logs_task.done():
             self._retrieve_energy_logs_task.cancel()
+            await wait([self._retrieve_energy_logs_task])
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
             await self.save_cache()
@@ -1008,12 +1011,13 @@ class PlugwiseCircle(PlugwiseNode):
         states: dict[NodeFeature, Any] = {}
         if not self._available:
             if not await self.is_online():
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "Node %s did not respond, unable to update state",
                     self.mac
                 )
                 for feature in features:
                     states[feature] = None
+                states[NodeFeature.AVAILABLE] = False
                 return states
 
         for feature in features:
@@ -1045,6 +1049,8 @@ class PlugwiseCircle(PlugwiseNode):
                     states[feature],
                 )
             else:
-                state_result = await super().get_state([feature])
+                state_result = await super().get_state((feature,))
                 states[feature] = state_result[feature]
+
+        states[NodeFeature.AVAILABLE] = self._available
         return states

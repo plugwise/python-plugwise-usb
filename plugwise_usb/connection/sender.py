@@ -20,7 +20,7 @@ from asyncio import Future, Lock, Transport, get_running_loop, wait_for
 import logging
 
 from ..constants import STICK_TIME_OUT
-from ..exceptions import StickError, StickFailed, StickTimeout
+from ..exceptions import StickError
 from ..messages.requests import PlugwiseRequest
 from ..messages.responses import StickResponse, StickResponseType
 from .receiver import StickReceiver
@@ -41,20 +41,14 @@ class StickSender:
         self._stick_response: Future[bytes] | None = None
         self._stick_lock = Lock()
         self._current_request: None | PlugwiseRequest = None
-        self._open_requests: dict[bytes, PlugwiseRequest] = {}
         self._unsubscribe_stick_response = (
             self._receiver.subscribe_to_stick_responses(
                 self._process_stick_response
             )
         )
 
-    async def write_request_to_port(
-        self, request: PlugwiseRequest
-    ) -> PlugwiseRequest:
-        """Send message to serial port of USB stick.
-
-        Returns the updated request object. Raises StickError
-        """
+    async def write_request_to_port(self, request: PlugwiseRequest) -> None:
+        """Send message to serial port of USB stick."""
         await self._stick_lock.acquire()
         self._current_request = request
 
@@ -69,9 +63,8 @@ class StickSender:
             self._receiver.subscribe_to_node_responses,
         )
 
-        _LOGGER.debug("Sending %s", request)
+        _LOGGER.debug("Writing '%s' to USB-Stick", request)
         # Write message to serial port buffer
-        _LOGGER.debug("USB write [%s]", str(serialized_data))
         self._transport.write(serialized_data)
         request.add_send_attempt()
         request.start_response_timeout()
@@ -85,9 +78,7 @@ class StickSender:
             request.assign_error(
                 BaseException(
                     StickError(
-                        f"Failed to send {request.__class__.__name__} " +
-                        "because USB-Stick did not respond " +
-                        f"within {STICK_TIME_OUT} seconds."
+                        f"USB-Stick did not respond within {STICK_TIME_OUT} seconds after writing {request}"
                     )
                 )
             )
@@ -95,76 +86,24 @@ class StickSender:
             request.assign_error(exc)
         else:
             # Update request with session id
-            _LOGGER.debug("Request %s assigned seq_id %s", request, str(seq_id))
+            _LOGGER.debug("Request '%s' was accepted by USB-stick with seq_id %s", request, str(seq_id))
             request.seq_id = seq_id
-            self._open_requests[seq_id] = request
         finally:
-            self._stick_response = None
+            self._stick_response.cancel()
             self._stick_lock.release()
-
-        return request
 
     async def _process_stick_response(self, response: StickResponse) -> None:
         """Process stick response."""
-        if (
-            self._stick_response is None
-            or self._stick_response.done()
-        ):
-
-            if response.ack_id == StickResponseType.TIMEOUT:
-                _LOGGER.warning("%s TIMEOUT", response)
-                if (request := self._open_requests.get(response.seq_id, None)):
-                    _LOGGER.error(
-                        "Failed to send %s because USB-Stick could not send the request to the node.",
-                        request
-                    )
-                    request.assign_error(
-                        BaseException(
-                            StickTimeout(
-                                f"Failed to send {request.__class__.__name__} because USB-Stick could not send the {request} to the {request.mac}."
-                            )
-                        )
-                    )
-                    del self._open_requests[response.seq_id]
-                    return
-
-            _LOGGER.warning(
-                "Unexpected stick response (ack_id=%s, seq_id=%s) received",
-                str(response.ack_id),
-                str(response.seq_id),
-            )
+        if self._stick_response is None or self._stick_response.done():
+            _LOGGER.debug("No open request for %s", str(response))
             return
-        _LOGGER.debug("Received stick %s", response)
 
-        if response.ack_id == StickResponseType.ACCEPT:
-            self._stick_response.set_result(response.seq_id)
-        elif response.ack_id == StickResponseType.FAILED:
-            self._stick_response.set_exception(
-                BaseException(
-                    StickFailed(
-                        "USB-Stick failed to submit "
-                        + f"{self._current_request.__class__.__name__} to "
-                        + f"node '{self._current_request.mac_decoded}'."
-                    )
-                )
-            )
-        elif response.ack_id == StickResponseType.TIMEOUT:
-            self._stick_response.set_exception(
-                BaseException(
-                    StickTimeout(
-                        "USB-Stick timeout to submit "
-                        + f"{self._current_request.__class__.__name__} to "
-                        + f"node '{self._current_request.mac_decoded}'."
-                    )
-                )
-            )
+        if response.ack_id != StickResponseType.ACCEPT:
+            # Only ACCEPT stick responses contain the seq_id we need for this request.
+            # Other stick responses are not related to this request.
             return
-        await self._stick_lock.acquire()
-        if response.seq_id in self._open_requests:
-            del self._open_requests[response.seq_id]
-        else:
-            return
-        self._stick_lock.release()
+        _LOGGER.debug("Received %s as reply to %s", response, self._current_request)
+        self._stick_response.set_result(response.seq_id)
 
     def stop(self) -> None:
         """Stop sender."""
