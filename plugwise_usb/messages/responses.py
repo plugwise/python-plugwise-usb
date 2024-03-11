@@ -232,6 +232,11 @@ class StickResponse(PlugwiseResponse):
         """Convert request into writable str."""
         return f"StickResponse (ack={StickResponseType(self.ack_id).name}, seq_id={str(self.seq_id)})"
 
+    @property
+    def response_type(self) -> StickResponseType:
+        """Return acknowledge response type."""
+        return StickResponseType(self.ack_id)
+
 
 class NodeResponse(PlugwiseResponse):
     """Report status from node to a specific request.
