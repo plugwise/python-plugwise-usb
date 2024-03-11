@@ -35,6 +35,16 @@ class StickController:
         self._network_online = False
 
     @property
+    def reduce_receive_logging(self) -> bool:
+        """Return if logging must reduced."""
+        return self._manager.reduce_receive_logging
+
+    @reduce_receive_logging.setter
+    def reduce_receive_logging(self, state: bool) -> None:
+        """Reduce logging of unhandled received messages."""
+        self._manager.reduce_receive_logging = state
+
+    @property
     def is_initialized(self) -> bool:
         """Returns True if UBS-Stick connection is active and initialized."""
         if not self._manager.is_connected:
