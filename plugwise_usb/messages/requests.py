@@ -101,6 +101,8 @@ class PlugwiseRequest(PlugwiseMessage):
     @seq_id.setter
     def seq_id(self, seq_id: bytes) -> None:
         """Assign sequence id."""
+        if self._seq_id == seq_id:
+            return
         self._seq_id = seq_id
         self._unsubscribe_from_stick()
         self._unsubscribe_stick_response = self._stick_subscription_fn(
