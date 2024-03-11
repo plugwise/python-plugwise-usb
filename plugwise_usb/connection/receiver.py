@@ -27,7 +27,12 @@ from serial_asyncio import SerialTransport
 from ..api import StickEvent
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER
 from ..exceptions import MessageError
-from ..messages.responses import PlugwiseResponse, StickResponse, get_message_object
+from ..messages.responses import (
+    PlugwiseResponse,
+    StickResponse,
+    StickResponseType,
+    get_message_object,
+)
 
 _LOGGER = logging.getLogger(__name__)
 STICK_RECEIVER_EVENTS = (
@@ -266,7 +271,8 @@ class StickReceiver(Protocol):
     def subscribe_to_stick_responses(
         self,
         callback: Callable[[StickResponse], Awaitable[None]],
-        seq_id: bytes | None = None
+        seq_id: bytes | None = None,
+        response_type: StickResponseType | None = None
     ) -> Callable[[], None]:
         """Subscribe to response messages from stick."""
         def remove_subscription() -> None:
@@ -275,17 +281,19 @@ class StickReceiver(Protocol):
 
         self._stick_response_subscribers[
             remove_subscription
-        ] = callback, seq_id
+        ] = callback, seq_id, response_type
         return remove_subscription
 
     async def _notify_stick_response_subscribers(
         self, stick_response: StickResponse
     ) -> None:
         """Call callback for all stick response message subscribers."""
-        for callback, seq_id in list(self._stick_response_subscribers.values()):
+        for callback, seq_id, response_type in list(self._stick_response_subscribers.values()):
             if seq_id is not None:
                 if seq_id != stick_response.seq_id:
                     continue
+            if response_type is not None and response_type != stick_response.response_type:
+                continue
             await callback(stick_response)
 
     def subscribe_to_node_responses(
