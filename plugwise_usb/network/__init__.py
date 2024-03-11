@@ -285,7 +285,7 @@ class StickNetwork:
     ) -> None:
         """Create node object and update network registry."""
         if self._nodes.get(mac) is not None:
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "Skip creating node object because node object for mac %s already exists",
                 mac
             )
@@ -446,6 +446,7 @@ class StickNetwork:
             "Total %s registered node(s)",
             str(counter)
         )
+        self._controller.reduce_receive_logging = False
 
     async def _load_node(self, mac: str) -> bool:
         """Load node."""
