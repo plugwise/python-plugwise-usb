@@ -57,6 +57,7 @@ class StickReceiver(Protocol):
         self._transport: SerialTransport | None = None
         self._buffer: bytes = bytes([])
         self._connection_state = False
+        self._reduce_logging = True
         self._receive_queue: Queue[PlugwiseResponse | None] = Queue()
         self._last_processed_messages: list[bytes] = []
         self._stick_future: futures.Future | None = None
@@ -102,6 +103,16 @@ class StickReceiver(Protocol):
     def is_connected(self) -> bool:
         """Return current connection state of the USB-Stick."""
         return self._connection_state
+
+    @property
+    def reduce_logging(self) -> bool:
+        """Return if logging must reduced."""
+        return self._reduce_logging
+
+    @reduce_logging.setter
+    def reduce_logging(self, reduce_logging: bool) -> None:
+        """Reduce logging."""
+        self._reduce_logging = reduce_logging
 
     def connection_made(self, transport: SerialTransport) -> None:
         """Call when the serial connection to USB-Stick is established."""
