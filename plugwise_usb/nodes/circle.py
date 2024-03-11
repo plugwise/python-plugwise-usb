@@ -280,7 +280,7 @@ class PlugwiseCircle(PlugwiseNode):
     async def energy_update(
         self
     ) -> EnergyStatistics | None:
-        """Update energy usage statistics, returns True if successful."""
+        """Return updated energy usage statistics."""
         if self._current_log_address is None:
             _LOGGER.info(
                 "Unable to update energy logs for node %s because last_log_address is unknown.",
