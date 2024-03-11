@@ -226,7 +226,6 @@ class StickReceiver(Protocol):
                 await self._notify_node_response_subscribers(response)
             _LOGGER.debug("Processing finished for %s", response)
             self._receive_queue.task_done()
-            await sleep(0)
 
     def _reset_buffer(self, new_buffer: bytes) -> None:
         if new_buffer[:2] == MESSAGE_FOOTER:
