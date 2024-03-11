@@ -316,7 +316,7 @@ class StickReceiver(Protocol):
         ] = (node_response_callback, mac, message_ids, seq_id)
         return remove_listener
 
-    async def _notify_node_response_subscribers(self, node_response: PlugwiseResponse, retries: int = 0) -> None:
+    async def _notify_node_response_subscribers(self, node_response: PlugwiseResponse) -> None:
         """Call callback for all node response message subscribers."""
         processed = False
         for callback, mac, message_ids, seq_id in list(
@@ -344,14 +344,22 @@ class StickReceiver(Protocol):
             _LOGGER.debug("Drop duplicate %s", node_response)
             return
 
-        if retries > 10:
-            _LOGGER.warning(
-                "No subscriber to handle %s, seq_id=%s from %s after 10 retries",
-                node_response.__class__.__name__,
-                node_response.seq_id,
-                node_response.mac_decoded,
-            )
+        if node_response.retries > 10:
+            if self._reduce_logging:
+                _LOGGER.debug(
+                    "No subscriber to handle %s, seq_id=%s from %s after 10 retries",
+                    node_response.__class__.__name__,
+                    node_response.seq_id,
+                    node_response.mac_decoded,
+                )
+            else:
+                _LOGGER.warning(
+                    "No subscriber to handle %s, seq_id=%s from %s after 10 retries",
+                    node_response.__class__.__name__,
+                    node_response.seq_id,
+                    node_response.mac_decoded,
+                )
             return
-        retries += 1
+        node_response.retries += 1
         await sleep(0.01)
         await self._notify_node_response_subscribers(node_response, retries)
