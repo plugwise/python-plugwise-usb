@@ -41,9 +41,12 @@ class StickSender:
         self._stick_response: Future[bytes] | None = None
         self._stick_lock = Lock()
         self._current_request: None | PlugwiseRequest = None
+
+        # Subscribe to ACCEPT stick responses, which contain the seq_id we need.
+        # Other stick responses are not related to this request.
         self._unsubscribe_stick_response = (
             self._receiver.subscribe_to_stick_responses(
-                self._process_stick_response
+                self._process_stick_response, None, StickResponseType.ACCEPT
             )
         )
 
@@ -96,11 +99,6 @@ class StickSender:
         """Process stick response."""
         if self._stick_response is None or self._stick_response.done():
             _LOGGER.debug("No open request for %s", str(response))
-            return
-
-        if response.ack_id != StickResponseType.ACCEPT:
-            # Only ACCEPT stick responses contain the seq_id we need for this request.
-            # Other stick responses are not related to this request.
             return
         _LOGGER.debug("Received %s as reply to %s", response, self._current_request)
         self._stick_response.set_result(response.seq_id)
