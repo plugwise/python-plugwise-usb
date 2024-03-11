@@ -16,7 +16,7 @@ process flow
 """
 from __future__ import annotations
 
-from asyncio import Future, Lock, Transport, get_running_loop, wait_for
+from asyncio import Future, Lock, Transport, get_running_loop, timeout
 import logging
 
 from ..constants import STICK_TIME_OUT
@@ -74,9 +74,8 @@ class StickSender:
 
         # Wait for USB stick to accept request
         try:
-            seq_id: bytes = await wait_for(
-                self._stick_response, timeout=STICK_TIME_OUT
-            )
+            async with timeout(STICK_TIME_OUT):
+                request.seq_id = await self._stick_response
         except TimeoutError:
             request.assign_error(
                 BaseException(
@@ -88,9 +87,7 @@ class StickSender:
         except BaseException as exc:  # pylint: disable=broad-exception-caught
             request.assign_error(exc)
         else:
-            # Update request with session id
-            _LOGGER.debug("Request '%s' was accepted by USB-stick with seq_id %s", request, str(seq_id))
-            request.seq_id = seq_id
+            _LOGGER.debug("Request '%s' was accepted by USB-stick with seq_id %s", request, str(request.seq_id))
         finally:
             self._stick_response.cancel()
             self._stick_lock.release()
