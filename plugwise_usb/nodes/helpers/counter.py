@@ -289,9 +289,8 @@ class EnergyCounter:
             + self._calibration.off_tot
         )
         calc_value = corrected_pulses / PULSES_PER_KW_SECOND / HOUR_IN_SECONDS
-        # Fix minor miscalculations?
-        if -0.001 < calc_value < 0.001:
-            calc_value = 0.0
+        # Guard for minor negative miscalculations
+        calc_value = max(calc_value, 0.0)
         return calc_value
 
     @property
