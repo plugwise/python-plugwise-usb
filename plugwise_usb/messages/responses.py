@@ -111,10 +111,21 @@ class PlugwiseResponse(PlugwiseMessage):
         self._decode_mac = decode_mac
         self._params: list[Any] = []
         self._seq_id: bytes = b"FFFF"
+        self._retries = 0
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
         return f"{self.__class__.__name__} from {self.mac_decoded} (seq_id={self.seq_id})"
+
+    @property
+    def retries(self) -> int:
+        """Number of retries for processing."""
+        return self._retries
+
+    @retries.setter
+    def retries(self, retries: int) -> None:
+        """Set number of retries for processing."""
+        self._retries = retries
 
     @property
     def ack_id(self) -> bytes | None:
