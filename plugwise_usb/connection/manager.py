@@ -37,6 +37,16 @@ class StickConnectionManager:
         self._unsubscribe_stick_events: Callable[[], None] | None = None
 
     @property
+    def reduce_receive_logging(self) -> bool:
+        """Return if logging must reduced."""
+        return self._receiver.reduce_logging
+
+    @reduce_receive_logging.setter
+    def reduce_receive_logging(self, state: bool) -> None:
+        """Reduce logging of unhandled received messages."""
+        self._receiver.reduce_logging = state
+
+    @property
     def serial_path(self) -> str:
         """Return current port."""
         return self._port
