@@ -12,7 +12,7 @@ LOGGER = logging.getLogger(__name__)
 CACHE_DIR: Final = ".plugwise-cache"
 CACHE_SEPARATOR: str = ";"
 
-LOCAL_TIMEZONE = dt.datetime.now(dt.timezone.utc).astimezone().tzinfo
+LOCAL_TIMEZONE = dt.datetime.now(dt.UTC).astimezone().tzinfo
 UTF8: Final = "utf-8"
 
 # Time
