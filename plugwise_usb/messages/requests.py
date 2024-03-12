@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from asyncio import Future, TimerHandle, get_running_loop
 from collections.abc import Callable
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime
 from enum import Enum
 import logging
 
