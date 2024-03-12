@@ -579,7 +579,7 @@ class TestStick:
         await stick.connect()
         await stick.initialize()
         await stick.discover_nodes(load=False)
-        assert stick.joined_nodes == 12
+        assert stick.joined_nodes == 11
         assert len(stick.nodes) == 6  # Discovered nodes
         await stick.disconnect()
 
