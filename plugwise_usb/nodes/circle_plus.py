@@ -132,7 +132,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             return False
         await self._available_update_state(True)
 
-        _dt_of_circle: datetime = datetime.utcnow().replace(
+        _dt_of_circle: datetime = datetime.now(tz=UTC).replace(
             hour=clock_response.time.value.hour,
             minute=clock_response.time.value.minute,
             second=clock_response.time.value.second,
@@ -155,7 +155,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         node_response: NodeResponse | None = await self._send(
             CirclePlusRealTimeClockSetRequest(
                 self._mac_in_bytes,
-                datetime.utcnow()
+                datetime.now(tz=UTC)
             ),
         )
         if node_response is None:
