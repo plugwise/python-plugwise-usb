@@ -1,10 +1,10 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 import importlib
 
 pw_constants = importlib.import_module("plugwise_usb.constants")
 
 # test using utc timezone
-utc_now = datetime.utcnow().replace(tzinfo=timezone.utc)
+utc_now = datetime.utcnow().replace(tzinfo=UTC)
 
 
 # generate energy log timestamps with fixed hour timestamp used in tests

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from asyncio import Task, create_task, gather, sleep, wait
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from functools import wraps
 import logging
 from typing import Any, TypeVar, cast
@@ -438,7 +438,7 @@ class PlugwiseCircle(PlugwiseNode):
                 await self._energy_log_record_update_state(
                     response.log_address,
                     _slot,
-                    _log_timestamp.replace(tzinfo=timezone.utc),
+                    _log_timestamp.replace(tzinfo=UTC),
                     _log_pulses,
                     import_only=True
                 )
@@ -475,7 +475,7 @@ class PlugwiseCircle(PlugwiseNode):
                             hour=int(timestamp_energy_log[3]),
                             minute=int(timestamp_energy_log[4]),
                             second=int(timestamp_energy_log[5]),
-                            tzinfo=timezone.utc
+                            tzinfo=UTC
                         ),
                         pulses=int(log_fields[3]),
                         import_only=True,
@@ -656,7 +656,7 @@ class PlugwiseCircle(PlugwiseNode):
             minute=clock_response.time.minute.value,
             second=clock_response.time.second.value,
             microsecond=0,
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         )
         clock_offset = (
             clock_response.timestamp.replace(microsecond=0) - _dt_of_circle
