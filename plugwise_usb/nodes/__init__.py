@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC
 from asyncio import create_task
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 import logging
 from typing import Any
 
