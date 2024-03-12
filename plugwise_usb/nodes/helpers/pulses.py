@@ -403,7 +403,12 @@ class PulseCollection:
     def _update_log_interval(self) -> None:
         """Update the detected log interval based on the most recent two logs."""
         if self._logs is None or self._log_production is None:
-            _LOGGER.debug("_update_log_interval | %s | _logs=%s, _log_production=%s", self._mac, self._logs, self._log_production)
+            _LOGGER.debug(
+                "_update_log_interval | %s | _logs=%s, _log_production=%s",
+                self._mac,
+                self._logs,
+                self._log_production
+            )
             return
         last_cons_address, last_cons_slot = self._last_log_reference(is_consumption=True)
         if last_cons_address is None or last_cons_slot is None:
