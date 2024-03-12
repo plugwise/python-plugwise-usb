@@ -651,7 +651,7 @@ class PlugwiseCircle(PlugwiseNode):
         )
         if clock_response is None or clock_response.timestamp is None:
             return False
-        _dt_of_circle = datetime.utcnow().replace(
+        _dt_of_circle = datetime.now(tz=UTC).replace(
             hour=clock_response.time.hour.value,
             minute=clock_response.time.minute.value,
             second=clock_response.time.second.value,
@@ -672,7 +672,7 @@ class PlugwiseCircle(PlugwiseNode):
             node_response: NodeResponse | None = await self._send(
                 CircleClockSetRequest(
                     self._mac_in_bytes,
-                    datetime.utcnow(),
+                    datetime.now(tz=UTC),
                     self._node_protocols.max
                 )
             )

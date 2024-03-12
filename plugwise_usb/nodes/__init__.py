@@ -68,6 +68,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         self._node_cache: NodeCache | None = None
         self._cache_enabled: bool = False
         self._cache_folder: str = ""
+        self._cache_task: Task | None = None
 
         # Sensors
         self._available: bool = False
