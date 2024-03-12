@@ -77,6 +77,7 @@ class StickSender:
             async with timeout(STICK_TIME_OUT):
                 request.seq_id = await self._stick_response
         except TimeoutError:
+            _LOGGER.warning("USB-Stick did not respond within %s seconds after writing %s", STICK_TIME_OUT, request)
             request.assign_error(
                 BaseException(
                     StickError(
