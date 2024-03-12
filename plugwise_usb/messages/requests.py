@@ -195,7 +195,12 @@ class PlugwiseRequest(PlugwiseMessage):
             self._unsubscribe_from_node()
             return True
         if self._seq_id:
-            _LOGGER.warning("Received '%s' as reply to '%s' which is not correct (seq_id=%s)", response, self, str(response.seq_id))
+            _LOGGER.warning(
+                "Received '%s' as reply to '%s' which is not correct (seq_id=%s)",
+                response,
+                self,
+                str(response.seq_id)
+            )
         else:
             _LOGGER.debug("Received '%s' as reply to '%s' has not received seq_id", response, self)
         return False
