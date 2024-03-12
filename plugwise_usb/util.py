@@ -162,7 +162,7 @@ class UnixTimestamp(Int):
 
     def deserialize(self, val: bytes) -> None:
         self.value = datetime.datetime.fromtimestamp(
-            int(val, 16), datetime.timezone.utc
+            int(val, 16), datetime.UTC
         )
 
 
