@@ -1,7 +1,7 @@
 """All known response messages to be received from plugwise devices."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from enum import Enum
 from typing import Any, Final
 
@@ -139,7 +139,7 @@ class PlugwiseResponse(PlugwiseMessage):
 
     def deserialize(self, response: bytes, has_footer: bool = True) -> None:
         """Deserialize bytes to actual message properties."""
-        self.timestamp = datetime.now(timezone.utc)
+        self.timestamp = datetime.now(UTC)
         # Header
         if response[:4] != MESSAGE_HEADER:
             raise MessageError(
