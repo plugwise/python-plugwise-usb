@@ -317,6 +317,10 @@ class StickReceiver(Protocol):
 
     async def _notify_node_response_subscribers(self, node_response: PlugwiseResponse) -> None:
         """Call callback for all node response message subscribers."""
+        if node_response.seq_id in self._last_processed_messages:
+            _LOGGER.debug("Drop duplicate already processed %s", node_response)
+            return
+
         processed = False
         for callback, mac, message_ids, seq_id in list(
             self._node_response_subscribers.values()
@@ -337,10 +341,6 @@ class StickReceiver(Protocol):
             self._last_processed_messages.append(node_response.seq_id)
             if len(self._last_processed_messages) > CACHED_REQUESTS:
                 self._last_processed_messages = self._last_processed_messages[:-CACHED_REQUESTS]
-            return
-
-        if node_response.seq_id in self._last_processed_messages:
-            _LOGGER.debug("Drop duplicate %s", node_response)
             return
 
         if node_response.retries > 10:
