@@ -338,8 +338,9 @@ class StickReceiver(Protocol):
             except Exception as err:
                 _LOGGER.error("ERROR AT _notify_node_response_subscribers: %s", err)
 
-        if processed and node_response.seq_id not in BROADCAST_IDS:
-            self._last_processed_messages.append(node_response.seq_id)
+        if processed:
+            if node_response.seq_id not in BROADCAST_IDS:
+                self._last_processed_messages.append(node_response.seq_id)
             # Limit tracking to only the last appended request (FIFO)
             self._last_processed_messages = self._last_processed_messages[-CACHED_REQUESTS:]
             return
