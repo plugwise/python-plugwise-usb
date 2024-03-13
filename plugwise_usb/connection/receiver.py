@@ -339,8 +339,8 @@ class StickReceiver(Protocol):
 
         if processed:
             self._last_processed_messages.append(node_response.seq_id)
-            if len(self._last_processed_messages) > CACHED_REQUESTS:
-                self._last_processed_messages = self._last_processed_messages[:-CACHED_REQUESTS]
+            # Limit tracking to only the last appended request (FIFO)
+            self._last_processed_messages = self._last_processed_messages[-CACHED_REQUESTS:]
             return
 
         if node_response.retries > 10:
