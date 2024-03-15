@@ -16,7 +16,7 @@ process flow
 """
 from __future__ import annotations
 
-from asyncio import Future, Lock, Transport, get_running_loop, timeout
+from asyncio import Future, Lock, Transport, get_running_loop, sleep, timeout
 import logging
 
 from ..constants import STICK_TIME_OUT
@@ -100,6 +100,7 @@ class StickSender:
             return
         _LOGGER.debug("Received %s as reply to %s", response, self._current_request)
         self._stick_response.set_result(response.seq_id)
+        await sleep(0)
 
     def stop(self) -> None:
         """Stop sender."""
