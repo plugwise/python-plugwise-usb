@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime as dt, timedelta as td, timezone as tz
+from datetime import UTC, datetime as dt, timedelta as td, timezone as tz
 import importlib
 import logging
 import random
@@ -276,6 +276,7 @@ class TestStick:
         # Still raise StickError connected but without response
         with pytest.raises(pw_exceptions.StickError):
             await stick.initialize()
+        await stick.disconnect()
 
     @pytest.mark.asyncio
     async def test_stick_connect_timeout(self, monkeypatch):
@@ -428,7 +429,7 @@ class TestStick:
         feature: pw_api.NodeFeature,
         ping_collection,
     ):
-        """Callback helper for node ping collection"""
+        """Callback helper for node ping collection."""
         if feature == pw_api.NodeFeature.PING:
             self.node_ping_result.set_result(ping_collection)
         else:
@@ -1142,8 +1143,8 @@ class TestStick:
         pulse_col_mock = Mock()
         pulse_col_mock.collected_pulses.side_effect = self.pulse_update
 
-        fixed_timestamp_utc = dt.now(tz.utc)
-        fixed_timestamp_local = dt.now(dt.now(tz.utc).astimezone().tzinfo)
+        fixed_timestamp_utc = dt.now(UTC)
+        fixed_timestamp_local = dt.now(dt.now(UTC).astimezone().tzinfo)
 
         _LOGGER.debug(
             "test_energy_counter | fixed_timestamp-utc = %s", str(fixed_timestamp_utc)
@@ -1210,7 +1211,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_creating_request_messages(self):
-
+        """Test create request message."""
         node_network_info_request = pw_requests.StickNetworkInfoRequest()
         assert node_network_info_request.serialize() == b"\x05\x05\x03\x030001CAAB\r\n"
         circle_plus_connect_request = pw_requests.CirclePlusConnectRequest(
@@ -1290,7 +1291,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_network_down(self, monkeypatch):
-        """Testing timeout circle+ discovery"""
+        """Testing timeout circle+ discovery."""
         mock_serial = MockSerial(
             {
                 b"\x05\x05\x03\x03000AB43C\r\n": (
@@ -1317,6 +1318,7 @@ class TestStick:
         await stick.connect()
         with pytest.raises(pw_exceptions.StickError):
             await stick.initialize()
+        await stick.disconnect()
 
     @pytest.mark.asyncio
     async def test_node_discovery_and_load(self, monkeypatch):
