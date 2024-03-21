@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import Task, create_task, gather, sleep, wait
+from asyncio import Task, create_task, gather, sleep
 from collections.abc import Callable
 from datetime import UTC, datetime
 from functools import wraps
@@ -146,8 +146,7 @@ class PlugwiseCircle(PlugwiseNode):
             await self._available_update_state(False)
             return False
         await self._available_update_state(True)
-
-        self._calibration_update_state(
+        await self._calibration_update_state(
             calibration_response.gain_a,
             calibration_response.gain_b,
             calibration_response.off_noise,
@@ -175,7 +174,7 @@ class PlugwiseCircle(PlugwiseNode):
             cal_tot = float(tot)
 
         # Restore calibration
-        result = self._calibration_update_state(
+        result = await self._calibration_update_state(
             cal_gain_a,
             cal_gain_b,
             cal_noise,
@@ -193,7 +192,7 @@ class PlugwiseCircle(PlugwiseNode):
         )
         return False
 
-    def _calibration_update_state(
+    async def _calibration_update_state(
         self,
         gain_a: float | None,
         gain_b: float | None,
@@ -222,8 +221,7 @@ class PlugwiseCircle(PlugwiseNode):
             self._set_cache(CACHE_CALIBRATION_GAIN_B, gain_b)
             self._set_cache(CACHE_CALIBRATION_NOISE, off_noise)
             self._set_cache(CACHE_CALIBRATION_TOT, off_tot)
-            if self._loaded and self._initialized:
-                create_task(self.save_cache())
+            await self.save_cache()
         return True
 
     @raise_calibration_missing
@@ -400,7 +398,7 @@ class PlugwiseCircle(PlugwiseNode):
             missing_addresses = sorted(missing_addresses, reverse=True)
             for address in missing_addresses:
                 await self.energy_log_update(address)
-                await sleep(0.3)
+                await sleep(0.01)
 
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
@@ -443,9 +441,7 @@ class PlugwiseCircle(PlugwiseNode):
                     import_only=True
                 )
         self._energy_counters.update()
-        if self._cache_enabled:
-            create_task(self.save_cache())
-        response = None
+        await self.save_cache()
         return True
 
     async def _energy_log_records_load_from_cache(self) -> bool:
@@ -641,8 +637,7 @@ class PlugwiseCircle(PlugwiseNode):
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.RELAY, self._relay_state
             )
-            if self.cache_enabled and self._loaded and self._initialized:
-                create_task(self.save_cache())
+            await self.save_cache()
 
     async def clock_synchronize(self) -> bool:
         """Synchronize clock. Returns true if successful."""
@@ -854,8 +849,7 @@ class PlugwiseCircle(PlugwiseNode):
             self._set_cache(
                 CACHE_CURRENT_LOG_ADDRESS, node_info.current_logaddress_pointer
             )
-            if self.cache_enabled and self._loaded and self._initialized:
-                create_task(self.save_cache())
+            await self.save_cache()
         return self._node_info
 
     async def _node_info_load_from_cache(self) -> bool:
@@ -870,13 +864,13 @@ class PlugwiseCircle(PlugwiseNode):
 
     async def unload(self) -> None:
         """Deactivate and unload node features."""
+        self._loaded = False
         if self._retrieve_energy_logs_task is not None and not self._retrieve_energy_logs_task.done():
             self._retrieve_energy_logs_task.cancel()
-            await wait([self._retrieve_energy_logs_task])
+            await self._retrieve_energy_logs_task
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
-            await self.save_cache()
-        self._loaded = False
+        await super().unload()
 
     async def switch_init_relay(self, state: bool) -> bool:
         """Switch state of initial power-up relay state. Returns new state of relay."""
@@ -939,8 +933,7 @@ class PlugwiseCircle(PlugwiseNode):
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.RELAY_INIT, self._relay_init_state
             )
-            if self.cache_enabled and self._loaded and self._initialized:
-                create_task(self.save_cache())
+            await self.save_cache()
 
     @raise_calibration_missing
     def _calc_watts(

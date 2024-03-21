@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from asyncio import create_task
 from datetime import datetime
 import logging
 from typing import Any, Final
@@ -120,8 +119,7 @@ class PlugwiseScan(NodeSED):
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.MOTION, self._motion_state,
             )
-            if self.cache_enabled and self._loaded and self._initialized:
-                create_task(self.save_cache())
+            await self.save_cache()
 
     async def scan_configure(
         self,
