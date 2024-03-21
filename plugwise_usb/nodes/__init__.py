@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from asyncio import create_task
+from asyncio import Task, create_task
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 import logging
@@ -68,6 +68,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         self._node_cache: NodeCache | None = None
         self._cache_enabled: bool = False
         self._cache_folder: str = ""
+        self._cache_save_task: Task | None = None
 
         # Sensors
         self._available: bool = False
@@ -387,6 +388,8 @@ class PlugwiseNode(FeaturePublisher, ABC):
                 self.mac,
             )
             return False
+        if not self._node_cache.initialized:
+            await self._node_cache.initialize_cache()
         return await self._node_cache.restore_cache()
 
     async def clear_cache(self) -> None:
@@ -449,7 +452,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
             return self._node_info
 
         await self._available_update_state(True)
-        self._node_info_update_state(
+        await self._node_info_update_state(
             firmware=node_info.firmware,
             node_type=node_info.node_type,
             hardware=node_info.hardware,
@@ -491,14 +494,14 @@ class PlugwiseNode(FeaturePublisher, ABC):
                     second=int(data[5]),
                     tzinfo=UTC
                 )
-        return self._node_info_update_state(
+        return await self._node_info_update_state(
             firmware=firmware,
             hardware=hardware,
             node_type=node_type,
             timestamp=timestamp,
         )
 
-    def _node_info_update_state(
+    async def _node_info_update_state(
         self,
         firmware: datetime | None,
         hardware: str | None,
@@ -538,8 +541,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         else:
             self._node_info.type = NodeType(node_type)
             self._set_cache(CACHE_NODE_TYPE, self._node_info.type.value)
-        if self._loaded and self._initialized:
-            create_task(self.save_cache())
+        await self.save_cache()
         return complete
 
     async def is_online(self) -> bool:
@@ -608,7 +610,9 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     async def unload(self) -> None:
         """Deactivate and unload node features."""
-        raise NotImplementedError()
+        if self._cache_save_task is not None and not self._cache_save_task.done():
+            await self._cache_save_task
+        await self.save_cache(trigger_only=False, full_write=True)
 
     def _get_cache(self, setting: str) -> str | None:
         """Retrieve value of specified setting from cache memory."""
@@ -637,9 +641,9 @@ class PlugwiseNode(FeaturePublisher, ABC):
         else:
             self._node_cache.add_state(setting, str(value))
 
-    async def save_cache(self) -> None:
+    async def save_cache(self, trigger_only: bool = True, full_write: bool = False) -> None:
         """Save current cache to cache file."""
-        if not self._cache_enabled:
+        if not self._cache_enabled or not self._loaded or not self._initialized:
             return
         if self._node_cache is None:
             _LOGGER.warning(
@@ -647,7 +651,12 @@ class PlugwiseNode(FeaturePublisher, ABC):
             )
             return
         _LOGGER.debug("Save cache file for node %s", self.mac)
-        await self._node_cache.save_cache()
+        if self._cache_save_task is not None and not self._cache_save_task.done():
+            await self._cache_save_task
+        if trigger_only:
+            self._cache_save_task = create_task(self._node_cache.save_cache())
+        else:
+            await self._node_cache.save_cache(rewrite=full_write)
 
     @staticmethod
     def skip_update(data_class: Any, seconds: int) -> bool:
