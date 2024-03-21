@@ -24,14 +24,6 @@ from .constants import (
 )
 
 
-def get_writable_cache_dir(root_directory: str = "") -> str:
-    """Put together the default caching directory based on the OS."""
-    if root_directory != "":
-        return root_directory
-    if os.name == "nt" and (data_dir := os.getenv("APPDATA")) is not None:
-        return os.path.join(data_dir, CACHE_DIR)
-    return os.path.join(os.path.expanduser("~"), CACHE_DIR)
-
 
 crc_fun = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0x0000, xorOut=0x0000)
 

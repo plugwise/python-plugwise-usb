@@ -43,6 +43,7 @@ class StickNetworkRegister:
         self._registry: dict[int, tuple[str, NodeType | None]] = {}
         self._first_free_address: int = 65
         self._registration_task: Task | None = None
+        self._network_cache_file_task: Task | None = None
         self._quick_scan_finished: Awaitable | None = None
         self._full_scan_finished: Awaitable | None = None
 # region Properties
@@ -58,10 +59,13 @@ class StickNetworkRegister:
         if enable and not self._cache_enabled:
             _LOGGER.debug("Cache is enabled")
             self._network_cache = NetworkRegistrationCache(self._cache_folder)
+            self._network_cache_file_task = create_task(
+                self._network_cache.initialize_cache()
+            )
         elif not enable and self._cache_enabled:
             if self._network_cache is not None:
-                create_task(
-                    self._network_cache.delete_cache_file()
+                self._network_cache_file_task = create_task(
+                    self._network_cache.delete_cache()
                 )
             _LOGGER.debug("Cache is disabled")
         self._cache_enabled = enable
@@ -77,6 +81,8 @@ class StickNetworkRegister:
         if cache_folder == self._cache_folder:
             return
         self._cache_folder = cache_folder
+        if self._network_cache is not None:
+            self._network_cache.cache_root_directory = cache_folder
 
     @property
     def registry(self) -> dict[int, tuple[str, NodeType | None]]:
@@ -110,6 +116,8 @@ class StickNetworkRegister:
             )
             return
         if not self._cache_restored:
+            if not self._network_cache.initialized:
+                await self._network_cache.initialize_cache()
             await self._network_cache.restore_cache()
         self._cache_restored = True
 
@@ -305,5 +313,5 @@ class StickNetworkRegister:
     async def stop(self) -> None:
         """Unload the network registry."""
         self._stop_registration_task()
-        if self._cache_enabled:
+        if self._cache_enabled and self._network_cache.initialized:
             await self.save_registry_to_cache()

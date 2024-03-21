@@ -84,8 +84,7 @@ class NodeSED(PlugwiseNode):
             self._maintenance_future.cancel()
         if self._awake_subscription is not None:
             self._awake_subscription()
-        await self.save_cache()
-        self._loaded = False
+        await super().unload()
 
     @raise_not_loaded
     async def initialize(self) -> bool:

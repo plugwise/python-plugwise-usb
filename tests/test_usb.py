@@ -3,10 +3,11 @@ from datetime import UTC, datetime as dt, timedelta as td, timezone as tz
 import importlib
 import logging
 import random
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
 
+import aiofiles
 import crcmod
 from freezegun import freeze_time
 
@@ -19,7 +20,9 @@ pw_connection = importlib.import_module("plugwise_usb.connection")
 pw_connection_manager = importlib.import_module(
     "plugwise_usb.connection.manager"
 )
-pw_network = importlib.import_module("plugwise_usb.network")
+pw_helpers_cache = importlib.import_module("plugwise_usb.helpers.cache")
+pw_network_cache = importlib.import_module("plugwise_usb.network.cache")
+pw_node_cache = importlib.import_module("plugwise_usb.nodes.helpers.cache")
 pw_receiver = importlib.import_module("plugwise_usb.connection.receiver")
 pw_sender = importlib.import_module("plugwise_usb.connection.sender")
 pw_constants = importlib.import_module("plugwise_usb.constants")
@@ -162,6 +165,25 @@ class MockSerial:
             self._protocol.connection_made, self._transport
         )
         return self._transport, self._protocol
+
+
+class MockOsPath:
+    """Mock aiofiles.path class."""
+
+    async def exists(self, file_or_path: str) -> bool:
+        """Exists folder."""
+        if file_or_path == "mock_folder_that_exists":
+            return True
+        return file_or_path == "mock_folder_that_exists/file_that_exists.ext"
+
+    async def mkdir(self, path: str) -> None:
+        """Make dir."""
+        return
+
+
+aiofiles.threadpool.wrap.register(MagicMock)(
+    lambda *args, **kwargs: aiofiles.threadpool.AsyncBufferedIOBase(*args, **kwargs)
+)
 
 
 class TestStick:
@@ -374,18 +396,6 @@ class TestStick:
         unsub_disconnect()
         await stick.disconnect()
 
-    async def node_discovered(self, event: pw_api.NodeEvent, mac: str):
-        """Handle discovered event callback."""
-        if event == pw_api.NodeEvent.DISCOVERED:
-            self.test_node_discovered.set_result(mac)
-        else:
-            self.test_node_discovered.set_exception(
-                BaseException(
-                    f"Invalid {event} event, expected " +
-                    f"{pw_api.NodeEvent.DISCOVERED}"
-                )
-            )
-
     async def node_awake(self, event: pw_api.NodeEvent, mac: str):
         """Handle awake event callback."""
         if event == pw_api.NodeEvent.AWAKE:
@@ -421,22 +431,6 @@ class TestStick:
                 BaseException(
                     f"Invalid {feature} feature, expected " +
                     f"{pw_api.NodeFeature.MOTION}"
-                )
-            )
-
-    async def node_ping(
-        self,
-        feature: pw_api.NodeFeature,
-        ping_collection,
-    ):
-        """Callback helper for node ping collection."""
-        if feature == pw_api.NodeFeature.PING:
-            self.node_ping_result.set_result(ping_collection)
-        else:
-            self.node_ping_result.set_exception(
-                BaseException(
-                    f"Invalid {feature} feature, expected " +
-                    f"{pw_api.NodeFeature.PING}"
                 )
             )
 
@@ -1320,6 +1314,239 @@ class TestStick:
             await stick.initialize()
         await stick.disconnect()
 
+    def fake_env(self, env: str) -> str | None:
+        if env == "APPDATA":
+            return "c:\\user\\tst\\appdata"
+        if env == "~":
+            return "/home/usr"
+        return None
+
+    def os_path_join(self, strA: str, strB: str) -> str:
+        return f"{strA}/{strB}"
+
+    @pytest.mark.asyncio
+    async def test_cache(self, monkeypatch):
+        """Test PlugwiseCache class."""
+        monkeypatch.setattr(pw_helpers_cache, "os_name", "nt")
+        monkeypatch.setattr(pw_helpers_cache, "os_getenv", self.fake_env)
+        monkeypatch.setattr(pw_helpers_cache, "os_path_expand_user", self.fake_env)
+        monkeypatch.setattr(pw_helpers_cache, "os_path_join", self.os_path_join)
+
+        async def aiofiles_os_remove(file) -> None:
+            if file.name() == "mock_folder_that_exists/file_that_exists.ext":
+                return
+            if file.name() == "mock_folder_that_exists/nodes.cache":
+                return
+            if file.name() == "mock_folder_that_exists/0123456789ABCDEF.cache":
+                return
+            raise pw_exceptions.CacheError("Invalid file")
+
+        monkeypatch.setattr(pw_helpers_cache, "aiofiles_os_remove", aiofiles_os_remove)
+        monkeypatch.setattr(pw_helpers_cache, "ospath", MockOsPath())
+
+        pw_cache = pw_helpers_cache.PlugwiseCache("test-file", "non_existing_folder")
+        assert not pw_cache.initialized
+        assert pw_cache.cache_root_directory == "non_existing_folder"
+        with pytest.raises(pw_exceptions.CacheError):
+            await pw_cache.initialize_cache()
+
+        # Windows
+        pw_cache = pw_helpers_cache.PlugwiseCache("file_that_exists.ext", "mock_folder_that_exists")
+        pw_cache.cache_root_directory = "mock_folder_that_exists"
+        assert not pw_cache.initialized
+        await pw_cache.initialize_cache()
+        assert pw_cache.initialized
+
+        # Mock reading
+        mock_read_data = [
+            "key1;value a\n",
+            "key2;first duplicate is ignored\n\r",
+            "key2;value b|value c\n\r",
+            "key3;value d \r\n",
+        ]
+        file_chunks_iter = iter(mock_read_data)
+        mock_file_stream = MagicMock(
+            readlines=lambda *args, **kwargs: file_chunks_iter
+        )
+        with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
+            assert await pw_cache.read_cache() == {
+                "key1": "value a",
+                "key2": "value b|value c",
+                "key3": "value d",
+            }
+        file_chunks_iter = iter(mock_read_data)
+        mock_file_stream = MagicMock(
+            readlines=lambda *args, **kwargs: file_chunks_iter
+        )
+        with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
+            await pw_cache.write_cache({"key1": "value z"})
+            mock_file_stream.writelines.assert_called_with(
+                [
+                    "key1;value z\n",
+                    "key2;value b|value c\n",
+                    "key3;value d\n"
+                ]
+            )
+
+        file_chunks_iter = iter(mock_read_data)
+        mock_file_stream = MagicMock(
+            readlines=lambda *args, **kwargs: file_chunks_iter
+        )
+        with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
+            await pw_cache.write_cache({"key4": "value e"}, rewrite=True)
+            mock_file_stream.writelines.assert_called_with(
+                [
+                    "key4;value e\n",
+                ]
+            )
+
+        monkeypatch.setattr(pw_helpers_cache, "os_name", "linux")
+        pw_cache = pw_helpers_cache.PlugwiseCache("file_that_exists.ext", "mock_folder_that_exists")
+        pw_cache.cache_root_directory = "mock_folder_that_exists"
+        assert not pw_cache.initialized
+        await pw_cache.initialize_cache()
+        assert pw_cache.initialized
+        await pw_cache.delete_cache()
+        pw_cache.cache_root_directory = "mock_folder_that_does_not_exists"
+        await pw_cache.delete_cache()
+        pw_cache = pw_helpers_cache.PlugwiseCache("file_that_exists.ext", "mock_folder_that_does_not_exists")
+        await pw_cache.delete_cache()
+
+    @pytest.mark.asyncio
+    async def test_network_cache(self, monkeypatch):
+        """Test NetworkRegistrationCache class."""
+        monkeypatch.setattr(pw_helpers_cache, "os_name", "nt")
+        monkeypatch.setattr(pw_helpers_cache, "os_getenv", self.fake_env)
+        monkeypatch.setattr(pw_helpers_cache, "os_path_expand_user", self.fake_env)
+        monkeypatch.setattr(pw_helpers_cache, "os_path_join", self.os_path_join)
+        monkeypatch.setattr(pw_helpers_cache, "ospath", MockOsPath())
+
+        pw_nw_cache = pw_network_cache.NetworkRegistrationCache("mock_folder_that_exists")
+        await pw_nw_cache.initialize_cache()
+        # test with invalid data
+        mock_read_data = [
+            "-1;0123456789ABCDEF;NodeType.CIRCLE_PLUS",
+            "0;FEDCBA9876543210xxxNodeType.CIRCLE",
+            "invalid129834765AFBECD|NodeType.CIRCLE",
+        ]
+        file_chunks_iter = iter(mock_read_data)
+        mock_file_stream = MagicMock(
+            readlines=lambda *args, **kwargs: file_chunks_iter
+        )
+        with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
+            await pw_nw_cache.restore_cache()
+            assert pw_nw_cache.registrations == {
+                -1: ("0123456789ABCDEF", pw_api.NodeType.CIRCLE_PLUS),
+            }
+
+        # test with valid data
+        mock_read_data = [
+            "-1;0123456789ABCDEF;NodeType.CIRCLE_PLUS",
+            "0;FEDCBA9876543210;NodeType.CIRCLE",
+            "1;1298347650AFBECD;NodeType.SCAN",
+            "2;;",
+        ]
+        file_chunks_iter = iter(mock_read_data)
+        mock_file_stream = MagicMock(
+            readlines=lambda *args, **kwargs: file_chunks_iter
+        )
+        with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
+            await pw_nw_cache.restore_cache()
+            assert pw_nw_cache.registrations == {
+                -1: ("0123456789ABCDEF", pw_api.NodeType.CIRCLE_PLUS),
+                0: ("FEDCBA9876543210", pw_api.NodeType.CIRCLE),
+                1: ("1298347650AFBECD", pw_api.NodeType.SCAN),
+                2: ("", None),
+            }
+        pw_nw_cache.update_registration(3, "1234ABCD4321FEDC", pw_api.NodeType.STEALTH)
+
+        with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
+            await pw_nw_cache.save_cache()
+            mock_file_stream.writelines.assert_called_with(
+                [
+                    "-1;0123456789ABCDEF|NodeType.CIRCLE_PLUS\n",
+                    "0;FEDCBA9876543210|NodeType.CIRCLE\n",
+                    "1;1298347650AFBECD|NodeType.SCAN\n",
+                    "2;|\n",
+                    "3;1234ABCD4321FEDC|NodeType.STEALTH\n",
+                    "4;|\n",
+                ] + [f"{address};|\n" for address in range(5, 64)]
+            )
+        assert pw_nw_cache.registrations == {
+            -1: ("0123456789ABCDEF", pw_api.NodeType.CIRCLE_PLUS),
+            0: ("FEDCBA9876543210", pw_api.NodeType.CIRCLE),
+            1: ("1298347650AFBECD", pw_api.NodeType.SCAN),
+            2: ("", None),
+            3: ("1234ABCD4321FEDC", pw_api.NodeType.STEALTH),
+        }
+
+    @pytest.mark.asyncio
+    async def test_node_cache(self, monkeypatch):
+        """Test NodeCache class."""
+        monkeypatch.setattr(pw_helpers_cache, "ospath", MockOsPath())
+        monkeypatch.setattr(pw_helpers_cache, "os_name", "nt")
+        monkeypatch.setattr(pw_helpers_cache, "os_getenv", self.fake_env)
+        monkeypatch.setattr(pw_helpers_cache, "os_path_expand_user", self.fake_env)
+        monkeypatch.setattr(pw_helpers_cache, "os_path_join", self.os_path_join)
+
+        node_cache = pw_node_cache.NodeCache("0123456789ABCDEF", "mock_folder_that_exists")
+        await node_cache.initialize_cache()
+        # test with invalid data
+        mock_read_data = [
+            "firmware;2011-6-27-8-52-18",
+            "hardware;000004400107",
+            "node_info_timestamp;2024-3-18-19-30-28",
+            "node_type;2",
+            "relay;True",
+            "current_log_address;127",
+            "calibration_gain_a;0.9903987646102905",
+            "calibration_gain_b;-1.8206795857622637e-06",
+            "calibration_noise;0.0",
+            "calibration_tot;0.023882506415247917",
+            "energy_collection;102:4:2024-3-14-19-0-0:47|102:3:2024-3-14-18-0-0:48|102:2:2024-3-14-17-0-0:45",
+        ]
+        file_chunks_iter = iter(mock_read_data)
+        mock_file_stream = MagicMock(
+            readlines=lambda *args, **kwargs: file_chunks_iter
+        )
+        with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
+            await node_cache.restore_cache()
+        assert node_cache.states == {
+            "firmware": "2011-6-27-8-52-18",
+            "hardware": "000004400107",
+            "node_info_timestamp": "2024-3-18-19-30-28",
+            "node_type": "2",
+            "relay": "True",
+            "current_log_address": "127",
+            "calibration_gain_a": "0.9903987646102905",
+            "calibration_gain_b": "-1.8206795857622637e-06",
+            "calibration_noise": "0.0",
+            "calibration_tot": "0.023882506415247917",
+            "energy_collection": "102:4:2024-3-14-19-0-0:47|102:3:2024-3-14-18-0-0:48|102:2:2024-3-14-17-0-0:45",
+        }
+        assert node_cache.get_state("hardware") == "000004400107"
+        node_cache.add_state("current_log_address", "128")
+        assert node_cache.get_state("current_log_address") == "128"
+        node_cache.remove_state("calibration_gain_a")
+        assert node_cache.get_state("calibration_gain_a") is None
+
+        with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
+            await node_cache.save_cache()
+            mock_file_stream.writelines.assert_called_with(
+                [
+                    "firmware;2011-6-27-8-52-18\n",
+                    "hardware;000004400107\n",
+                    "node_info_timestamp;2024-3-18-19-30-28\n",
+                    "node_type;2\n",
+                    "relay;True\n",
+                    "current_log_address;128\n",
+                    "calibration_gain_b;-1.8206795857622637e-06\n",
+                    "calibration_noise;0.0\n",
+                    "calibration_tot;0.023882506415247917\n",
+                    "energy_collection;102:4:2024-3-14-19-0-0:47|102:3:2024-3-14-18-0-0:48|102:2:2024-3-14-17-0-0:45\n",
+                ]
+            )
+
     @pytest.mark.asyncio
     async def test_node_discovery_and_load(self, monkeypatch):
         """Testing discovery of nodes."""
@@ -1331,10 +1558,22 @@ class TestStick:
         )
         monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
         monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
-        stick = pw_stick.Stick("test_port", cache_enabled=False)
+        monkeypatch.setattr(pw_helpers_cache, "ospath", MockOsPath())
+        monkeypatch.setattr(pw_helpers_cache, "os_name", "nt")
+        monkeypatch.setattr(pw_helpers_cache, "os_getenv", self.fake_env)
+        monkeypatch.setattr(pw_helpers_cache, "os_path_expand_user", self.fake_env)
+        monkeypatch.setattr(pw_helpers_cache, "os_path_join", self.os_path_join)
+        mock_read_data = [""]
+        file_chunks_iter = iter(mock_read_data)
+        mock_file_stream = MagicMock(
+            readlines=lambda *args, **kwargs: file_chunks_iter
+        )
+
+        stick = pw_stick.Stick("test_port", cache_enabled=True)
         await stick.connect()
-        await stick.initialize()
-        await stick.discover_nodes(load=True)
+        with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
+            await stick.initialize()
+            await stick.discover_nodes(load=True)
 
         assert stick.nodes["0098765432101234"].node_info.firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=tz.utc)
         assert stick.nodes["0098765432101234"].node_info.version == "000000730007"
@@ -1398,4 +1637,6 @@ class TestStick:
         )
         assert state[pw_api.NodeFeature.RELAY].relay_state
 
-        await stick.disconnect()
+        with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
+            await stick.disconnect()
+        await asyncio.sleep(1)
