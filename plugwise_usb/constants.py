@@ -10,7 +10,8 @@ LOGGER = logging.getLogger(__name__)
 
 # Cache folder name
 CACHE_DIR: Final = ".plugwise-cache"
-CACHE_SEPARATOR: str = ";"
+CACHE_KEY_SEPARATOR: str = ";"
+CACHE_DATA_SEPARATOR: str = "|"
 
 LOCAL_TIMEZONE = dt.datetime.now(dt.UTC).astimezone().tzinfo
 UTF8: Final = "utf-8"
