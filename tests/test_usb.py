@@ -465,7 +465,7 @@ class TestStick:
 
         assert await stick.nodes["5555555555555555"].load()
         assert stick.nodes["5555555555555555"].node_info.firmware == dt(
-            2011, 6, 27, 8, 55, 44, tzinfo=tz.utc
+            2011, 6, 27, 8, 55, 44, tzinfo=UTC
         )
         assert stick.nodes["5555555555555555"].node_info.version == "000000070008"
         assert stick.nodes["5555555555555555"].node_info.model == "Scan"
@@ -803,7 +803,7 @@ class TestStick:
             week_production_reset=None,
         )
         # energy_update is not complete and should return none
-        utc_now = dt.utcnow().replace(tzinfo=tz.utc)
+        utc_now = dt.utcnow().replace(tzinfo=UTC)
         assert await stick.nodes["0098765432101234"].energy_update() is None
         # Allow for background task to finish
         await asyncio.sleep(1)
@@ -1576,7 +1576,7 @@ class TestStick:
             await stick.initialize()
             await stick.discover_nodes(load=True)
 
-        assert stick.nodes["0098765432101234"].node_info.firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=tz.utc)
+        assert stick.nodes["0098765432101234"].node_info.firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=UTC)
         assert stick.nodes["0098765432101234"].node_info.version == "000000730007"
         assert stick.nodes["0098765432101234"].node_info.model == "Circle+ type F"
         assert stick.nodes["0098765432101234"].node_info.name == "Circle+ 01234"
@@ -1607,7 +1607,7 @@ class TestStick:
                 pw_api.NodeFeature.POWER,
             )
         )
-        assert state[pw_api.NodeFeature.INFO].firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=tz.utc)
+        assert state[pw_api.NodeFeature.INFO].firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=UTC)
         assert state[pw_api.NodeFeature.INFO].name == "Circle+ 01234"
         assert state[pw_api.NodeFeature.INFO].model == "Circle+ type F"
         assert state[pw_api.NodeFeature.INFO].type == pw_api.NodeType.CIRCLE_PLUS
