@@ -60,6 +60,7 @@ class PlugwiseSwitch(NodeSED):
 
     async def unload(self) -> None:
         """Unload node."""
+        self._loaded = False
         if self._switch_subscription is not None:
             self._switch_subscription()
         await super().unload()
