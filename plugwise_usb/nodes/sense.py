@@ -75,6 +75,7 @@ class PlugwiseSense(NodeSED):
 
     async def unload(self) -> None:
         """Unload node."""
+        self._loaded = False
         if self._sense_subscription is not None:
             self._sense_subscription()
         await super().unload()
