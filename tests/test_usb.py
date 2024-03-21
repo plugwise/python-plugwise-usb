@@ -78,9 +78,10 @@ class DummyTransport:
             self._first_response = pw_userdata.RESPONSE_MESSAGES
             self._second_response = pw_userdata.SECOND_RESPONSE_MESSAGES
         self.random_extra_byte = 0
+        self._closing = False
 
     def is_closing(self) -> bool:
-        return False
+        return self._closing
 
     def write(self, data: bytes) -> None:
         log = None
@@ -111,7 +112,7 @@ class DummyTransport:
         else:
             self.message_response(ack, self._seq_id)
             self._processed.append(data)
-            if response is None:
+            if response is None or self._closing:
                 return
             self._loop.create_task(
                 # 0.5,
@@ -147,7 +148,7 @@ class DummyTransport:
             self.protocol_data_received(construct_message(ack, seq_id) + construct_message(data, seq_id))
 
     def close(self) -> None:
-        pass
+        self._closing = True
 
 
 class MockSerial:
