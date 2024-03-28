@@ -8,22 +8,13 @@ from __future__ import annotations
 
 import binascii
 import datetime
-import os
 import re
 import struct
 from typing import Any
 
 import crcmod
 
-from .constants import (
-    CACHE_DIR,
-    HW_MODELS,
-    LOGADDR_OFFSET,
-    PLUGWISE_EPOCH,
-    UTF8,
-)
-
-
+from .constants import HW_MODELS, LOGADDR_OFFSET, PLUGWISE_EPOCH, UTF8
 
 crc_fun = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0x0000, xorOut=0x0000)
 
