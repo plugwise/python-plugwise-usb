@@ -16,7 +16,16 @@ and publish detected connection status changes
 """
 from __future__ import annotations
 
-from asyncio import Future, Protocol, Queue, Task, gather, get_running_loop, sleep, wait
+from asyncio import (
+    Future,
+    Protocol,
+    Queue,
+    Task,
+    TimerHandle,
+    gather,
+    get_running_loop,
+    sleep,
+)
 from collections.abc import Awaitable, Callable
 from concurrent import futures
 import logging
@@ -70,6 +79,7 @@ class StickReceiver(Protocol):
         self._responses: dict[bytes, Callable[[PlugwiseResponse], None]] = {}
         self._stick_response_future: futures.Future | None = None
         self._msg_processing_task: Task | None = None
+        self._delayed_processing_tasks: dict[bytes, TimerHandle] = {}
         # Subscribers
         self._stick_event_subscribers: dict[
             Callable[[], None],
@@ -146,6 +156,8 @@ class StickReceiver(Protocol):
 
     async def _stop_running_tasks(self) -> None:
         """Cancel and stop any running task."""
+        for task in self._delayed_processing_tasks.values():
+            task.cancel()
         await self._receive_queue.put(None)
         if self._msg_processing_task is not None and not self._msg_processing_task.done():
             self._receive_queue.put_nowait(None)
@@ -341,6 +353,8 @@ class StickReceiver(Protocol):
         if processed:
             if node_response.seq_id not in BROADCAST_IDS:
                 self._last_processed_messages.append(node_response.seq_id)
+            if node_response.seq_id in self._delayed_processing_tasks:
+                del self._delayed_processing_tasks[node_response.seq_id]
             # Limit tracking to only the last appended request (FIFO)
             self._last_processed_messages = self._last_processed_messages[-CACHED_REQUESTS:]
             return
@@ -362,5 +376,8 @@ class StickReceiver(Protocol):
                 )
             return
         node_response.retries += 1
-        await sleep(0.01)
-        self._put_message_in_receiver_queue(node_response)
+        self._delayed_processing_tasks[node_response.seq_id] = self._loop.call_later(
+            0.1 * node_response.retries,
+            self._put_message_in_receiver_queue,
+            node_response,
+        )
