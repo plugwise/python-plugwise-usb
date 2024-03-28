@@ -52,10 +52,7 @@ class PlugwiseCache:
                 raise CacheError(f"Unable to initialize caching. Cache folder '{self._root_dir}' does not exists.")
             cache_dir = self._root_dir
         else:
-            cache_dir = await self._loop.run_in_executor(
-                None,
-                self._get_writable_os_dir
-            )
+            cache_dir = self._get_writable_os_dir()
         await makedirs(cache_dir, exist_ok=True)
         self._cache_path = cache_dir
         self._cache_file = f"{cache_dir}/{self._file_name}"
