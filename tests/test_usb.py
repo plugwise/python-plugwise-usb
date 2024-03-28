@@ -29,6 +29,7 @@ pw_constants = importlib.import_module("plugwise_usb.constants")
 pw_requests = importlib.import_module("plugwise_usb.messages.requests")
 pw_responses = importlib.import_module("plugwise_usb.messages.responses")
 pw_userdata = importlib.import_module("stick_test_data")
+pw_circle = importlib.import_module("plugwise_usb.nodes.circle")
 pw_energy_counter = importlib.import_module(
     "plugwise_usb.nodes.helpers.counter"
 )
@@ -771,6 +772,11 @@ class TestStick:
         monkeypatch.setattr(pw_energy_pulses, "MAX_LOG_HOURS", 25)
         monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
         monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
+
+        async def fake_get_missing_energy_logs(address) -> None:
+            pass
+
+        monkeypatch.setattr(pw_circle.PlugwiseCircle, "get_missing_energy_logs", fake_get_missing_energy_logs)
         stick = pw_stick.Stick("test_port", cache_enabled=False)
         await stick.connect()
         await stick.initialize()
@@ -806,7 +812,7 @@ class TestStick:
         utc_now = dt.utcnow().replace(tzinfo=UTC)
         assert await stick.nodes["0098765432101234"].energy_update() is None
         # Allow for background task to finish
-        await asyncio.sleep(1)
+
         assert stick.nodes["0098765432101234"].energy == pw_api.EnergyStatistics(
             log_interval_consumption=60,
             log_interval_production=None,
