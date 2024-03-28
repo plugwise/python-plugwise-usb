@@ -50,7 +50,7 @@ class PlugwiseCache:
         if self._root_dir != "":
             if not await ospath.exists(self._root_dir):
                 raise CacheError(f"Unable to initialize caching. Cache folder '{self._root_dir}' does not exists.")
-            cache_dir = os_path_join(self._root_dir, CACHE_DIR)
+            cache_dir = self._root_dir
         else:
             cache_dir = await self._loop.run_in_executor(
                 None,
