@@ -1334,11 +1334,11 @@ class TestStick:
         monkeypatch.setattr(pw_helpers_cache, "os_path_join", self.os_path_join)
 
         async def aiofiles_os_remove(file) -> None:
-            if file.name() == "mock_folder_that_exists/file_that_exists.ext":
+            if file == "mock_folder_that_exists/file_that_exists.ext":
                 return
-            if file.name() == "mock_folder_that_exists/nodes.cache":
+            if file == "mock_folder_that_exists/nodes.cache":
                 return
-            if file.name() == "mock_folder_that_exists/0123456789ABCDEF.cache":
+            if file == "mock_folder_that_exists/0123456789ABCDEF.cache":
                 return
             raise pw_exceptions.CacheError("Invalid file")
 
