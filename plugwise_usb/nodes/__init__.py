@@ -24,7 +24,7 @@ from ..constants import UTF8, MotionSensitivity
 from ..exceptions import NodeError
 from ..messages.requests import NodeInfoRequest, NodePingRequest
 from ..messages.responses import NodeInfoResponse, NodePingResponse
-from ..util import version_to_model
+from ..helpers.util import version_to_model
 from .helpers import raise_not_loaded
 from .helpers.cache import NodeCache
 from .helpers.counter import EnergyCalibration, EnergyCounters
