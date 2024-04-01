@@ -5,7 +5,7 @@ from datetime import UTC, datetime as dt, timedelta as td, timezone as tz
 import importlib
 import logging
 import random
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -22,12 +22,12 @@ pw_connection = importlib.import_module("plugwise_usb.connection")
 pw_connection_manager = importlib.import_module(
     "plugwise_usb.connection.manager"
 )
+pw_constants = importlib.import_module("plugwise_usb.constants")
 pw_helpers_cache = importlib.import_module("plugwise_usb.helpers.cache")
 pw_network_cache = importlib.import_module("plugwise_usb.network.cache")
 pw_node_cache = importlib.import_module("plugwise_usb.nodes.helpers.cache")
 pw_receiver = importlib.import_module("plugwise_usb.connection.receiver")
 pw_sender = importlib.import_module("plugwise_usb.connection.sender")
-pw_constants = importlib.import_module("plugwise_usb.constants")
 pw_requests = importlib.import_module("plugwise_usb.messages.requests")
 pw_responses = importlib.import_module("plugwise_usb.messages.responses")
 pw_userdata = importlib.import_module("stick_test_data")
