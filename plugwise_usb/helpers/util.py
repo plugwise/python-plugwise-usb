@@ -1,25 +1,17 @@
-"""
-Use of this source code is governed by the MIT license found
-in the LICENSE file.
-
-Plugwise protocol helpers
-"""
+"""Plugwise utility helpers."""
 from __future__ import annotations
 
-import binascii
-import datetime
 import re
-import struct
-from typing import Any
 
 import crcmod
 
-from .constants import HW_MODELS, LOGADDR_OFFSET, PLUGWISE_EPOCH, UTF8
+from ..constants import HW_MODELS
 
 crc_fun = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0x0000, xorOut=0x0000)
 
 
 def validate_mac(mac: str) -> bool:
+    """Validate the supplied string to be an MAC address."""
     if not re.match("^[A-F0-9]+$", mac):
         return False
     try:
@@ -47,7 +39,7 @@ def version_to_model(version: str | None) -> str | None:
 # octals (and hex) type as int according to
 # https://docs.python.org/3/library/stdtypes.html
 def uint_to_int(val: int, octals: int) -> int:
-    """Compute the 2's compliment of int value val for negative values"""
+    """Compute the 2's compliment of int value val for negative values."""
     bits = octals << 2
     if (val & (1 << (bits - 1))) != 0:
         val = val - (1 << bits)
@@ -57,7 +49,7 @@ def uint_to_int(val: int, octals: int) -> int:
 # octals (and hex) type as int according to
 # https://docs.python.org/3/library/stdtypes.html
 def int_to_uint(val: int, octals: int) -> int:
-    """Compute the 2's compliment of int value val for negative values"""
+    """Compute the 2's compliment of int value val for negative values."""
     bits = octals << 2
     if val < 0:
         val = val + (1 << bits)

@@ -35,7 +35,7 @@ from ..nodes.scan import PlugwiseScan
 from ..nodes.sense import PlugwiseSense
 from ..nodes.stealth import PlugwiseStealth
 from ..nodes.switch import PlugwiseSwitch
-from ..util import validate_mac
+from ..helpers.util import validate_mac
 from .registry import StickNetworkRegister
 
 _LOGGER = logging.getLogger(__name__)
