@@ -18,7 +18,7 @@ from ..messages.responses import (
     NodeResponseType,
     PlugwiseResponse,
 )
-from ..util import validate_mac
+from ..helpers.util import validate_mac
 from .cache import NetworkRegistrationCache
 
 _LOGGER = logging.getLogger(__name__)
