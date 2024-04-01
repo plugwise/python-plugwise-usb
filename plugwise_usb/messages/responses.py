@@ -8,7 +8,8 @@ from typing import Any, Final
 from ..api import NodeType
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER, UTF8
 from ..exceptions import MessageError
-from ..util import (
+from . import PlugwiseMessage
+from .properties import (
     BaseType,
     DateTime,
     Float,
@@ -20,7 +21,6 @@ from ..util import (
     Time,
     UnixTimestamp,
 )
-from . import PlugwiseMessage
 
 NODE_JOIN_ID: Final = b"0006"
 NODE_AWAKE_RESPONSE_ID: Final = b"004F"
