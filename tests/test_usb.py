@@ -1,3 +1,5 @@
+"""Test plugwise USB Stick."""
+
 import asyncio
 from datetime import UTC, datetime as dt, timedelta as td, timezone as tz
 import importlib
