@@ -18,7 +18,8 @@ from ..constants import (
 )
 from ..exceptions import NodeError, NodeTimeout, StickError, StickTimeout
 from ..messages.responses import PlugwiseResponse, StickResponse, StickResponseType
-from ..util import (
+from . import PlugwiseMessage
+from .properties import (
     DateTime,
     Int,
     LogAddr,
@@ -28,7 +29,6 @@ from ..util import (
     String,
     Time,
 )
-from . import PlugwiseMessage
 
 _LOGGER = logging.getLogger(__name__)
 
