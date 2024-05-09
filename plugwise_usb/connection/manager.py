@@ -8,7 +8,7 @@ import logging
 from typing import Any
 
 from serial import EIGHTBITS, PARITY_NONE, STOPBITS_ONE, SerialException
-from serial_asyncio import SerialTransport, create_serial_connection
+from serial_asyncio_fast import SerialTransport, create_serial_connection
 
 from ..api import StickEvent
 from ..exceptions import StickError
