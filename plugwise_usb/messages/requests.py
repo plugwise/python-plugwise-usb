@@ -16,7 +16,7 @@ from ..constants import (
     MESSAGE_HEADER,
     NODE_TIME_OUT,
 )
-from ..exceptions import NodeError, NodeTimeout, StickError, StickTimeout
+from ..exceptions import MessageError, NodeError, NodeTimeout, StickError, StickTimeout
 from ..messages.responses import PlugwiseResponse, StickResponse, StickResponseType
 from . import PlugwiseMessage
 from .properties import (
@@ -530,21 +530,21 @@ class CircleClockSetRequest(PlugwiseRequest):
         protocol_version: float,
         reset: bool = False,
     ) -> None:
-        """Initialize CircleLogDataRequest message object."""
+        """Initialize CircleClockSetRequest message object."""
+        if protocol_version < 2.0:
+            # FIXME: Define "absoluteHour" variable
+            raise MessageError("CircleClockSetRequest for protocol version < 2.0 is not supported")
+
         super().__init__(b"0016", mac)
         self._reply_identifier = b"0000"
         self.priority = Priority.HIGH
-        if protocol_version == 1.0:
-            pass
-            # FIXME: Define "absoluteHour" variable
-        elif protocol_version >= 2.0:
-            passed_days = dt.day - 1
-            month_minutes = (
-                (passed_days * DAY_IN_MINUTES)
-                + (dt.hour * HOUR_IN_MINUTES)
-                + dt.minute
-            )
-            this_date = DateTime(dt.year, dt.month, month_minutes)
+        passed_days = dt.day - 1
+        month_minutes = (
+            (passed_days * DAY_IN_MINUTES)
+            + (dt.hour * HOUR_IN_MINUTES)
+            + dt.minute
+        )
+        this_date = DateTime(dt.year, dt.month, month_minutes)
         this_time = Time(dt.hour, dt.minute, dt.second)
         day_of_week = Int(dt.weekday(), 2)
         if reset:
