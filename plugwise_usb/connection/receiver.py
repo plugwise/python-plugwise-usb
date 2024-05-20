@@ -31,7 +31,7 @@ from concurrent import futures
 import logging
 from typing import Final
 
-from serial_asyncio import SerialTransport
+from serial_asyncio_fast import SerialTransport
 
 from ..api import StickEvent
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER
