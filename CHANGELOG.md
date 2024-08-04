@@ -3,7 +3,7 @@
 ## Ongoing
 
 - Ensure CI process remains operational
-- Bumped pip to uv
+- Bumped pip to now prepend uv for using quicker dependency resolving and installing
 - As for latest HA Core USB team should rework to python 3.12 (not still 3.10)
 
 ## v0.31.4(a0)
