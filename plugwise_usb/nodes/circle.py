@@ -221,28 +221,31 @@ class PlugwiseCircle(PlugwiseNode):
             if self._energy_last_collected_timestamp < _timestamp_utcnow.replace(
                 minute=0, second=0, microsecond=0
             ):
-                _LOGGER.info("Queue _last_log_address for %s at %s last_collected %s",
-                              str(self.mac),str(self._last_log_address),
-                             self._energy_last_collected_timestamp
+                _LOGGER.info(
+                    "Queue _last_log_address for %s at %s last_collected %s",
+                    str(self.mac),
+                    str(self._last_log_address),
+                    self._energy_last_collected_timestamp,
                 )
                 self._request_info(self.push_last_log_address)
 
             if len(self._energy_history_failed_address) > 0:
-                    _mem_address = self._energy_history_failed_address.pop(0)
-                    if self._energy_memory.get(_mem_address, 0) < 4:
-                        _LOGGER.info("Collect EnergyCounters for %s at %s",
-                                     str(self.mac),
-                                    str(_mem_address),
-                        )
-                        self.request_energy_counters(_mem_address)
-                        self._energy_ratelimit_collection_timestamp = _timestamp_utcnow
-                    else:
-                        _LOGGER.info(
-                            "Drop known request_energy_counters for %s at %s and clock sync",
-                            str(self.mac),
-                            str(_mem_address),
-                        )
-                        self.get_clock(self.sync_clock)
+                _mem_address = self._energy_history_failed_address.pop(0)
+                if self._energy_memory.get(_mem_address, 0) < 4:
+                    _LOGGER.info(
+                        "Collect EnergyCounters for %s at %s",
+                        str(self.mac),
+                        str(_mem_address),
+                    )
+                    self.request_energy_counters(_mem_address)
+                    self._energy_ratelimit_collection_timestamp = _timestamp_utcnow
+                else:
+                    _LOGGER.info(
+                        "Drop known request_energy_counters for %s at %s and clock sync",
+                        str(self.mac),
+                        str(_mem_address),
+                    )
+                    self.get_clock(self.sync_clock)
             if datetime.now().day != self._last_clock_sync_day:
                 self._last_clock_sync_day = datetime.now().day
                 self.get_clock(self.sync_clock)
@@ -252,8 +255,7 @@ class PlugwiseCircle(PlugwiseNode):
             self._energy_history_failed_address.append(self._last_log_address)
 
     def message_for_circle(self, message):
-        """Process received message
-        """
+        """Process received message"""
         if isinstance(message, CirclePowerUsageResponse):
             if self.calibration:
                 self._response_power_usage(message)
@@ -387,8 +389,7 @@ class PlugwiseCircle(PlugwiseNode):
         self.calibration = True
 
     def pulses_to_kws(self, pulses, seconds=1):
-        """Converts the amount of pulses to kWs using the calaboration offsets
-        """
+        """Converts the amount of pulses to kWs using the calaboration offsets"""
         if pulses is None:
             return None
         if pulses == 0 or not self.calibration:
@@ -428,7 +429,7 @@ class PlugwiseCircle(PlugwiseNode):
                 )
             else:
                 _mem_address = self._energy_timestamp_memory_address(_log_timestamp)
-                if (_mem_address is not None and _mem_address >= 0):
+                if _mem_address is not None and _mem_address >= 0:
                     _LOGGER.info(
                         "_collect_energy_pulses for %s at %s | %s not found",
                         str(self.mac),
@@ -442,7 +443,6 @@ class PlugwiseCircle(PlugwiseNode):
                         "_collect_energy_pulses ignoring negative _mem_address %s",
                         str(_mem_address),
                     )
-
 
         # Validate all history values where present
         if len(self._energy_history_failed_address) == 0:
@@ -480,12 +480,11 @@ class PlugwiseCircle(PlugwiseNode):
             and self._energy_pulses_current_hour is not None
         ):
             _pulses_today_now = (
-                self._energy_pulses_today_hourly
-                + self._energy_pulses_current_hour
+                self._energy_pulses_today_hourly + self._energy_pulses_current_hour
             )
 
         _utc_hour_timestamp = datetime.utcnow().replace(
-                minute=0, second=0, microsecond=0
+            minute=0, second=0, microsecond=0
         )
         _local_hour = datetime.now().hour
         _utc_midnight_timestamp = _utc_hour_timestamp - timedelta(hours=_local_hour)
@@ -500,9 +499,9 @@ class PlugwiseCircle(PlugwiseNode):
                     _utc_hour_timestamp,
                 )
         elif (
-             self._energy_pulses_today_now is not None
-             and self._energy_pulses_today_now > _pulses_today_now
-             and self._energy_pulses_midnight_rollover < _local_midnight_timestamp
+            self._energy_pulses_today_now is not None
+            and self._energy_pulses_today_now > _pulses_today_now
+            and self._energy_pulses_midnight_rollover < _local_midnight_timestamp
         ):
             _LOGGER.info(
                 "_update_energy_today_now for %s midnight rollover started old=%s, new=%s",
@@ -518,9 +517,14 @@ class PlugwiseCircle(PlugwiseNode):
             )
             self.do_callback(FEATURE_ENERGY_CONSUMPTION_TODAY["id"])
         elif (
-             self._energy_pulses_today_now is not None
-             and self._energy_pulses_today_now > _pulses_today_now
-             and int((self._energy_pulses_today_now-_pulses_today_now)/(self._energy_pulses_today_now+1)*100) > 1
+            self._energy_pulses_today_now is not None
+            and self._energy_pulses_today_now > _pulses_today_now
+            and int(
+                (self._energy_pulses_today_now - _pulses_today_now)
+                / (self._energy_pulses_today_now + 1)
+                * 100
+            )
+            > 1
         ):
             _LOGGER.info(
                 "_update_energy_today_now for %s hour rollover started old=%s, new=%s",
@@ -617,12 +621,14 @@ class PlugwiseCircle(PlugwiseNode):
     def request_energy_counters(self, log_address=None, callback=None):
         """Request power log of specified address"""
         _LOGGER.debug(
-            "request_energy_counters for %s of address %s", str(self.mac), str(log_address)
+            "request_energy_counters for %s of address %s",
+            str(self.mac),
+            str(log_address),
         )
         if not self._available:
             _LOGGER.debug(
-                    "Skip request_energy_counters for % is unavailable",
-                    str(self.mac),
+                "Skip request_energy_counters for % is unavailable",
+                str(self.mac),
             )
             return
         if log_address is None:
@@ -687,11 +693,12 @@ class PlugwiseCircle(PlugwiseNode):
                 message, "pulses%d" % (_slot,)
             ).value
 
-            _LOGGER.info("push _energy_memory for %s address %s slot %s stamp %s",
-                         str(self.mac),
-                         str(message.logaddr.value),
-                         str(_slot),
-                         str(_log_timestamp),
+            _LOGGER.info(
+                "push _energy_memory for %s address %s slot %s stamp %s",
+                str(self.mac),
+                str(message.logaddr.value),
+                str(_slot),
+                str(_log_timestamp),
             )
 
             # Store last populated _slot
@@ -710,9 +717,11 @@ class PlugwiseCircle(PlugwiseNode):
                 self._last_collected_address_timestamp = _log_timestamp
 
             # Trigger history rollover
-            _LOGGER.info('history_rollover %s %s %s',str(_log_timestamp),
-                         str(_utc_hour_timestamp),
-                         str(self._energy_last_rollover_timestamp),
+            _LOGGER.info(
+                "history_rollover %s %s %s",
+                str(_log_timestamp),
+                str(_utc_hour_timestamp),
+                str(self._energy_last_rollover_timestamp),
             )
             if (
                 _log_timestamp == _utc_hour_timestamp
@@ -739,7 +748,7 @@ class PlugwiseCircle(PlugwiseNode):
                 self._energy_consumption_today_reset = _local_midnight_timestamp
                 _midnight_rollover = True
         if self._energy_last_collected_timestamp == datetime.utcnow().replace(
-                minute=0, second=0, microsecond=0
+            minute=0, second=0, microsecond=0
         ):
             self._update_energy_previous_hour(_utc_hour_timestamp)
             self._update_energy_today_hourly(
@@ -751,24 +760,31 @@ class PlugwiseCircle(PlugwiseNode):
                 _utc_midnight_timestamp,
             )
         else:
-            _LOGGER.info("CircleEnergyCounter failed for %s at %s|%s count %s",
-                         str(self.mac),
-                         str(message.logaddr.value),
-                         str(self._last_log_address),
-                         str(self._energy_last_collected_count),
+            _LOGGER.info(
+                "CircleEnergyCounter failed for %s at %s|%s count %s",
+                str(self.mac),
+                str(message.logaddr.value),
+                str(self._last_log_address),
+                str(self._energy_last_collected_count),
             )
-            self._energy_last_collected_count +=1
+            self._energy_last_collected_count += 1
 
             if (
-                    message.logaddr.value == self._last_log_address
-                    and self._energy_last_collected_count > 3
+                message.logaddr.value == self._last_log_address
+                and self._energy_last_collected_count > 3
             ):
-                if self._energy_history_failed_address.count(self._last_log_address-1) == 0:
-                    self._energy_history_failed_address.append(self._last_log_address-1)
+                if (
+                    self._energy_history_failed_address.count(
+                        self._last_log_address - 1
+                    )
+                    == 0
+                ):
+                    self._energy_history_failed_address.append(
+                        self._last_log_address - 1
+                    )
                 _LOGGER.info("Resetting CircleEnergyCounter due to logaddress offset")
 
-
-        # Cleanup energy history for more than 48 hours 
+        # Cleanup energy history for more than 48 hours
         _48_hours_ago = datetime.utcnow().replace(
             minute=0, second=0, microsecond=0
         ) - timedelta(hours=48)
@@ -814,7 +830,6 @@ class PlugwiseCircle(PlugwiseNode):
             callback,
         )
 
-
     def sync_clock(self, max_drift=0):
         """Resync clock of node if time has drifted more than MAX_TIME_DRIFT"""
         if self._clock_offset is not None:
@@ -832,7 +847,7 @@ class PlugwiseCircle(PlugwiseNode):
         """Return memory address for given energy counter timestamp"""
         if self._last_collected_address is None:
             return None
-        #Should already be hour timestamp, but just to be sure.
+        # Should already be hour timestamp, but just to be sure.
         _utc_now_timestamp = self._last_collected_address_timestamp.replace(
             minute=0, second=0, microsecond=0
         )
@@ -855,12 +870,13 @@ class PlugwiseCircle(PlugwiseNode):
                 _address -= 1
                 _slot = 4
             _hours += 1
-        _LOGGER.info("Calculated address %s at %s from %s at %s with %s|%s",
-                     _address,
-                     utc_timestamp,
-                     self._last_log_address,
-                     _utc_now_timestamp,
-                     _sslot,
-                     _hours_offset,
+        _LOGGER.info(
+            "Calculated address %s at %s from %s at %s with %s|%s",
+            _address,
+            utc_timestamp,
+            self._last_log_address,
+            _utc_now_timestamp,
+            _sslot,
+            _hours_offset,
         )
         return _address

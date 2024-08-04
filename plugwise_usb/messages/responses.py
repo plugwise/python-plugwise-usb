@@ -23,8 +23,7 @@ from ..util import (
 
 
 class NodeResponse(PlugwiseMessage):
-    """Base class for response messages received by USB-Stick.
-    """
+    """Base class for response messages received by USB-Stick."""
 
     def __init__(self, format_size=None):
         super().__init__()
@@ -561,8 +560,7 @@ id_to_message = {
 
 
 def get_message_response(message_id, length, seq_id):
-    """Return message class based on sequence ID, Length of message or message ID.
-    """
+    """Return message class based on sequence ID, Length of message or message ID."""
     # First check for known sequence ID's
     if seq_id == b"FFFD":
         return NodeJoinAckResponse()

@@ -26,8 +26,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         self.get_real_time_clock(self.sync_realtime_clock)
 
     def message_for_circle_plus(self, message):
-        """Process received message
-        """
+        """Process received message"""
         if isinstance(message, CirclePlusRealTimeClockResponse):
             self._response_realtime_clock(message)
         elif isinstance(message, CirclePlusScanResponse):

@@ -45,8 +45,7 @@ class PlugwiseScan(NodeSED):
         return self._motion_state
 
     def message_for_scan(self, message):
-        """Process received message
-        """
+        """Process received message"""
         if isinstance(message, NodeSwitchGroupResponse):
             _LOGGER.debug(
                 "Switch group %s to state %s received from %s",

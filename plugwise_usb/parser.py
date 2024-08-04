@@ -35,8 +35,7 @@ class PlugwiseParser:
         self._message = None
 
     def feed(self, data):
-        """Add new incoming data to buffer and try to process
-        """
+        """Add new incoming data to buffer and try to process"""
         _LOGGER.debug("Feed data: %s", str(data))
         self._buffer += data
         if len(self._buffer) >= 8:
@@ -44,8 +43,7 @@ class PlugwiseParser:
                 self.parse_data()
 
     def next_message(self, message):
-        """Process next packet if present
-        """
+        """Process next packet if present"""
         try:
             self.message_processor(message)
         # TODO: narrow exception
@@ -58,8 +56,7 @@ class PlugwiseParser:
             _LOGGER.error(err, exc_info=True)
 
     def parse_data(self):
-        """Process next set of packet data
-        """
+        """Process next set of packet data"""
         _LOGGER.debug("Parse data: %s ", str(self._buffer))
         if not self._parsing:
             self._parsing = True
