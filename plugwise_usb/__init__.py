@@ -538,8 +538,7 @@ class Stick:
         return False
 
     def _watchdog_loop(self):
-        """Main worker loop to watch all other worker threads
-        """
+        """Main worker loop to watch all other worker threads"""
         time.sleep(5)
         circle_plus_retry_counter = 0
         while self._run_watchdog:

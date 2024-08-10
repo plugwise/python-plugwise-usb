@@ -4,7 +4,7 @@
 name: Latest release
 
 env:
-  CACHE_VERSION: 5
+  CACHE_VERSION: 21
   DEFAULT_PYTHON: "3.12"
 
 # Only run on merges
@@ -22,7 +22,7 @@ jobs:
     if: github.event.pull_request.merged == true
     steps:
       - name: Check out committed code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        uses: actions/checkout@v4
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
         uses: actions/setup-python@v5

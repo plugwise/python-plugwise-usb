@@ -42,8 +42,7 @@ class NodeSED(PlugwiseNode):
         self._battery_powered = True
 
     def message_for_sed(self, message):
-        """Process received message
-        """
+        """Process received message"""
         if isinstance(message, NodeAwakeResponse):
             self._process_awake_response(message)
         elif isinstance(message, NodeAckLargeResponse):

@@ -327,7 +327,7 @@ class StickMessageController:
                         request,
                         str(seq_id),
                     )
-                    #Still save it to try and get it back into sync
+                    # Still save it to try and get it back into sync
                     self.last_seq_id = seq_id
         if resend_request:
             self.resend(seq_id)

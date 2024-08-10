@@ -44,8 +44,7 @@ class PlugwiseSense(NodeSED):
         return self._temperature
 
     def message_for_sense(self, message):
-        """Process received message
-        """
+        """Process received message"""
         if isinstance(message, SenseReportResponse):
             self._process_sense_report(message)
         else:
