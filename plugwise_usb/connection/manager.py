@@ -183,7 +183,7 @@ class StickConnectionManager:
         self._subscribe_to_stick_events()
 
     async def write_to_stick(self, request: PlugwiseRequest) -> None:
-        """Write message to USB stick. Returns the updated request object."""
+        """Write message to USB stick."""
         if not request.resend:
             raise StickError(
                 f"Failed to send {request.__class__.__name__} " +

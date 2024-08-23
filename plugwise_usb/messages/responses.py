@@ -384,7 +384,7 @@ class NodeImageValidationResponse(PlugwiseResponse):
     """
 
     def __init__(self) -> None:
-        """Initialize NodePingResponse message object."""
+        """Initialize NodeImageValidationResponse message object."""
         super().__init__(b"0010")
         self.image_timestamp = UnixTimestamp(0)
         self._params += [self.image_timestamp]

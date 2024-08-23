@@ -21,7 +21,7 @@ class PlugwiseMessage:
 
     @property
     def seq_id(self) -> bytes | None:
-        """Return sequence id assigned to this request."""
+        """Return sequence id."""
         return self._seq_id
 
     @seq_id.setter
