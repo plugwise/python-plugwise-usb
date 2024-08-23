@@ -589,6 +589,9 @@ class CirclePlusScanRequest(PlugwiseRequest):
         self._args.append(Int(network_address, length=2))
         self.network_address = network_address
 
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return f"{super().__repr__()[:-1]}, network_address={self.network_address})"
 
 class NodeRemoveRequest(PlugwiseRequest):
     """Request node to be removed from Plugwise network by removing it from memory of Circle+ node.
