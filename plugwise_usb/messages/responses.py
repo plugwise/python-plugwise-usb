@@ -434,6 +434,9 @@ class StickInitResponse(PlugwiseResponse):
         """Return state of network."""
         return self._network_online.value == 1
 
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return f"{super().__repr__()[:-1]}, network_controller={self.mac_network_controller}, network_online={self.network_online})"
 
 class CirclePowerUsageResponse(PlugwiseResponse):
     """Returns power usage as impulse counters for several different time frames.
