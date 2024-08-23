@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from asyncio import Future, TimerHandle, get_running_loop
 from collections.abc import Callable
+from copy import copy
 from datetime import UTC, datetime
 from enum import Enum
 import logging
@@ -181,30 +182,30 @@ class PlugwiseRequest(PlugwiseMessage):
 
     async def _process_node_response(self, response: PlugwiseResponse) -> bool:
         """Process incoming message from node."""
-        if self._seq_id is not None and self._seq_id == response.seq_id:
-            self._response = response
-            self.stop_response_timeout()
-            if not self._response_future.done():
-                if self._send_counter > 1:
-                    _LOGGER.info("Received '%s' as reply to retried '%s' id %d", response, self, self._id)
-                else:
-                    _LOGGER.debug("Received '%s' as reply to '%s' id %d", response, self, self._id)
-                self._response_future.set_result(response)
-            else:
-                _LOGGER.warning("Received '%s' as reply to '%s' id %d already done", response, self, self._id)
-            self._unsubscribe_from_stick()
-            self._unsubscribe_from_node()
-            return True
-        if self._seq_id:
+        if self._seq_id is None:
+            _LOGGER.warning("Received %s as reply to %s without a seq_id assigned", self._response, self)
+            return False
+        if self._seq_id != response.seq_id:
             _LOGGER.warning(
-                "Received '%s' as reply to '%s' which is not correct (seq_id=%s)",
-                response,
+                "Received %s as reply to %s which is not correct (expected seq_id=%s)",
+                self._response,
                 self,
-                str(response.seq_id)
+                str(self.seq_id)
             )
+            return False
+        if self._response_future.done():
+            return False
+
+        self._response = copy(response)
+        self.stop_response_timeout()
+        self._unsubscribe_from_stick()
+        self._unsubscribe_from_node()
+        if self._send_counter > 1:
+            _LOGGER.info("Received %s after %s retries as reply to %s", self._response, self._send_counter, self)
         else:
-            _LOGGER.debug("Received '%s' as reply to '%s' has not received seq_id", response, self)
-        return False
+            _LOGGER.debug("Received %s as reply to %s", self._response, self)
+        self._response_future.set_result(self._response)
+        return True
 
     async def _process_stick_response(self, stick_response: StickResponse) -> None:
         """Process incoming stick response."""
