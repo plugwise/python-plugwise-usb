@@ -121,7 +121,7 @@ class StickQueue:
         )
 
     async def _add_request_to_queue(self, request: PlugwiseRequest) -> None:
-        """Add request to send queue and return the session id."""
+        """Add request to send queue."""
         await self._submit_queue.put(request)
         if self._submit_worker_task is None or self._submit_worker_task.done():
             self._submit_worker_task = self._loop.create_task(
