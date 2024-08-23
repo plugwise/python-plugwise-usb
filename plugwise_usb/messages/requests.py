@@ -101,8 +101,8 @@ class PlugwiseRequest(PlugwiseMessage):
     @seq_id.setter
     def seq_id(self, seq_id: bytes) -> None:
         """Assign sequence id."""
-        if self._seq_id == seq_id:
-            return
+        if self._seq_id is not None:
+            raise MessageError(f"Unable to set seq_id to {seq_id}. Already set to {self._seq_id}")
         self._seq_id = seq_id
         self._unsubscribe_from_stick()
         self._unsubscribe_stick_response = self._stick_subscription_fn(
