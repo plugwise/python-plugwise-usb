@@ -124,10 +124,11 @@ class StickQueue:
         await self._submit_queue.put(request)
         if self._submit_worker_task is None or self._submit_worker_task.done():
             self._submit_worker_task = self._loop.create_task(
-                self._submit_worker()
+                self._send_queue_worker(),
+                name="Send queue worker"
             )
 
-    async def _submit_worker(self) -> None:
+    async def _send_queue_worker(self) -> None:
         """Send messages from queue at the order of priority."""
         while self._running:
             request = await self._submit_queue.get()
