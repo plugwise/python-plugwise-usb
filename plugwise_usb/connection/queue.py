@@ -92,7 +92,6 @@ class StickQueue:
             await self._add_request_to_queue(request)
             try:
                 response: PlugwiseResponse = await request.response_future()
-                return response
             except (NodeTimeout, StickTimeout) as e:
                 if request.resend:
                     _LOGGER.debug("%s, retrying", e)
@@ -112,6 +111,8 @@ class StickQueue:
                     f"No response received for {request.__class__.__name__} " +
                     f"to {request.mac_decoded}"
                 ) from exception
+            else:
+                return response
 
         raise StickError(
             f"Failed to send {request.__class__.__name__} " +
