@@ -185,8 +185,8 @@ class StickReceiver(Protocol):
         self._receive_queue.put_nowait(response)
         if self._msg_processing_task is None or self._msg_processing_task.done():
             self._msg_processing_task = self._loop.create_task(
-                self._msg_queue_processing_function(),
-                name="Process received messages"
+                self._receive_queue_worker(),
+                name="Receive queue worker"
             )
 
     def extract_message_from_line_buffer(self, msg: bytes) -> PlugwiseResponse:
@@ -225,7 +225,7 @@ class StickReceiver(Protocol):
             return None
         return message
 
-    async def _msg_queue_processing_function(self):
+    async def _receive_queue_worker(self):
         """Process queue items."""
         while self.is_connected:
             response: PlugwiseResponse | None = await self._receive_queue.get()
