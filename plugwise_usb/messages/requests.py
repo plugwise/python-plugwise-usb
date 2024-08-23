@@ -174,6 +174,8 @@ class PlugwiseRequest(PlugwiseMessage):
     def assign_error(self, error: BaseException) -> None:
         """Assign error for this request."""
         self.stop_response_timeout()
+        self._unsubscribe_from_stick()
+        self._unsubscribe_from_node()
         if self._response_future.done():
             return
         self._response_future.set_exception(error)
