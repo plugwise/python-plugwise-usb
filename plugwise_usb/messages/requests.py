@@ -755,7 +755,7 @@ class CircleEnergyLogsRequest(PlugwiseRequest):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return f"{self.__class__.__name__} for {self.mac_decoded} | log_address={self._log_address}"
+        return f"{super().__repr__()[:-1]}, log_address={self._log_address})"
 
 
 class CircleHandlesOffRequest(PlugwiseRequest):
