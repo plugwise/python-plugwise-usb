@@ -534,17 +534,17 @@ class CircleClockSetRequest(PlugwiseRequest):
         super().__init__(b"0016", mac)
         self._reply_identifier = b"0000"
         self.priority = Priority.HIGH
-        if protocol_version == 1.0:
-            pass
+        if protocol_version < 2.0:
             # FIXME: Define "absoluteHour" variable
-        elif protocol_version >= 2.0:
-            passed_days = dt.day - 1
-            month_minutes = (
-                (passed_days * DAY_IN_MINUTES)
-                + (dt.hour * HOUR_IN_MINUTES)
-                + dt.minute
-            )
-            this_date = DateTime(dt.year, dt.month, month_minutes)
+            raise MessageError("Unsupported version of CircleClockSetRequest")
+
+        passed_days = dt.day - 1
+        month_minutes = (
+            (passed_days * DAY_IN_MINUTES)
+            + (dt.hour * HOUR_IN_MINUTES)
+            + dt.minute
+        )
+        this_date = DateTime(dt.year, dt.month, month_minutes)
         this_time = Time(dt.hour, dt.minute, dt.second)
         day_of_week = Int(dt.weekday(), 2)
         if reset:
