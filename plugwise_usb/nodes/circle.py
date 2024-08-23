@@ -243,11 +243,6 @@ class PlugwiseCircle(PlugwiseNode):
             )
             await self._available_update_state(False)
             return None
-        if response.mac_decoded != self.mac:
-            raise NodeError(
-                f"Incorrect power response for {response.mac_decoded} " +
-                f"!= {self.mac} = {self._mac_in_str} | {request.mac_decoded}"
-            )
         await self._available_update_state(True)
 
         # Update power stats
