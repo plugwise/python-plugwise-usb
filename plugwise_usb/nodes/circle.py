@@ -551,12 +551,11 @@ class PlugwiseCircle(PlugwiseNode):
                 )
                 return True
             return False
-        else:
-            _LOGGER.debug(
-                "No existing energy collection log cached for %s",
-                self.mac
-            )
-            self._set_cache(CACHE_ENERGY_COLLECTION, log_cache_record)
+        _LOGGER.debug(
+            "No existing energy collection log cached for %s",
+            self.mac
+        )
+        self._set_cache(CACHE_ENERGY_COLLECTION, log_cache_record)
         return True
 
     async def switch_relay(self, state: bool) -> bool | None:
