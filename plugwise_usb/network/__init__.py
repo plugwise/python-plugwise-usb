@@ -364,10 +364,8 @@ class StickNetwork:
         """Return node discovery type."""
         ping_response: NodePingResponse | None = None
         if ping_first:
-            # Define ping request with custom timeout
+            # Define ping request with one retry
             ping_request = NodePingRequest(bytes(mac, UTF8), retries=1)
-            # ping_request.timeout = 3
-
             ping_response: NodePingResponse | None = (
                 await self._controller.send(
                     ping_request
