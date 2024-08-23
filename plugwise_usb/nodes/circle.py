@@ -426,7 +426,7 @@ class PlugwiseCircle(PlugwiseNode):
         # Each response message contains 4 log counters (slots) of the
         # energy pulses collected during the previous hour of given timestamp
         for _slot in range(4, 0, -1):
-            _log_timestamp: datetime = getattr(
+            _log_timestamp: datetime | None = getattr(
                 response, "logdate%d" % (_slot,)
             ).value
             _log_pulses: int = getattr(response, "pulses%d" % (_slot,)).value
