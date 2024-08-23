@@ -535,6 +535,9 @@ class CirclePlusScanResponse(PlugwiseResponse):
         """Return the network address."""
         return self._network_address.value
 
+    def __repr__(self) -> str:
+        """Convert response into writable str."""
+        return f"{super().__repr__()[:-1]}, network_address={self.network_address}, registered_mac={self.registered_mac})"
 
 class NodeRemoveResponse(PlugwiseResponse):
     """Confirmation (or not) if node is removed from the Plugwise network.
