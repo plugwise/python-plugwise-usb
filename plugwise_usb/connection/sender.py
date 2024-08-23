@@ -52,12 +52,11 @@ class StickSender:
 
     async def write_request_to_port(self, request: PlugwiseRequest) -> None:
         """Send message to serial port of USB stick."""
-        await self._stick_lock.acquire()
-        self._current_request = request
-
         if self._transport is None:
             raise StickError("USB-Stick transport missing.")
 
+        await self._stick_lock.acquire()
+        self._current_request = request
         self._stick_response: Future[bytes] = self._loop.create_future()
 
         serialized_data = request.serialize()
