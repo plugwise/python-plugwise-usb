@@ -268,7 +268,7 @@ class StickNetwork:
 
         address, node_type = self._register.network_controller()
         if await self._discover_node(
-            address, self._controller.mac_coordinator, node_type,
+            address, self._controller.mac_coordinator, node_type, ping_first=False
         ):
             if load:
                 return await self._load_node(self._controller.mac_coordinator)
