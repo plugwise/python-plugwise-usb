@@ -211,27 +211,29 @@ class PlugwiseRequest(PlugwiseMessage):
         """Process incoming stick response."""
         if self._response_future.done():
             return
-        if self._seq_id is not None and self._seq_id == stick_response.seq_id:
-            _LOGGER.debug("%s for request %s id %d", stick_response, self, self._id)
-            if stick_response.ack_id == StickResponseType.TIMEOUT:
-                self._response_timeout_expired(stick_timeout=True)
-            elif stick_response.ack_id == StickResponseType.FAILED:
-                self._unsubscribe_from_node()
-                self._response_future.set_exception(
-                    NodeError(
-                        f"Stick failed request {self._seq_id}"
-                    )
+        if self._seq_id is None or self._seq_id != stick_response.seq_id:
+            return
+        _LOGGER.warning("%s for request %s id %d", stick_response, self, self._id)
+        if stick_response.ack_id == StickResponseType.TIMEOUT:
+            self._response_timeout_expired(stick_timeout=True)
+        elif stick_response.ack_id == StickResponseType.FAILED:
+            self._unsubscribe_from_node()
+            self._seq_id = None
+            self._response_future.set_exception(
+                NodeError(
+                    f"Stick failed request {self._seq_id}"
                 )
-            elif stick_response.ack_id == StickResponseType.ACCEPT:
-                pass
-            else:
-                _LOGGER.debug(
-                    "Unknown StickResponseType %s at %s for request %s id %d",
-                    str(stick_response.ack_id),
-                    stick_response,
-                    self,
-                    self._id
-                )
+            )
+        elif stick_response.ack_id == StickResponseType.ACCEPT:
+            pass
+        else:
+            _LOGGER.debug(
+                "Unknown StickResponseType %s at %s for request %s id %d",
+                str(stick_response.ack_id),
+                stick_response,
+                self,
+                self._id
+            )
 
     @property
     def max_retries(self) -> int:
