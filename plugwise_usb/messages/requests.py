@@ -167,7 +167,7 @@ class PlugwiseRequest(PlugwiseMessage):
                 )
             )
         else:
-            _LOGGER.warning("No response received for %s within timeout (%s seconds)", self, self._response, NODE_TIME_OUT)
+            _LOGGER.warning("No response received for %s within timeout (%s seconds)", self, NODE_TIME_OUT)
             self._response_future.set_exception(
                 NodeTimeout(
                     f"No device response to {self} within {NODE_TIME_OUT} seconds"
@@ -216,7 +216,6 @@ class PlugwiseRequest(PlugwiseMessage):
             return
         if self._seq_id is None or self._seq_id != stick_response.seq_id:
             return
-        _LOGGER.warning("%s for request %s id %d", stick_response, self, self._id)
         if stick_response.ack_id == StickResponseType.TIMEOUT:
             self._response_timeout_expired(stick_timeout=True)
         elif stick_response.ack_id == StickResponseType.FAILED:
@@ -231,11 +230,10 @@ class PlugwiseRequest(PlugwiseMessage):
             pass
         else:
             _LOGGER.debug(
-                "Unknown StickResponseType %s at %s for request %s id %d",
+                "Unknown StickResponseType %s at %s for request %s",
                 str(stick_response.ack_id),
                 stick_response,
-                self,
-                self._id
+                self
             )
 
     @property
