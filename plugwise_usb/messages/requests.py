@@ -77,8 +77,8 @@ class PlugwiseRequest(PlugwiseMessage):
     def __repr__(self) -> str:
         """Convert request into writable str."""
         if self._seq_id is None:
-            return f"{self.__class__.__name__} for {self.mac_decoded}"
-        return f"{self.__class__.__name__} (seq_id={self._seq_id}) for {self.mac_decoded}"
+            return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id=UNKNOWN, attempts={self._send_counter})"
+        return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id={self._seq_id}, attempts={self._send_counter})"
 
     def response_future(self) -> Future[PlugwiseResponse]:
         """Return awaitable future with response message."""
