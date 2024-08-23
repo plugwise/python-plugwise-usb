@@ -82,7 +82,7 @@ class StickQueue:
         self, request: PlugwiseRequest
     ) -> PlugwiseResponse:
         """Add request to queue and return the response of node. Raises an error when something fails."""
-        _LOGGER.debug("Queueing %s", request)
+        _LOGGER.debug("Submit %s", request)
         while request.resend:
             if not self._running or self._stick is None:
                 raise StickError(
@@ -93,13 +93,13 @@ class StickQueue:
             try:
                 response: PlugwiseResponse = await request.response_future()
             except (NodeTimeout, StickTimeout) as e:
-                if request.resend:
-                    _LOGGER.debug("%s, retrying", e)
-                elif isinstance(request, NodePingRequest):
+                if isinstance(request, NodePingRequest):
                     # For ping requests it is expected to receive timeouts, so lower log level
-                    _LOGGER.debug("%s after %s attempts. Cancel request", e, request.max_retries)
+                    _LOGGER.debug("%s, cancel because timeout is expected for NodePingRequests", e)
+                elif request.resend:
+                    _LOGGER.info("%s, retrying", e)
                 else:
-                    _LOGGER.info("%s after %s attempts, cancel request", e, request.max_retries)
+                    _LOGGER.warning("%s, cancel request", e)
             except StickError as exception:
                 _LOGGER.error(exception)
                 raise StickError(
@@ -122,6 +122,7 @@ class StickQueue:
 
     async def _add_request_to_queue(self, request: PlugwiseRequest) -> None:
         """Add request to send queue."""
+        _LOGGER.debug("Add request to queue: %s", request)
         await self._submit_queue.put(request)
         if self._submit_worker_task is None or self._submit_worker_task.done():
             self._submit_worker_task = self._loop.create_task(
@@ -131,10 +132,14 @@ class StickQueue:
 
     async def _send_queue_worker(self) -> None:
         """Send messages from queue at the order of priority."""
+        _LOGGER.debug("Send_queue_worker started")
         while self._running:
             request = await self._submit_queue.get()
+            _LOGGER.debug("Send from queue %s", request)
             if request.priority == Priority.CANCEL:
                 self._submit_queue.task_done()
                 return
             await self._stick.write_to_stick(request)
             self._submit_queue.task_done()
+            _LOGGER.debug("Sent from queue %s", request)
+        _LOGGER.debug("Send_queue_worker finished")
