@@ -115,7 +115,7 @@ class PlugwiseResponse(PlugwiseMessage):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return f"{self.__class__.__name__} from {self.mac_decoded} (seq_id={self.seq_id})"
+        return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id={self._seq_id}, retries={self._retries})"
 
     @property
     def retries(self) -> int:
@@ -230,7 +230,7 @@ class StickResponse(PlugwiseResponse):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return f"StickResponse (ack={StickResponseType(self.ack_id).name}, seq_id={str(self.seq_id)})"
+        return f"StickResponse (seq_id={self._seq_id}, retries={self._retries}, ack={StickResponseType(self.ack_id).name})"
 
     @property
     def response_type(self) -> StickResponseType:
