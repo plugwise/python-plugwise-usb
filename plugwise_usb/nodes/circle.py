@@ -726,7 +726,7 @@ class PlugwiseCircle(PlugwiseNode):
             return False
 
         # Get node info
-        if await self.node_info_update() is None:
+        if self.skip_update(self._node_info, 30) and await self.node_info_update() is None:
             _LOGGER.info(
                 "Failed to load Circle node %s because it is not responding to information request",
                 self._node_info.mac
@@ -796,7 +796,7 @@ class PlugwiseCircle(PlugwiseNode):
             )
             self._initialized = False
             return False
-        if await self.node_info_update() is None:
+        if self.skip_update(self._node_info, 30) and await self.node_info_update() is None:
             _LOGGER.debug(
                 "Failed to retrieve node info for %s",
                 self.mac
