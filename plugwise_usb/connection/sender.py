@@ -56,6 +56,7 @@ class StickSender:
             raise StickError("USB-Stick transport missing.")
 
         await self._stick_lock.acquire()
+        _LOGGER.debug("Send %s", request)
         self._current_request = request
         self._stick_response: Future[bytes] = self._loop.create_future()
 
@@ -65,9 +66,9 @@ class StickSender:
             self._receiver.subscribe_to_node_responses,
         )
 
-        _LOGGER.debug("Writing '%s' to USB-Stick", request)
         # Write message to serial port buffer
         serialized_data = request.serialize()
+        _LOGGER.debug("Write %s to port: %s", request, serialized_data)
         self._transport.write(serialized_data)
         request.start_response_timeout()
 
@@ -85,12 +86,14 @@ class StickSender:
                 )
             )
         except BaseException as exc:  # pylint: disable=broad-exception-caught
+            _LOGGER.warning("Exception for %s: %s", request, exc)
             request.assign_error(exc)
         else:
-            _LOGGER.debug("Request '%s' was accepted by USB-stick with seq_id %s", request, str(request.seq_id))
             if response.response_type == StickResponseType.ACCEPT:
                 request.seq_id = response.seq_id
+                _LOGGER.info("Sent %s", request)
             elif response.response_type == StickResponseType.TIMEOUT:
+                _LOGGER.warning("USB-Stick responded with communication timeout for %s", request)
                 request.assign_error(
                     BaseException(
                         StickError(
@@ -99,6 +102,7 @@ class StickSender:
                     )
                 )
             elif response.response_type == StickResponseType.FAILED:
+                _LOGGER.warning("USB-Stick failed communication for %s", request)
                 request.assign_error(
                     BaseException(
                         StickError(

@@ -96,8 +96,8 @@ class PlugwiseCache:
             encoding=UTF8,
         ) as file_data:
             await file_data.writelines(data_to_write)
-        _LOGGER.info(
-            "Saved %s lines to network cache file %s",
+        _LOGGER.debug(
+            "Saved %s lines to cache file %s",
             str(len(data)),
             self._cache_file
         )

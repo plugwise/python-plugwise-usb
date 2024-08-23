@@ -104,9 +104,9 @@ class StickReceiver(Protocol):
 
     def connection_lost(self, exc: Exception | None = None) -> None:
         """Call when port was closed expectedly or unexpectedly."""
-        _LOGGER.debug("Connection lost")
+        _LOGGER.info("Connection lost")
         if exc is not None:
-            _LOGGER.warning("Connection lost %s", exc)
+            _LOGGER.warning("Connection to Plugwise USB-stick lost %s", exc)
         self._loop.create_task(self.close())
         if len(self._stick_event_subscribers) > 0:
             self._loop.create_task(
@@ -132,7 +132,7 @@ class StickReceiver(Protocol):
 
     def connection_made(self, transport: SerialTransport) -> None:
         """Call when the serial connection to USB-Stick is established."""
-        _LOGGER.debug("Connection made")
+        _LOGGER.info("Connection made")
         self._transport = transport
         if (
             self._connected_future is not None
@@ -168,6 +168,7 @@ class StickReceiver(Protocol):
 
         This function is called by inherited asyncio.Protocol class
         """
+        _LOGGER.debug("Received data from USB-Stick: %s", data)
         self._buffer += data
         if MESSAGE_FOOTER in self._buffer:
             msgs = self._buffer.split(MESSAGE_FOOTER)
@@ -182,6 +183,7 @@ class StickReceiver(Protocol):
 
     def _put_message_in_receiver_queue(self, response: PlugwiseResponse) -> None:
         """Put message in queue."""
+        _LOGGER.debug("Add response to queue: %s", response)
         self._receive_queue.put_nowait(response)
         if self._msg_processing_task is None or self._msg_processing_task.done():
             self._msg_processing_task = self._loop.create_task(
@@ -194,6 +196,7 @@ class StickReceiver(Protocol):
         # Lookup header of message, there are stray \x83
         if (_header_index := msg.find(MESSAGE_HEADER)) == -1:
             return False
+        _LOGGER.debug("Extract message from data: %s", msg)
         msg = msg[_header_index:]
         # Detect response message type
         identifier = msg[4:8]
@@ -211,23 +214,25 @@ class StickReceiver(Protocol):
             _LOGGER.warning(err)
             return None
 
-        _LOGGER.debug("Reading '%s' from USB-Stick", response)
+        _LOGGER.debug("Data %s converted into %s", msg, response)
         return response
 
     async def _receive_queue_worker(self):
         """Process queue items."""
+        _LOGGER.debug("Receive_queue_worker started")
         while self.is_connected:
             response: PlugwiseResponse | None = await self._receive_queue.get()
-            _LOGGER.debug("Processing started for %s", response)
+            _LOGGER.debug("Process from queue: %s", response)
             if isinstance(response, StickResponse):
+                _LOGGER.debug("Received %s", response)
                 await self._notify_stick_response_subscribers(response)
             elif response is None:
                 self._receive_queue.task_done()
                 return
             else:
                 await self._notify_node_response_subscribers(response)
-            _LOGGER.debug("Processing finished for %s", response)
             self._receive_queue.task_done()
+        _LOGGER.debug("Receive_queue_worker finished")
 
     def _reset_buffer(self, new_buffer: bytes) -> None:
         if new_buffer[:2] == MESSAGE_FOOTER:
@@ -295,6 +300,7 @@ class StickReceiver(Protocol):
                     continue
             if response_type is not None and response_type != stick_response.response_type:
                 continue
+            _LOGGER.debug("Notify stick response subscriber for %s", stick_response)
             await callback(stick_response)
 
     def subscribe_to_node_responses(
@@ -320,7 +326,7 @@ class StickReceiver(Protocol):
     async def _notify_node_response_subscribers(self, node_response: PlugwiseResponse) -> None:
         """Call callback for all node response message subscribers."""
         if node_response.seq_id in self._last_processed_messages:
-            _LOGGER.debug("Drop duplicate already processed %s", node_response)
+            _LOGGER.debug("Drop previously processed duplicate %s", node_response)
             return
 
         notify_tasks: list[Callable] = []
@@ -336,6 +342,7 @@ class StickReceiver(Protocol):
             notify_tasks.append(callback(node_response))
 
         if len(notify_tasks) > 0:
+            _LOGGER.debug("Notify node response subscribers (%s) about %s", len(notify_tasks), node_response)
             if node_response.seq_id not in BROADCAST_IDS:
                 self._last_processed_messages.append(node_response.seq_id)
             if node_response.seq_id in self._delayed_processing_tasks:

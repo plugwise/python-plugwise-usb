@@ -102,6 +102,7 @@ class PlugwiseRequest(PlugwiseMessage):
     def seq_id(self, seq_id: bytes) -> None:
         """Assign sequence id."""
         if self._seq_id is not None:
+            _LOGGER.warning("Unable to change seq_id into %s for request %s", seq_id, self)
             raise MessageError(f"Unable to set seq_id to {seq_id}. Already set to {self._seq_id}")
         self._seq_id = seq_id
         # Subscribe to receive the response messages
@@ -159,12 +160,14 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_from_stick()
         self._unsubscribe_from_node()
         if stick_timeout:
+            _LOGGER.warning("USB-stick responded with time out to %s", self)
             self._response_future.set_exception(
                 StickTimeout(
                     f"USB-stick responded with time out to {self}"
                 )
             )
         else:
+            _LOGGER.warning("No response received for %s within timeout (%s seconds)", self, self._response, NODE_TIME_OUT)
             self._response_future.set_exception(
                 NodeTimeout(
                     f"No response to {self} within {NODE_TIME_OUT} seconds"

@@ -232,7 +232,7 @@ class StickNetworkRegister:
                 _LOGGER.debug("Full network registration finished, pre")
                 await self.save_registry_to_cache()
                 _LOGGER.debug("Full network registration finished, post")
-            _LOGGER.info("Full network registration discovery completed")
+            _LOGGER.info("Full network discovery completed")
             if self._full_scan_finished is not None:
                 await self._full_scan_finished()
                 self._full_scan_finished = None
