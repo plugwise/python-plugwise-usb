@@ -62,7 +62,6 @@ class PlugwiseRequest(PlugwiseMessage):
         self._max_retries: int = MAX_RETRIES
         self.timestamp = datetime.now(UTC)
         self._loop = get_running_loop()
-        self._id = id(self)
         self._reply_identifier: bytes = b"0000"
         self._response: PlugwiseResponse | None = None
         self._stick_subscription_fn: Callable[[], None] | None = None
@@ -233,11 +232,6 @@ class PlugwiseRequest(PlugwiseMessage):
                     self,
                     self._id
                 )
-
-    @property
-    def object_id(self) -> int:
-        """Return the object id."""
-        return self._id
 
     @property
     def max_retries(self) -> int:
