@@ -170,7 +170,7 @@ class PlugwiseRequest(PlugwiseMessage):
             _LOGGER.warning("No response received for %s within timeout (%s seconds)", self, self._response, NODE_TIME_OUT)
             self._response_future.set_exception(
                 NodeTimeout(
-                    f"No response to {self} within {NODE_TIME_OUT} seconds"
+                    f"No device response to {self} within {NODE_TIME_OUT} seconds"
                 )
             )
 
