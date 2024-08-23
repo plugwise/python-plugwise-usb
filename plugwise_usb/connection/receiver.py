@@ -323,7 +323,7 @@ class StickReceiver(Protocol):
             _LOGGER.debug("Drop duplicate already processed %s", node_response)
             return
 
-        processed = False
+        notify_tasks: list[Callable] = []
         for callback, mac, message_ids, seq_id in list(
             self._node_response_subscribers.values()
         ):
@@ -333,19 +333,22 @@ class StickReceiver(Protocol):
                 continue
             if seq_id is not None and seq_id != node_response.seq_id:
                 continue
-            processed = True
-            try:
-                await callback(node_response)
-            except Exception as err:
-                _LOGGER.error("ERROR AT _notify_node_response_subscribers: %s", err)
+            notify_tasks.append(callback(node_response))
 
-        if processed:
+        if len(notify_tasks) > 0:
             if node_response.seq_id not in BROADCAST_IDS:
                 self._last_processed_messages.append(node_response.seq_id)
             if node_response.seq_id in self._delayed_processing_tasks:
                 del self._delayed_processing_tasks[node_response.seq_id]
             # Limit tracking to only the last appended request (FIFO)
             self._last_processed_messages = self._last_processed_messages[-CACHED_REQUESTS:]
+
+            # execute callbacks
+            task_result = await gather(*notify_tasks)
+
+            # Log execution result for special cases
+            if not all(task_result):
+                _LOGGER.warning("Executed %s tasks (result=%s) for %s", len(notify_tasks), task_result, node_response)
             return
 
         if node_response.retries > 10:
