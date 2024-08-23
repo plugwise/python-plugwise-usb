@@ -103,18 +103,17 @@ class PlugwiseRequest(PlugwiseMessage):
         if self._seq_id is not None:
             raise MessageError(f"Unable to set seq_id to {seq_id}. Already set to {self._seq_id}")
         self._seq_id = seq_id
-        self._unsubscribe_from_stick()
+        # Subscribe to receive the response messages
         self._unsubscribe_stick_response = self._stick_subscription_fn(
             self._process_stick_response,
-            seq_id=seq_id
+            seq_id=self._seq_id
         )
-        self._unsubscribe_from_node()
         self._unsubscribe_node_response = (
             self._node_subscription_fn(
                 self._process_node_response,
                 mac=self._mac,
                 message_ids=(self._reply_identifier,),
-                seq_id=seq_id
+                seq_id=self._seq_id
             )
         )
 
