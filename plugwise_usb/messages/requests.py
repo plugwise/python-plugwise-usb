@@ -156,6 +156,7 @@ class PlugwiseRequest(PlugwiseMessage):
         """Handle response timeout."""
         if self._response_future.done():
             return
+        self._seq_id = None
         self._unsubscribe_from_stick()
         self._unsubscribe_from_node()
         if stick_timeout:
