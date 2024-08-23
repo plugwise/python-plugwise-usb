@@ -214,17 +214,6 @@ class StickReceiver(Protocol):
         _LOGGER.debug("Reading '%s' from USB-Stick", response)
         return response
 
-    def _populate_message(
-        self, message: PlugwiseResponse, data: bytes
-    ) -> PlugwiseResponse | None:
-        """Return plugwise response message based on data."""
-        try:
-            message.deserialize(data)
-        except MessageError as err:
-            _LOGGER.warning(err)
-            return None
-        return message
-
     async def _receive_queue_worker(self):
         """Process queue items."""
         while self.is_connected:
