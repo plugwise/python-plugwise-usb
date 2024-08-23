@@ -421,6 +421,7 @@ class PlugwiseCircle(PlugwiseNode):
             return False
 
         await self._available_update_state(True)
+        energy_record_update = False
 
         # Forward historical energy log information to energy counters
         # Each response message contains 4 log counters (slots) of the
@@ -433,15 +434,17 @@ class PlugwiseCircle(PlugwiseNode):
             if _log_timestamp is None:
                 self._energy_counters.add_empty_log(response.log_address, _slot)
             else:
-                await self._energy_log_record_update_state(
+                if await self._energy_log_record_update_state(
                     response.log_address,
                     _slot,
                     _log_timestamp.replace(tzinfo=UTC),
                     _log_pulses,
                     import_only=True
-                )
+                ):
+                    energy_record_update = True
         self._energy_counters.update()
-        await self.save_cache()
+        if energy_record_update: 
+            await self.save_cache()
         return True
 
     async def _energy_log_records_load_from_cache(self) -> bool:
@@ -525,8 +528,8 @@ class PlugwiseCircle(PlugwiseNode):
         timestamp: datetime,
         pulses: int,
         import_only: bool = False,
-    ) -> None:
-        """Process new energy log record."""
+    ) -> bool:
+        """Process new energy log record. Returns true if record is new or changed."""
         self._energy_counters.add_pulse_log(
             address,
             slot,
@@ -535,7 +538,7 @@ class PlugwiseCircle(PlugwiseNode):
             import_only=import_only
         )
         if not self._cache_enabled:
-            return
+            return False
         log_cache_record = f"{address}:{slot}:{timestamp.year}"
         log_cache_record += f"-{timestamp.month}-{timestamp.day}"
         log_cache_record += f"-{timestamp.hour}-{timestamp.minute}"
@@ -551,12 +554,15 @@ class PlugwiseCircle(PlugwiseNode):
                 self._set_cache(
                     CACHE_ENERGY_COLLECTION, cached_logs + "|" + log_cache_record
                 )
+                return True
+            return False
         else:
             _LOGGER.debug(
                 "No existing energy collection log cached for %s",
                 self.mac
             )
             self._set_cache(CACHE_ENERGY_COLLECTION, log_cache_record)
+        return True
 
     async def switch_relay(self, state: bool) -> bool | None:
         """Switch state of relay.
