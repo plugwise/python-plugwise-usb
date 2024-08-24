@@ -8,7 +8,7 @@ from typing import Any, Final
 from ..api import NodeType
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER, UTF8
 from ..exceptions import MessageError
-from . import PlugwiseMessage
+from . import PlugwiseMessage, Priority
 from .properties import (
     BaseType,
     DateTime,
@@ -227,6 +227,7 @@ class StickResponse(PlugwiseResponse):
     def __init__(self) -> None:
         """Initialize StickResponse message object."""
         super().__init__(b"0000", decode_ack=True, decode_mac=False)
+        self.priority = Priority.HIGH
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
@@ -787,6 +788,7 @@ class NodeAwakeResponse(PlugwiseResponse):
         super().__init__(NODE_AWAKE_RESPONSE_ID)
         self._awake_type = Int(0, 2, False)
         self._params += [self._awake_type]
+        self.priority = Priority.HIGH
 
     @property
     def awake_type(self) -> NodeAwakeResponseType:
@@ -863,6 +865,7 @@ class NodeAckResponse(PlugwiseResponse):
         super().__init__(b"0100")
         self._node_ack_type = BaseType(0, length=4)
         self._params += [self._node_ack_type]
+        self.priority = Priority.HIGH
 
     @property
     def node_ack_type(self) -> NodeAckResponseType:
