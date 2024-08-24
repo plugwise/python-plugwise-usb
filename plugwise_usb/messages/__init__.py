@@ -2,14 +2,24 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any
 
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER, UTF8
 from ..helpers.util import crc_fun
 
+class Priority(int, Enum):
+    """Message priority levels for USB-stick message requests."""
+
+    CANCEL = 0
+    HIGH = 1
+    MEDIUM = 2
+    LOW = 3
 
 class PlugwiseMessage:
     """Plugwise message base class."""
+
+    priority: Priority = Priority.MEDIUM
 
     def __init__(self, identifier: bytes) -> None:
         """Initialize a plugwise message."""
@@ -59,3 +69,35 @@ class PlugwiseMessage:
     def calculate_checksum(data: bytes) -> bytes:
         """Calculate crc checksum."""
         return bytes("%04X" % crc_fun(data), UTF8)
+
+    def __gt__(self, other: PlugwiseMessage) -> bool:
+        """Greater than."""
+        if self.priority.value == other.priority.value:
+            return self.timestamp > other.timestamp
+        if self.priority.value < other.priority.value:
+            return True
+        return False
+
+    def __lt__(self, other: PlugwiseMessage) -> bool:
+        """Less than."""
+        if self.priority.value == other.priority.value:
+            return self.timestamp < other.timestamp
+        if self.priority.value > other.priority.value:
+            return True
+        return False
+
+    def __ge__(self, other: PlugwiseMessage) -> bool:
+        """Greater than or equal."""
+        if self.priority.value == other.priority.value:
+            return self.timestamp >= other.timestamp
+        if self.priority.value < other.priority.value:
+            return True
+        return False
+
+    def __le__(self, other: PlugwiseMessage) -> bool:
+        """Less than or equal."""
+        if self.priority.value == other.priority.value:
+            return self.timestamp <= other.timestamp
+        if self.priority.value > other.priority.value:
+            return True
+        return False
