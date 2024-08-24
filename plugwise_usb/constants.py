@@ -31,9 +31,7 @@ MESSAGE_FOOTER: Final = b"\x0d\x0a"
 MESSAGE_HEADER: Final = b"\x05\x05\x03\x03"
 
 # Max timeout in seconds
-STICK_ACCEPT_TIME_OUT: Final = 6  # Stick accept respond.
 STICK_TIME_OUT: Final = 15  # Stick responds with timeout messages after 10s.
-QUEUE_TIME_OUT: Final = 45  # Total seconds to wait for queue
 NODE_TIME_OUT: Final = 15  # In bigger networks a response from a node could take up a while, so lets use 15 seconds.
 MAX_RETRIES: Final = 3
 
