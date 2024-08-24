@@ -1,7 +1,7 @@
 """All known response messages to be received from plugwise devices."""
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import Enum
 from typing import Any, Final
 
