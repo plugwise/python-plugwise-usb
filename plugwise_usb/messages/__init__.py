@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from enum import Enum
 from datetime import UTC, datetime
+from enum import Enum
 from typing import Any
 
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER, UTF8
