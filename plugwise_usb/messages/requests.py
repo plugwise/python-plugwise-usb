@@ -66,8 +66,8 @@ class PlugwiseRequest(PlugwiseMessage):
     def __repr__(self) -> str:
         """Convert request into writable str."""
         if self._seq_id is None:
-            return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id=UNKNOWN, attempts={self._send_counter})"
-        return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id={self._seq_id}, attempts={self._send_counter})"
+            return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id=UNKNOWN, attempt={self._send_counter})"
+        return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id={self._seq_id}, attempt={self._send_counter})"
 
     def response_future(self) -> Future[PlugwiseResponse]:
         """Return awaitable future with response message."""
@@ -145,18 +145,20 @@ class PlugwiseRequest(PlugwiseMessage):
         """Handle response timeout."""
         if self._response_future.done():
             return
+        if stick_timeout:
+            _LOGGER.info("USB-stick responded with time out to %s", self)
+        else:
+            _LOGGER.warning("No response received for %s within timeout (%s seconds)", self, NODE_TIME_OUT)
         self._seq_id = None
         self._unsubscribe_from_stick()
         self._unsubscribe_from_node()
         if stick_timeout:
-            _LOGGER.warning("USB-stick responded with time out to %s", self)
             self._response_future.set_exception(
                 StickTimeout(
                     f"USB-stick responded with time out to {self}"
                 )
             )
         else:
-            _LOGGER.warning("No response received for %s within timeout (%s seconds)", self, NODE_TIME_OUT)
             self._response_future.set_exception(
                 NodeTimeout(
                     f"No device response to {self} within {NODE_TIME_OUT} seconds"

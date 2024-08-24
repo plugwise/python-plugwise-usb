@@ -56,11 +56,11 @@ class StickSender:
             raise StickError("USB-Stick transport missing.")
 
         await self._stick_lock.acquire()
-        _LOGGER.debug("Send %s", request)
         self._current_request = request
         self._stick_response: Future[bytes] = self._loop.create_future()
 
         request.add_send_attempt()
+        _LOGGER.debug("Send %s", request)
         request.subscribe_to_responses(
             self._receiver.subscribe_to_stick_responses,
             self._receiver.subscribe_to_node_responses,
@@ -91,7 +91,7 @@ class StickSender:
         else:
             if response.response_type == StickResponseType.ACCEPT:
                 request.seq_id = response.seq_id
-                _LOGGER.info("Sent %s", request)
+                _LOGGER.debug("USB-Stick accepted %s with seq_id=%s", request, response.seq_id)
             elif response.response_type == StickResponseType.TIMEOUT:
                 _LOGGER.warning("USB-Stick responded with communication timeout for %s", request)
                 request.assign_error(
