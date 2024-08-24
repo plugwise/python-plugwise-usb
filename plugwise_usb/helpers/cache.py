@@ -45,10 +45,10 @@ class PlugwiseCache:
             self._initialized = False
         self._root_dir = cache_root_dir
 
-    async def initialize_cache(self) -> None:
+    async def initialize_cache(self, create_root_folder: bool = False) -> None:
         """Set (and create) the plugwise cache directory to store cache file."""
         if self._root_dir != "":
-            if not await ospath.exists(self._root_dir):
+            if not create_root_folder and not await ospath.exists(self._root_dir):
                 raise CacheError(f"Unable to initialize caching. Cache folder '{self._root_dir}' does not exists.")
             cache_dir = self._root_dir
         else:
