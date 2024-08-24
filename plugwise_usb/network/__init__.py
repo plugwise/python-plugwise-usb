@@ -103,11 +103,11 @@ class StickNetwork:
         for node in self._nodes.values():
             node.cache_folder = cache_folder
 
-    async def initialize_cache(self) -> None:
+    async def initialize_cache(self, create_root_folder: bool = False) -> None:
         """Initialize the cache folder."""
         if not self._cache_enabled:
             raise CacheError("Unable to initialize cache, enable cache first.")
-        await self._register.initialize_cache()
+        await self._register.initialize_cache(create_root_folder)
 
     @property
     def controller_active(self) -> bool:
