@@ -19,7 +19,7 @@ from __future__ import annotations
 from asyncio import (
     Future,
     Protocol,
-    Queue,
+    PriorityQueue,
     Task,
     TimerHandle,
     gather,
@@ -36,6 +36,7 @@ from serial_asyncio_fast import SerialTransport
 from ..api import StickEvent
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER
 from ..exceptions import MessageError
+from ..messages import Priority
 from ..messages.responses import (
     BROADCAST_IDS,
     PlugwiseResponse,
@@ -73,7 +74,7 @@ class StickReceiver(Protocol):
         self._buffer: bytes = bytes([])
         self._connection_state = False
         self._reduce_logging = True
-        self._receive_queue: Queue[PlugwiseResponse | None] = Queue()
+        self._receive_queue: PriorityQueue[PlugwiseResponse] = PriorityQueue()
         self._last_processed_messages: list[bytes] = []
         self._stick_future: futures.Future | None = None
         self._responses: dict[bytes, Callable[[PlugwiseResponse], None]] = {}
@@ -158,10 +159,10 @@ class StickReceiver(Protocol):
         """Cancel and stop any running task."""
         for task in self._delayed_processing_tasks.values():
             task.cancel()
-        await self._receive_queue.put(None)
-        if self._msg_processing_task is not None and not self._msg_processing_task.done():
-            self._receive_queue.put_nowait(None)
-            await self._msg_processing_task
+        cancel_response = StickResponse()
+        cancel_response.priority = Priority.CANCEL
+        await self._receive_queue.put(cancel_response)
+        await self._receive_worker_task
 
     def data_received(self, data: bytes) -> None:
         """Receive data from USB-Stick connection.
@@ -221,14 +222,14 @@ class StickReceiver(Protocol):
         """Process queue items."""
         _LOGGER.debug("Receive_queue_worker started")
         while self.is_connected:
-            response: PlugwiseResponse | None = await self._receive_queue.get()
+            response: PlugwiseResponse = await self._receive_queue.get()
+            if response.priority == Priority.CANCEL:
+                self._receive_queue.task_done()
+                return
             _LOGGER.debug("Process from receive queue: %s", response)
             if isinstance(response, StickResponse):
                 _LOGGER.debug("Received %s", response)
                 await self._notify_stick_response_subscribers(response)
-            elif response is None:
-                self._receive_queue.task_done()
-                return
             else:
                 await self._notify_node_response_subscribers(response)
             self._receive_queue.task_done()
