@@ -269,7 +269,7 @@ class Stick:
         )
 
     @raise_not_connected
-    async def initialize(self) -> None:
+    async def initialize(self, create_root_cache_folder: bool = False) -> None:
         """Initialize connection to USB-Stick."""
         await self._controller.initialize_stick()
         if self._network is None:
@@ -277,7 +277,7 @@ class Stick:
             self._network.cache_folder = self._cache_folder
             self._network.cache_enabled = self._cache_enabled
             if self._cache_enabled:
-                await self._network.initialize_cache()
+                await self._network.initialize_cache(create_root_cache_folder)
 
     @raise_not_connected
     @raise_not_initialized
