@@ -9,7 +9,7 @@ from typing import Any
 
 from ..api import NodeType
 from ..constants import UTF8
-from ..exceptions import NodeError
+from ..exceptions import CacheError, NodeError
 from ..messages.requests import CirclePlusScanRequest, NodeAddRequest, NodeRemoveRequest
 from ..messages.responses import (
     CirclePlusScanResponse,
@@ -57,18 +57,17 @@ class StickNetworkRegister:
     def cache_enabled(self, enable: bool = True) -> None:
         """Enable or disable usage of cache."""
         if enable and not self._cache_enabled:
-            _LOGGER.debug("Cache is enabled")
+            _LOGGER.debug("Enable cache")
             self._network_cache = NetworkRegistrationCache(self._cache_folder)
-            self._network_cache_file_task = create_task(
-                self._network_cache.initialize_cache()
-            )
         elif not enable and self._cache_enabled:
-            if self._network_cache is not None:
-                self._network_cache_file_task = create_task(
-                    self._network_cache.delete_cache()
-                )
-            _LOGGER.debug("Cache is disabled")
+            _LOGGER.debug("Disable cache")
         self._cache_enabled = enable
+
+    async def initialize_cache(self) -> None:
+        """Initialize cache"""
+        if not self._cache_enabled:
+            raise CacheError("Unable to initialize cache, enable cache first.")
+        await self._network_cache.initialize_cache()
 
     @property
     def cache_folder(self) -> str:
