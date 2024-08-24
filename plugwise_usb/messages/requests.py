@@ -5,7 +5,6 @@ from asyncio import Future, TimerHandle, get_running_loop
 from collections.abc import Callable
 from copy import copy
 from datetime import UTC, datetime
-from enum import Enum
 import logging
 
 from ..constants import (
@@ -19,7 +18,7 @@ from ..constants import (
 )
 from ..exceptions import MessageError, NodeError, NodeTimeout, StickError, StickTimeout
 from ..messages.responses import PlugwiseResponse, StickResponse, StickResponseType
-from . import PlugwiseMessage
+from . import PlugwiseMessage, Priority
 from .properties import (
     DateTime,
     Int,
@@ -34,20 +33,10 @@ from .properties import (
 _LOGGER = logging.getLogger(__name__)
 
 
-class Priority(int, Enum):
-    """Message priority levels for USB-stick message requests."""
-
-    CANCEL = 0
-    HIGH = 1
-    MEDIUM = 2
-    LOW = 3
-
-
 class PlugwiseRequest(PlugwiseMessage):
     """Base class for request messages to be send from by USB-Stick."""
 
     arguments: list = []
-    priority: Priority = Priority.MEDIUM
 
     def __init__(
         self,
@@ -259,38 +248,6 @@ class PlugwiseRequest(PlugwiseMessage):
     def add_send_attempt(self):
         """Increase the number of retries."""
         self._send_counter += 1
-
-    def __gt__(self, other: PlugwiseRequest) -> bool:
-        """Greater than."""
-        if self.priority.value == other.priority.value:
-            return self.timestamp > other.timestamp
-        if self.priority.value < other.priority.value:
-            return True
-        return False
-
-    def __lt__(self, other: PlugwiseRequest) -> bool:
-        """Less than."""
-        if self.priority.value == other.priority.value:
-            return self.timestamp < other.timestamp
-        if self.priority.value > other.priority.value:
-            return True
-        return False
-
-    def __ge__(self, other: PlugwiseRequest) -> bool:
-        """Greater than or equal."""
-        if self.priority.value == other.priority.value:
-            return self.timestamp >= other.timestamp
-        if self.priority.value < other.priority.value:
-            return True
-        return False
-
-    def __le__(self, other: PlugwiseRequest) -> bool:
-        """Less than or equal."""
-        if self.priority.value == other.priority.value:
-            return self.timestamp <= other.timestamp
-        if self.priority.value > other.priority.value:
-            return True
-        return False
 
 
 class StickNetworkInfoRequest(PlugwiseRequest):
