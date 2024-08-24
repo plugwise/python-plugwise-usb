@@ -96,8 +96,6 @@ class NodeAwakeResponseType(int, Enum):
 class PlugwiseResponse(PlugwiseMessage):
     """Base class for response messages received by USB-Stick."""
 
-    timestamp: datetime | None = None
-
     def __init__(
         self,
         identifier: bytes,
@@ -139,7 +137,6 @@ class PlugwiseResponse(PlugwiseMessage):
 
     def deserialize(self, response: bytes, has_footer: bool = True) -> None:
         """Deserialize bytes to actual message properties."""
-        self.timestamp = datetime.now(UTC)
         # Header
         if response[:4] != MESSAGE_HEADER:
             raise MessageError(
