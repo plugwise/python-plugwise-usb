@@ -74,6 +74,7 @@ class StickQueue:
             cancel_request = PlugwiseRequest(b"0000", None)
             cancel_request.priority = Priority.CANCEL
             await self._submit_queue.put(cancel_request)
+            await self._submit_worker_task
         self._submit_worker_task = None
         self._stick = None
         _LOGGER.debug("queue stopped")
