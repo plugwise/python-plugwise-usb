@@ -222,7 +222,7 @@ class StickReceiver(Protocol):
         _LOGGER.debug("Receive_queue_worker started")
         while self.is_connected:
             response: PlugwiseResponse | None = await self._receive_queue.get()
-            _LOGGER.debug("Process from queue: %s", response)
+            _LOGGER.debug("Process from receive queue: %s", response)
             if isinstance(response, StickResponse):
                 _LOGGER.debug("Received %s", response)
                 await self._notify_stick_response_subscribers(response)
@@ -232,7 +232,7 @@ class StickReceiver(Protocol):
             else:
                 await self._notify_node_response_subscribers(response)
             self._receive_queue.task_done()
-        _LOGGER.debug("Receive_queue_worker finished")
+        _LOGGER.debug("Receive_queue_worker stopped")
 
     def _reset_buffer(self, new_buffer: bytes) -> None:
         if new_buffer[:2] == MESSAGE_FOOTER:
@@ -342,7 +342,7 @@ class StickReceiver(Protocol):
             notify_tasks.append(callback(node_response))
 
         if len(notify_tasks) > 0:
-            _LOGGER.debug("Notify node response subscribers (%s) about %s", len(notify_tasks), node_response)
+            _LOGGER.info("Received %s", node_response)
             if node_response.seq_id not in BROADCAST_IDS:
                 self._last_processed_messages.append(node_response.seq_id)
             if node_response.seq_id in self._delayed_processing_tasks:
@@ -351,6 +351,7 @@ class StickReceiver(Protocol):
             self._last_processed_messages = self._last_processed_messages[-CACHED_REQUESTS:]
 
             # execute callbacks
+            _LOGGER.debug("Notify node response subscribers (%s) about %s", len(notify_tasks), node_response)
             task_result = await gather(*notify_tasks)
 
             # Log execution result for special cases
