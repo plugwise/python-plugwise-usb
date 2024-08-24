@@ -135,11 +135,11 @@ class StickQueue:
         _LOGGER.debug("Send_queue_worker started")
         while self._running:
             request = await self._submit_queue.get()
-            _LOGGER.debug("Send from queue %s", request)
+            _LOGGER.debug("Send from send queue %s", request)
             if request.priority == Priority.CANCEL:
                 self._submit_queue.task_done()
                 return
             await self._stick.write_to_stick(request)
             self._submit_queue.task_done()
             _LOGGER.debug("Sent from queue %s", request)
-        _LOGGER.debug("Send_queue_worker finished")
+        _LOGGER.debug("Send_queue_worker stopped")

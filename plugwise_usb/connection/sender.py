@@ -68,7 +68,7 @@ class StickSender:
 
         # Write message to serial port buffer
         serialized_data = request.serialize()
-        _LOGGER.debug("Write %s to port: %s", request, serialized_data)
+        _LOGGER.debug("Write %s to port as %s", request, serialized_data)
         self._transport.write(serialized_data)
         request.start_response_timeout()
 
