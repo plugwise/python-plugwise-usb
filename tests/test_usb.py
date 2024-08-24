@@ -1350,7 +1350,12 @@ class TestStick:
                 return
             raise pw_exceptions.CacheError("Invalid file")
 
+        async def makedirs(cache_dir, exist_ok) -> None:
+            if cache_dir != "non_existing_folder":
+                raise pw_exceptions.CacheError("wrong folder to create")
+
         monkeypatch.setattr(pw_helpers_cache, "aiofiles_os_remove", aiofiles_os_remove)
+        monkeypatch.setattr(pw_helpers_cache, "makedirs", makedirs)
         monkeypatch.setattr(pw_helpers_cache, "ospath", MockOsPath())
 
         pw_cache = pw_helpers_cache.PlugwiseCache("test-file", "non_existing_folder")
@@ -1358,6 +1363,11 @@ class TestStick:
         assert pw_cache.cache_root_directory == "non_existing_folder"
         with pytest.raises(pw_exceptions.CacheError):
             await pw_cache.initialize_cache()
+        assert not pw_cache.initialized
+
+        # test create folder
+        await pw_cache.initialize_cache(create_root_folder=True)
+        assert pw_cache.initialized
 
         # Windows
         pw_cache = pw_helpers_cache.PlugwiseCache("file_that_exists.ext", "mock_folder_that_exists")

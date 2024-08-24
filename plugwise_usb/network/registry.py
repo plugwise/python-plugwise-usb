@@ -63,11 +63,11 @@ class StickNetworkRegister:
             _LOGGER.debug("Disable cache")
         self._cache_enabled = enable
 
-    async def initialize_cache(self) -> None:
+    async def initialize_cache(self, create_root_folder: bool = False) -> None:
         """Initialize cache"""
         if not self._cache_enabled:
             raise CacheError("Unable to initialize cache, enable cache first.")
-        await self._network_cache.initialize_cache()
+        await self._network_cache.initialize_cache(create_root_folder)
 
     @property
     def cache_folder(self) -> str:
