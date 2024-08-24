@@ -159,10 +159,12 @@ class StickReceiver(Protocol):
         """Cancel and stop any running task."""
         for task in self._delayed_processing_tasks.values():
             task.cancel()
-        cancel_response = StickResponse()
-        cancel_response.priority = Priority.CANCEL
-        await self._receive_queue.put(cancel_response)
-        await self._receive_worker_task
+        if self._receive_worker_task is not None and not self._receive_worker_task.done():
+            cancel_response = StickResponse()
+            cancel_response.priority = Priority.CANCEL
+            await self._receive_queue.put(cancel_response)
+            await self._receive_worker_task
+        self._receive_worker_task = None
 
     def data_received(self, data: bytes) -> None:
         """Receive data from USB-Stick connection.
