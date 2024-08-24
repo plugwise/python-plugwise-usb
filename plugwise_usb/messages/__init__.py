@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from datetime import UTC, datetime
 from typing import Any
 
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER, UTF8
@@ -28,6 +29,7 @@ class PlugwiseMessage:
         self._checksum: bytes | None = None
         self._args: list[Any] = []
         self._seq_id: bytes | None = None
+        self.timestamp = datetime.now(UTC)
 
     @property
     def seq_id(self) -> bytes | None:
