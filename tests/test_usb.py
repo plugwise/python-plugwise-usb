@@ -1351,8 +1351,11 @@ class TestStick:
             raise pw_exceptions.CacheError("Invalid file")
 
         async def makedirs(cache_dir, exist_ok) -> None:
-            if cache_dir != "non_existing_folder":
-                raise pw_exceptions.CacheError("wrong folder to create")
+            if cache_dir == "mock_folder_that_exists":
+                return
+            if cache_dir == "non_existing_folder":
+                return
+            raise pw_exceptions.CacheError("wrong folder to create")
 
         monkeypatch.setattr(pw_helpers_cache, "aiofiles_os_remove", aiofiles_os_remove)
         monkeypatch.setattr(pw_helpers_cache, "makedirs", makedirs)
