@@ -12,7 +12,7 @@ import logging
 from ..api import NodeEvent, NodeType, StickEvent
 from ..connection import StickController
 from ..constants import UTF8
-from ..exceptions import MessageError, NodeError, StickError, StickTimeout
+from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
 from ..messages.requests import (
     CirclePlusAllowJoiningRequest,
     NodeInfoRequest,
@@ -102,6 +102,12 @@ class StickNetwork:
         self._register.cache_folder = cache_folder
         for node in self._nodes.values():
             node.cache_folder = cache_folder
+
+    async def initialize_cache(self) -> None:
+        """Initialize the cache folder."""
+        if not self._cache_enabled:
+            raise CacheError("Unable to initialize cache, enable cache first.")
+        await self._register.initialize_cache()
 
     @property
     def controller_active(self) -> bool:
