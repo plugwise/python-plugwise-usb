@@ -909,31 +909,6 @@ class CircleRelayInitStateResponse(PlugwiseResponse):
         self._params += [self.is_get, self.relay]
 
 
-ID_TO_MESSAGE = {
-    b"0002": StickNetworkInfoResponse(),
-    b"0003": NodeSpecificResponse(),
-    b"0005": CirclePlusConnectResponse(),
-    NODE_JOIN_ID: NodeJoinAvailableResponse(),
-    b"000E": NodePingResponse(),
-    b"0010": NodeImageValidationResponse(),
-    b"0011": StickInitResponse(),
-    b"0013": CirclePowerUsageResponse(),
-    b"0015": CircleLogDataResponse(),
-    b"0019": CirclePlusScanResponse(),
-    b"001D": NodeRemoveResponse(),
-    b"0024": NodeInfoResponse(),
-    b"0027": EnergyCalibrationResponse(),
-    b"003A": CirclePlusRealTimeClockResponse(),
-    b"003F": CircleClockResponse(),
-    b"0049": CircleEnergyLogsResponse(),
-    NODE_SWITCH_GROUP_ID: NodeSwitchGroupResponse(),
-    b"0060": NodeFeaturesResponse(),
-    b"0100": NodeAckResponse(),
-    SENSE_REPORT_ID: SenseReportResponse(),
-    b"0139": CircleRelayInitStateResponse(),
-}
-
-
 def get_message_object(
     identifier: bytes, length: int, seq_id: bytes
 ) -> PlugwiseResponse | None:
@@ -956,4 +931,47 @@ def get_message_object(
         if length == 36:
             return NodeResponse()
         return None
-    return ID_TO_MESSAGE.get(identifier, None)
+    
+    # Regular response ID's
+    if identifier == b"0002":
+        return StickNetworkInfoResponse()
+    if identifier == b"0003":
+        return NodeSpecificResponse()
+    if identifier == b"0005":
+        return CirclePlusConnectResponse()
+    if identifier == NODE_JOIN_ID:
+        return NodeJoinAvailableResponse()
+    if identifier == b"000E":
+        return NodePingResponse()
+    if identifier == b"0010":
+        return NodeImageValidationResponse()
+    if identifier == b"0011":
+        return StickInitResponse()
+    if identifier == b"0013":
+        return CirclePowerUsageResponse()
+    if identifier == b"0015":
+        return CircleLogDataResponse()
+    if identifier == b"0019":
+        return CirclePlusScanResponse()
+    if identifier == b"001D":
+        return NodeRemoveResponse()
+    if identifier == b"0024":
+        return NodeInfoResponse()
+    if identifier == b"0027":
+        return EnergyCalibrationResponse()
+    if identifier == b"003A":
+        return CirclePlusRealTimeClockResponse()
+    if identifier == b"003F":
+        return CircleClockResponse()
+    if identifier == b"0049":
+        return CircleEnergyLogsResponse()
+    if identifier == NODE_SWITCH_GROUP_ID:
+        return NodeSwitchGroupResponse()
+    if identifier == b"0060":
+        return NodeFeaturesResponse()
+    if identifier == b"0100":
+        return NodeAckResponse()
+    if identifier == SENSE_REPORT_ID:
+        return SenseReportResponse()
+    if identifier == b"0139":
+        return CircleRelayInitStateResponse()
