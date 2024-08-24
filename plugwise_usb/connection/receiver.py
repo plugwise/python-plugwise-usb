@@ -78,7 +78,7 @@ class StickReceiver(Protocol):
         self._stick_future: futures.Future | None = None
         self._responses: dict[bytes, Callable[[PlugwiseResponse], None]] = {}
         self._stick_response_future: futures.Future | None = None
-        self._msg_processing_task: Task | None = None
+        self._receive_worker_task: Task | None = None
         self._delayed_processing_tasks: dict[bytes, TimerHandle] = {}
         # Subscribers
         self._stick_event_subscribers: dict[
@@ -185,8 +185,8 @@ class StickReceiver(Protocol):
         """Put message in queue."""
         _LOGGER.debug("Add response to queue: %s", response)
         self._receive_queue.put_nowait(response)
-        if self._msg_processing_task is None or self._msg_processing_task.done():
-            self._msg_processing_task = self._loop.create_task(
+        if self._receive_worker_task is None or self._receive_worker_task.done():
+            self._receive_worker_task = self._loop.create_task(
                 self._receive_queue_worker(),
                 name="Receive queue worker"
             )
