@@ -178,6 +178,10 @@ class MockOsPath:
         """Exists folder."""
         if file_or_path == "mock_folder_that_exists":
             return True
+        if file_or_path == f"mock_folder_that_exists/nodes.cache":
+            return True
+        if file_or_path == f"mock_folder_that_exists/0123456789ABCDEF.cache":
+            return True
         return file_or_path == "mock_folder_that_exists/file_that_exists.ext"
 
     async def mkdir(self, path: str) -> None:
@@ -1523,7 +1527,7 @@ class TestStick:
         monkeypatch.setattr(pw_helpers_cache, "os_path_expand_user", self.fake_env)
         monkeypatch.setattr(pw_helpers_cache, "os_path_join", self.os_path_join)
 
-        node_cache = pw_node_cache.NodeCache("file_that_exists.ext", "mock_folder_that_exists")
+        node_cache = pw_node_cache.NodeCache("0123456789ABCDEF", "mock_folder_that_exists")
         await node_cache.initialize_cache()
         # test with invalid data
         mock_read_data = [
