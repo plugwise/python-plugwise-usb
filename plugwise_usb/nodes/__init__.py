@@ -197,6 +197,13 @@ class PlugwiseNode(FeaturePublisher, ABC):
         return self._loaded
 
     @property
+    def name(self) -> str:
+        """Return name of node."""
+        if self._node_info.name is not None:
+            return self._node_info.name
+        return self._mac_in_str
+
+    @property
     def mac(self) -> str:
         """Return mac address of node."""
         return self._mac_in_str
