@@ -84,15 +84,17 @@ class PlugwiseScan(NodeSED):
             self._scan_subscription()
         await super().unload()
 
-    async def _switch_group(self, message: NodeSwitchGroupResponse) -> None:
+    async def _switch_group(self, message: NodeSwitchGroupResponse) -> bool:
         """Switch group request from Scan."""
         await self._available_update_state(True)
         if message.power_state.value == 0:
             # turn off => clear motion
             await self.motion_state_update(False, message.timestamp)
+            return True
         elif message.power_state.value == 1:
             # turn on => motion
             await self.motion_state_update(True, message.timestamp)
+            return True
         else:
             raise MessageError(
                 f"Unknown power_state '{message.power_state.value}' "
