@@ -23,6 +23,7 @@ class PlugwiseCache:
         """Initialize class."""
         self._root_dir = root_dir
         self._file_name = file_name
+        self._file_exists: bool = False
         self._cache_path: str | None = None
         self._cache_file: str | None = None
         self._initialized = False
@@ -56,6 +57,7 @@ class PlugwiseCache:
         await makedirs(cache_dir, exist_ok=True)
         self._cache_path = cache_dir
         self._cache_file = f"{cache_dir}/{self._file_name}"
+        self._file_exist = await ospath.exists(self._cache_file)
         self._initialized = True
         _LOGGER.debug("Start using network cache file: %s", self._cache_file)
 
@@ -102,6 +104,8 @@ class PlugwiseCache:
                 "%s while writing data to cache file %s", exc, str(self._cache_file)
             )
         else:
+            if not self._file_exist:
+                self._file_exist = True
             _LOGGER.debug(
                 "Saved %s lines to cache file %s",
                 str(len(data)),
@@ -113,6 +117,11 @@ class PlugwiseCache:
         if not self._initialized:
             raise CacheError(f"Unable to save cache. Initialize cache file '{self._file_name}' first.")
         current_data: dict[str, str] = {}
+        if not self._file_exist:
+            _LOGGER.debug(
+                "Cache file '%s' does not exists, return empty cache data", self._cache_file
+            )
+            return current_data
         try:
             async with aiofiles_open(
                 file=self._cache_file,
