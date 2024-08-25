@@ -1680,6 +1680,16 @@ class TestStick:
         )
         assert state[pw_api.NodeFeature.RELAY].relay_state
 
+        # test disable cache
+        assert stick.cache_enabled
+        stick.cache_enabled = False
+        assert not stick.cache_enabled
+
+        # test changing cache_folder
+        assert stick.cache_folder == ""
+        stick.cache_folder = "mock_folder_that_exists"
+        assert stick.cache_folder == "mock_folder_that_exists"
+
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             await stick.disconnect()
         await asyncio.sleep(1)
