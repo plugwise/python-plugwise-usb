@@ -90,17 +90,23 @@ class PlugwiseCache:
             if _key not in processed_keys:
                 data_to_write.append(f"{_key}{CACHE_KEY_SEPARATOR}{_value}\n")
 
-        async with aiofiles_open(
-            file=self._cache_file,
-            mode="w",
-            encoding=UTF8,
-        ) as file_data:
-            await file_data.writelines(data_to_write)
-        _LOGGER.debug(
-            "Saved %s lines to cache file %s",
-            str(len(data)),
-            self._cache_file
-        )
+        try:
+            async with aiofiles_open(
+                file=self._cache_file,
+                mode="w",
+                encoding=UTF8,
+            ) as file_data:
+                await file_data.writelines(data_to_write)
+        except OSError as exc:
+            _LOGGER.warning(
+                "%s while writing data to cache file %s", exc, str(self._cache_file)
+            )
+        else:
+            _LOGGER.debug(
+                "Saved %s lines to cache file %s",
+                str(len(data)),
+                self._cache_file
+            )
 
     async def read_cache(self) -> dict[str, str]:
         """Return current data from cache file."""
