@@ -784,8 +784,14 @@ class TestStick:
         await stick.initialize()
         await stick.discover_nodes(load=False)
 
+        # Check calibration in unloaded state
+        assert not await stick.nodes["0098765432101234"].calibrated
+
         # Manually load node
         assert await stick.nodes["0098765432101234"].load()
+
+        # Check calibration in loaded state
+        assert await stick.nodes["0098765432101234"].calibrated
 
         # Test power state without request
         assert stick.nodes["0098765432101234"].power == pw_api.PowerStatistics(last_second=None, last_8_seconds=None, timestamp=None)
@@ -1376,6 +1382,12 @@ class TestStick:
         pw_cache = pw_helpers_cache.PlugwiseCache("file_that_exists.ext", "mock_folder_that_exists")
         pw_cache.cache_root_directory = "mock_folder_that_exists"
         assert not pw_cache.initialized
+
+        # Test raising CacheError when cache is not initialized yet
+        with pytest.raises(pw_exceptions.CacheError):
+            await pw_cache.read_cache()
+            await pw_cache.write_cache({"key1": "value z"})
+
         await pw_cache.initialize_cache()
         assert pw_cache.initialized
 
@@ -1597,12 +1609,17 @@ class TestStick:
             await stick.initialize()
             await stick.discover_nodes(load=True)
 
+        assert stick.nades["0098765432101234"].name == "Circle+ 01234"
         assert stick.nodes["0098765432101234"].node_info.firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=UTC)
         assert stick.nodes["0098765432101234"].node_info.version == "000000730007"
         assert stick.nodes["0098765432101234"].node_info.model == "Circle+ type F"
         assert stick.nodes["0098765432101234"].node_info.name == "Circle+ 01234"
         assert stick.nodes["0098765432101234"].available
         assert not stick.nodes["0098765432101234"].node_info.battery_powered
+
+        # Check an unsupported state feature raises an error
+        with pytest.raises(pw_exceptions.NodeError):
+            missing_feature_state = await stick.nodes["0098765432101234"].get_state((pw_api.NodeFeature.MOTION, ))
 
         # Get state
         get_state_timestamp = dt.now(tz.utc).replace(minute=0, second=0, microsecond=0)
