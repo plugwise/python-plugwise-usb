@@ -114,8 +114,7 @@ class PlugwiseCircle(PlugwiseNode):
         """Request the relay states at startup/power-up."""
         if NodeFeature.RELAY_INIT not in self._features:
             raise NodeError(
-                "Initial state of relay is not supported for device "
-                + self.mac
+                f"Initial state of relay is not supported for device {self.name}"
             )
         return self._relay_init_state
 
@@ -124,8 +123,8 @@ class PlugwiseCircle(PlugwiseNode):
         """Request to configure relay states at startup/power-up."""
         if NodeFeature.RELAY_INIT not in self._features:
             raise NodeError(
-                "Configuring initial state of relay"
-                + f"is not supported for device {self.mac}"
+                "Configuring initial state of relay "
+                + f"is not supported for device {self.name}"
             )
         create_task(self._relay_init_set(state))
 
@@ -885,7 +884,7 @@ class PlugwiseCircle(PlugwiseNode):
         if NodeFeature.RELAY_INIT not in self._features:
             raise NodeError(
                 "Retrieval of initial state of relay is not "
-                + f"supported for device {self.mac}"
+                + f"supported for device {self.name}"
             )
         response: CircleRelayInitStateResponse | None = await self._send(
             CircleRelayInitStateRequest(self._mac_in_bytes, False, False),
@@ -900,7 +899,7 @@ class PlugwiseCircle(PlugwiseNode):
         if NodeFeature.RELAY_INIT not in self._features:
             raise NodeError(
                 "Configuring of initial state of relay is not"
-                + f"supported for device {self.mac}"
+                + f"supported for device {self.name}"
             )
         response: CircleRelayInitStateResponse | None = await self._send(
             CircleRelayInitStateRequest(self._mac_in_bytes, True, state),
@@ -1019,7 +1018,7 @@ class PlugwiseCircle(PlugwiseNode):
         for feature in features:
             if feature not in self._features:
                 raise NodeError(
-                    f"Update of feature '{feature}' is not supported for {self.mac}"
+                    f"Update of feature '{feature}' is not supported for {self.name}"
                 )
             if feature == NodeFeature.ENERGY:
                 states[feature] = await self.energy_update()
