@@ -430,13 +430,13 @@ class PlugwiseNode(FeaturePublisher, ABC):
         if self._available == available:
             return
         if available:
-            _LOGGER.info("Mark node %s to be available", self.mac)
+            _LOGGER.info("Device %s detected to be available (on-line)", self.name)
             self._available = True
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.AVAILABLE, True
             )
             return
-        _LOGGER.info("Mark node %s to be NOT available", self.mac)
+        _LOGGER.info("Device %s detected to be not available (off-line)", self.name)
         self._available = False
         await self.publish_feature_update_to_subscribers(
             NodeFeature.AVAILABLE, False
