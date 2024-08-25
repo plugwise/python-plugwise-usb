@@ -785,13 +785,13 @@ class TestStick:
         await stick.discover_nodes(load=False)
 
         # Check calibration in unloaded state
-        assert not await stick.nodes["0098765432101234"].calibrated
+        assert not stick.nodes["0098765432101234"].calibrated
 
         # Manually load node
         assert await stick.nodes["0098765432101234"].load()
 
         # Check calibration in loaded state
-        assert await stick.nodes["0098765432101234"].calibrated
+        assert stick.nodes["0098765432101234"].calibrated
 
         # Test power state without request
         assert stick.nodes["0098765432101234"].power == pw_api.PowerStatistics(last_second=None, last_8_seconds=None, timestamp=None)
@@ -1523,7 +1523,7 @@ class TestStick:
         monkeypatch.setattr(pw_helpers_cache, "os_path_expand_user", self.fake_env)
         monkeypatch.setattr(pw_helpers_cache, "os_path_join", self.os_path_join)
 
-        node_cache = pw_node_cache.NodeCache("0123456789ABCDEF", "mock_folder_that_exists")
+        node_cache = pw_node_cache.NodeCache("file_that_exists.ext", "mock_folder_that_exists")
         await node_cache.initialize_cache()
         # test with invalid data
         mock_read_data = [
@@ -1609,7 +1609,7 @@ class TestStick:
             await stick.initialize()
             await stick.discover_nodes(load=True)
 
-        assert stick.nades["0098765432101234"].name == "Circle+ 01234"
+        assert stick.nodes["0098765432101234"].name == "Circle+ 01234"
         assert stick.nodes["0098765432101234"].node_info.firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=UTC)
         assert stick.nodes["0098765432101234"].node_info.version == "000000730007"
         assert stick.nodes["0098765432101234"].node_info.model == "Circle+ type F"
