@@ -76,7 +76,6 @@ class Stick:
             return
         if self._network is not None:
             self._network.cache_folder = cache_folder
-            return
         self._cache_folder = cache_folder
 
     @property
