@@ -89,6 +89,9 @@ class StickNetwork:
     def cache_enabled(self, enable: bool = True) -> None:
         """Enable or disable usage of cache of network register."""
         self._register.cache_enabled = enable
+        if self._cache_enabled != enable:
+            for node in self._nodes.values():
+                node.cache_enabled = enable
         self._cache_enabled = enable
 
     @property
