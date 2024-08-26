@@ -279,12 +279,18 @@ class PlugwiseCircle(PlugwiseNode):
                 self._mac_in_str,
             )
             if await self.node_info_update() is None:
-                _LOGGER.warning("Unable to return energy statistics for %s, because it is not responding", self.name)
+                if datetime.now(UTC) < self._initialization_delay_expired:
+                    _LOGGER.info("Unable to return energy statistics for %s, because it is not responding", self.name)
+                else:
+                    _LOGGER.warning("Unable to return energy statistics for %s, because it is not responding", self.name)
                 return None
         # request node info update every 30 minutes.
         elif not self.skip_update(self._node_info, 1800):
             if await self.node_info_update() is None:
-                _LOGGER.warning("Unable to return energy statistics for %s, because it is not responding", self.name)
+                if datetime.now(UTC) < self._initialization_delay_expired:
+                    _LOGGER.info("Unable to return energy statistics for %s, because it is not responding", self.name)
+                else:
+                    _LOGGER.warning("Unable to return energy statistics for %s, because it is not responding", self.name)
                 return None
 
         # Always request last energy log records at initial startup
@@ -351,7 +357,10 @@ class PlugwiseCircle(PlugwiseNode):
                 "Skip creating task to update energy logs for node %s",
                 self._mac_in_str,
             )
-        _LOGGER.warning("Unable to return energy statistics for %s, collecting required data...", self.name)
+        if datetime.now(UTC) < self._initialization_delay_expired:
+            _LOGGER.info("Unable to return energy statistics for %s, collecting required data...", self.name)
+        else:
+            _LOGGER.warning("Unable to return energy statistics for %s, collecting required data...", self.name)
         return None
 
     async def get_missing_energy_logs(self) -> None:
