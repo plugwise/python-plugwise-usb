@@ -1620,6 +1620,11 @@ class TestStick:
         assert stick.nodes["0098765432101234"].node_info.name == "Circle+ 01234"
         assert stick.nodes["0098765432101234"].available
         assert not stick.nodes["0098765432101234"].node_info.battery_powered
+        assert not stick.nodes["0098765432101234"].battery_powered
+        assert stick.nodes["0098765432101234"].network_address == -1
+        assert stick.nodes["0098765432101234"].cache_folder == ""
+        assert not stick.nodes["0098765432101234"].cache_folder_create
+        assert stick.nodes["0098765432101234"].cache_enabled
 
         # Check an unsupported state feature raises an error
         with pytest.raises(pw_exceptions.NodeError):
