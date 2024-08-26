@@ -66,17 +66,12 @@ class PlugwiseScan(NodeSED):
         """Initialize Scan node."""
         if self._initialized:
             return True
-        self._initialized = True
-        if not await super().initialize():
-            self._initialized = False
-            return False
         self._scan_subscription = self._message_subscribe(
             self._switch_group,
             self._mac_in_bytes,
             (NODE_SWITCH_GROUP_ID,),
         )
-        self._initialized = True
-        return True
+        return await super().initialize()
 
     async def unload(self) -> None:
         """Unload node."""
