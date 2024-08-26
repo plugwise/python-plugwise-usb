@@ -670,31 +670,31 @@ class PlugwiseCircle(PlugwiseNode):
         clock_offset = (
             clock_response.timestamp.replace(microsecond=0) - _dt_of_circle
         )
-        if (clock_offset.seconds > MAX_TIME_DRIFT) or (
-            clock_offset.seconds < -(MAX_TIME_DRIFT)
+        if (clock_offset.seconds < MAX_TIME_DRIFT) or (
+            clock_offset.seconds > -(MAX_TIME_DRIFT)
         ):
-            _LOGGER.info(
-                "Reset clock of node %s because time has drifted %s sec",
-                self._mac_in_str,
-                str(clock_offset.seconds),
+            return True
+        _LOGGER.info(
+            "Reset clock of node %s because time has drifted %s sec",
+            self._mac_in_str,
+            str(clock_offset.seconds),
+        )
+        node_response: NodeResponse | None = await self._send(
+            CircleClockSetRequest(
+                self._mac_in_bytes,
+                datetime.now(tz=UTC),
+                self._node_protocols.max
             )
-            node_response: NodeResponse | None = await self._send(
-                CircleClockSetRequest(
-                    self._mac_in_bytes,
-                    datetime.now(tz=UTC),
-                    self._node_protocols.max
-                )
+        )
+        if node_response is None:
+            _LOGGER.warning(
+                "Failed to (re)set the internal clock of %s",
+                self.name,
             )
-            if (
-                node_response is None
-                or node_response.ack_id != NodeResponseType.CLOCK_ACCEPTED
-            ):
-                _LOGGER.warning(
-                    "Failed to (re)set the internal clock of node %s",
-                    self._mac_in_str,
-                )
-                return False
-        return True
+            return False
+        if node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED:
+            return True
+        return False
 
     async def load(self) -> bool:
         """Load and activate Circle node features."""
