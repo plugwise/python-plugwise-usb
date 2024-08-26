@@ -796,7 +796,7 @@ class PlugwiseCircle(PlugwiseNode):
             _LOGGER.debug("Already initialized node %s", self._mac_in_str)
             return True
 
-        if isinstance(self, PlugwiseCircle) and not await self.clock_synchronize():
+        if not await self.clock_synchronize():
             _LOGGER.debug(
                 "Failed to initialized node %s, failed clock sync",
                 self._mac_in_str
