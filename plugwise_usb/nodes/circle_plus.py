@@ -95,8 +95,8 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             return False
         return await super().initialize()
 
-    async def realtime_clock_synchronize(self) -> bool:
-        """Synchronize realtime clock."""
+    async def clock_synchronize(self) -> bool:
+        """Synchronize realtime clock. Returns true if successful."""
         clock_response: CirclePlusRealTimeClockResponse | None = (
             await self._send(
                 CirclePlusRealTimeClockGetRequest(self._mac_in_bytes)
@@ -138,6 +138,10 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             ),
         )
         if node_response is None:
+            _LOGGER.warning(
+                "Failed to (re)set the internal realtime clock of %s",
+                self.name,
+            )
             return False
         if node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED:
             return True
