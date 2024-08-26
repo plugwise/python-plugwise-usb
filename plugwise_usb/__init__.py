@@ -274,9 +274,10 @@ class Stick:
         if self._network is None:
             self._network = StickNetwork(self._controller)
             self._network.cache_folder = self._cache_folder
+            self._network.cache_folder_create = create_root_cache_folder
             self._network.cache_enabled = self._cache_enabled
             if self._cache_enabled:
-                await self._network.initialize_cache(create_root_cache_folder)
+                await self._network.initialize_cache()
 
     @raise_not_connected
     @raise_not_initialized

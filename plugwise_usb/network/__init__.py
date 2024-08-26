@@ -63,6 +63,7 @@ class StickNetwork:
 
         self._cache_folder: str = ""
         self._cache_enabled: bool = False
+        self._cache_folder_create = False
 
         self._discover: bool = False
         self._nodes: dict[str, PlugwiseNode] = {}
@@ -103,11 +104,21 @@ class StickNetwork:
         for node in self._nodes.values():
             node.cache_folder = cache_folder
 
-    async def initialize_cache(self, create_root_folder: bool = False) -> None:
+    @property
+    def cache_folder_create(self) -> bool:
+        """Return if cache folder must be create when it does not exists."""
+        return self._cache_folder_create
+
+    @cache_folder_create.setter
+    def cache_folder_create(self, enable: bool = True) -> None:
+        """Enable or disable creation of cache folder."""
+        self._cache_folder_create = enable
+
+    async def initialize_cache(self) -> None:
         """Initialize the cache folder."""
         if not self._cache_enabled:
             raise CacheError("Unable to initialize cache, enable cache first.")
-        await self._register.initialize_cache(create_root_folder)
+        await self._register.initialize_cache(self._cache_folder_create)
 
     @property
     def controller_active(self) -> bool:
@@ -362,6 +373,7 @@ class StickNetwork:
                 self._cache_folder,
             )
             self._nodes[mac].cache_folder = self._cache_folder
+            self._nodes[mac].cache_folder_create = self._cache_folder_create
             self._nodes[mac].cache_enabled = True
 
     async def get_node_details(

@@ -65,10 +65,9 @@ class PlugwiseNode(FeaturePublisher, ABC):
         self._mac_in_bytes = bytes(mac, encoding=UTF8)
         self._mac_in_str = mac
         self._send = controller.send
-        self._node_cache: NodeCache | None = None
         self._cache_enabled: bool = False
-        self._cache_folder: str = ""
         self._cache_save_task: Task | None = None
+        self._node_cache = NodeCache("")
 
         # Sensors
         self._available: bool = False
@@ -116,19 +115,22 @@ class PlugwiseNode(FeaturePublisher, ABC):
     @property
     def cache_folder(self) -> str:
         """Return path to cache folder."""
-        return self._cache_folder
+        return self._node_cache.cache_root_directory
 
     @cache_folder.setter
     def cache_folder(self, cache_folder: str) -> None:
         """Set path to cache folder."""
-        if cache_folder == self._cache_folder:
-            return
-        self._cache_folder = cache_folder
-        if self._cache_enabled:
-            if self._node_cache is None:
-                self._node_cache = NodeCache(self._cache_folder)
-            else:
-                self._node_cache.cache_root_directory = cache_folder
+        self._node_cache.cache_root_directory = cache_folder
+
+    @property
+    def cache_folder_create(self) -> bool:
+        """Return if cache folder must be create when it does not exists."""
+        return self._cache_folder_create
+
+    @cache_folder_create.setter
+    def cache_folder_create(self, enable: bool = True) -> None:
+        """Enable or disable creation of cache folder."""
+        self._cache_folder_create = enable
 
     @property
     def cache_enabled(self) -> bool:
@@ -138,15 +140,6 @@ class PlugwiseNode(FeaturePublisher, ABC):
     @cache_enabled.setter
     def cache_enabled(self, enable: bool) -> None:
         """Enable or disable usage of cache."""
-        if enable == self._cache_enabled:
-            return
-        if enable:
-            if self._node_cache is None:
-                self._node_cache = NodeCache(self.mac, self._cache_folder)
-            else:
-                self._node_cache.cache_root_directory = self._cache_folder
-        else:
-            self._node_cache = None
         self._cache_enabled = enable
 
     @property
@@ -389,14 +382,8 @@ class PlugwiseNode(FeaturePublisher, ABC):
                 self.mac,
             )
             return False
-        if self._node_cache is None:
-            _LOGGER.warning(
-                "Unable to load node %s from cache because cache configuration is not loaded",
-                self.mac,
-            )
-            return False
         if not self._node_cache.initialized:
-            await self._node_cache.initialize_cache()
+            await self._node_cache.initialize_cache(self._cache_folder_create)
         return await self._node_cache.restore_cache()
 
     async def clear_cache(self) -> None:
@@ -623,19 +610,13 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     def _get_cache(self, setting: str) -> str | None:
         """Retrieve value of specified setting from cache memory."""
-        if not self._cache_enabled or self._node_cache is None:
+        if not self._cache_enabled:
             return None
         return self._node_cache.get_state(setting)
 
     def _set_cache(self, setting: str, value: Any) -> None:
         """Store setting with value in cache memory."""
         if not self._cache_enabled:
-            return
-        if self._node_cache is None:
-            _LOGGER.warning(
-                "Failed to update '%s' in cache because cache is not initialized yet",
-                setting
-            )
             return
         if isinstance(value, datetime):
             self._node_cache.add_state(
@@ -651,11 +632,6 @@ class PlugwiseNode(FeaturePublisher, ABC):
     async def save_cache(self, trigger_only: bool = True, full_write: bool = False) -> None:
         """Save current cache to cache file."""
         if not self._cache_enabled or not self._loaded or not self._initialized:
-            return
-        if self._node_cache is None:
-            _LOGGER.warning(
-                "Failed to save cache to disk because cache is not initialized yet"
-            )
             return
         _LOGGER.debug("Save cache file for node %s", self.mac)
         if self._cache_save_task is not None and not self._cache_save_task.done():
