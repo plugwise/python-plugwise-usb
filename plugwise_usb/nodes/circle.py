@@ -351,7 +351,7 @@ class PlugwiseCircle(PlugwiseNode):
                 "Skip creating task to update energy logs for node %s",
                 self._mac_in_str,
             )
-        _LOGGER.warning("Unable to return energy statistics for %s yet, still retrieving required data...", self.name)
+        _LOGGER.warning("Unable to return energy statistics for %s, collecting required data...", self.name)
         return None
 
     async def get_missing_energy_logs(self) -> None:
