@@ -604,6 +604,8 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     async def unload(self) -> None:
         """Deactivate and unload node features."""
+        if not self._cache_enabled:
+            return
         if self._cache_save_task is not None and not self._cache_save_task.done():
             await self._cache_save_task
         await self.save_cache(trigger_only=False, full_write=True)
