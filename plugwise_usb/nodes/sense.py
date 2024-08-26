@@ -63,15 +63,12 @@ class PlugwiseSense(NodeSED):
         """Initialize Sense node."""
         if self._initialized:
             return True
-        if not await super().initialize():
-            return False
         self._sense_subscription = self._message_subscribe(
             self._sense_report,
             self._mac_in_bytes,
             SENSE_REPORT_ID,
         )
-        self._initialized = True
-        return True
+        return await super().initialize()
 
     async def unload(self) -> None:
         """Unload node."""
