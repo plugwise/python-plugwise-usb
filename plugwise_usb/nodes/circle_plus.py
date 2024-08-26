@@ -85,16 +85,6 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         await self._loaded_callback(NodeEvent.LOADED, self.mac)
         return True
 
-    @raise_not_loaded
-    async def initialize(self) -> bool:
-        """Initialize node."""
-        if self._initialized:
-            return True
-        if not await self.realtime_clock_synchronize():
-            self._initialized = False
-            return False
-        return await super().initialize()
-
     async def clock_synchronize(self) -> bool:
         """Synchronize realtime clock. Returns true if successful."""
         clock_response: CirclePlusRealTimeClockResponse | None = (
