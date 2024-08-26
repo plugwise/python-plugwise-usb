@@ -67,7 +67,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         self._send = controller.send
         self._cache_enabled: bool = False
         self._cache_save_task: Task | None = None
-        self._node_cache = NodeCache("")
+        self._node_cache = NodeCache(mac, "")
 
         # Sensors
         self._available: bool = False
