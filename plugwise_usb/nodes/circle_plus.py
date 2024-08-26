@@ -17,7 +17,6 @@ from ..messages.responses import (
     NodeResponseType,
 )
 from .circle import PlugwiseCircle
-from .helpers import raise_not_loaded
 from .helpers.firmware import CIRCLE_PLUS_FIRMWARE_SUPPORT
 
 _LOGGER = logging.getLogger(__name__)
