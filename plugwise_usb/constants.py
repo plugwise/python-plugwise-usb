@@ -34,6 +34,7 @@ MESSAGE_HEADER: Final = b"\x05\x05\x03\x03"
 STICK_TIME_OUT: Final = 11  # Stick responds with timeout messages within 10s.
 NODE_TIME_OUT: Final = 15  # In bigger networks a response from a node could take up a while, so lets use 15 seconds.
 MAX_RETRIES: Final = 3
+SUPPRESS_INITIALIZATION_WARNINGS: Final = 10  # Minutes to suppress (expected) communication warning messages after initialization
 
 # plugwise year information is offset from y2k
 PLUGWISE_EPOCH: Final = 2000
