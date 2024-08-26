@@ -410,7 +410,10 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     async def initialize(self) -> bool:
         """Initialize node."""
-        raise NotImplementedError()
+        if self._initialized:
+            return True
+        self._initialized = True
+        return True
 
     async def _available_update_state(self, available: bool) -> None:
         """Update the node availability state."""

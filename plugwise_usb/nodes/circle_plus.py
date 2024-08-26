@@ -90,31 +90,10 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         """Initialize node."""
         if self._initialized:
             return True
-        self._initialized = True
-        if not self._available:
-            self._initialized = False
-            return False
-        if not self._calibration and not await self.calibration_update():
-            self._initialized = False
-            return False
         if not await self.realtime_clock_synchronize():
             self._initialized = False
             return False
-        if (
-            NodeFeature.RELAY_INIT in self._features and
-            self._relay_init_state is None
-        ):
-            if (state := await self._relay_init_get()) is not None:
-                self._relay_init_state = state
-            else:
-                _LOGGER.debug(
-                    "Failed to initialized node %s, relay init",
-                    self.mac
-                )
-                return False
-        self._initialized = True
-        await self._loaded_callback(NodeEvent.LOADED, self.mac)
-        return True
+        return await super().initialize()
 
     async def realtime_clock_synchronize(self) -> bool:
         """Synchronize realtime clock."""
