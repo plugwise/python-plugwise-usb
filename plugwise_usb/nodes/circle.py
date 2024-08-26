@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import Task, create_task, gather, sleep
+from asyncio import Task, create_task, gather
 from collections.abc import Callable
 from datetime import UTC, datetime
 from functools import wraps
