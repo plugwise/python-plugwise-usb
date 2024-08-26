@@ -96,7 +96,7 @@ class NodeSED(PlugwiseNode):
             self._mac_in_bytes,
             NODE_AWAKE_RESPONSE_ID,
         )
-        return True
+        return await super().initialize()
 
     @property
     def maintenance_interval(self) -> int | None:

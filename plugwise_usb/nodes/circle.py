@@ -786,8 +786,14 @@ class PlugwiseCircle(PlugwiseNode):
         if self._initialized:
             _LOGGER.debug("Already initialized node %s", self._mac_in_str)
             return True
-        self._initialized = True
 
+        if isinstance(self, PlugwiseCircle) and not await self.clock_synchronize():
+            _LOGGER.debug(
+                "Failed to initialized node %s, failed clock sync",
+                self._mac_in_str
+            )
+            self._initialized = False
+            return False
         if not self._calibration and not await self.calibration_update():
             _LOGGER.debug(
                 "Failed to initialized node %s, no calibration",
@@ -800,13 +806,6 @@ class PlugwiseCircle(PlugwiseNode):
                 "Failed to retrieve node info for %s",
                 self._mac_in_str
             )
-        if not await self.clock_synchronize():
-            _LOGGER.debug(
-                "Failed to initialized node %s, failed clock sync",
-                self._mac_in_str
-            )
-            self._initialized = False
-            return False
         if (
             NodeFeature.RELAY_INIT in self._features and
             self._relay_init_state is None
@@ -820,7 +819,7 @@ class PlugwiseCircle(PlugwiseNode):
                 )
                 self._initialized = False
                 return False
-        return True
+        return await super().initialize()
 
     async def node_info_update(
         self, node_info: NodeInfoResponse | None = None
