@@ -394,7 +394,7 @@ class PlugwiseCircle(PlugwiseNode):
 
             missing_addresses = sorted(missing_addresses, reverse=True)
             await gather(
-                [
+                *[
                     self.energy_log_update(address)
                     for address in missing_addresses
                 ]
