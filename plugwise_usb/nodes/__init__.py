@@ -20,7 +20,7 @@ from ..api import (
     RelayState,
 )
 from ..connection import StickController
-from ..constants import UTF8, MotionSensitivity
+from ..constants import SUPPRESS_INITIALIZATION_WARNINGS, UTF8, MotionSensitivity
 from ..exceptions import NodeError
 from ..messages.requests import NodeInfoRequest, NodePingRequest
 from ..messages.responses import NodeInfoResponse, NodePingResponse
@@ -79,6 +79,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
         self._connected: bool = False
         self._initialized: bool = False
+        self._initialization_delay_expired: datetime | None = None
         self._loaded: bool = False
         self._node_protocols: SupportedVersions | None = None
         self._node_last_online: datetime | None = None
@@ -412,6 +413,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         """Initialize node."""
         if self._initialized:
             return True
+        self._initialization_delay_expired = datetime.now(UTC) + timedelta(minutes=SUPPRESS_INITIALIZATION_WARNINGS)
         self._initialized = True
         return True
 
