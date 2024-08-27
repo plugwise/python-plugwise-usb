@@ -107,7 +107,7 @@ class StickQueue:
                     f"No response received for {request.__class__.__name__} " +
                     f"to {request.mac_decoded}"
                 ) from exception
-            except BaseException as exception:  # [broad-exception-caught]
+            except BaseException as exception:
                 raise StickError(
                     f"No response received for {request.__class__.__name__} " +
                     f"to {request.mac_decoded}"
