@@ -1658,7 +1658,8 @@ class TestStick:
         )
         assert state[pw_api.NodeFeature.INFO].firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=UTC)
         assert state[pw_api.NodeFeature.INFO].name == "Circle+ 01234"
-        assert state[pw_api.NodeFeature.INFO].model == "Circle+ type F"
+        assert state[pw_api.NodeFeature.INFO].model == "Circle+"
+        assert state[pw_api.NodeFeature.INFO].model_type == "type F"
         assert state[pw_api.NodeFeature.INFO].type == pw_api.NodeType.CIRCLE_PLUS
         assert state[pw_api.NodeFeature.INFO].timestamp.replace(minute=0, second=0, microsecond=0) == get_state_timestamp
         assert state[pw_api.NodeFeature.INFO].version == "000000730007"
