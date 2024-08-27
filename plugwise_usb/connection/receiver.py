@@ -230,15 +230,14 @@ class StickReceiver(Protocol):
                 return
             _LOGGER.debug("Process from receive queue: %s", response)
             if isinstance(response, StickResponse):
-                _LOGGER.debug("Received %s", response)
                 try:
                     await self._notify_stick_response_subscribers(response)
-                except Exception as exc:
+                except Exception as exc:  # [broad-exception-caught]
                     _LOGGER.warning("Failed to process %s : %s", response, exc)
             else:
                 try:
                     await self._notify_node_response_subscribers(response)
-                except Exception as exc:
+                except Exception as exc:  # [broad-exception-caught]
                     _LOGGER.warning("Failed to process %s : %s", response, exc)
             self._receive_queue.task_done()
         _LOGGER.debug("Receive_queue_worker stopped")
