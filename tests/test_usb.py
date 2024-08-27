@@ -476,6 +476,7 @@ class TestStick:
         )
         assert stick.nodes["5555555555555555"].node_info.version == "000000070008"
         assert stick.nodes["5555555555555555"].node_info.model == "Scan"
+        assert stick.nodes["5555555555555555"].node_info.model_type == ""
         assert stick.nodes["5555555555555555"].available
         assert stick.nodes["5555555555555555"].node_info.battery_powered
         assert sorted(stick.nodes["5555555555555555"].features) == sorted(
@@ -1616,7 +1617,8 @@ class TestStick:
         assert stick.nodes["0098765432101234"].name == "Circle+ 01234"
         assert stick.nodes["0098765432101234"].node_info.firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=UTC)
         assert stick.nodes["0098765432101234"].node_info.version == "000000730007"
-        assert stick.nodes["0098765432101234"].node_info.model == "Circle+ type F"
+        assert stick.nodes["0098765432101234"].node_info.model == "Circle+"
+        assert stick.nodes["0098765432101234"].node_info.model_type == "type F"
         assert stick.nodes["0098765432101234"].node_info.name == "Circle+ 01234"
         assert stick.nodes["0098765432101234"].available
         assert not stick.nodes["0098765432101234"].node_info.battery_powered
