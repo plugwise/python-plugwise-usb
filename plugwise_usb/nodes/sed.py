@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import CancelledError, Future, get_event_loop, wait_for
+from asyncio import CancelledError, Future, Task, get_event_loop, wait_for
 from collections.abc import Callable
 from datetime import datetime
 import logging
@@ -61,8 +61,8 @@ class NodeSED(PlugwiseNode):
     # Maintenance
     _maintenance_interval: int | None = None
     _maintenance_last_awake: datetime | None = None
-    _maintenance_future: Future | None = None
-
+    _awake_future: Future | None = None
+    _awake_timer_task: Task | None = None
     _ping_at_awake: bool = False
 
     _awake_subscription: Callable[[], None] | None = None
@@ -80,8 +80,10 @@ class NodeSED(PlugwiseNode):
 
     async def unload(self) -> None:
         """Deactivate and unload node features."""
-        if self._maintenance_future is not None:
-            self._maintenance_future.cancel()
+        if self._awake_future is not None:
+            self._awake_future.set_result(True)
+        if self._awake_timer_task is not None or not self._awake_timer_task.done():
+            await self._awake_timer_task
         if self._awake_subscription is not None:
             self._awake_subscription()
         await super().unload()
@@ -124,10 +126,10 @@ class NodeSED(PlugwiseNode):
                 )
                 if ping_response is not None:
                     self._ping_at_awake = False
-            await self.reset_maintenance_awake(message.timestamp)
+            await self._reset_awake(message.timestamp)
         return True
 
-    async def reset_maintenance_awake(self, last_alive: datetime) -> None:
+    async def _reset_awake(self, last_alive: datetime) -> None:
         """Reset node alive state."""
         if self._maintenance_last_awake is None:
             self._maintenance_last_awake = last_alive
@@ -136,17 +138,24 @@ class NodeSED(PlugwiseNode):
             last_alive - self._maintenance_last_awake
         ).seconds
 
-        # Finish previous maintenance timer
-        if self._maintenance_future is not None:
-            self._maintenance_future.set_result(True)
+        # Finish previous awake timer
+        if self._awake_future is not None:
+            self._awake_future.set_result(True)
 
         # Setup new maintenance timer
-        self._maintenance_future = get_event_loop().create_future()
+        current_loop = get_event_loop()
+        self._awake_future = current_loop.create_future()
+        self._awake_timer_task = current_loop.create_task(
+            self._awake_timer(),
+            name=f"Node awake timer for {self._mac_in_str}"
+        )
 
+    async def _awake_timer(self) -> None:
+        """Task to monitor to get next awake in time. If not it sets device to be unavailable."""
         # wait for next maintenance timer
         try:
             await wait_for(
-                self._maintenance_future,
+                self._awake_future,
                 timeout=(self._maintenance_interval * 1.05),
             )
         except TimeoutError:
@@ -154,15 +163,14 @@ class NodeSED(PlugwiseNode):
             # Mark node as unavailable
             if self._available:
                 _LOGGER.info(
-                    "No maintenance awake message received for %s within expected %s seconds.",
-                    self.mac,
+                    "No awake message received from %s within expected %s seconds.",
+                    self.name,
                     str(self._maintenance_interval * 1.05),
                 )
                 await self._available_update_state(False)
         except CancelledError:
             pass
-
-        self._maintenance_future = None
+        self._awake_future = None
 
     async def sed_configure(
         self,
