@@ -60,7 +60,7 @@ class StickSender:
         self._stick_response: Future[bytes] = self._loop.create_future()
 
         request.add_send_attempt()
-        _LOGGER.debug("Send %s", request)
+        _LOGGER.info("Send %s", request)
         request.subscribe_to_responses(
             self._receiver.subscribe_to_stick_responses,
             self._receiver.subscribe_to_node_responses,
