@@ -111,7 +111,7 @@ class NodeSED(PlugwiseNode):
             return self._node_info
         return await super().node_info_update(node_info)
 
-    async def _awake_response(self, message: NodeAwakeResponse) -> None:
+    async def _awake_response(self, message: NodeAwakeResponse) -> bool:
         """Process awake message."""
         self._node_last_online = message.timestamp
         await self._available_update_state(True)
@@ -125,8 +125,7 @@ class NodeSED(PlugwiseNode):
                 if ping_response is not None:
                     self._ping_at_awake = False
             await self.reset_maintenance_awake(message.timestamp)
-            return True
-        return False
+        return True
 
     async def reset_maintenance_awake(self, last_alive: datetime) -> None:
         """Reset node alive state."""
