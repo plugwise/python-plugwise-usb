@@ -529,7 +529,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
                         hardware,
                     )
                 if len(model_info) > 1:
-                    self._node_info.model_type = " ".join(model_info[2:])
+                    self._node_info.model_type = " ".join(model_info[1:])
                 else:
                     self._node_info.model_type = ""
                 if self._node_info.model is not None:
