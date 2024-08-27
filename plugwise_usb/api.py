@@ -77,6 +77,7 @@ class NodeInfo:
     firmware: datetime | None = None
     name: str | None = None
     model: str | None = None
+    model_type: str | None = None
     type: NodeType | None = None
     timestamp: datetime | None = None
     version: str | None = None
