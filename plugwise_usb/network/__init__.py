@@ -225,6 +225,8 @@ class StickNetwork:
             self._awake_discovery[mac] = response.timestamp
             return True
         if self._register.network_address(mac) is None:
+            if self._register.scan_completed:
+                return True
             _LOGGER.debug(
                 "Skip node awake message for %s because network registry address is unknown",
                 mac
