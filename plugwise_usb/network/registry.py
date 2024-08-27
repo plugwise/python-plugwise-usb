@@ -232,10 +232,10 @@ class StickNetworkRegister:
                     self._quick_scan_finished = None
                 _LOGGER.info("Quick network registration discovery finished")
         else:
-            _LOGGER.debug("Full network registration finished, save to cache")
+            _LOGGER.debug("Full network registration finished")
             self._scan_completed = True
             if self._cache_enabled:
-                _LOGGER.debug("Full network registration finished, pre")
+                _LOGGER.debug("Full network registration finished, save to cache")
                 await self.save_registry_to_cache()
                 _LOGGER.debug("Full network registration finished, post")
             _LOGGER.info("Full network discovery completed")
