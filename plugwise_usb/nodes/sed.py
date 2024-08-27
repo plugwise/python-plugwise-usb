@@ -82,7 +82,7 @@ class NodeSED(PlugwiseNode):
         """Deactivate and unload node features."""
         if self._awake_future is not None:
             self._awake_future.set_result(True)
-        if self._awake_timer_task is not None or not self._awake_timer_task.done():
+        if self._awake_timer_task is not None and not self._awake_timer_task.done():
             await self._awake_timer_task
         if self._awake_subscription is not None:
             self._awake_subscription()
