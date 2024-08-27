@@ -46,6 +46,7 @@ class StickNetworkRegister:
         self._network_cache_file_task: Task | None = None
         self._quick_scan_finished: Awaitable | None = None
         self._full_scan_finished: Awaitable | None = None
+        self._scan_completed = False
 # region Properties
 
     @property
@@ -87,6 +88,11 @@ class StickNetworkRegister:
     def registry(self) -> dict[int, tuple[str, NodeType | None]]:
         """Return dictionary with all joined nodes."""
         return deepcopy(self._registry)
+
+    @property
+    def scan_completed(self) -> bool:
+        """Indicate if scan is completed."""
+        return self._scan_completed
 
     def quick_scan_finished(self, callback: Awaitable) -> None:
         """Register method to be called when quick scan is finished."""
@@ -227,6 +233,7 @@ class StickNetworkRegister:
                 _LOGGER.info("Quick network registration discovery finished")
         else:
             _LOGGER.debug("Full network registration finished, save to cache")
+            self._scan_completed = True
             if self._cache_enabled:
                 _LOGGER.debug("Full network registration finished, pre")
                 await self.save_registry_to_cache()
