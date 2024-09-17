@@ -15,6 +15,14 @@ class StickEvent(Enum):
     NETWORK_ONLINE = auto()
 
 
+class MotionSensitivity(Enum):
+    """Motion sensitivity levels for Scan devices."""
+
+    HIGH = auto()
+    MEDIUM = auto()
+    OFF = auto()
+
+
 class NodeEvent(Enum):
     """Plugwise Node events for callback subscription."""
 
@@ -46,6 +54,7 @@ class NodeFeature(str, Enum):
     """USB Stick Node feature."""
 
     AVAILABLE = "available"
+    BATTERY = "battery"
     ENERGY = "energy"
     HUMIDITY = "humidity"
     INFO = "info"
@@ -64,6 +73,28 @@ PUSHING_FEATURES = (
     NodeFeature.TEMPERATURE,
     NodeFeature.SWITCH
 )
+
+
+@dataclass
+class BatteryConfig:
+    """Battery related configuration settings."""
+
+    # Duration in minutes the node synchronize its clock
+    clock_interval: int | None = None
+
+    # Enable/disable clock sync
+    clock_sync: bool | None = None
+
+    # Minimal interval in minutes the node will wake up
+    # and able to receive (maintenance) commands
+    maintenance_interval: int | None = None
+
+    # Duration in seconds the SED will be awake for receiving commands
+    stay_active: int | None = None
+
+    #  Duration in minutes the SED will be in sleeping mode
+    #  and not able to respond any command
+    sleep_for: int | None = None
 
 
 @dataclass
@@ -116,6 +147,8 @@ class MotionState:
 
     motion: bool | None = None
     timestamp: datetime | None = None
+    reset_timer: int | None = None
+    daylight_mode: bool | None = None
 
 
 @dataclass

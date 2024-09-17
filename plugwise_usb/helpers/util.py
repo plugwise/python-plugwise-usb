@@ -21,10 +21,10 @@ def validate_mac(mac: str) -> bool:
     return True
 
 
-def version_to_model(version: str | None) -> str | None:
+def version_to_model(version: str | None) -> str:
     """Translate hardware_version to device type."""
     if version is None:
-        return None
+        return "Unknown"
 
     model = HW_MODELS.get(version)
     if model is None:

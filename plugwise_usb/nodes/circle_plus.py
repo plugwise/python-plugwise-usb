@@ -11,11 +11,7 @@ from ..messages.requests import (
     CirclePlusRealTimeClockGetRequest,
     CirclePlusRealTimeClockSetRequest,
 )
-from ..messages.responses import (
-    CirclePlusRealTimeClockResponse,
-    NodeResponse,
-    NodeResponseType,
-)
+from ..messages.responses import NodeResponseType
 from .circle import PlugwiseCircle
 from .helpers.firmware import CIRCLE_PLUS_FIRMWARE_SUPPORT
 
@@ -30,9 +26,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         if self._loaded:
             return True
         if self._cache_enabled:
-            _LOGGER.debug(
-                "Load Circle node %s from cache", self._node_info.mac
-            )
+            _LOGGER.debug("Load Circle node %s from cache", self._node_info.mac)
             if await self._load_from_cache():
                 self._loaded = True
                 self._setup_protocol(
@@ -58,7 +52,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         if not self._available and not await self.is_online():
             _LOGGER.warning(
                 "Failed to load Circle+ node %s because it is not online",
-                self._node_info.mac
+                self._node_info.mac,
             )
             return False
 
@@ -66,7 +60,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         if await self.node_info_update() is None:
             _LOGGER.warning(
                 "Failed to load Circle+ node %s because it is not responding to information request",
-                self._node_info.mac
+                self._node_info.mac,
             )
             return False
         self._loaded = True
@@ -86,15 +80,13 @@ class PlugwiseCirclePlus(PlugwiseCircle):
 
     async def clock_synchronize(self) -> bool:
         """Synchronize realtime clock. Returns true if successful."""
-        clock_response: CirclePlusRealTimeClockResponse | None = (
-            await self._send(
-                CirclePlusRealTimeClockGetRequest(self._mac_in_bytes)
-            )
+        clock_request = CirclePlusRealTimeClockGetRequest(
+            self._send, self._mac_in_bytes
         )
+        clock_response = await clock_request.send()
         if clock_response is None:
             _LOGGER.debug(
-                "No response for async_realtime_clock_synchronize() for %s",
-                self.mac
+                "No response for async_realtime_clock_synchronize() for %s", self.mac
             )
             await self._available_update_state(False)
             return False
@@ -107,9 +99,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             microsecond=0,
             tzinfo=UTC,
         )
-        clock_offset = (
-            clock_response.timestamp.replace(microsecond=0) - _dt_of_circle
-        )
+        clock_offset = clock_response.timestamp.replace(microsecond=0) - _dt_of_circle
         if (clock_offset.seconds < MAX_TIME_DRIFT) or (
             clock_offset.seconds > -(MAX_TIME_DRIFT)
         ):
@@ -120,18 +110,14 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             str(clock_offset.seconds),
             str(MAX_TIME_DRIFT),
         )
-        node_response: NodeResponse | None = await self._send(
-            CirclePlusRealTimeClockSetRequest(
-                self._mac_in_bytes,
-                datetime.now(tz=UTC)
-            ),
+        clock_set_request = CirclePlusRealTimeClockSetRequest(
+            self._send, self._mac_in_bytes, datetime.now(tz=UTC)
         )
-        if node_response is None:
-            _LOGGER.warning(
-                "Failed to (re)set the internal realtime clock of %s",
-                self.name,
-            )
-            return False
-        if node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED:
-            return True
+        node_response = await clock_set_request.send()
+        if (node_response := await clock_set_request.send()) is not None:
+            return node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED
+        _LOGGER.warning(
+            "Failed to (re)set the internal realtime clock of %s",
+            self.name,
+        )
         return False

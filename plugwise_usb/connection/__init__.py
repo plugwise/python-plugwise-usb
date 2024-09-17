@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
-from concurrent import futures
+from collections.abc import Awaitable, Callable, Coroutine
 import logging
+from typing import Any
 
 from ..api import StickEvent
 from ..exceptions import NodeError, StickError
@@ -26,7 +26,6 @@ class StickController:
         self._unsubscribe_stick_event: Callable[[], None] | None = None
 
         self._init_sequence_id: bytes | None = None
-        self._init_future: futures.Future | None = None
 
         self._is_initialized = False
         self._mac_stick: str | None = None
@@ -115,7 +114,7 @@ class StickController:
     def subscribe_to_stick_events(
         self,
         stick_event_callback: Callable[[StickEvent], Awaitable[None]],
-        events: tuple[StickEvent],
+        events: tuple[StickEvent, ...],
     ) -> Callable[[], None]:
         """Subscribe callback when specified StickEvent occurs.
 
@@ -130,7 +129,7 @@ class StickController:
 
     def subscribe_to_node_responses(
         self,
-        node_response_callback: Callable[[PlugwiseResponse], Awaitable[None]],
+        node_response_callback: Callable[[PlugwiseResponse], Coroutine[Any, Any, bool]],
         mac: bytes | None = None,
         message_ids: tuple[bytes] | None = None,
     ) -> Callable[[], None]:
@@ -165,15 +164,20 @@ class StickController:
             raise StickError("Cannot initialize, queue manager not running")
 
         try:
-            init_response: StickInitResponse = await self._queue.submit(
-                StickInitRequest()
-            )
+            request = StickInitRequest(self.send)
+            init_response: StickInitResponse | None = await request.send()
         except StickError as err:
             raise StickError(
                 "No response from USB-Stick to initialization request." +
                 " Validate USB-stick is connected to port " +
                 f"' {self._manager.serial_path}'"
             ) from err
+        if init_response is None:
+            raise StickError(
+                "No response from USB-Stick to initialization request." +
+                " Validate USB-stick is connected to port " +
+                f"' {self._manager.serial_path}'"
+            )
         self._mac_stick = init_response.mac_decoded
         self._network_online = init_response.network_online
 
