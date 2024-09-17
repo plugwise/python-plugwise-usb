@@ -1,11 +1,13 @@
 """All known request messages to be send to plugwise devices."""
+
 from __future__ import annotations
 
 from asyncio import Future, TimerHandle, get_running_loop
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable, Coroutine
 from copy import copy
 from datetime import datetime
 import logging
+from typing import Any
 
 from ..constants import (
     DAY_IN_MINUTES,
@@ -17,7 +19,30 @@ from ..constants import (
     NODE_TIME_OUT,
 )
 from ..exceptions import MessageError, NodeError, NodeTimeout, StickError, StickTimeout
-from ..messages.responses import PlugwiseResponse, StickResponse, StickResponseType
+from ..messages.responses import (
+    CircleClockResponse,
+    CircleEnergyLogsResponse,
+    CircleLogDataResponse,
+    CirclePlusConnectResponse,
+    CirclePlusRealTimeClockResponse,
+    CirclePlusScanResponse,
+    CirclePowerUsageResponse,
+    CircleRelayInitStateResponse,
+    EnergyCalibrationResponse,
+    NodeAckResponse,
+    NodeFeaturesResponse,
+    NodeImageValidationResponse,
+    NodeInfoResponse,
+    NodePingResponse,
+    NodeRemoveResponse,
+    NodeResponse,
+    NodeSpecificResponse,
+    PlugwiseResponse,
+    StickInitResponse,
+    StickNetworkInfoResponse,
+    StickResponse,
+    StickResponseType,
+)
 from . import PlugwiseMessage, Priority
 from .properties import (
     DateTime,
@@ -36,37 +61,56 @@ _LOGGER = logging.getLogger(__name__)
 class PlugwiseRequest(PlugwiseMessage):
     """Base class for request messages to be send from by USB-Stick."""
 
-    arguments: list = []
+    _reply_identifier: bytes = b"0000"
 
     def __init__(
         self,
-        identifier: bytes,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]]
+        | None,
         mac: bytes | None,
     ) -> None:
         """Initialize request message."""
-        super().__init__(identifier)
-
+        super().__init__()
         self._args = []
         self._mac = mac
         self._send_counter: int = 0
+        self._send_fn = send_fn
         self._max_retries: int = MAX_RETRIES
         self._loop = get_running_loop()
-        self._reply_identifier: bytes = b"0000"
         self._response: PlugwiseResponse | None = None
-        self._stick_subscription_fn: Callable[[], None] | None = None
-        self._node_subscription_fn: Callable[[], None] | None = None
+        self._stick_subscription_fn: (
+            Callable[
+                [
+                    Callable[[StickResponse], Coroutine[Any, Any, None]],
+                    bytes | None,
+                    StickResponseType | None,
+                ],
+                Callable[[], None],
+            ]
+            | None
+        ) = None
+        self._node_subscription_fn: (
+            Callable[
+                [
+                    Callable[[PlugwiseResponse], Coroutine[Any, Any, bool]],
+                    bytes | None,
+                    tuple[bytes, ...] | None,
+                    bytes | None,
+                ],
+                Callable[[], None],
+            ]
+            | None
+        ) = None
         self._unsubscribe_stick_response: Callable[[], None] | None = None
         self._unsubscribe_node_response: Callable[[], None] | None = None
         self._response_timeout: TimerHandle | None = None
-        self._response_future: Future[PlugwiseResponse] = (
-            self._loop.create_future()
-        )
+        self._response_future: Future[PlugwiseResponse] = self._loop.create_future()
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
         if self._seq_id is None:
             return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id=UNKNOWN, attempt={self._send_counter})"
-        return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id={self._seq_id}, attempt={self._send_counter})"
+        return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id={self._seq_id!r}, attempt={self._send_counter})"
 
     def response_future(self) -> Future[PlugwiseResponse]:
         """Return awaitable future with response message."""
@@ -90,22 +134,25 @@ class PlugwiseRequest(PlugwiseMessage):
     def seq_id(self, seq_id: bytes) -> None:
         """Assign sequence id."""
         if self._seq_id is not None:
-            _LOGGER.warning("Unable to change seq_id into %s for request %s", seq_id, self)
-            raise MessageError(f"Unable to set seq_id to {seq_id}. Already set to {self._seq_id}")
+            _LOGGER.warning(
+                "Unable to change seq_id into %s for request %s", seq_id, self
+            )
+            raise MessageError(
+                f"Unable to set seq_id to {seq_id!r}. Already set to {self._seq_id!r}"
+            )
         self._seq_id = seq_id
         # Subscribe to receive the response messages
-        self._unsubscribe_stick_response = self._stick_subscription_fn(
-            self._process_stick_response,
-            seq_id=self._seq_id
-        )
-        self._unsubscribe_node_response = (
-            self._node_subscription_fn(
-                self._process_node_response,
-                mac=self._mac,
-                message_ids=(self._reply_identifier,),
-                seq_id=self._seq_id
+        if self._stick_subscription_fn is not None:
+            self._unsubscribe_stick_response = self._stick_subscription_fn(
+                self._process_stick_response, self._seq_id, None
             )
-        )
+        if self._node_subscription_fn is not None:
+            self._unsubscribe_node_response = self._node_subscription_fn(
+                self._process_node_response,
+                self._mac,
+                (self._reply_identifier,),
+                self._seq_id,
+            )
 
     def _unsubscribe_from_stick(self) -> None:
         """Unsubscribe from StickResponse messages."""
@@ -121,8 +168,25 @@ class PlugwiseRequest(PlugwiseMessage):
 
     def subscribe_to_responses(
         self,
-        stick_subscription_fn: Callable[[], None],
-        node_subscription_fn: Callable[[], None]
+        stick_subscription_fn: Callable[
+            [
+                Callable[[StickResponse], Coroutine[Any, Any, None]],
+                bytes | None,
+                StickResponseType | None,
+            ],
+            Callable[[], None],
+        ]
+        | None,
+        node_subscription_fn: Callable[
+            [
+                Callable[[PlugwiseResponse], Coroutine[Any, Any, bool]],
+                bytes | None,
+                tuple[bytes, ...] | None,
+                bytes | None,
+            ],
+            Callable[[], None],
+        ]
+        | None,
     ) -> None:
         """Register for response messages."""
         self._node_subscription_fn = node_subscription_fn
@@ -147,15 +211,15 @@ class PlugwiseRequest(PlugwiseMessage):
         if stick_timeout:
             _LOGGER.info("USB-stick responded with time out to %s", self)
         else:
-            _LOGGER.info("No response received for %s within %s seconds", self, NODE_TIME_OUT)
+            _LOGGER.info(
+                "No response received for %s within %s seconds", self, NODE_TIME_OUT
+            )
         self._seq_id = None
         self._unsubscribe_from_stick()
         self._unsubscribe_from_node()
         if stick_timeout:
             self._response_future.set_exception(
-                StickTimeout(
-                    f"USB-stick responded with time out to {self}"
-                )
+                StickTimeout(f"USB-stick responded with time out to {self}")
             )
         else:
             self._response_future.set_exception(
@@ -176,14 +240,18 @@ class PlugwiseRequest(PlugwiseMessage):
     async def _process_node_response(self, response: PlugwiseResponse) -> bool:
         """Process incoming message from node."""
         if self._seq_id is None:
-            _LOGGER.warning("Received %s as reply to %s without a seq_id assigned", self._response, self)
+            _LOGGER.warning(
+                "Received %s as reply to %s without a seq_id assigned",
+                self._response,
+                self,
+            )
             return False
         if self._seq_id != response.seq_id:
             _LOGGER.warning(
                 "Received %s as reply to %s which is not correct (expected seq_id=%s)",
                 self._response,
                 self,
-                str(self.seq_id)
+                str(self.seq_id),
             )
             return False
         if self._response_future.done():
@@ -194,7 +262,12 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_from_stick()
         self._unsubscribe_from_node()
         if self._send_counter > 1:
-            _LOGGER.info("Received %s after %s retries as reply to %s", self._response, self._send_counter, self)
+            _LOGGER.info(
+                "Received %s after %s retries as reply to %s",
+                self._response,
+                self._send_counter,
+                self,
+            )
         else:
             _LOGGER.debug("Received %s as reply to %s", self._response, self)
         self._response_future.set_result(self._response)
@@ -212,9 +285,7 @@ class PlugwiseRequest(PlugwiseMessage):
             self._unsubscribe_from_node()
             self._seq_id = None
             self._response_future.set_exception(
-                NodeError(
-                    f"Stick failed request {self._seq_id}"
-                )
+                NodeError(f"Stick failed request {self._seq_id}")
             )
         elif stick_response.ack_id == StickResponseType.ACCEPT:
             pass
@@ -223,8 +294,16 @@ class PlugwiseRequest(PlugwiseMessage):
                 "Unknown StickResponseType %s at %s for request %s",
                 str(stick_response.ack_id),
                 stick_response,
-                self
+                self,
             )
+
+    async def _send_request(
+        self, suppress_node_errors: bool = False
+    ) -> PlugwiseResponse | None:
+        """Send request."""
+        if self._send_fn is None:
+            return None
+        return await self._send_fn(self, suppress_node_errors)
 
     @property
     def max_retries(self) -> int:
@@ -244,24 +323,44 @@ class PlugwiseRequest(PlugwiseMessage):
     @property
     def resend(self) -> bool:
         """Return true if retry counter is not reached yet."""
-        return self._max_retries > self._send_counter
+        return (self._max_retries > self._send_counter)
 
-    def add_send_attempt(self):
+    def add_send_attempt(self) -> None:
         """Increase the number of retries."""
         self._send_counter += 1
+
+
+class PlugwiseCancelRequest(PlugwiseRequest):
+    """Cancel request for priority queue."""
+
+    def __init__(self) -> None:
+        """Initialize request message."""
+        super().__init__(None, None)
+        self.priority = Priority.CANCEL
 
 
 class StickNetworkInfoRequest(PlugwiseRequest):
     """Request network information.
 
     Supported protocols : 1.0, 2.0
-    Response message    : NodeNetworkInfoResponse
+    Response message    : StickNetworkInfoResponse
     """
 
-    def __init__(self) -> None:
-        """Initialize StickNetworkInfoRequest message object."""
-        self._reply_identifier = b"0002"
-        super().__init__(b"0001", None)
+    _identifier = b"0001"
+    _reply_identifier = b"0002"
+
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> StickNetworkInfoResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, StickNetworkInfoResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected StickNetworkInfoResponse"
+        )
 
 
 class CirclePlusConnectRequest(PlugwiseRequest):
@@ -271,10 +370,21 @@ class CirclePlusConnectRequest(PlugwiseRequest):
     Response message    : CirclePlusConnectResponse
     """
 
-    def __init__(self, mac: bytes) -> None:
-        """Initialize CirclePlusConnectRequest message object."""
-        self._reply_identifier = b"0005"
-        super().__init__(b"0004", mac)
+    _identifier = b"0004"
+    _reply_identifier = b"0005"
+
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> CirclePlusConnectResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, CirclePlusConnectResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected CirclePlusConnectResponse"
+        )
 
     # This message has an exceptional format and therefore
     # need to override the serialize method
@@ -283,8 +393,8 @@ class CirclePlusConnectRequest(PlugwiseRequest):
         # This command has
         # args: byte
         # key, byte
-        # networkinfo.index, ulong
-        # networkkey = 0
+        # network info.index, ulong
+        # network key = 0
         args = b"00000000000000000000"
         msg: bytes = self._identifier + args
         if self._mac is not None:
@@ -293,16 +403,39 @@ class CirclePlusConnectRequest(PlugwiseRequest):
         return MESSAGE_HEADER + msg + checksum + MESSAGE_FOOTER
 
 
-class NodeAddRequest(PlugwiseRequest):
+class PlugwiseRequestWithNodeAckResponse(PlugwiseRequest):
+    """Base class of a plugwise request with a NodeAckResponse."""
+
+    async def send(self, suppress_node_errors: bool = False) -> NodeAckResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeAckResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeAckResponse"
+        )
+
+
+class NodeAddRequest(PlugwiseRequestWithNodeAckResponse):
     """Add node to the Plugwise Network and add it to memory of Circle+ node.
 
     Supported protocols : 1.0, 2.0
-    Response message    : TODO
+    Response message    : TODO check if response is NodeAckResponse
     """
 
-    def __init__(self, mac: bytes, accept: bool) -> None:
+    _identifier = b"0007"
+    _reply_identifier = b"0005"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        accept: bool,
+    ) -> None:
         """Initialize NodeAddRequest message object."""
-        super().__init__(b"0007", mac)
+        super().__init__(send_fn, mac)
         accept_value = 1 if accept else 0
         self._args.append(Int(accept_value, length=2))
 
@@ -317,10 +450,6 @@ class NodeAddRequest(PlugwiseRequest):
         checksum = self.calculate_checksum(msg)
         return MESSAGE_HEADER + msg + checksum + MESSAGE_FOOTER
 
-    def validate_reply(self, node_response: PlugwiseResponse) -> bool:
-        """"Validate node response."""
-        return True
-
 
 class CirclePlusAllowJoiningRequest(PlugwiseRequest):
     """Enable or disable receiving joining request of unjoined nodes.
@@ -329,15 +458,32 @@ class CirclePlusAllowJoiningRequest(PlugwiseRequest):
 
     Supported protocols : 1.0, 2.0,
                           2.6 (has extra 'AllowThirdParty' field)
-    Response message    : NodeAckResponse
+    Response message    : NodeResponse
     """
 
-    def __init__(self, enable: bool) -> None:
+    _identifier = b"0008"
+    _reply_identifier = b"0000"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        enable: bool,
+    ) -> None:
         """Initialize NodeAddRequest message object."""
-        super().__init__(b"0008", None)
-        self._reply_identifier = b"0003"
+        super().__init__(send_fn, None)
         val = 1 if enable else 0
         self._args.append(Int(val, length=2))
+
+    async def send(self, suppress_node_errors: bool = False) -> NodeResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeResponse"
+        )
 
 
 class NodeResetRequest(PlugwiseRequest):
@@ -347,13 +493,35 @@ class NodeResetRequest(PlugwiseRequest):
     Response message    : <UNKNOWN>
     """
 
-    def __init__(self, mac: bytes, moduletype: int, timeout: int) -> None:
+    _identifier = b"0009"
+    _reply_identifier = b"0003"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        moduletype: int,
+        timeout: int,
+    ) -> None:
         """Initialize NodeResetRequest message object."""
-        super().__init__(b"0009", mac)
+        super().__init__(send_fn, mac)
         self._args += [
             Int(moduletype, length=2),
             Int(timeout, length=2),
         ]
+
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> NodeSpecificResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeSpecificResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeSpecificResponse"
+        )
 
 
 class StickInitRequest(PlugwiseRequest):
@@ -363,11 +531,31 @@ class StickInitRequest(PlugwiseRequest):
     Response message    : StickInitResponse
     """
 
-    def __init__(self) -> None:
+    _identifier = b"000A"
+    _reply_identifier = b"0011"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+    ) -> None:
         """Initialize StickInitRequest message object."""
-        super().__init__(b"000A", None)
-        self._reply_identifier = b"0011"
+        super().__init__(send_fn, None)
         self._max_retries = 1
+
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> StickInitResponse | None:
+        """Send request."""
+        if self._send_fn is None:
+            raise MessageError("Send function missing")
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, StickInitResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected StickInitResponse"
+        )
 
 
 class NodeImagePrepareRequest(PlugwiseRequest):
@@ -377,9 +565,21 @@ class NodeImagePrepareRequest(PlugwiseRequest):
     Response message    : <UNKNOWN>
     """
 
-    def __init__(self) -> None:
-        """Initialize NodeImagePrepareRequest message object."""
-        super().__init__(b"000B", None)
+    _identifier = b"000B"
+    _reply_identifier = b"0003"
+
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> NodeSpecificResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeSpecificResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeSpecificResponse"
+        )
 
 
 class NodeImageValidateRequest(PlugwiseRequest):
@@ -389,10 +589,21 @@ class NodeImageValidateRequest(PlugwiseRequest):
     Response message    : NodeImageValidationResponse
     """
 
-    def __init__(self) -> None:
-        """Initialize NodeImageValidateRequest message object."""
-        super().__init__(b"000C", None)
-        self._reply_identifier = b"0010"
+    _identifier = b"000C"
+    _reply_identifier = b"0010"
+
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> NodeImageValidationResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeImageValidationResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeImageValidationResponse"
+        )
 
 
 class NodePingRequest(PlugwiseRequest):
@@ -402,11 +613,30 @@ class NodePingRequest(PlugwiseRequest):
     Response message    : NodePingResponse
     """
 
-    def __init__(self, mac: bytes, retries: int = MAX_RETRIES) -> None:
+    _identifier = b"000D"
+    _reply_identifier = b"000E"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        retries: int = MAX_RETRIES,
+    ) -> None:
         """Initialize NodePingRequest message object."""
-        super().__init__(b"000D", mac)
+        super().__init__(send_fn, mac)
         self._reply_identifier = b"000E"
         self._max_retries = retries
+
+    async def send(self, suppress_node_errors: bool = False) -> NodePingResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodePingResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodePingResponse"
+        )
 
 
 class NodeImageActivateRequest(PlugwiseRequest):
@@ -416,11 +646,18 @@ class NodeImageActivateRequest(PlugwiseRequest):
     Response message    : <UNKNOWN>
     """
 
+    _identifier = b"000F"
+    _reply_identifier = b"000E"
+
     def __init__(
-        self, mac: bytes, request_type: int, reset_delay: int
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        request_type: int,
+        reset_delay: int,
     ) -> None:
         """Initialize NodeImageActivateRequest message object."""
-        super().__init__(b"000F", mac)
+        super().__init__(send_fn, mac)
         _type = Int(request_type, 2)
         _reset_delay = Int(reset_delay, 2)
         self._args += [_type, _reset_delay]
@@ -433,10 +670,21 @@ class CirclePowerUsageRequest(PlugwiseRequest):
     Response message    : CirclePowerUsageResponse
     """
 
-    def __init__(self, mac: bytes) -> None:
-        """Initialize CirclePowerUsageRequest message object."""
-        super().__init__(b"0012", mac)
-        self._reply_identifier = b"0013"
+    _identifier = b"0012"
+    _reply_identifier = b"0013"
+
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> CirclePowerUsageResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, CirclePowerUsageResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected CirclePowerUsageResponse"
+        )
 
 
 class CircleLogDataRequest(PlugwiseRequest):
@@ -451,10 +699,18 @@ class CircleLogDataRequest(PlugwiseRequest):
     Response message    :  CircleLogDataResponse
     """
 
-    def __init__(self, mac: bytes, start: datetime, end: datetime) -> None:
+    _identifier = b"0014"
+    _reply_identifier = b"0015"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        start: datetime,
+        end: datetime,
+    ) -> None:
         """Initialize CircleLogDataRequest message object."""
-        super().__init__(b"0014", mac)
-        self._reply_identifier = b"0015"
+        super().__init__(send_fn, mac)
         passed_days_start = start.day - 1
         month_minutes_start = (
             (passed_days_start * DAY_IN_MINUTES)
@@ -471,6 +727,19 @@ class CircleLogDataRequest(PlugwiseRequest):
         to_abs = DateTime(end.year, end.month, month_minutes_end)
         self._args += [from_abs, to_abs]
 
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> CircleLogDataResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, CircleLogDataResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected CircleLogDataResponse"
+        )
+
 
 class CircleClockSetRequest(PlugwiseRequest):
     """Set internal clock of node and flash address.
@@ -481,16 +750,19 @@ class CircleClockSetRequest(PlugwiseRequest):
     Response message    : NodeResponse
     """
 
+    _identifier = b"0016"
+    _reply_identifier = b"0000"
+
     def __init__(
         self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
         mac: bytes,
         dt: datetime,
         protocol_version: float,
         reset: bool = False,
     ) -> None:
         """Initialize CircleLogDataRequest message object."""
-        super().__init__(b"0016", mac)
-        self._reply_identifier = b"0000"
+        super().__init__(send_fn, mac)
         self.priority = Priority.HIGH
         if protocol_version < 2.0:
             # FIXME: Define "absoluteHour" variable
@@ -498,18 +770,31 @@ class CircleClockSetRequest(PlugwiseRequest):
 
         passed_days = dt.day - 1
         month_minutes = (
-            (passed_days * DAY_IN_MINUTES)
-            + (dt.hour * HOUR_IN_MINUTES)
-            + dt.minute
+            (passed_days * DAY_IN_MINUTES) + (dt.hour * HOUR_IN_MINUTES) + dt.minute
         )
         this_date = DateTime(dt.year, dt.month, month_minutes)
         this_time = Time(dt.hour, dt.minute, dt.second)
         day_of_week = Int(dt.weekday(), 2)
         if reset:
-            log_buf_addr = LogAddr(LOGADDR_OFFSET, 8, False)
+            self._args += [
+                this_date,
+                LogAddr(LOGADDR_OFFSET, 8, False),
+                this_time,
+                day_of_week,
+            ]
         else:
-            log_buf_addr = String("FFFFFFFF", 8)
-        self._args += [this_date, log_buf_addr, this_time, day_of_week]
+            self._args += [this_date, String("FFFFFFFF", 8), this_time, day_of_week]
+
+    async def send(self, suppress_node_errors: bool = False) -> NodeResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeResponse"
+        )
 
 
 class CircleRelaySwitchRequest(PlugwiseRequest):
@@ -519,13 +804,31 @@ class CircleRelaySwitchRequest(PlugwiseRequest):
     Response message    : NodeResponse
     """
 
-    def __init__(self, mac: bytes, on: bool) -> None:
+    _identifier = b"0017"
+    _reply_identifier = b"0000"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        on: bool,
+    ) -> None:
         """Initialize CircleRelaySwitchRequest message object."""
-        super().__init__(b"0017", mac)
-        self._reply_identifier = b"0000"
+        super().__init__(send_fn, mac)
         self.priority = Priority.HIGH
         val = 1 if on else 0
         self._args.append(Int(val, length=2))
+
+    async def send(self, suppress_node_errors: bool = False) -> NodeResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeResponse"
+        )
 
 
 class CirclePlusScanRequest(PlugwiseRequest):
@@ -538,16 +841,37 @@ class CirclePlusScanRequest(PlugwiseRequest):
     Response message    : CirclePlusScanResponse
     """
 
-    def __init__(self, mac: bytes, network_address: int) -> None:
+    _identifier = b"0018"
+    _reply_identifier = b"0019"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        network_address: int,
+    ) -> None:
         """Initialize CirclePlusScanRequest message object."""
-        super().__init__(b"0018", mac)
-        self._reply_identifier = b"0019"
+        super().__init__(send_fn, mac)
         self._args.append(Int(network_address, length=2))
         self.network_address = network_address
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
         return f"{super().__repr__()[:-1]}, network_address={self.network_address})"
+
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> CirclePlusScanResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, CirclePlusScanResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected CirclePlusScanResponse"
+        )
+
 
 class NodeRemoveRequest(PlugwiseRequest):
     """Request node to be removed from Plugwise network by removing it from memory of Circle+ node.
@@ -556,11 +880,31 @@ class NodeRemoveRequest(PlugwiseRequest):
     Response message    : NodeRemoveResponse
     """
 
-    def __init__(self, mac_circle_plus: bytes, mac_to_unjoined: str) -> None:
+    _identifier = b"001C"
+    _reply_identifier = b"001D"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac_circle_plus: bytes,
+        mac_to_unjoined: str,
+    ) -> None:
         """Initialize NodeRemoveRequest message object."""
-        super().__init__(b"001C", mac_circle_plus)
-        self._reply_identifier = b"001D"
+        super().__init__(send_fn, mac_circle_plus)
         self._args.append(String(mac_to_unjoined, length=16))
+
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> NodeRemoveResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeRemoveResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeRemoveResponse"
+        )
 
 
 class NodeInfoRequest(PlugwiseRequest):
@@ -570,11 +914,29 @@ class NodeInfoRequest(PlugwiseRequest):
     Response message    : NodeInfoResponse
     """
 
-    def __init__(self, mac: bytes, retries: int = MAX_RETRIES) -> None:
+    _identifier = b"0023"
+    _reply_identifier = b"0024"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        retries: int = MAX_RETRIES,
+    ) -> None:
         """Initialize NodeInfoRequest message object."""
-        super().__init__(b"0023", mac)
-        self._reply_identifier = b"0024"
+        super().__init__(send_fn, mac)
         self._max_retries = retries
+
+    async def send(self, suppress_node_errors: bool = False) -> NodeInfoResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeInfoResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeInfoResponse"
+        )
 
 
 class EnergyCalibrationRequest(PlugwiseRequest):
@@ -584,10 +946,21 @@ class EnergyCalibrationRequest(PlugwiseRequest):
     Response message    : EnergyCalibrationResponse
     """
 
-    def __init__(self, mac: bytes) -> None:
-        """Initialize EnergyCalibrationRequest message object."""
-        super().__init__(b"0026", mac)
-        self._reply_identifier = b"0027"
+    _identifier = b"0026"
+    _reply_identifier = b"0027"
+
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> EnergyCalibrationResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, EnergyCalibrationResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected EnergyCalibrationResponse"
+        )
 
 
 class CirclePlusRealTimeClockSetRequest(PlugwiseRequest):
@@ -597,15 +970,33 @@ class CirclePlusRealTimeClockSetRequest(PlugwiseRequest):
     Response message    : NodeResponse
     """
 
-    def __init__(self, mac: bytes, dt: datetime):
+    _identifier = b"0028"
+    _reply_identifier = b"0000"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        dt: datetime,
+    ):
         """Initialize CirclePlusRealTimeClockSetRequest message object."""
-        super().__init__(b"0028", mac)
-        self._reply_identifier = b"0000"
+        super().__init__(send_fn, mac)
         self.priority = Priority.HIGH
         this_time = RealClockTime(dt.hour, dt.minute, dt.second)
         day_of_week = Int(dt.weekday(), 2)
         this_date = RealClockDate(dt.day, dt.month, dt.year)
         self._args += [this_time, day_of_week, this_date]
+
+    async def send(self, suppress_node_errors: bool = False) -> NodeResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeResponse"
+        )
 
 
 class CirclePlusRealTimeClockGetRequest(PlugwiseRequest):
@@ -615,10 +1006,22 @@ class CirclePlusRealTimeClockGetRequest(PlugwiseRequest):
     Response message    : CirclePlusRealTimeClockResponse
     """
 
-    def __init__(self, mac: bytes):
-        """Initialize CirclePlusRealTimeClockGetRequest message object."""
-        super().__init__(b"0029", mac)
-        self._reply_identifier = b"003A"
+    _identifier = b"0029"
+    _reply_identifier = b"003A"
+
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> CirclePlusRealTimeClockResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, CirclePlusRealTimeClockResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected CirclePlusRealTimeClockResponse"
+        )
+
 
 # TODO : Insert
 #
@@ -633,10 +1036,21 @@ class CircleClockGetRequest(PlugwiseRequest):
     Response message    :  CircleClockResponse
     """
 
-    def __init__(self, mac: bytes):
-        """Initialize CircleClockGetRequest message object."""
-        super().__init__(b"003E", mac)
-        self._reply_identifier = b"003F"
+    _identifier = b"003E"
+    _reply_identifier = b"003F"
+
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> CircleClockResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, CircleClockResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected CircleClockResponse"
+        )
 
 
 class CircleActivateScheduleRequest(PlugwiseRequest):
@@ -646,9 +1060,17 @@ class CircleActivateScheduleRequest(PlugwiseRequest):
     Response message    : <UNKNOWN> TODO:
     """
 
-    def __init__(self, mac: bytes, on: bool) -> None:
+    _identifier = b"0040"
+    _reply_identifier = b"0000"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        on: bool,
+    ) -> None:
         """Initialize CircleActivateScheduleRequest message object."""
-        super().__init__(b"0040", mac)
+        super().__init__(send_fn, mac)
         val = 1 if on else 0
         self._args.append(Int(val, length=2))
         # the second parameter is always 0x01
@@ -661,11 +1083,19 @@ class NodeAddToGroupRequest(PlugwiseRequest):
     Response message: TODO:
     """
 
+    _identifier = b"0045"
+    _reply_identifier = b"0000"
+
     def __init__(
-        self, mac: bytes, group_mac: bytes, task_id: str, port_mask: str
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        group_mac: str,
+        task_id: str,
+        port_mask: str,
     ) -> None:
         """Initialize NodeAddToGroupRequest message object."""
-        super().__init__(b"0045", mac)
+        super().__init__(send_fn, mac)
         group_mac_val = String(group_mac, length=16)
         task_id_val = String(task_id, length=16)
         port_mask_val = String(port_mask, length=16)
@@ -678,9 +1108,17 @@ class NodeRemoveFromGroupRequest(PlugwiseRequest):
     Response message: TODO:
     """
 
-    def __init__(self, mac: bytes, group_mac: bytes) -> None:
+    _identifier = b"0046"
+    _reply_identifier = b"0000"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        group_mac: str,
+    ) -> None:
         """Initialize NodeRemoveFromGroupRequest message object."""
-        super().__init__(b"0046", mac)
+        super().__init__(send_fn, mac)
         group_mac_val = String(group_mac, length=16)
         self._args += [group_mac_val]
 
@@ -691,9 +1129,17 @@ class NodeBroadcastGroupSwitchRequest(PlugwiseRequest):
     Response message: TODO:
     """
 
-    def __init__(self, group_mac: bytes, switch_state: bool) -> None:
+    _identifier = b"0047"
+    _reply_identifier = b"0000"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        group_mac: bytes,
+        switch_state: bool,
+    ) -> None:
         """Initialize NodeBroadcastGroupSwitchRequest message object."""
-        super().__init__(b"0047", group_mac)
+        super().__init__(send_fn, group_mac)
         val = 1 if switch_state else 0
         self._args.append(Int(val, length=2))
 
@@ -704,10 +1150,17 @@ class CircleEnergyLogsRequest(PlugwiseRequest):
     Response message: CircleEnergyLogsResponse
     """
 
-    def __init__(self, mac: bytes, log_address: int) -> None:
+    _identifier = b"0048"
+    _reply_identifier = b"0049"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        log_address: int,
+    ) -> None:
         """Initialize CircleEnergyLogsRequest message object."""
-        super().__init__(b"0048", mac)
-        self._reply_identifier = b"0049"
+        super().__init__(send_fn, mac)
         self._log_address = log_address
         self.priority = Priority.LOW
         self._args.append(LogAddr(log_address, 8))
@@ -716,16 +1169,28 @@ class CircleEnergyLogsRequest(PlugwiseRequest):
         """Convert request into writable str."""
         return f"{super().__repr__()[:-1]}, log_address={self._log_address})"
 
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> CircleEnergyLogsResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, CircleEnergyLogsResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected CircleEnergyLogsResponse"
+        )
+
 
 class CircleHandlesOffRequest(PlugwiseRequest):
     """?PWSetHandlesOffRequestV1_0.
 
-    Response message: ?
+    Response message: TODO
     """
 
-    def __init__(self, mac: bytes) -> None:
-        """Initialize CircleHandlesOffRequest message object."""
-        super().__init__(b"004D", mac)
+    _identifier = b"004D"
+    _reply_identifier = b"0000"
 
 
 class CircleHandlesOnRequest(PlugwiseRequest):
@@ -734,9 +1199,8 @@ class CircleHandlesOnRequest(PlugwiseRequest):
     Response message: ?
     """
 
-    def __init__(self, mac: bytes) -> None:
-        """Initialize CircleHandlesOnRequest message object."""
-        super().__init__(b"004E", mac)
+    _identifier = b"004E"
+    _reply_identifier = b"0000"
 
 
 class NodeSleepConfigRequest(PlugwiseRequest):
@@ -753,11 +1217,15 @@ class NodeSleepConfigRequest(PlugwiseRequest):
     clock_interval          : Duration in minutes the node synchronize
                               its clock
 
-    Response message: Ack message with SLEEP_SET
+    Response message: NodeAckResponse with SLEEP_SET
     """
+
+    _identifier = b"0050"
+    _reply_identifier = b"0100"
 
     def __init__(
         self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
         mac: bytes,
         stay_active: int,
         maintenance_interval: int,
@@ -766,8 +1234,7 @@ class NodeSleepConfigRequest(PlugwiseRequest):
         clock_interval: int,
     ):
         """Initialize NodeSleepConfigRequest message object."""
-        super().__init__(b"0050", mac)
-        self._reply_identifier = b"0100"
+        super().__init__(send_fn, mac)
         stay_active_val = Int(stay_active, length=2)
         sleep_for_val = Int(sleep_for, length=4)
         maintenance_interval_val = Int(maintenance_interval, length=4)
@@ -782,6 +1249,17 @@ class NodeSleepConfigRequest(PlugwiseRequest):
             clock_interval_val,
         ]
 
+    async def send(self, suppress_node_errors: bool = False) -> NodeAckResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeAckResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeAckResponse"
+        )
+
 
 class NodeSelfRemoveRequest(PlugwiseRequest):
     """TODO: Remove node?.
@@ -795,9 +1273,8 @@ class NodeSelfRemoveRequest(PlugwiseRequest):
 
     """
 
-    def __init__(self, mac: bytes) -> None:
-        """Initialize NodeSelfRemoveRequest message object."""
-        super().__init__(b"0051", mac)
+    _identifier = b"0051"
+    _reply_identifier = b"0000"
 
 
 class CircleMeasureIntervalRequest(PlugwiseRequest):
@@ -808,9 +1285,18 @@ class CircleMeasureIntervalRequest(PlugwiseRequest):
     Response message: Ack message with ???  TODO:
     """
 
-    def __init__(self, mac: bytes, consumption: int, production: int):
+    _identifier = b"0057"
+    _reply_identifier = b"0000"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        consumption: int,
+        production: int,
+    ):
         """Initialize CircleMeasureIntervalRequest message object."""
-        super().__init__(b"0057", mac)
+        super().__init__(send_fn, mac)
         self._args.append(Int(consumption, length=4))
         self._args.append(Int(production, length=4))
 
@@ -818,12 +1304,20 @@ class CircleMeasureIntervalRequest(PlugwiseRequest):
 class NodeClearGroupMacRequest(PlugwiseRequest):
     """TODO: usage?.
 
-    Response message: ????
+    Response message: TODO
     """
 
-    def __init__(self, mac: bytes, taskId: int) -> None:
+    _identifier = b"0058"
+    _reply_identifier = b"0000"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        taskId: int,
+    ) -> None:
         """Initialize NodeClearGroupMacRequest message object."""
-        super().__init__(b"0058", mac)
+        super().__init__(send_fn, mac)
         self._args.append(Int(taskId, length=2))
 
 
@@ -833,9 +1327,17 @@ class CircleSetScheduleValueRequest(PlugwiseRequest):
     Response message: TODO:
     """
 
-    def __init__(self, mac: bytes, val: int) -> None:
+    _identifier = b"0059"
+    _reply_identifier = b"0000"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        val: int,
+    ) -> None:
         """Initialize CircleSetScheduleValueRequest message object."""
-        super().__init__(b"0059", mac)
+        super().__init__(send_fn, mac)
         self._args.append(SInt(val, length=4))
 
 
@@ -845,11 +1347,31 @@ class NodeFeaturesRequest(PlugwiseRequest):
     Response message: NodeFeaturesResponse
     """
 
-    def __init__(self, mac: bytes, val: int) -> None:
+    _identifier = b"005F"
+    _reply_identifier = b"0060"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        val: int,
+    ) -> None:
         """Initialize NodeFeaturesRequest message object."""
-        super().__init__(b"005F", mac)
-        self._reply_identifier = b"0060"
+        super().__init__(send_fn, mac)
         self._args.append(SInt(val, length=4))
+
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> NodeFeaturesResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeFeaturesResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeFeaturesResponse"
+        )
 
 
 class ScanConfigureRequest(PlugwiseRequest):
@@ -865,12 +1387,19 @@ class ScanConfigureRequest(PlugwiseRequest):
     Response message: NodeAckResponse
     """
 
+    _identifier = b"0101"
+    _reply_identifier = b"0100"
+
     def __init__(
-        self, mac: bytes, reset_timer: int, sensitivity: int, light: bool
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        reset_timer: int,
+        sensitivity: int,
+        light: bool,
     ):
         """Initialize ScanConfigureRequest message object."""
-        super().__init__(b"0101", mac)
-        self._reply_identifier = b"0100"
+        super().__init__(send_fn, mac)
         reset_timer_value = Int(reset_timer, length=2)
         # Sensitivity: HIGH(0x14),  MEDIUM(0x1E),  OFF(0xFF)
         sensitivity_value = Int(sensitivity, length=2)
@@ -882,6 +1411,17 @@ class ScanConfigureRequest(PlugwiseRequest):
             reset_timer_value,
         ]
 
+    async def send(self, suppress_node_errors: bool = False) -> NodeAckResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeAckResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeAckResponse"
+        )
+
 
 class ScanLightCalibrateRequest(PlugwiseRequest):
     """Calibrate light sensitivity.
@@ -889,10 +1429,19 @@ class ScanLightCalibrateRequest(PlugwiseRequest):
     Response message: NodeAckResponse
     """
 
-    def __init__(self, mac: bytes):
-        """Initialize ScanLightCalibrateRequest message object."""
-        super().__init__(b"0102", mac)
-        self._reply_identifier = b"0100"
+    _identifier = b"0102"
+    _reply_identifier = b"0100"
+
+    async def send(self, suppress_node_errors: bool = False) -> NodeAckResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeAckResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeAckResponse"
+        )
 
 
 class SenseReportIntervalRequest(PlugwiseRequest):
@@ -903,11 +1452,29 @@ class SenseReportIntervalRequest(PlugwiseRequest):
     Response message: NodeAckResponse
     """
 
-    def __init__(self, mac: bytes, interval: int):
+    _identifier = b"0103"
+    _reply_identifier = b"0100"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        interval: int,
+    ):
         """Initialize ScanLightCalibrateRequest message object."""
-        super().__init__(b"0103", mac)
-        self._reply_identifier = b"0100"
+        super().__init__(send_fn, mac)
         self._args.append(Int(interval, length=2))
+
+    async def send(self, suppress_node_errors: bool = False) -> NodeAckResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeAckResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeAckResponse"
+        )
 
 
 class CircleRelayInitStateRequest(PlugwiseRequest):
@@ -917,11 +1484,32 @@ class CircleRelayInitStateRequest(PlugwiseRequest):
     Response message    : CircleInitRelayStateResponse
     """
 
-    def __init__(self, mac: bytes, configure: bool, relay_state: bool) -> None:
+    _identifier = b"0138"
+    _reply_identifier = b"0139"
+
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        configure: bool,
+        relay_state: bool,
+    ) -> None:
         """Initialize CircleRelayInitStateRequest message object."""
-        super().__init__(b"0138", mac)
-        self._reply_identifier = b"0139"
+        super().__init__(send_fn, mac)
         self.priority = Priority.LOW
         self.set_or_get = Int(1 if configure else 0, length=2)
         self.relay = Int(1 if relay_state else 0, length=2)
         self._args += [self.set_or_get, self.relay]
+
+    async def send(
+        self, suppress_node_errors: bool = False
+    ) -> CircleRelayInitStateResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, CircleRelayInitStateResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected CircleRelayInitStateResponse"
+        )

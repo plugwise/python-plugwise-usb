@@ -7,7 +7,9 @@ from enum import Enum
 from typing import Any
 
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER, UTF8
+from ..exceptions import MessageError
 from ..helpers.util import crc_fun
+
 
 class Priority(int, Enum):
     """Message priority levels for USB-stick message requests."""
@@ -20,15 +22,15 @@ class Priority(int, Enum):
 class PlugwiseMessage:
     """Plugwise message base class."""
 
-    priority: Priority = Priority.MEDIUM
+    _identifier = b"FFFF"
 
-    def __init__(self, identifier: bytes) -> None:
+    def __init__(self) -> None:
         """Initialize a plugwise message."""
-        self._identifier = identifier
         self._mac: bytes | None = None
         self._checksum: bytes | None = None
         self._args: list[Any] = []
         self._seq_id: bytes | None = None
+        self.priority: Priority = Priority.MEDIUM
         self.timestamp = datetime.now(UTC)
 
     @property
@@ -49,6 +51,8 @@ class PlugwiseMessage:
     @property
     def mac(self) -> bytes:
         """Return mac in bytes."""
+        if self._mac is None:
+            raise MessageError("Mac not set")
         return self._mac
 
     @property
@@ -70,7 +74,7 @@ class PlugwiseMessage:
     @staticmethod
     def calculate_checksum(data: bytes) -> bytes:
         """Calculate crc checksum."""
-        return bytes("%04X" % crc_fun(data), UTF8)
+        return bytes(f"{crc_fun(data):04X}", UTF8)
 
     def __gt__(self, other: PlugwiseMessage) -> bool:
         """Greater than."""
