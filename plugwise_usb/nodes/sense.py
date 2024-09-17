@@ -1,4 +1,5 @@
 """Plugwise Sense node object."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -6,8 +7,8 @@ import logging
 from typing import Any, Final
 
 from ..api import NodeEvent, NodeFeature
-from ..exceptions import NodeError
-from ..messages.responses import SENSE_REPORT_ID, SenseReportResponse
+from ..exceptions import MessageError, NodeError
+from ..messages.responses import SENSE_REPORT_ID, PlugwiseResponse, SenseReportResponse
 from ..nodes.sed import NodeSED
 from .helpers import raise_not_loaded
 from .helpers.firmware import SENSE_FIRMWARE_SUPPORT
@@ -39,18 +40,12 @@ class PlugwiseSense(NodeSED):
             return True
         self._node_info.battery_powered = True
         if self._cache_enabled:
-            _LOGGER.debug(
-                "Load Sense node %s from cache", self._node_info.mac
-            )
+            _LOGGER.debug("Load Sense node %s from cache", self._node_info.mac)
             if await self._load_from_cache():
                 self._loaded = True
                 self._setup_protocol(
                     SENSE_FIRMWARE_SUPPORT,
-                    (
-                        NodeFeature.INFO,
-                        NodeFeature.TEMPERATURE,
-                        NodeFeature.HUMIDITY
-                    ),
+                    (NodeFeature.INFO, NodeFeature.TEMPERATURE, NodeFeature.HUMIDITY),
                 )
                 if await self.initialize():
                     await self._loaded_callback(NodeEvent.LOADED, self.mac)
@@ -66,7 +61,7 @@ class PlugwiseSense(NodeSED):
         self._sense_subscription = self._message_subscribe(
             self._sense_report,
             self._mac_in_bytes,
-            SENSE_REPORT_ID,
+            (SENSE_REPORT_ID,),
         )
         return await super().initialize()
 
@@ -77,32 +72,34 @@ class PlugwiseSense(NodeSED):
             self._sense_subscription()
         await super().unload()
 
-    async def _sense_report(self, message: SenseReportResponse) -> None:
+    async def _sense_report(self, response: PlugwiseResponse) -> bool:
         """Process sense report message to extract current temperature and humidity values."""
+        if not isinstance(response, SenseReportResponse):
+            raise MessageError(
+                f"Invalid response message type ({response.__class__.__name__}) received, expected SenseReportResponse"
+            )
         await self._available_update_state(True)
-        if message.temperature.value != 65535:
+        if response.temperature.value != 65535:
             self._temperature = int(
-                SENSE_TEMPERATURE_MULTIPLIER * (
-                    message.temperature.value / 65536
-                )
+                SENSE_TEMPERATURE_MULTIPLIER * (response.temperature.value / 65536)
                 - SENSE_TEMPERATURE_OFFSET
             )
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.TEMPERATURE, self._temperature
             )
-        if message.humidity.value != 65535:
+        if response.humidity.value != 65535:
             self._humidity = int(
-                SENSE_HUMIDITY_MULTIPLIER * (message.humidity.value / 65536)
+                SENSE_HUMIDITY_MULTIPLIER * (response.humidity.value / 65536)
                 - SENSE_HUMIDITY_OFFSET
             )
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.HUMIDITY, self._humidity
             )
+            return True
+        return False
 
     @raise_not_loaded
-    async def get_state(
-        self, features: tuple[NodeFeature]
-    ) -> dict[NodeFeature, Any]:
+    async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
         """Update latest state for given feature."""
         states: dict[NodeFeature, Any] = {}
         for feature in features:

@@ -1,4 +1,5 @@
 """Energy pulse helper."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,6 +8,7 @@ import logging
 from typing import Final
 
 from ...constants import LOGADDR_MAX, MINUTE_IN_SECONDS, WEEK_IN_HOURS
+from ...exceptions import EnergyError
 
 _LOGGER = logging.getLogger(__name__)
 CONSUMED: Final = True
@@ -121,6 +123,11 @@ class PulseCollection:
     @property
     def last_log(self) -> tuple[int, int] | None:
         """Return address and slot of last imported log."""
+        if (
+            self._last_log_consumption_address is None
+            or self._last_log_consumption_slot is None
+        ):
+            return None
         return (self._last_log_consumption_address, self._last_log_consumption_slot)
 
     @property
@@ -141,7 +148,7 @@ class PulseCollection:
     @property
     def log_rollover(self) -> bool:
         """Indicate if new log is required."""
-        return (self._rollover_consumption or self._rollover_production)
+        return self._rollover_consumption or self._rollover_production
 
     @property
     def last_update(self) -> datetime | None:
@@ -166,7 +173,9 @@ class PulseCollection:
             _LOGGER.debug("collected_pulses | %s | _rollover_production", self._mac)
             return (None, None)
 
-        if (log_pulses := self._collect_pulses_from_logs(from_timestamp, is_consumption)) is None:
+        if (
+            log_pulses := self._collect_pulses_from_logs(from_timestamp, is_consumption)
+        ) is None:
             _LOGGER.debug("collected_pulses | %s | log_pulses:None", self._mac)
             return (None, None)
 
@@ -181,7 +190,11 @@ class PulseCollection:
         # _LOGGER.debug("collected_pulses | %s | pulses=%s", self._mac, pulses)
 
         if pulses is None:
-            _LOGGER.debug("collected_pulses | %s | is_consumption=%s, pulses=None", self._mac, is_consumption)
+            _LOGGER.debug(
+                "collected_pulses | %s | is_consumption=%s, pulses=None",
+                self._mac,
+                is_consumption,
+            )
             return (None, None)
         return (pulses + log_pulses, timestamp)
 
@@ -194,19 +207,29 @@ class PulseCollection:
             return None
         if is_consumption:
             if self._last_log_consumption_timestamp is None:
-                _LOGGER.debug("_collect_pulses_from_logs | %s | self._last_log_consumption_timestamp=None", self._mac)
+                _LOGGER.debug(
+                    "_collect_pulses_from_logs | %s | self._last_log_consumption_timestamp=None",
+                    self._mac,
+                )
                 return None
             if from_timestamp > self._last_log_consumption_timestamp:
                 return 0
         else:
             if self._last_log_production_timestamp is None:
-                _LOGGER.debug("_collect_pulses_from_logs | %s | self._last_log_production_timestamp=None", self._mac)
+                _LOGGER.debug(
+                    "_collect_pulses_from_logs | %s | self._last_log_production_timestamp=None",
+                    self._mac,
+                )
                 return None
             if from_timestamp > self._last_log_production_timestamp:
                 return 0
         missing_logs = self._logs_missing(from_timestamp)
         if missing_logs is None or missing_logs:
-            _LOGGER.debug("_collect_pulses_from_logs | %s | missing_logs=%s", self._mac, missing_logs)
+            _LOGGER.debug(
+                "_collect_pulses_from_logs | %s | missing_logs=%s",
+                self._mac,
+                missing_logs,
+            )
             return None
 
         log_pulses = 0
@@ -229,9 +252,15 @@ class PulseCollection:
         if not (self._rollover_consumption or self._rollover_production):
             # No rollover based on time, check rollover based on counter reset
             # Required for special cases like nodes which have been power off for several days
-            if self._pulses_consumption is not None and self._pulses_consumption > pulses_consumed:
+            if (
+                self._pulses_consumption is not None
+                and self._pulses_consumption > pulses_consumed
+            ):
                 self._rollover_consumption = True
-            if self._pulses_production is not None and self._pulses_production > pulses_produced:
+            if (
+                self._pulses_production is not None
+                and self._pulses_production > pulses_produced
+            ):
                 self._rollover_production = True
         self._pulses_consumption = pulses_consumed
         self._pulses_production = pulses_produced
@@ -249,11 +278,21 @@ class PulseCollection:
             return
         if self._pulses_timestamp > self._next_log_consumption_timestamp:
             self._rollover_consumption = True
-            _LOGGER.debug("_update_rollover | %s | set consumption rollover => pulses newer", self._mac)
+            _LOGGER.debug(
+                "_update_rollover | %s | set consumption rollover => pulses newer",
+                self._mac,
+            )
         elif self._pulses_timestamp < self._last_log_consumption_timestamp:
             self._rollover_consumption = True
-            _LOGGER.debug("_update_rollover | %s | set consumption rollover => log newer", self._mac)
-        elif self._last_log_consumption_timestamp < self._pulses_timestamp < self._next_log_consumption_timestamp:
+            _LOGGER.debug(
+                "_update_rollover | %s | set consumption rollover => log newer",
+                self._mac,
+            )
+        elif (
+            self._last_log_consumption_timestamp
+            < self._pulses_timestamp
+            < self._next_log_consumption_timestamp
+        ):
             if self._rollover_consumption:
                 _LOGGER.debug("_update_rollover | %s | reset consumption", self._mac)
             self._rollover_consumption = False
@@ -262,16 +301,29 @@ class PulseCollection:
 
         if not self._log_production:
             return
-        if self._last_log_production_timestamp is None or self._next_log_production_timestamp is None:
+        if (
+            self._last_log_production_timestamp is None
+            or self._next_log_production_timestamp is None
+        ):
             # Unable to determine rollover
             return
         if self._pulses_timestamp > self._next_log_production_timestamp:
             self._rollover_production = True
-            _LOGGER.debug("_update_rollover | %s | set production rollover => pulses newer", self._mac)
+            _LOGGER.debug(
+                "_update_rollover | %s | set production rollover => pulses newer",
+                self._mac,
+            )
         elif self._pulses_timestamp < self._last_log_production_timestamp:
             self._rollover_production = True
-            _LOGGER.debug("_update_rollover | %s | reset production rollover => log newer", self._mac)
-        elif self._last_log_production_timestamp < self._pulses_timestamp < self._next_log_production_timestamp:
+            _LOGGER.debug(
+                "_update_rollover | %s | reset production rollover => log newer",
+                self._mac,
+            )
+        elif (
+            self._last_log_production_timestamp
+            < self._pulses_timestamp
+            < self._next_log_production_timestamp
+        ):
             if self._rollover_production:
                 _LOGGER.debug("_update_rollover | %s | reset production", self._mac)
             self._rollover_production = False
@@ -280,34 +332,45 @@ class PulseCollection:
 
     def add_empty_log(self, address: int, slot: int) -> None:
         """Add empty energy log record to mark any start of beginning of energy log collection."""
-        recalc = False
+        recalculate = False
         if self._first_log_address is None or address <= self._first_log_address:
-            if self._first_empty_log_address is None or self._first_empty_log_address < address:
+            if (
+                self._first_empty_log_address is None
+                or self._first_empty_log_address < address
+            ):
                 self._first_empty_log_address = address
                 self._first_empty_log_slot = slot
-                recalc = True
-            elif (
-                self._first_empty_log_address == address
-                and (self._first_empty_log_slot is None or self._first_empty_log_slot < slot)
+                recalculate = True
+            elif self._first_empty_log_address == address and (
+                self._first_empty_log_slot is None or self._first_empty_log_slot < slot
             ):
                 self._first_empty_log_slot = slot
-                recalc = True
+                recalculate = True
 
         if self._last_log_address is None or address >= self._last_log_address:
-            if self._last_empty_log_address is None or self._last_empty_log_address > address:
+            if (
+                self._last_empty_log_address is None
+                or self._last_empty_log_address > address
+            ):
                 self._last_empty_log_address = address
                 self._last_empty_log_slot = slot
-                recalc = True
-            elif (
-                self._last_empty_log_address == address
-                and (self._last_empty_log_slot is None or self._last_empty_log_slot > slot)
+                recalculate = True
+            elif self._last_empty_log_address == address and (
+                self._last_empty_log_slot is None or self._last_empty_log_slot > slot
             ):
                 self._last_empty_log_slot = slot
-                recalc = True
-        if recalc:
+                recalculate = True
+        if recalculate:
             self.recalculate_missing_log_addresses()
 
-    def add_log(self, address: int, slot: int, timestamp: datetime, pulses: int, import_only: bool = False) -> bool:
+    def add_log(
+        self,
+        address: int,
+        slot: int,
+        timestamp: datetime,
+        pulses: int,
+        import_only: bool = False,
+    ) -> bool:
         """Store pulse log."""
         log_record = PulseLogRecord(timestamp, pulses, CONSUMED)
         if not self._add_log_record(address, slot, log_record):
@@ -349,10 +412,16 @@ class PulseCollection:
         if self._logs.get(address) is None:
             self._logs[address] = {slot: log_record}
         self._logs[address][slot] = log_record
-        if address == self._first_empty_log_address and slot == self._first_empty_log_slot:
+        if (
+            address == self._first_empty_log_address
+            and slot == self._first_empty_log_slot
+        ):
             self._first_empty_log_address = None
             self._first_empty_log_slot = None
-        if address == self._last_empty_log_address and slot == self._last_empty_log_slot:
+        if (
+            address == self._last_empty_log_address
+            and slot == self._last_empty_log_slot
+        ):
             self._last_empty_log_address = None
             self._last_empty_log_slot = None
         return True
@@ -407,10 +476,12 @@ class PulseCollection:
                 "_update_log_interval | %s | _logs=%s, _log_production=%s",
                 self._mac,
                 self._logs,
-                self._log_production
+                self._log_production,
             )
             return
-        last_cons_address, last_cons_slot = self._last_log_reference(is_consumption=True)
+        last_cons_address, last_cons_slot = self._last_log_reference(
+            is_consumption=True
+        )
         if last_cons_address is None or last_cons_slot is None:
             return
 
@@ -429,15 +500,21 @@ class PulseCollection:
             if not self._log_production:
                 return
             address, slot = calc_log_address(address, slot, -1)
-        if self._log_interval_consumption is not None:
+        if (
+            self._log_interval_consumption is not None
+            and self._last_log_consumption_timestamp is not None
+        ):
             self._next_log_consumption_timestamp = (
-                self._last_log_consumption_timestamp + timedelta(minutes=self._log_interval_consumption)
+                self._last_log_consumption_timestamp
+                + timedelta(minutes=self._log_interval_consumption)
             )
 
         if not self._log_production:
             return
         # Update interval of production
-        last_prod_address, last_prod_slot = self._last_log_reference(is_consumption=False)
+        last_prod_address, last_prod_slot = self._last_log_reference(
+            is_consumption=False
+        )
         if last_prod_address is None or last_prod_slot is None:
             return
         last_prod_timestamp = self._logs[last_prod_address][last_prod_slot].timestamp
@@ -452,9 +529,13 @@ class PulseCollection:
                 )
                 break
             address, slot = calc_log_address(address, slot, -1)
-        if self._log_interval_production is not None:
+        if (
+            self._log_interval_production is not None
+            and self._last_log_production_timestamp is not None
+        ):
             self._next_log_production_timestamp = (
-                self._last_log_production_timestamp + timedelta(minutes=self._log_interval_production)
+                self._last_log_production_timestamp
+                + timedelta(minutes=self._log_interval_production)
             )
 
     def _log_exists(self, address: int, slot: int) -> bool:
@@ -467,7 +548,7 @@ class PulseCollection:
         return True
 
     def _update_last_log_reference(
-        self, address: int, slot: int, timestamp, is_consumption: bool
+        self, address: int, slot: int, timestamp: datetime, is_consumption: bool
     ) -> None:
         """Update references to last (most recent) log record."""
         if self._last_log_timestamp is None or self._last_log_timestamp < timestamp:
@@ -480,10 +561,13 @@ class PulseCollection:
             self._last_log_timestamp = timestamp
 
     def _update_last_consumption_log_reference(
-            self, address: int, slot: int, timestamp: datetime
+        self, address: int, slot: int, timestamp: datetime
     ) -> None:
         """Update references to last (most recent) log consumption record."""
-        if self._last_log_consumption_timestamp is None or self._last_log_consumption_timestamp <= timestamp:
+        if (
+            self._last_log_consumption_timestamp is None
+            or self._last_log_consumption_timestamp <= timestamp
+        ):
             self._last_log_consumption_timestamp = timestamp
             self._last_log_consumption_address = address
             self._last_log_consumption_slot = slot
@@ -502,35 +586,34 @@ class PulseCollection:
         self._first_log_production_address = None
         self._first_log_production_slot = None
         self._first_log_production_timestamp = None
+        if self._logs is None:
+            return
         for address in self._logs:
             for slot, log_record in self._logs[address].items():
                 if log_record.is_consumption:
-                    if (
-                        self._last_log_consumption_timestamp is None
-                        or self._last_log_consumption_timestamp < log_record.timestamp
-                    ):
+                    if self._last_log_consumption_timestamp is None:
+                        self._last_log_consumption_timestamp = log_record.timestamp
+                    if self._last_log_consumption_timestamp <= log_record.timestamp:
                         self._last_log_consumption_timestamp = log_record.timestamp
                         self._last_log_consumption_address = address
                         self._last_log_consumption_slot = slot
-                    if (
-                        self._first_log_consumption_timestamp is None
-                        or self._first_log_consumption_timestamp > log_record.timestamp
-                    ):
+
+                    if self._first_log_consumption_timestamp is None:
+                        self._first_log_consumption_timestamp = log_record.timestamp
+                    if self._first_log_consumption_timestamp >= log_record.timestamp:
                         self._first_log_consumption_timestamp = log_record.timestamp
                         self._first_log_consumption_address = address
                         self._first_log_consumption_slot = slot
                 else:
-                    if (
-                        self._last_log_production_timestamp is None
-                        or self._last_log_production_timestamp < log_record.timestamp
-                    ):
+                    if self._last_log_production_timestamp is None:
                         self._last_log_production_timestamp = log_record.timestamp
+                    if self._last_log_production_timestamp <= log_record.timestamp:
                         self._last_log_production_address = address
                         self._last_log_production_slot = slot
-                    if (
-                        self._first_log_production_timestamp is None
-                        or self._first_log_production_timestamp > log_record.timestamp
-                    ):
+
+                    if self._first_log_production_timestamp is None:
+                        self._first_log_production_timestamp = log_record.timestamp
+                    if self._first_log_production_timestamp > log_record.timestamp:
                         self._first_log_production_timestamp = log_record.timestamp
                         self._first_log_production_address = address
                         self._first_log_production_slot = slot
@@ -539,7 +622,10 @@ class PulseCollection:
         self, address: int, slot: int, timestamp: datetime
     ) -> None:
         """Update references to last (most recent) log production record."""
-        if self._last_log_production_timestamp is None or self._last_log_production_timestamp <= timestamp:
+        if (
+            self._last_log_production_timestamp is None
+            or self._last_log_production_timestamp <= timestamp
+        ):
             self._last_log_production_timestamp = timestamp
             self._last_log_production_address = address
             self._last_log_production_slot = slot
@@ -561,7 +647,10 @@ class PulseCollection:
         self, address: int, slot: int, timestamp: datetime
     ) -> None:
         """Update references to first (oldest) log consumption record."""
-        if self._first_log_consumption_timestamp is None or self._first_log_consumption_timestamp >= timestamp:
+        if (
+            self._first_log_consumption_timestamp is None
+            or self._first_log_consumption_timestamp >= timestamp
+        ):
             self._first_log_consumption_timestamp = timestamp
             self._first_log_consumption_address = address
             self._first_log_consumption_slot = slot
@@ -570,13 +659,18 @@ class PulseCollection:
         self, address: int, slot: int, timestamp: datetime
     ) -> None:
         """Update references to first (oldest) log production record."""
-        if self._first_log_production_timestamp is None or self._first_log_production_timestamp >= timestamp:
+        if (
+            self._first_log_production_timestamp is None
+            or self._first_log_production_timestamp >= timestamp
+        ):
             self._first_log_production_timestamp = timestamp
             self._first_log_production_address = address
             self._first_log_production_slot = slot
 
     def _update_log_references(self, address: int, slot: int) -> None:
         """Update next expected log timestamps."""
+        if self._logs is None:
+            return
         log_time_stamp = self._logs[address][slot].timestamp
         is_consumption = self._logs[address][slot].is_consumption
 
@@ -602,38 +696,23 @@ class PulseCollection:
     ) -> tuple[int | None, int | None]:
         """Address and slot of last log."""
         if is_consumption is None:
-            return (
-                self._last_log_address,
-                self._last_log_slot
-            )
+            return (self._last_log_address, self._last_log_slot)
         if is_consumption:
-            return (
-                self._last_log_consumption_address,
-                self._last_log_consumption_slot
-            )
-        return (
-            self._last_log_production_address,
-            self._last_log_production_slot
-        )
+            return (self._last_log_consumption_address, self._last_log_consumption_slot)
+        return (self._last_log_production_address, self._last_log_production_slot)
 
     def _first_log_reference(
         self, is_consumption: bool | None = None
     ) -> tuple[int | None, int | None]:
         """Address and slot of first log."""
         if is_consumption is None:
-            return (
-                self._first_log_address,
-                self._first_log_slot
-            )
+            return (self._first_log_address, self._first_log_slot)
         if is_consumption:
             return (
                 self._first_log_consumption_address,
-                self._first_log_consumption_slot
+                self._first_log_consumption_slot,
             )
-        return (
-            self._first_log_production_address,
-            self._first_log_production_slot
-        )
+        return (self._first_log_production_address, self._first_log_production_slot)
 
     def _logs_missing(self, from_timestamp: datetime) -> list[int] | None:
         """Calculate list of missing log addresses."""
@@ -644,21 +723,37 @@ class PulseCollection:
             return None
         last_address, last_slot = self._last_log_reference()
         if last_address is None or last_slot is None:
-            _LOGGER.debug("_logs_missing | %s | last_address=%s, last_slot=%s", self._mac, last_address, last_slot)
+            _LOGGER.debug(
+                "_logs_missing | %s | last_address=%s, last_slot=%s",
+                self._mac,
+                last_address,
+                last_slot,
+            )
             return None
 
         first_address, first_slot = self._first_log_reference()
         if first_address is None or first_slot is None:
-            _LOGGER.debug("_logs_missing | %s | first_address=%s, first_slot=%s", self._mac, first_address, first_slot)
+            _LOGGER.debug(
+                "_logs_missing | %s | first_address=%s, first_slot=%s",
+                self._mac,
+                first_address,
+                first_slot,
+            )
             return None
 
         missing = []
-        _LOGGER.debug("_logs_missing | %s | first_address=%s, last_address=%s", self._mac, first_address, last_address)
+        _LOGGER.debug(
+            "_logs_missing | %s | first_address=%s, last_address=%s",
+            self._mac,
+            first_address,
+            last_address,
+        )
 
         if (
             last_address == first_address
             and last_slot == first_slot
-            and self._logs[first_address][first_slot].timestamp == self._logs[last_address][last_slot].timestamp
+            and self._logs[first_address][first_slot].timestamp
+            == self._logs[last_address][last_slot].timestamp
         ):
             # Power consumption logging, so we need at least 4 logs.
             return None
@@ -678,7 +773,9 @@ class PulseCollection:
 
         # return missing logs in range first
         if len(missing) > 0:
-            _LOGGER.debug("_logs_missing | %s | missing in range=%s", self._mac, missing)
+            _LOGGER.debug(
+                "_logs_missing | %s | missing in range=%s", self._mac, missing
+            )
             return missing
 
         if first_address not in self._logs:
@@ -707,9 +804,14 @@ class PulseCollection:
             return None
 
         # We have an suspected interval, so try to calculate missing log addresses prior to first collected log
-        calculated_timestamp = self._logs[first_address][first_slot].timestamp - timedelta(minutes=log_interval)
+        calculated_timestamp = self._logs[first_address][
+            first_slot
+        ].timestamp - timedelta(minutes=log_interval)
         while from_timestamp < calculated_timestamp:
-            if address == self._first_empty_log_address and slot == self._first_empty_log_slot:
+            if (
+                address == self._first_empty_log_address
+                and slot == self._first_empty_log_slot
+            ):
                 break
             if address not in missing:
                 missing.append(address)
@@ -722,14 +824,18 @@ class PulseCollection:
 
     def _last_known_duration(self) -> timedelta:
         """Duration for last known logs."""
+        if self._logs is None:
+            raise EnergyError("Unable to return last known duration without any logs")
         if len(self._logs) < 2:
             return timedelta(hours=1)
         address, slot = self._last_log_reference()
+        if address is None or slot is None:
+            raise EnergyError("Unable to return last known duration without any logs")
         last_known_timestamp = self._logs[address][slot].timestamp
         address, slot = calc_log_address(address, slot, -1)
         while (
-            self._log_exists(address, slot) or
-            self._logs[address][slot].timestamp == last_known_timestamp
+            self._log_exists(address, slot)
+            or self._logs[address][slot].timestamp == last_known_timestamp
         ):
             address, slot = calc_log_address(address, slot, -1)
         return self._logs[address][slot].timestamp - last_known_timestamp
@@ -749,9 +855,7 @@ class PulseCollection:
             and self._log_interval_consumption > 0
         ):
             # Use consumption interval
-            calc_interval_cons = timedelta(
-                minutes=self._log_interval_consumption
-            )
+            calc_interval_cons = timedelta(minutes=self._log_interval_consumption)
             if self._log_interval_consumption == 0:
                 pass
 
@@ -772,9 +876,7 @@ class PulseCollection:
                 self._log_interval_production is not None
                 and self._log_interval_production > 0
             ):
-                calc_interval_prod = timedelta(
-                    minutes=self._log_interval_production
-                )
+                calc_interval_prod = timedelta(minutes=self._log_interval_production)
 
             expected_timestamp_cons = (
                 self._logs[address][slot].timestamp - calc_interval_cons
@@ -785,8 +887,7 @@ class PulseCollection:
 
             address, slot = calc_log_address(address, slot, -1)
             while (
-                expected_timestamp_cons > target
-                or expected_timestamp_prod > target
+                expected_timestamp_cons > target or expected_timestamp_prod > target
             ) and address > 0:
                 if address not in addresses:
                     addresses.append(address)
@@ -814,9 +915,7 @@ class PulseCollection:
             and self._log_interval_consumption > 0
         ):
             # Use consumption interval
-            calc_interval_cons = timedelta(
-                minutes=self._log_interval_consumption
-            )
+            calc_interval_cons = timedelta(minutes=self._log_interval_consumption)
 
         if self._log_production is not True:
             expected_timestamp = (
@@ -836,9 +935,7 @@ class PulseCollection:
             self._log_interval_production is not None
             and self._log_interval_production > 0
         ):
-            calc_interval_prod = timedelta(
-                minutes=self._log_interval_production
-            )
+            calc_interval_prod = timedelta(minutes=self._log_interval_production)
 
         expected_timestamp_cons = (
             self._logs[address][slot].timestamp + calc_interval_cons
@@ -847,10 +944,7 @@ class PulseCollection:
             self._logs[address][slot].timestamp + calc_interval_prod
         )
         address, slot = calc_log_address(address, slot, 1)
-        while (
-            expected_timestamp_cons < target
-            or expected_timestamp_prod < target
-        ):
+        while expected_timestamp_cons < target or expected_timestamp_prod < target:
             if address not in addresses:
                 addresses.append(address)
             if expected_timestamp_prod < expected_timestamp_cons:

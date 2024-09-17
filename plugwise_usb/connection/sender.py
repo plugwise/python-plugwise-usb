@@ -38,7 +38,7 @@ class StickSender:
         self._loop = get_running_loop()
         self._receiver = stick_receiver
         self._transport = transport
-        self._stick_response: Future[bytes] | None = None
+        self._stick_response: Future[StickResponse] | None = None
         self._stick_lock = Lock()
         self._current_request: None | PlugwiseRequest = None
 
@@ -57,7 +57,7 @@ class StickSender:
 
         await self._stick_lock.acquire()
         self._current_request = request
-        self._stick_response: Future[bytes] = self._loop.create_future()
+        self._stick_response = self._loop.create_future()
 
         request.add_send_attempt()
         _LOGGER.info("Send %s", request)

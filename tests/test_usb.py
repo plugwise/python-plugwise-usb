@@ -1,15 +1,17 @@
 """Test plugwise USB Stick."""
 
 import asyncio
-from datetime import UTC, datetime as dt, timedelta as td, timezone as tz
+from collections.abc import Callable
+from datetime import UTC, datetime as dt, timedelta as td
 import importlib
 import logging
 import random
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-import aiofiles
+import aiofiles  # type: ignore[import-untyped]
 import crcmod
 from freezegun import freeze_time
 
@@ -19,9 +21,7 @@ pw_stick = importlib.import_module("plugwise_usb")
 pw_api = importlib.import_module("plugwise_usb.api")
 pw_exceptions = importlib.import_module("plugwise_usb.exceptions")
 pw_connection = importlib.import_module("plugwise_usb.connection")
-pw_connection_manager = importlib.import_module(
-    "plugwise_usb.connection.manager"
-)
+pw_connection_manager = importlib.import_module("plugwise_usb.connection.manager")
 pw_constants = importlib.import_module("plugwise_usb.constants")
 pw_helpers_cache = importlib.import_module("plugwise_usb.helpers.cache")
 pw_network_cache = importlib.import_module("plugwise_usb.network.cache")
@@ -32,19 +32,15 @@ pw_requests = importlib.import_module("plugwise_usb.messages.requests")
 pw_responses = importlib.import_module("plugwise_usb.messages.responses")
 pw_userdata = importlib.import_module("stick_test_data")
 pw_circle = importlib.import_module("plugwise_usb.nodes.circle")
-pw_energy_counter = importlib.import_module(
-    "plugwise_usb.nodes.helpers.counter"
-)
-pw_energy_calibration = importlib.import_module(
-    "plugwise_usb.nodes.helpers"
-)
+pw_energy_counter = importlib.import_module("plugwise_usb.nodes.helpers.counter")
+pw_energy_calibration = importlib.import_module("plugwise_usb.nodes.helpers")
 pw_energy_pulses = importlib.import_module("plugwise_usb.nodes.helpers.pulses")
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
 
 
-def inc_seq_id(seq_id: bytes) -> bytes:
+def inc_seq_id(seq_id: bytes | None) -> bytes:
     """Increment sequence id."""
     if seq_id is None:
         return b"0000"
@@ -60,21 +56,29 @@ def inc_seq_id(seq_id: bytes) -> bytes:
 def construct_message(data: bytes, seq_id: bytes = b"0000") -> bytes:
     """Construct plugwise message."""
     body = data[:4] + seq_id + data[4:]
-    return (
+    return bytes(
         pw_constants.MESSAGE_HEADER
         + body
-        + bytes("%04X" % crc_fun(body), pw_constants.UTF8)
+        + bytes(f"{crc_fun(body):04X}", pw_constants.UTF8)
         + pw_constants.MESSAGE_FOOTER
     )
 
 
 class DummyTransport:
-    def __init__(self, loop, test_data=None) -> None:
+    """Dummy transport class."""
+
+    protocol_data_received: Callable[[bytes], None]
+
+    def __init__(
+        self,
+        loop: asyncio.AbstractEventLoop,
+        test_data: dict[bytes, tuple[str, bytes, bytes]] | None = None,
+    ) -> None:
+        """Initialize dummy transport class."""
         self._loop = loop
         self._msg = 0
         self._seq_id = b"1233"
-        self.protocol_data_received = None
-        self._processed = []
+        self._processed: list[bytes] = []
         self._first_response = test_data
         self._second_response = test_data
         if test_data is None:
@@ -84,29 +88,27 @@ class DummyTransport:
         self._closing = False
 
     def is_closing(self) -> bool:
+        """Close connection."""
         return self._closing
 
     def write(self, data: bytes) -> None:
+        """Write data back to system."""
         log = None
-        if data in self._processed:
-            log, ack, response = self._second_response.get(
-                data, (None, None, None)
-            )
+        if data in self._processed and self._second_response is not None:
+            log, ack, response = self._second_response.get(data, (None, None, None))
+        if log is None and self._first_response is not None:
+            log, ack, response = self._first_response.get(data, (None, None, None))
         if log is None:
-            log, ack, response = self._first_response.get(
-                data, (None, None, None)
+            resp = pw_userdata.PARTLY_RESPONSE_MESSAGES.get(
+                data[:24], (None, None, None)
             )
-            if log is None:
-                resp = pw_userdata.PARTLY_RESPONSE_MESSAGES.get(
-                    data[:24], (None, None, None)
-                )
-                if resp is None:
-                    _LOGGER.debug("No msg response for %s", str(data))
-                    return
-                log, ack, response = resp
-            if ack is None:
-                _LOGGER.debug("No ack response for %s", str(data))
+            if resp is None:
+                _LOGGER.debug("No msg response for %s", str(data))
                 return
+            log, ack, response = resp
+        if ack is None:
+            _LOGGER.debug("No ack response for %s", str(data))
+            return
 
         self._seq_id = inc_seq_id(self._seq_id)
         if response and self._msg == 0:
@@ -117,57 +119,79 @@ class DummyTransport:
             self._processed.append(data)
             if response is None or self._closing:
                 return
-            self._loop.create_task(
-                # 0.5,
-                self._delayed_response(response, self._seq_id)
-            )
+            self._loop.create_task(self._delayed_response(response, self._seq_id))
         self._msg += 1
 
     async def _delayed_response(self, data: bytes, seq_id: bytes) -> None:
-        delay = random.uniform(0.05, 0.25)
+        delay = random.uniform(0.005, 0.025)
         await asyncio.sleep(delay)
         self.message_response(data, seq_id)
 
     def message_response(self, data: bytes, seq_id: bytes) -> None:
+        """Handle message response."""
         self.random_extra_byte += 1
         if self.random_extra_byte > 25:
             self.protocol_data_received(b"\x83")
             self.random_extra_byte = 0
-            self.protocol_data_received(
-                construct_message(data, seq_id) + b"\x83"
-            )
+            self.protocol_data_received(construct_message(data, seq_id) + b"\x83")
         else:
             self.protocol_data_received(construct_message(data, seq_id))
 
     def message_response_at_once(self, ack: bytes, data: bytes, seq_id: bytes) -> None:
+        """Full message."""
         self.random_extra_byte += 1
         if self.random_extra_byte > 25:
             self.protocol_data_received(b"\x83")
             self.random_extra_byte = 0
             self.protocol_data_received(
-                construct_message(ack, seq_id) + construct_message(data, seq_id) + b"\x83"
+                construct_message(ack, seq_id)
+                + construct_message(data, seq_id)
+                + b"\x83"
             )
         else:
-            self.protocol_data_received(construct_message(ack, seq_id) + construct_message(data, seq_id))
+            self.protocol_data_received(
+                construct_message(ack, seq_id) + construct_message(data, seq_id)
+            )
 
     def close(self) -> None:
+        """Close connection."""
         self._closing = True
 
 
 class MockSerial:
-    def __init__(self, custom_response) -> None:
-        self.custom_response = custom_response
-        self._protocol = None
-        self._transport = None
+    """Mock serial connection."""
 
-    async def mock_connection(self, loop, protocol_factory, **kwargs):
+    def __init__(
+        self, custom_response: dict[bytes, tuple[str, bytes, bytes]] | None
+    ) -> None:
+        """Init mocked serial connection."""
+        self.custom_response = custom_response
+        self._protocol: pw_receiver.StickReceiver | None = None # type: ignore[name-defined]
+        self._transport: DummyTransport | None = None
+
+    def inject_message(self, data: bytes, seq_id: bytes) -> None:
+        """Inject message to be received from stick."""
+        if self._transport is None:
+            return
+        self._transport.message_response(data, seq_id)
+
+    def trigger_connection_lost(self) -> None:
+        """Trigger connection lost."""
+        if self._protocol is None:
+            return
+        self._protocol.connection_lost()
+
+    async def mock_connection(
+        self,
+        loop: asyncio.AbstractEventLoop,
+        protocol_factory: Callable[[], pw_receiver.StickReceiver],  # type: ignore[name-defined]
+        **kwargs: dict[str, Any],
+    ) -> tuple[DummyTransport, pw_receiver.StickReceiver]:  # type: ignore[name-defined]
         """Mock connection with dummy connection."""
         self._protocol = protocol_factory()
         self._transport = DummyTransport(loop, self.custom_response)
         self._transport.protocol_data_received = self._protocol.data_received
-        loop.call_soon_threadsafe(
-            self._protocol.connection_made, self._transport
-        )
+        loop.call_soon_threadsafe(self._protocol.connection_made, self._transport)
         return self._transport, self._protocol
 
 
@@ -178,9 +202,9 @@ class MockOsPath:
         """Exists folder."""
         if file_or_path == "mock_folder_that_exists":
             return True
-        if file_or_path == f"mock_folder_that_exists/nodes.cache":
+        if file_or_path == "mock_folder_that_exists/nodes.cache":
             return True
-        if file_or_path == f"mock_folder_that_exists/0123456789ABCDEF.cache":
+        if file_or_path == "mock_folder_that_exists/0123456789ABCDEF.cache":
             return True
         return file_or_path == "mock_folder_that_exists/file_that_exists.ext"
 
@@ -190,26 +214,42 @@ class MockOsPath:
 
 
 aiofiles.threadpool.wrap.register(MagicMock)(
-    lambda *args, **kwargs: aiofiles.threadpool.AsyncBufferedIOBase(*args, **kwargs)
+    lambda *args, **kwargs: aiofiles.threadpool.AsyncBufferedIOBase(*args, **kwargs)  # pylint: disable=unnecessary-lambda
 )
 
 
 class TestStick:
+    """Test USB Stick."""
+
+    test_node_awake: asyncio.Future[str]
+    test_node_join: asyncio.Future[str]
+    test_connected: asyncio.Future[bool]
+    test_disconnected: asyncio.Future[bool]
+    test_relay_state_on: asyncio.Future[bool]
+    test_relay_state_off: asyncio.Future[bool]
+    test_motion_on: asyncio.Future[bool]
+    test_motion_off: asyncio.Future[bool]
+    test_init_relay_state_off: asyncio.Future[bool]
+    test_init_relay_state_on: asyncio.Future[bool]
+
+    async def dummy_fn(self, request: pw_requests.PlugwiseRequest, test: bool) -> None:  # type: ignore[name-defined]
+        """Callable dummy routine."""
+        return
 
     @pytest.mark.asyncio
-    async def test_sorting_request_messages(self):
+    async def test_sorting_request_messages(self) -> None:
         """Test request message priority sorting."""
 
         node_add_request = pw_requests.NodeAddRequest(
-            b"1111222233334444", True
+            self.dummy_fn, b"1111222233334444", True
         )
         await asyncio.sleep(0.001)
         relay_switch_request = pw_requests.CircleRelaySwitchRequest(
-            b"1234ABCD12341234", True
+            self.dummy_fn, b"1234ABCD12341234", True
         )
         await asyncio.sleep(0.001)
         circle_plus_allow_joining_request = pw_requests.CirclePlusAllowJoiningRequest(
-            True
+            self.dummy_fn, True
         )
 
         # validate sorting based on timestamp with same priority level
@@ -241,7 +281,7 @@ class TestStick:
         assert circle_plus_allow_joining_request >= node_add_request
 
     @pytest.mark.asyncio
-    async def test_stick_connect_without_port(self):
+    async def test_stick_connect_without_port(self) -> None:
         """Test connecting to stick without port config."""
         stick = pw_stick.Stick()
         assert stick.accept_join_request is None
@@ -264,7 +304,7 @@ class TestStick:
         await stick.disconnect()
 
     @pytest.mark.asyncio
-    async def test_stick_reconnect(self, monkeypatch):
+    async def test_stick_reconnect(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test connecting to stick while already connected."""
         monkeypatch.setattr(
             pw_connection_manager,
@@ -281,17 +321,19 @@ class TestStick:
         await stick.disconnect()
 
     @pytest.mark.asyncio
-    async def test_stick_connect_without_response(self, monkeypatch):
+    async def test_stick_connect_without_response(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test connecting to stick without response."""
         monkeypatch.setattr(
             pw_connection_manager,
             "create_serial_connection",
             MockSerial(
                 {
-                    b"dummy": (
+                    b"FFFF": (
                         "no response",
                         b"0000",
-                        None,
+                        b"",
                     ),
                 }
             ).mock_connection,
@@ -309,7 +351,7 @@ class TestStick:
         await stick.disconnect()
 
     @pytest.mark.asyncio
-    async def test_stick_connect_timeout(self, monkeypatch):
+    async def test_stick_connect_timeout(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test connecting to stick."""
         monkeypatch.setattr(
             pw_connection_manager,
@@ -319,7 +361,7 @@ class TestStick:
                     b"\x05\x05\x03\x03000AB43C\r\n": (
                         "STICK INIT timeout",
                         b"000000E1",  # Timeout ack
-                        None,  #
+                        b"",
                     ),
                 }
             ).mock_connection,
@@ -331,7 +373,7 @@ class TestStick:
             await stick.initialize()
         await stick.disconnect()
 
-    async def connected(self, event):
+    async def connected(self, event: pw_api.StickEvent) -> None:  # type: ignore[name-defined]
         """Set connected state helper."""
         if event is pw_api.StickEvent.CONNECTED:
             self.test_connected.set_result(True)
@@ -339,7 +381,7 @@ class TestStick:
             self.test_connected.set_exception(BaseException("Incorrect event"))
 
     @pytest.mark.asyncio
-    async def test_stick_connect(self, monkeypatch):
+    async def test_stick_connect(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test connecting to stick."""
         monkeypatch.setattr(
             pw_connection_manager,
@@ -348,12 +390,11 @@ class TestStick:
         )
         stick = pw_stick.Stick(port="test_port", cache_enabled=False)
 
-        self.test_connected = asyncio.Future()
         unsub_connect = stick.subscribe_to_stick_events(
             stick_event_callback=self.connected,
             events=(pw_api.StickEvent.CONNECTED,),
         )
-
+        self.test_connected = asyncio.Future()
         await stick.connect("test_port")
         assert await self.test_connected
         await stick.initialize()
@@ -372,7 +413,7 @@ class TestStick:
         with pytest.raises(pw_exceptions.StickError):
             assert stick.mac_stick
 
-    async def disconnected(self, event):
+    async def disconnected(self, event: pw_api.StickEvent) -> None:  # type: ignore[name-defined]
         """Handle disconnect event callback."""
         if event is pw_api.StickEvent.DISCONNECTED:
             self.test_disconnected.set_result(True)
@@ -380,7 +421,7 @@ class TestStick:
             self.test_disconnected.set_exception(BaseException("Incorrect event"))
 
     @pytest.mark.asyncio
-    async def test_stick_connection_lost(self, monkeypatch):
+    async def test_stick_connection_lost(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test connecting to stick."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
@@ -398,52 +439,53 @@ class TestStick:
             events=(pw_api.StickEvent.DISCONNECTED,),
         )
         # Trigger disconnect
-        mock_serial._protocol.connection_lost()
+        mock_serial.trigger_connection_lost()
         assert await self.test_disconnected
         assert not stick.network_state
         unsub_disconnect()
         await stick.disconnect()
 
-    async def node_awake(self, event: pw_api.NodeEvent, mac: str):
+    async def node_awake(self, event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
         """Handle awake event callback."""
         if event == pw_api.NodeEvent.AWAKE:
             self.test_node_awake.set_result(mac)
         else:
             self.test_node_awake.set_exception(
                 BaseException(
-                    f"Invalid {event} event, expected " +
-                    f"{pw_api.NodeEvent.AWAKE}"
+                    f"Invalid {event} event, expected " + f"{pw_api.NodeEvent.AWAKE}"
                 )
             )
 
     async def node_motion_state(
         self,
-        feature: pw_api.NodeFeature,
-        state: pw_api.MotionState,
-    ):
+        feature: pw_api.NodeFeature,  # type: ignore[name-defined]
+        state: pw_api.MotionState,  # type: ignore[name-defined]
+    ) -> None:
         """Handle motion event callback."""
         if feature == pw_api.NodeFeature.MOTION:
             if state.motion:
-                self.motion_on.set_result(state.motion)
+                self.test_motion_on.set_result(state.motion)
             else:
-                self.motion_off.set_result(state.motion)
+                self.test_motion_off.set_result(state.motion)
         elif state.motion:
-            self.motion_on.set_exception(
+            self.test_motion_on.set_exception(
                 BaseException(
-                    f"Invalid {feature} feature, expected " +
-                    f"{pw_api.NodeFeature.MOTION}"
+                    f"Invalid {feature} feature, expected "
+                    + f"{pw_api.NodeFeature.MOTION}"
                 )
             )
         else:
-            self.motion_off.set_exception(
+            self.test_motion_off.set_exception(
                 BaseException(
-                    f"Invalid {feature} feature, expected " +
-                    f"{pw_api.NodeFeature.MOTION}"
+                    f"Invalid {feature} feature, expected "
+                    + f"{pw_api.NodeFeature.MOTION}"
                 )
             )
 
     @pytest.mark.asyncio
-    async def test_stick_node_discovered_subscription(self, monkeypatch):
+    async def test_stick_node_discovered_subscription(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Testing "new_node" subscription for Scan."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
@@ -465,7 +507,7 @@ class TestStick:
         )
 
         # Inject NodeAwakeResponse message to trigger a 'node discovered' event
-        mock_serial._transport.message_response(b"004F555555555555555500", b"FFFE")
+        mock_serial.inject_message(b"004F555555555555555500", b"FFFE")
         mac_awake_node = await self.test_node_awake
         assert mac_awake_node == "5555555555555555"
         unsub_awake()
@@ -482,6 +524,7 @@ class TestStick:
         assert sorted(stick.nodes["5555555555555555"].features) == sorted(
             (
                 pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.BATTERY,
                 pw_api.NodeFeature.INFO,
                 pw_api.NodeFeature.PING,
                 pw_api.NodeFeature.MOTION,
@@ -505,43 +548,42 @@ class TestStick:
             assert stick.nodes["5555555555555555"].energy
 
         # Motion
-        self.motion_on = asyncio.Future()
-        self.motion_off = asyncio.Future()
-        unsub_motion = stick.nodes[
-            "5555555555555555"
-        ].subscribe_to_feature_update(
+        self.test_motion_on = asyncio.Future()
+        self.test_motion_off = asyncio.Future()
+        unsub_motion = stick.nodes["5555555555555555"].subscribe_to_feature_update(
             node_feature_callback=self.node_motion_state,
             features=(pw_api.NodeFeature.MOTION,),
         )
         # Inject motion message to trigger a 'motion on' event
-        mock_serial._transport.message_response(b"005655555555555555550001", b"FFFF")
-        motion_on = await self.motion_on
+        mock_serial.inject_message(b"005655555555555555550001", b"FFFF")
+        motion_on = await self.test_motion_on
         assert motion_on
         assert stick.nodes["5555555555555555"].motion
 
         # Inject motion message to trigger a 'motion off' event
-        mock_serial._transport.message_response(b"005655555555555555550000", b"FFFF")
-        motion_off = await self.motion_off
+        mock_serial.inject_message(b"005655555555555555550000", b"FFFF")
+        motion_off = await self.test_motion_off
         assert not motion_off
         assert not stick.nodes["5555555555555555"].motion
         unsub_motion()
 
         await stick.disconnect()
 
-    async def node_join(self, event: pw_api.NodeEvent, mac: str):
+    async def node_join(self, event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
         """Handle join event callback."""
         if event == pw_api.NodeEvent.JOIN:
             self.test_node_join.set_result(mac)
         else:
             self.test_node_join.set_exception(
                 BaseException(
-                    f"Invalid {event} event, expected " +
-                    f"{pw_api.NodeEvent.JOIN}"
+                    f"Invalid {event} event, expected " + f"{pw_api.NodeEvent.JOIN}"
                 )
             )
 
     @pytest.mark.asyncio
-    async def test_stick_node_join_subscription(self, monkeypatch):
+    async def test_stick_node_join_subscription(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Testing "new_node" subscription."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
@@ -562,14 +604,14 @@ class TestStick:
         )
 
         # Inject node join request message
-        mock_serial._transport.message_response(b"00069999999999999999", b"FFFC")
+        mock_serial.inject_message(b"00069999999999999999", b"FFFC")
         mac_join_node = await self.test_node_join
         assert mac_join_node == "9999999999999999"
         unusb_join()
         await stick.disconnect()
 
     @pytest.mark.asyncio
-    async def test_node_discovery(self, monkeypatch):
+    async def test_node_discovery(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Testing discovery of nodes."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
@@ -589,9 +631,9 @@ class TestStick:
 
     async def node_relay_state(
         self,
-        feature: pw_api.NodeFeature,
-        state: pw_api.RelayState,
-    ):
+        feature: pw_api.NodeFeature,  # type: ignore[name-defined]
+        state: pw_api.RelayState,  # type: ignore[name-defined]
+    ) -> None:
         """Handle relay event callback."""
         if feature == pw_api.NodeFeature.RELAY:
             if state.relay_state:
@@ -601,23 +643,23 @@ class TestStick:
         else:
             self.test_relay_state_on.set_exception(
                 BaseException(
-                    f"Invalid {feature} feature, expected " +
-                    f"{pw_api.NodeFeature.RELAY}"
+                    f"Invalid {feature} feature, expected "
+                    + f"{pw_api.NodeFeature.RELAY}"
                 )
             )
             self.test_relay_state_off.set_exception(
                 BaseException(
-                    f"Invalid {feature} feature, expected " +
-                    f"{pw_api.NodeFeature.RELAY}"
+                    f"Invalid {feature} feature, expected "
+                    + f"{pw_api.NodeFeature.RELAY}"
                 )
             )
 
     async def node_init_relay_state(
         self,
-        feature: pw_api.NodeFeature,
+        feature: pw_api.NodeFeature,  # type: ignore[name-defined]
         state: bool,
-    ):
-        """Callback helper for relay event."""
+    ) -> None:
+        """Relay Callback for event."""
         if feature == pw_api.NodeFeature.RELAY_INIT:
             if state:
                 self.test_init_relay_state_on.set_result(state)
@@ -626,20 +668,20 @@ class TestStick:
         else:
             self.test_init_relay_state_on.set_exception(
                 BaseException(
-                    f"Invalid {feature} feature, expected " +
-                    f"{pw_api.NodeFeature.RELAY_INIT}"
+                    f"Invalid {feature} feature, expected "
+                    + f"{pw_api.NodeFeature.RELAY_INIT}"
                 )
             )
             self.test_init_relay_state_off.set_exception(
                 BaseException(
-                    f"Invalid {feature} feature, expected " +
-                    f"{pw_api.NodeFeature.RELAY_INIT}"
+                    f"Invalid {feature} feature, expected "
+                    + f"{pw_api.NodeFeature.RELAY_INIT}"
                 )
             )
 
     @pytest.mark.asyncio
-    async def test_node_relay_and_power(self, monkeypatch):
-        """Testing discovery of nodes"""
+    async def test_node_relay_and_power(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Testing discovery of nodes."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
             pw_connection_manager,
@@ -656,26 +698,10 @@ class TestStick:
         # Manually load node
         assert await stick.nodes["0098765432101234"].load()
 
-        self.test_relay_state_on = asyncio.Future()
-        self.test_relay_state_off = asyncio.Future()
-        unsub_relay = stick.nodes[
-            "0098765432101234"
-        ].subscribe_to_feature_update(
+        unsub_relay = stick.nodes["0098765432101234"].subscribe_to_feature_update(
             node_feature_callback=self.node_relay_state,
             features=(pw_api.NodeFeature.RELAY,),
         )
-        # Test sync switching from on to off
-        assert stick.nodes["0098765432101234"].relay
-        stick.nodes["0098765432101234"].relay = False
-        assert not await self.test_relay_state_off
-        assert not stick.nodes["0098765432101234"].relay
-        assert not stick.nodes["0098765432101234"].relay_state.relay_state
-
-        # Test sync switching back from off to on
-        stick.nodes["0098765432101234"].relay = True
-        assert await self.test_relay_state_on
-        assert stick.nodes["0098765432101234"].relay
-        assert stick.nodes["0098765432101234"].relay_state.relay_state
 
         # Test async switching back from on to off
         self.test_relay_state_off = asyncio.Future()
@@ -689,14 +715,14 @@ class TestStick:
         assert await self.test_relay_state_on
         assert stick.nodes["0098765432101234"].relay
 
-        # Test sync switching back from on to off
+        # Test async switching back from on to off
         self.test_relay_state_off = asyncio.Future()
         await stick.nodes["0098765432101234"].relay_off()
         assert not await self.test_relay_state_off
         assert not stick.nodes["0098765432101234"].relay
         assert not stick.nodes["0098765432101234"].relay_state.relay_state
 
-        # Test sync switching back from off to on
+        # Test async switching back from off to on
         self.test_relay_state_on = asyncio.Future()
         await stick.nodes["0098765432101234"].relay_on()
         assert await self.test_relay_state_on
@@ -712,11 +738,9 @@ class TestStick:
         with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["0098765432101234"].relay_init
         with pytest.raises(pw_exceptions.NodeError):
-            stick.nodes["0098765432101234"].relay_init = True
+            await stick.nodes["0098765432101234"].switch_relay_init(True)
         with pytest.raises(pw_exceptions.NodeError):
-            await stick.nodes["0098765432101234"].switch_init_relay(True)
-        with pytest.raises(pw_exceptions.NodeError):
-            await stick.nodes["0098765432101234"].switch_init_relay(False)
+            await stick.nodes["0098765432101234"].switch_relay_init(False)
 
         # Check Circle is raising NodeError for unsupported features
         with pytest.raises(pw_exceptions.NodeError):
@@ -734,32 +758,21 @@ class TestStick:
         assert await stick.nodes["2222222222222222"].load()
         self.test_init_relay_state_on = asyncio.Future()
         self.test_init_relay_state_off = asyncio.Future()
-        unsub_inti_relay = stick.nodes[
-            "0098765432101234"
-        ].subscribe_to_feature_update(
+        unsub_inti_relay = stick.nodes["0098765432101234"].subscribe_to_feature_update(
             node_feature_callback=self.node_init_relay_state,
             features=(pw_api.NodeFeature.RELAY_INIT,),
         )
-        # Test sync switching init_state from on to off
-        assert stick.nodes["2222222222222222"].relay_init
-        stick.nodes["2222222222222222"].relay_init = False
-        assert not await self.test_init_relay_state_off
-        assert not stick.nodes["2222222222222222"].relay_init
-
-        # Test sync switching back init_state from off to on
-        stick.nodes["2222222222222222"].relay_init = True
-        assert await self.test_init_relay_state_on
-        assert stick.nodes["2222222222222222"].relay_init
 
         # Test async switching back init_state from on to off
+        assert stick.nodes["2222222222222222"].relay_init
         self.test_init_relay_state_off = asyncio.Future()
-        assert not await stick.nodes["2222222222222222"].switch_init_relay(False)
+        assert not await stick.nodes["2222222222222222"].switch_relay_init(False)
         assert not await self.test_init_relay_state_off
         assert not stick.nodes["2222222222222222"].relay_init
 
         # Test async switching back from off to on
         self.test_init_relay_state_on = asyncio.Future()
-        assert await stick.nodes["2222222222222222"].switch_init_relay(True)
+        assert await stick.nodes["2222222222222222"].switch_relay_init(True)
         assert await self.test_init_relay_state_on
         assert stick.nodes["2222222222222222"].relay_init
 
@@ -768,7 +781,7 @@ class TestStick:
         await stick.disconnect()
 
     @pytest.mark.asyncio
-    async def test_energy_circle(self, monkeypatch):
+    async def test_energy_circle(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Testing energy retrieval."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
@@ -780,10 +793,14 @@ class TestStick:
         monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
         monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
 
-        async def fake_get_missing_energy_logs(address) -> None:
-            pass
+        async def fake_get_missing_energy_logs(address: int) -> None:
+            """Mock missing energy logs."""
 
-        monkeypatch.setattr(pw_circle.PlugwiseCircle, "get_missing_energy_logs", fake_get_missing_energy_logs)
+        monkeypatch.setattr(
+            pw_circle.PlugwiseCircle,
+            "get_missing_energy_logs",
+            fake_get_missing_energy_logs,
+        )
         stick = pw_stick.Stick("test_port", cache_enabled=False)
         await stick.connect()
         await stick.initialize()
@@ -799,7 +816,9 @@ class TestStick:
         assert stick.nodes["0098765432101234"].calibrated
 
         # Test power state without request
-        assert stick.nodes["0098765432101234"].power == pw_api.PowerStatistics(last_second=None, last_8_seconds=None, timestamp=None)
+        assert stick.nodes["0098765432101234"].power == pw_api.PowerStatistics(
+            last_second=None, last_8_seconds=None, timestamp=None
+        )
         pu = await stick.nodes["0098765432101234"].power_update()
         assert pu.last_second == 21.2780505980402
         assert pu.last_8_seconds == 27.150578775440106
@@ -822,7 +841,7 @@ class TestStick:
             week_production_reset=None,
         )
         # energy_update is not complete and should return none
-        utc_now = dt.utcnow().replace(tzinfo=UTC)
+        utc_now = dt.now(UTC)
         assert await stick.nodes["0098765432101234"].energy_update() is None
         # Allow for background task to finish
 
@@ -845,14 +864,14 @@ class TestStick:
         await stick.disconnect()
 
     @freeze_time(dt.now())
-    def test_pulse_collection_consumption(self, monkeypatch):
+    def test_pulse_collection_consumption(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Testing pulse collection class."""
         monkeypatch.setattr(pw_energy_pulses, "MAX_LOG_HOURS", 24)
 
-        fixed_timestamp_utc = dt.now(tz.utc)
-        fixed_this_hour = fixed_timestamp_utc.replace(
-            minute=0, second=0, microsecond=0
-        )
+        fixed_timestamp_utc = dt.now(UTC)
+        fixed_this_hour = fixed_timestamp_utc.replace(minute=0, second=0, microsecond=0)
 
         # Test consumption logs
         tst_consumption = pw_energy_pulses.PulseCollection(mac="0098765432101234")
@@ -866,7 +885,9 @@ class TestStick:
         assert tst_consumption.log_interval_consumption is None
         assert tst_consumption.log_interval_production is None
         assert tst_consumption.production_logging is None
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (None, None)
+        assert tst_consumption.collected_pulses(
+            test_timestamp, is_consumption=True
+        ) == (None, None)
         assert tst_consumption.log_addresses_missing is None
 
         # Test consumption - Log import #2, random log
@@ -877,7 +898,9 @@ class TestStick:
         assert tst_consumption.log_interval_consumption is None
         assert tst_consumption.log_interval_production is None
         assert tst_consumption.production_logging is None
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (None, None)
+        assert tst_consumption.collected_pulses(
+            test_timestamp, is_consumption=True
+        ) == (None, None)
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
 
         # Test consumption - Log import #3
@@ -887,8 +910,10 @@ class TestStick:
         tst_consumption.add_log(95, 3, test_timestamp, 1000)
         assert tst_consumption.log_interval_consumption is None
         assert tst_consumption.log_interval_production is None
-        assert tst_consumption.production_logging is False
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (None, None)
+        assert not tst_consumption.production_logging
+        assert (tst_consumption.collected_pulses(
+            test_timestamp, is_consumption=True
+        ) == (None, None))
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
 
         # Test consumption - Log import #4, no change
@@ -896,8 +921,10 @@ class TestStick:
         tst_consumption.add_log(95, 2, test_timestamp, 1000)
         assert tst_consumption.log_interval_consumption is None
         assert tst_consumption.log_interval_production is None
-        assert tst_consumption.production_logging is False
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (None, None)
+        assert not tst_consumption.production_logging
+        assert tst_consumption.collected_pulses(
+            test_timestamp, is_consumption=True
+        ) == (None, None)
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
 
         # Test consumption - Log import #5
@@ -906,7 +933,7 @@ class TestStick:
         tst_consumption.add_log(95, 1, test_timestamp, 1000)
         assert tst_consumption.log_interval_consumption is None
         assert tst_consumption.log_interval_production is None
-        assert tst_consumption.production_logging is False
+        assert not tst_consumption.production_logging
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
 
         # Test consumption - Log import #6
@@ -915,46 +942,70 @@ class TestStick:
         tst_consumption.add_log(99, 4, test_timestamp, 750)
         assert tst_consumption.log_interval_consumption == 60
         assert tst_consumption.log_interval_production is None
-        assert tst_consumption.production_logging is False
+        assert not tst_consumption.production_logging
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
-        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=True) == (None, None)
+        assert tst_consumption.collected_pulses(
+            fixed_this_hour, is_consumption=True
+        ) == (None, None)
 
         tst_consumption.add_log(99, 3, fixed_this_hour - td(hours=2), 1111)
         assert tst_consumption.log_interval_consumption == 60
         assert tst_consumption.log_interval_production is None
-        assert tst_consumption.production_logging is False
+        assert not tst_consumption.production_logging
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
-        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=True) == (None, None)
+        assert tst_consumption.collected_pulses(
+            fixed_this_hour, is_consumption=True
+        ) == (None, None)
 
         # Test consumption - pulse update #1
         pulse_update_1 = fixed_this_hour + td(minutes=5)
         tst_consumption.update_pulse_counter(1234, 0, pulse_update_1)
-        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=True) == (1234, pulse_update_1)
-        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=False) == (None, None)
+        assert tst_consumption.collected_pulses(
+            fixed_this_hour, is_consumption=True
+        ) == (1234, pulse_update_1)
+        assert tst_consumption.collected_pulses(
+            fixed_this_hour, is_consumption=False
+        ) == (None, None)
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
 
         # Test consumption - pulse update #2
         pulse_update_2 = fixed_this_hour + td(minutes=7)
         test_timestamp = fixed_this_hour
         tst_consumption.update_pulse_counter(2345, 0, pulse_update_2)
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (2345, pulse_update_2)
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=False) == (None, None)
+        assert tst_consumption.collected_pulses(
+            test_timestamp, is_consumption=True
+        ) == (2345, pulse_update_2)
+        assert tst_consumption.collected_pulses(
+            test_timestamp, is_consumption=False
+        ) == (None, None)
 
         # Test consumption - pulses + log (address=100, slot=1)
         test_timestamp = fixed_this_hour - td(hours=1)
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (2345 + 1000, pulse_update_2)
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=False) == (None, None)
+        assert tst_consumption.collected_pulses(
+            test_timestamp, is_consumption=True
+        ) == (2345 + 1000, pulse_update_2)
+        assert tst_consumption.collected_pulses(
+            test_timestamp, is_consumption=False
+        ) == (None, None)
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
 
         # Test consumption - pulses + logs (address=100, slot=1 & address=99, slot=4)
         test_timestamp = fixed_this_hour - td(hours=2)
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (2345 + 1000 + 750, pulse_update_2)
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=False) == (None, None)
+        assert tst_consumption.collected_pulses(
+            test_timestamp, is_consumption=True
+        ) == (2345 + 1000 + 750, pulse_update_2)
+        assert tst_consumption.collected_pulses(
+            test_timestamp, is_consumption=False
+        ) == (None, None)
 
         # Test consumption - pulses + missing logs
         test_timestamp = fixed_this_hour - td(hours=3)
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (None, None)
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=False) == (None, None)
+        assert tst_consumption.collected_pulses(
+            test_timestamp, is_consumption=True
+        ) == (None, None)
+        assert tst_consumption.collected_pulses(
+            test_timestamp, is_consumption=False
+        ) == (None, None)
 
         assert not tst_consumption.log_rollover
         # add missing logs
@@ -989,30 +1040,40 @@ class TestStick:
         tst_consumption.update_pulse_counter(45, 0, pulse_update_3)
         assert tst_consumption.log_rollover
         test_timestamp = fixed_this_hour + td(hours=1, seconds=5)
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (None, None)
+        assert tst_consumption.collected_pulses(
+            test_timestamp, is_consumption=True
+        ) == (None, None)
         tst_consumption.add_log(100, 2, (fixed_this_hour + td(hours=1)), 2222)
         assert not tst_consumption.log_rollover
-        assert tst_consumption.collected_pulses(test_timestamp, is_consumption=True) == (45, pulse_update_3)
-        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=True) == (45 + 2222, pulse_update_3)
+        assert tst_consumption.collected_pulses(
+            test_timestamp, is_consumption=True
+        ) == (45, pulse_update_3)
+        assert tst_consumption.collected_pulses(
+            fixed_this_hour, is_consumption=True
+        ) == (45 + 2222, pulse_update_3)
 
         # Test log rollover by updating log first before updating pulses
         tst_consumption.add_log(100, 3, (fixed_this_hour + td(hours=2)), 3333)
         assert tst_consumption.log_rollover
-        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=True) == (None, None)
+        assert tst_consumption.collected_pulses(
+            fixed_this_hour, is_consumption=True
+        ) == (None, None)
         pulse_update_4 = fixed_this_hour + td(hours=2, seconds=10)
         tst_consumption.update_pulse_counter(321, 0, pulse_update_4)
         assert not tst_consumption.log_rollover
-        assert tst_consumption.collected_pulses(fixed_this_hour, is_consumption=True) == (2222 + 3333 + 321, pulse_update_4)
+        assert tst_consumption.collected_pulses(
+            fixed_this_hour, is_consumption=True
+        ) == (2222 + 3333 + 321, pulse_update_4)
 
     @freeze_time(dt.now())
-    def test_pulse_collection_consumption_empty(self, monkeypatch):
+    def test_pulse_collection_consumption_empty(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Testing pulse collection class."""
         monkeypatch.setattr(pw_energy_pulses, "MAX_LOG_HOURS", 24)
 
-        fixed_timestamp_utc = dt.now(tz.utc)
-        fixed_this_hour = fixed_timestamp_utc.replace(
-            minute=0, second=0, microsecond=0
-        )
+        fixed_timestamp_utc = dt.now(UTC)
+        fixed_this_hour = fixed_timestamp_utc.replace(minute=0, second=0, microsecond=0)
 
         # Import consumption logs
         tst_pc = pw_energy_pulses.PulseCollection(mac="0098765432101234")
@@ -1045,16 +1106,14 @@ class TestStick:
         assert tst_pc.log_addresses_missing == [100]
 
     @freeze_time(dt.now())
-    def test_pulse_collection_production(self, monkeypatch):
+    def test_pulse_collection_production(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Testing pulse collection class."""
 
         # Set log hours to 1 week
         monkeypatch.setattr(pw_energy_pulses, "MAX_LOG_HOURS", 168)
 
-        fixed_timestamp_utc = dt.now(tz.utc)
-        fixed_this_hour = fixed_timestamp_utc.replace(
-            minute=0, second=0, microsecond=0
-        )
+        fixed_timestamp_utc = dt.now(UTC)
+        fixed_this_hour = fixed_timestamp_utc.replace(minute=0, second=0, microsecond=0)
 
         # Test consumption and production logs
         tst_production = pw_energy_pulses.PulseCollection(mac="0098765432101234")
@@ -1080,7 +1139,7 @@ class TestStick:
 
         # Test consumption & production - Log import #3 - production
         # Interval of consumption is not yet available
-        test_timestamp = fixed_this_hour - td(hours=2)
+        test_timestamp = fixed_this_hour - td(hours=2) # type: ignore[unreachable]
         tst_production.add_log(199, 4, test_timestamp, 4000)
         missing_check = list(range(199, 157, -1))
         assert tst_production.log_addresses_missing == missing_check
@@ -1099,26 +1158,36 @@ class TestStick:
 
         pulse_update_1 = fixed_this_hour + td(minutes=5)
         tst_production.update_pulse_counter(100, 50, pulse_update_1)
-        assert tst_production.collected_pulses(fixed_this_hour, is_consumption=True) == (100, pulse_update_1)
-        assert tst_production.collected_pulses(fixed_this_hour, is_consumption=False) == (50, pulse_update_1)
-        assert tst_production.collected_pulses(fixed_this_hour - td(hours=1), is_consumption=True) == (100, pulse_update_1)
-        assert tst_production.collected_pulses(fixed_this_hour - td(hours=2), is_consumption=True) == (1000 + 100, pulse_update_1)
-        assert tst_production.collected_pulses(fixed_this_hour - td(hours=1), is_consumption=False) == (50, pulse_update_1)
-        assert tst_production.collected_pulses(fixed_this_hour - td(hours=2), is_consumption=False) == (2000 + 50, pulse_update_1)
+        assert tst_production.collected_pulses(
+            fixed_this_hour, is_consumption=True
+        ) == (100, pulse_update_1)
+        assert tst_production.collected_pulses(
+            fixed_this_hour, is_consumption=False
+        ) == (50, pulse_update_1)
+        assert tst_production.collected_pulses(
+            fixed_this_hour - td(hours=1), is_consumption=True
+        ) == (100, pulse_update_1)
+        assert tst_production.collected_pulses(
+            fixed_this_hour - td(hours=2), is_consumption=True
+        ) == (1000 + 100, pulse_update_1)
+        assert tst_production.collected_pulses(
+            fixed_this_hour - td(hours=1), is_consumption=False
+        ) == (50, pulse_update_1)
+        assert tst_production.collected_pulses(
+            fixed_this_hour - td(hours=2), is_consumption=False
+        ) == (2000 + 50, pulse_update_1)
 
     _pulse_update = 0
 
     @freeze_time(dt.now())
-    def test_log_address_rollover(self, monkeypatch):
+    def test_log_address_rollover(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test log address rollover."""
 
         # Set log hours to 25
         monkeypatch.setattr(pw_energy_pulses, "MAX_LOG_HOURS", 24)
 
-        fixed_timestamp_utc = dt.now(tz.utc)
-        fixed_this_hour = fixed_timestamp_utc.replace(
-            minute=0, second=0, microsecond=0
-        )
+        fixed_timestamp_utc = dt.now(UTC)
+        fixed_this_hour = fixed_timestamp_utc.replace(minute=0, second=0, microsecond=0)
         tst_pc = pw_energy_pulses.PulseCollection(mac="0098765432101234")
         tst_pc.add_log(2, 1, fixed_this_hour - td(hours=1), 3000)
         tst_pc.add_log(1, 4, fixed_this_hour - td(hours=2), 3000)
@@ -1138,7 +1207,9 @@ class TestStick:
         tst_pc.add_log(6015, 1, fixed_this_hour - td(hours=8), 10382)
         assert tst_pc.log_addresses_missing == [1, 0]
 
-    def pulse_update(self, timestamp: dt, is_consumption: bool):
+    def pulse_update(
+        self, timestamp: dt, is_consumption: bool
+    ) -> tuple[int | None, dt | None]:
         """Update pulse helper for energy counter."""
         self._pulse_update += 1
         if self._pulse_update == 1:
@@ -1152,7 +1223,7 @@ class TestStick:
         return (3333, timestamp + td(minutes=15, seconds=10))
 
     @freeze_time(dt.now())
-    def test_energy_counter(self):
+    def test_energy_counter(self) -> None:
         """Testing energy counter class."""
         pulse_col_mock = Mock()
         pulse_col_mock.collected_pulses.side_effect = self.pulse_update
@@ -1224,35 +1295,42 @@ class TestStick:
         assert not energy_counter_p_h.is_consumption
 
     @pytest.mark.asyncio
-    async def test_creating_request_messages(self):
+    async def test_creating_request_messages(self) -> None:
         """Test create request message."""
-        node_network_info_request = pw_requests.StickNetworkInfoRequest()
+        node_network_info_request = pw_requests.StickNetworkInfoRequest(
+            self.dummy_fn, None
+        )
         assert node_network_info_request.serialize() == b"\x05\x05\x03\x030001CAAB\r\n"
         circle_plus_connect_request = pw_requests.CirclePlusConnectRequest(
-            b"1111222233334444"
+            self.dummy_fn, b"1111222233334444"
         )
         assert (
             circle_plus_connect_request.serialize()
             == b"\x05\x05\x03\x030004000000000000000000001111222233334444BDEC\r\n"
         )
-        node_add_request = pw_requests.NodeAddRequest(b"1111222233334444", True)
+        node_add_request = pw_requests.NodeAddRequest(
+            self.dummy_fn, b"1111222233334444", True
+        )
         assert (
             node_add_request.serialize()
             == b"\x05\x05\x03\x0300070111112222333344445578\r\n"
         )
-        node_reset_request = pw_requests.NodeResetRequest(b"1111222233334444", 2, 5)
+        node_reset_request = pw_requests.NodeResetRequest(
+            self.dummy_fn, b"1111222233334444", 2, 5
+        )
         assert (
             node_reset_request.serialize()
             == b"\x05\x05\x03\x030009111122223333444402053D5C\r\n"
         )
         node_image_activate_request = pw_requests.NodeImageActivateRequest(
-            b"1111222233334444", 2, 5
+            self.dummy_fn, b"1111222233334444", 2, 5
         )
         assert (
             node_image_activate_request.serialize()
             == b"\x05\x05\x03\x03000F1111222233334444020563AA\r\n"
         )
         circle_log_data_request = pw_requests.CircleLogDataRequest(
+            self.dummy_fn,
             b"1111222233334444",
             dt(2022, 5, 3, 0, 0, 0),
             dt(2022, 5, 10, 23, 0, 0),
@@ -1262,7 +1340,7 @@ class TestStick:
             == b"\x05\x05\x03\x030014111122223333444416050B4016053804AD3A\r\n"
         )
         node_remove_request = pw_requests.NodeRemoveRequest(
-            b"1111222233334444", "5555666677778888"
+            self.dummy_fn, b"1111222233334444", "5555666677778888"
         )
         assert (
             node_remove_request.serialize()
@@ -1271,7 +1349,7 @@ class TestStick:
 
         circle_plus_realtimeclock_request = (
             pw_requests.CirclePlusRealTimeClockSetRequest(
-                b"1111222233334444", dt(2022, 5, 4, 3, 1, 0)
+                self.dummy_fn, b"1111222233334444", dt(2022, 5, 4, 3, 1, 0)
             )
         )
         assert (
@@ -1280,6 +1358,7 @@ class TestStick:
         )
 
         node_sleep_config_request = pw_requests.NodeSleepConfigRequest(
+            self.dummy_fn,
             b"1111222233334444",
             5,  # Duration in seconds the SED will be awake for receiving commands
             360,  # Duration in minutes the SED will be in sleeping mode and not able to respond any command
@@ -1293,6 +1372,7 @@ class TestStick:
         )
 
         scan_configure_request = pw_requests.ScanConfigureRequest(
+            self.dummy_fn,
             b"1111222233334444",
             5,  # Delay in minutes when signal is send when no motion is detected
             30,  # Sensitivity of Motion sensor (High, Medium, Off)
@@ -1304,7 +1384,7 @@ class TestStick:
         )
 
     @pytest.mark.asyncio
-    async def test_stick_network_down(self, monkeypatch):
+    async def test_stick_network_down(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Testing timeout circle+ discovery."""
         mock_serial = MockSerial(
             {
@@ -1335,24 +1415,26 @@ class TestStick:
         await stick.disconnect()
 
     def fake_env(self, env: str) -> str | None:
+        """Fake environment."""
         if env == "APPDATA":
             return "c:\\user\\tst\\appdata"
         if env == "~":
             return "/home/usr"
         return None
 
-    def os_path_join(self, strA: str, strB: str) -> str:
-        return f"{strA}/{strB}"
+    def os_path_join(self, str_a: str, str_b: str) -> str:
+        """Join path."""
+        return f"{str_a}/{str_b}"
 
     @pytest.mark.asyncio
-    async def test_cache(self, monkeypatch):
+    async def test_cache(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test PlugwiseCache class."""
         monkeypatch.setattr(pw_helpers_cache, "os_name", "nt")
         monkeypatch.setattr(pw_helpers_cache, "os_getenv", self.fake_env)
         monkeypatch.setattr(pw_helpers_cache, "os_path_expand_user", self.fake_env)
         monkeypatch.setattr(pw_helpers_cache, "os_path_join", self.os_path_join)
 
-        async def aiofiles_os_remove(file) -> None:
+        async def aiofiles_os_remove(file: str) -> None:
             if file == "mock_folder_that_exists/file_that_exists.ext":
                 return
             if file == "mock_folder_that_exists/nodes.cache":
@@ -1361,7 +1443,7 @@ class TestStick:
                 return
             raise pw_exceptions.CacheError("Invalid file")
 
-        async def makedirs(cache_dir, exist_ok) -> None:
+        async def makedirs(cache_dir: str, exist_ok: bool) -> None:
             if cache_dir == "mock_folder_that_exists":
                 return
             if cache_dir == "non_existing_folder":
@@ -1384,7 +1466,9 @@ class TestStick:
         assert pw_cache.initialized
 
         # Windows
-        pw_cache = pw_helpers_cache.PlugwiseCache("file_that_exists.ext", "mock_folder_that_exists")
+        pw_cache = pw_helpers_cache.PlugwiseCache(
+            "file_that_exists.ext", "mock_folder_that_exists"
+        )
         pw_cache.cache_root_directory = "mock_folder_that_exists"
         assert not pw_cache.initialized
 
@@ -1404,9 +1488,7 @@ class TestStick:
             "key3;value d \r\n",
         ]
         file_chunks_iter = iter(mock_read_data)
-        mock_file_stream = MagicMock(
-            readlines=lambda *args, **kwargs: file_chunks_iter
-        )
+        mock_file_stream = MagicMock(readlines=lambda *args, **kwargs: file_chunks_iter)
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             assert await pw_cache.read_cache() == {
                 "key1": "value a",
@@ -1414,23 +1496,15 @@ class TestStick:
                 "key3": "value d",
             }
         file_chunks_iter = iter(mock_read_data)
-        mock_file_stream = MagicMock(
-            readlines=lambda *args, **kwargs: file_chunks_iter
-        )
+        mock_file_stream = MagicMock(readlines=lambda *args, **kwargs: file_chunks_iter)
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             await pw_cache.write_cache({"key1": "value z"})
             mock_file_stream.writelines.assert_called_with(
-                [
-                    "key1;value z\n",
-                    "key2;value b|value c\n",
-                    "key3;value d\n"
-                ]
+                ["key1;value z\n", "key2;value b|value c\n", "key3;value d\n"]
             )
 
         file_chunks_iter = iter(mock_read_data)
-        mock_file_stream = MagicMock(
-            readlines=lambda *args, **kwargs: file_chunks_iter
-        )
+        mock_file_stream = MagicMock(readlines=lambda *args, **kwargs: file_chunks_iter)
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             await pw_cache.write_cache({"key4": "value e"}, rewrite=True)
             mock_file_stream.writelines.assert_called_with(
@@ -1440,7 +1514,9 @@ class TestStick:
             )
 
         monkeypatch.setattr(pw_helpers_cache, "os_name", "linux")
-        pw_cache = pw_helpers_cache.PlugwiseCache("file_that_exists.ext", "mock_folder_that_exists")
+        pw_cache = pw_helpers_cache.PlugwiseCache(
+            "file_that_exists.ext", "mock_folder_that_exists"
+        )
         pw_cache.cache_root_directory = "mock_folder_that_exists"
         assert not pw_cache.initialized
         await pw_cache.initialize_cache()
@@ -1448,11 +1524,13 @@ class TestStick:
         await pw_cache.delete_cache()
         pw_cache.cache_root_directory = "mock_folder_that_does_not_exists"
         await pw_cache.delete_cache()
-        pw_cache = pw_helpers_cache.PlugwiseCache("file_that_exists.ext", "mock_folder_that_does_not_exists")
+        pw_cache = pw_helpers_cache.PlugwiseCache(
+            "file_that_exists.ext", "mock_folder_that_does_not_exists"
+        )
         await pw_cache.delete_cache()
 
     @pytest.mark.asyncio
-    async def test_network_cache(self, monkeypatch):
+    async def test_network_cache(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test NetworkRegistrationCache class."""
         monkeypatch.setattr(pw_helpers_cache, "os_name", "nt")
         monkeypatch.setattr(pw_helpers_cache, "os_getenv", self.fake_env)
@@ -1460,7 +1538,9 @@ class TestStick:
         monkeypatch.setattr(pw_helpers_cache, "os_path_join", self.os_path_join)
         monkeypatch.setattr(pw_helpers_cache, "ospath", MockOsPath())
 
-        pw_nw_cache = pw_network_cache.NetworkRegistrationCache("mock_folder_that_exists")
+        pw_nw_cache = pw_network_cache.NetworkRegistrationCache(
+            "mock_folder_that_exists"
+        )
         await pw_nw_cache.initialize_cache()
         # test with invalid data
         mock_read_data = [
@@ -1469,9 +1549,7 @@ class TestStick:
             "invalid129834765AFBECD|NodeType.CIRCLE",
         ]
         file_chunks_iter = iter(mock_read_data)
-        mock_file_stream = MagicMock(
-            readlines=lambda *args, **kwargs: file_chunks_iter
-        )
+        mock_file_stream = MagicMock(readlines=lambda *args, **kwargs: file_chunks_iter)
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             await pw_nw_cache.restore_cache()
             assert pw_nw_cache.registrations == {
@@ -1486,9 +1564,7 @@ class TestStick:
             "2;;",
         ]
         file_chunks_iter = iter(mock_read_data)
-        mock_file_stream = MagicMock(
-            readlines=lambda *args, **kwargs: file_chunks_iter
-        )
+        mock_file_stream = MagicMock(readlines=lambda *args, **kwargs: file_chunks_iter)
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             await pw_nw_cache.restore_cache()
             assert pw_nw_cache.registrations == {
@@ -1509,7 +1585,8 @@ class TestStick:
                     "2;|\n",
                     "3;1234ABCD4321FEDC|NodeType.STEALTH\n",
                     "4;|\n",
-                ] + [f"{address};|\n" for address in range(5, 64)]
+                ]
+                + [f"{address};|\n" for address in range(5, 64)]
             )
         assert pw_nw_cache.registrations == {
             -1: ("0123456789ABCDEF", pw_api.NodeType.CIRCLE_PLUS),
@@ -1520,7 +1597,7 @@ class TestStick:
         }
 
     @pytest.mark.asyncio
-    async def test_node_cache(self, monkeypatch):
+    async def test_node_cache(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test NodeCache class."""
         monkeypatch.setattr(pw_helpers_cache, "ospath", MockOsPath())
         monkeypatch.setattr(pw_helpers_cache, "os_name", "nt")
@@ -1528,7 +1605,9 @@ class TestStick:
         monkeypatch.setattr(pw_helpers_cache, "os_path_expand_user", self.fake_env)
         monkeypatch.setattr(pw_helpers_cache, "os_path_join", self.os_path_join)
 
-        node_cache = pw_node_cache.NodeCache("0123456789ABCDEF", "mock_folder_that_exists")
+        node_cache = pw_node_cache.NodeCache(
+            "0123456789ABCDEF", "mock_folder_that_exists"
+        )
         await node_cache.initialize_cache()
         # test with invalid data
         mock_read_data = [
@@ -1545,9 +1624,7 @@ class TestStick:
             "energy_collection;102:4:2024-3-14-19-0-0:47|102:3:2024-3-14-18-0-0:48|102:2:2024-3-14-17-0-0:45",
         ]
         file_chunks_iter = iter(mock_read_data)
-        mock_file_stream = MagicMock(
-            readlines=lambda *args, **kwargs: file_chunks_iter
-        )
+        mock_file_stream = MagicMock(readlines=lambda *args, **kwargs: file_chunks_iter)
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             await node_cache.restore_cache()
         assert node_cache.states == {
@@ -1564,7 +1641,7 @@ class TestStick:
             "energy_collection": "102:4:2024-3-14-19-0-0:47|102:3:2024-3-14-18-0-0:48|102:2:2024-3-14-17-0-0:45",
         }
         assert node_cache.get_state("hardware") == "000004400107"
-        node_cache.add_state("current_log_address", "128")
+        node_cache.update_state("current_log_address", "128")
         assert node_cache.get_state("current_log_address") == "128"
         node_cache.remove_state("calibration_gain_a")
         assert node_cache.get_state("calibration_gain_a") is None
@@ -1587,7 +1664,9 @@ class TestStick:
             )
 
     @pytest.mark.asyncio
-    async def test_node_discovery_and_load(self, monkeypatch):
+    async def test_node_discovery_and_load(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Testing discovery of nodes."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
@@ -1604,9 +1683,7 @@ class TestStick:
         monkeypatch.setattr(pw_helpers_cache, "os_path_join", self.os_path_join)
         mock_read_data = [""]
         file_chunks_iter = iter(mock_read_data)
-        mock_file_stream = MagicMock(
-            readlines=lambda *args, **kwargs: file_chunks_iter
-        )
+        mock_file_stream = MagicMock(readlines=lambda *args, **kwargs: file_chunks_iter)
 
         stick = pw_stick.Stick("test_port", cache_enabled=True)
         await stick.connect()
@@ -1615,7 +1692,9 @@ class TestStick:
             await stick.discover_nodes(load=True)
 
         assert stick.nodes["0098765432101234"].name == "Circle+ 01234"
-        assert stick.nodes["0098765432101234"].node_info.firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=UTC)
+        assert stick.nodes["0098765432101234"].node_info.firmware == dt(
+            2011, 6, 27, 8, 47, 37, tzinfo=UTC
+        )
         assert stick.nodes["0098765432101234"].node_info.version == "000000730007"
         assert stick.nodes["0098765432101234"].node_info.model == "Circle+"
         assert stick.nodes["0098765432101234"].node_info.model_type == "type F"
@@ -1630,17 +1709,26 @@ class TestStick:
 
         # Check an unsupported state feature raises an error
         with pytest.raises(pw_exceptions.NodeError):
-            missing_feature_state = await stick.nodes["0098765432101234"].get_state((pw_api.NodeFeature.MOTION, ))
+            await stick.nodes["0098765432101234"].get_state(
+                (pw_api.NodeFeature.MOTION,)
+            )
 
         # Get state
-        get_state_timestamp = dt.now(tz.utc).replace(minute=0, second=0, microsecond=0)
-        state = await stick.nodes["0098765432101234"].get_state((pw_api.NodeFeature.PING, pw_api.NodeFeature.INFO))
+        get_state_timestamp = dt.now(UTC).replace(minute=0, second=0, microsecond=0)
+        state = await stick.nodes["0098765432101234"].get_state(
+            (pw_api.NodeFeature.PING, pw_api.NodeFeature.INFO)
+        )
 
         # Check Ping
         assert state[pw_api.NodeFeature.PING].rssi_in == 69
         assert state[pw_api.NodeFeature.PING].rssi_out == 70
         assert state[pw_api.NodeFeature.PING].rtt == 1074
-        assert state[pw_api.NodeFeature.PING].timestamp.replace(minute=0, second=0, microsecond=0) == get_state_timestamp
+        assert (
+            state[pw_api.NodeFeature.PING].timestamp.replace(
+                minute=0, second=0, microsecond=0
+            )
+            == get_state_timestamp
+        )
 
         # Check INFO
         assert state[pw_api.NodeFeature.INFO].mac == "0098765432101234"
@@ -1656,16 +1744,23 @@ class TestStick:
                 pw_api.NodeFeature.POWER,
             )
         )
-        assert state[pw_api.NodeFeature.INFO].firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=UTC)
+        assert state[pw_api.NodeFeature.INFO].firmware == dt(
+            2011, 6, 27, 8, 47, 37, tzinfo=UTC
+        )
         assert state[pw_api.NodeFeature.INFO].name == "Circle+ 01234"
         assert state[pw_api.NodeFeature.INFO].model == "Circle+"
         assert state[pw_api.NodeFeature.INFO].model_type == "type F"
         assert state[pw_api.NodeFeature.INFO].type == pw_api.NodeType.CIRCLE_PLUS
-        assert state[pw_api.NodeFeature.INFO].timestamp.replace(minute=0, second=0, microsecond=0) == get_state_timestamp
+        assert (
+            state[pw_api.NodeFeature.INFO].timestamp.replace(
+                minute=0, second=0, microsecond=0
+            )
+            == get_state_timestamp
+        )
         assert state[pw_api.NodeFeature.INFO].version == "000000730007"
 
         # Check 1111111111111111
-        get_state_timestamp = dt.now(tz.utc).replace(minute=0, second=0, microsecond=0)
+        get_state_timestamp = dt.now(UTC).replace(minute=0, second=0, microsecond=0)
         state = await stick.nodes["1111111111111111"].get_state(
             (pw_api.NodeFeature.PING, pw_api.NodeFeature.INFO, pw_api.NodeFeature.RELAY)
         )
@@ -1675,7 +1770,12 @@ class TestStick:
         assert not state[pw_api.NodeFeature.INFO].battery_powered
         assert state[pw_api.NodeFeature.INFO].version == "000000070140"
         assert state[pw_api.NodeFeature.INFO].type == pw_api.NodeType.CIRCLE
-        assert state[pw_api.NodeFeature.INFO].timestamp.replace(minute=0, second=0, microsecond=0) == get_state_timestamp
+        assert (
+            state[pw_api.NodeFeature.INFO].timestamp.replace(
+                minute=0, second=0, microsecond=0
+            )
+            == get_state_timestamp
+        )
         assert sorted(state[pw_api.NodeFeature.INFO].features) == sorted(
             (
                 pw_api.NodeFeature.AVAILABLE,
