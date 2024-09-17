@@ -11,6 +11,7 @@ tests/__pycache__
 .coverage
 .vscode
 venv
+.venv
 fixtures/*
 !fixtures/.keep
 *.sedbck
