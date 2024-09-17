@@ -8,7 +8,8 @@ import logging
 
 from ..api import StickEvent
 from ..exceptions import NodeTimeout, StickError, StickTimeout
-from ..messages.requests import NodePingRequest, PlugwiseRequest, Priority
+from ..messages import Priority
+from ..messages.requests import NodePingRequest, PlugwiseCancelRequest, PlugwiseRequest
 from ..messages.responses import PlugwiseResponse
 from .manager import StickConnectionManager
 
@@ -31,7 +32,7 @@ class StickQueue:
         self._stick: StickConnectionManager | None = None
         self._loop = get_running_loop()
         self._submit_queue: PriorityQueue[PlugwiseRequest] = PriorityQueue()
-        self._submit_worker_task: Task | None = None
+        self._submit_worker_task: Task[None] | None = None
         self._unsubscribe_connection_events: Callable[[], None] | None = None
         self._running = False
 
@@ -71,8 +72,7 @@ class StickQueue:
             self._unsubscribe_connection_events()
         self._running = False
         if self._submit_worker_task is not None and not self._submit_worker_task.done():
-            cancel_request = PlugwiseRequest(b"0000", None)
-            cancel_request.priority = Priority.CANCEL
+            cancel_request = PlugwiseCancelRequest()
             await self._submit_queue.put(cancel_request)
             await self._submit_worker_task
         self._submit_worker_task = None
@@ -97,10 +97,10 @@ class StickQueue:
                 if isinstance(request, NodePingRequest):
                     # For ping requests it is expected to receive timeouts, so lower log level
                     _LOGGER.debug("%s, cancel because timeout is expected for NodePingRequests", e)
-                elif request.resend:
+                if request.resend:
                     _LOGGER.info("%s, retrying", e)
                 else:
-                    _LOGGER.warning("%s, cancel request", e)
+                    _LOGGER.warning("%s, cancel request", e)  # type: ignore[unreachable]
             except StickError as exception:
                 _LOGGER.error(exception)
                 raise StickError(
@@ -134,7 +134,7 @@ class StickQueue:
     async def _send_queue_worker(self) -> None:
         """Send messages from queue at the order of priority."""
         _LOGGER.debug("Send_queue_worker started")
-        while self._running:
+        while self._running and self._stick is not None:
             request = await self._submit_queue.get()
             _LOGGER.debug("Send from send queue %s", request)
             if request.priority == Priority.CANCEL:

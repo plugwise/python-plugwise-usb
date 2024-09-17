@@ -1,4 +1,5 @@
 """All known response messages to be received from plugwise devices."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -6,11 +7,11 @@ from enum import Enum
 from typing import Any, Final
 
 from ..api import NodeType
-from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER, UTF8
+from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER
 from ..exceptions import MessageError
 from . import PlugwiseMessage, Priority
 from .properties import (
-    BaseType,
+    Bytes,
     DateTime,
     Float,
     Int,
@@ -103,7 +104,9 @@ class PlugwiseResponse(PlugwiseMessage):
         decode_mac: bool = True,
     ) -> None:
         """Initialize a response message."""
-        super().__init__(identifier)
+        super().__init__()
+        self._identifier = identifier
+        self._mac: bytes | None = None
         self._ack_id: bytes | None = None
         self._decode_ack = decode_ack
         self._decode_mac = decode_mac
@@ -113,7 +116,7 @@ class PlugwiseResponse(PlugwiseMessage):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id={self._seq_id}, retries={self._retries})"
+        return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id={self._seq_id!r}, retries={self._retries})"
 
     @property
     def retries(self) -> int:
@@ -129,11 +132,6 @@ class PlugwiseResponse(PlugwiseMessage):
     def ack_id(self) -> bytes | None:
         """Return the acknowledge id."""
         return self._ack_id
-
-    @property
-    def seq_id(self) -> bytes:
-        """Sequence ID."""
-        return self._seq_id
 
     def deserialize(self, response: bytes, has_footer: bool = True) -> None:
         """Deserialize bytes to actual message properties."""
@@ -162,7 +160,7 @@ class PlugwiseResponse(PlugwiseMessage):
         if (check := self.calculate_checksum(response[:-4])) != response[-4:]:
             raise MessageError(
                 f"Invalid checksum for {self.__class__.__name__}, "
-                + f"expected {check} got "
+                + f"expected {check!r} got "
                 + str(response[-4:]),
             )
         response = response[:-4]
@@ -171,8 +169,8 @@ class PlugwiseResponse(PlugwiseMessage):
         if self._identifier != response[:4]:
             raise MessageError(
                 "Invalid message identifier received "
-                + f"expected {self._identifier} "
-                + f"got {response[:4]}"
+                + f"expected {self._identifier!r} "
+                + f"got {response[:4]!r}"
             )
         self._seq_id = response[4:8]
         response = response[8:]
@@ -205,7 +203,7 @@ class PlugwiseResponse(PlugwiseMessage):
         for param in self._params:
             my_val = response[: len(param)]
             param.deserialize(my_val)
-            response = response[len(my_val):]
+            response = response[len(my_val) :]
         return response
 
     def __len__(self) -> int:
@@ -228,11 +226,15 @@ class StickResponse(PlugwiseResponse):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return f"StickResponse (seq_id={self._seq_id}, retries={self._retries}, ack={StickResponseType(self.ack_id).name})"
+        if self.ack_id is None:
+            return f"StickResponse (seq_id={self._seq_id!r}, retries={self._retries}, ack=UNKNOWN)"
+        return f"StickResponse (seq_id={self._seq_id!r}, retries={self._retries}, ack={StickResponseType(self.ack_id).name})"
 
     @property
     def response_type(self) -> StickResponseType:
         """Return acknowledge response type."""
+        if self.ack_id is None:
+            raise MessageError("Acknowledge ID is unknown")
         return StickResponseType(self.ack_id)
 
 
@@ -252,7 +254,18 @@ class NodeResponse(PlugwiseResponse):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return f"{super().__repr__()[:-1]}, ack={str(NodeResponseType(self.ack_id).name)})"
+        if self.ack_id is None:
+            return f"{super().__repr__()[:-1]}, ack=UNKNOWN)"
+        return (
+            f"{super().__repr__()[:-1]}, ack={str(NodeResponseType(self.ack_id).name)})"
+        )
+
+    @property
+    def response_type(self) -> NodeResponseType:
+        """Return acknowledge response type."""
+        if self.ack_id is None:
+            raise MessageError("Acknowledge ID is unknown")
+        return NodeResponseType(self.ack_id)
 
 
 class StickNetworkInfoResponse(PlugwiseResponse):
@@ -265,29 +278,34 @@ class StickNetworkInfoResponse(PlugwiseResponse):
     def __init__(self) -> None:
         """Initialize NodeNetworkInfoResponse message object."""
         super().__init__(b"0002")
-        self.channel = String(None, length=2)
-        self.source_mac_id = String(None, length=16)
+        self._channel = Int(0, length=2)
+        self._source_mac_id = String(None, length=16)
         self.extended_pan_id = String(None, length=16)
         self.unique_network_id = String(None, length=16)
-        self.new_node_mac_id = String(None, length=16)
+        self._new_node_mac_id = String(None, length=16)
         self.pan_id = String(None, length=4)
         self.idx = Int(0, length=2)
         self._params += [
-            self.channel,
-            self.source_mac_id,
+            self._channel,
+            self._source_mac_id,
             self.extended_pan_id,
             self.unique_network_id,
-            self.new_node_mac_id,
+            self._new_node_mac_id,
             self.pan_id,
             self.idx,
         ]
 
-    def deserialize(self, response: bytes, has_footer: bool = True) -> None:
-        """Extract data from bytes."""
-        super().deserialize(response, has_footer)
+    @property
+    def channel(self) -> int:
+        """Return zigbee channel."""
+        return self._channel.value
+
+    @property
+    def new_node_mac_id(self) -> str:
+        """New node mac_id."""
         # Clear first two characters of mac ID, as they contain
         # part of the short PAN-ID
-        self.new_node_mac_id.value = b"00" + self.new_node_mac_id.value[2:]
+        return "00" + self._new_node_mac_id.value[2:]
 
 
 class NodeSpecificResponse(PlugwiseResponse):
@@ -403,24 +421,24 @@ class StickInitResponse(PlugwiseResponse):
     def __init__(self) -> None:
         """Initialize StickInitResponse message object."""
         super().__init__(b"0011")
-        self.unknown1 = Int(0, length=2)
+        self._unknown1 = Int(0, length=2)
         self._network_online = Int(0, length=2)
         self._mac_nc = String(None, length=16)
         self._network_id = Int(0, 4, False)
-        self.unknown2 = Int(0, length=2)
+        self._unknown2 = Int(0, length=2)
         self._params += [
-            self.unknown1,
+            self._unknown1,
             self._network_online,
             self._mac_nc,
             self._network_id,
-            self.unknown2,
+            self._unknown2,
         ]
 
     @property
     def mac_network_controller(self) -> str:
         """Return the mac of the network controller (Circle+)."""
         # Replace first 2 characters by 00 for mac of circle+ node
-        return "00" + self._mac_nc.value[2:].decode(UTF8)
+        return "00" + self._mac_nc.value[2:]
 
     @property
     def network_id(self) -> int:
@@ -435,6 +453,7 @@ class StickInitResponse(PlugwiseResponse):
     def __repr__(self) -> str:
         """Convert request into writable str."""
         return f"{super().__repr__()[:-1]}, network_controller={self.mac_network_controller}, network_online={self.network_online})"
+
 
 class CirclePowerUsageResponse(PlugwiseResponse):
     """Returns power usage as impulse counters for several different time frames.
@@ -529,7 +548,7 @@ class CirclePlusScanResponse(PlugwiseResponse):
     @property
     def registered_mac(self) -> str:
         """Return the mac of the node."""
-        return self._registered_mac.value.decode(UTF8)
+        return self._registered_mac.value
 
     @property
     def network_address(self) -> int:
@@ -539,6 +558,7 @@ class CirclePlusScanResponse(PlugwiseResponse):
     def __repr__(self) -> str:
         """Convert response into writable str."""
         return f"{super().__repr__()[:-1]}, network_address={self.network_address}, registered_mac={self.registered_mac})"
+
 
 class NodeRemoveResponse(PlugwiseResponse):
     """Confirmation (or not) if node is removed from the Plugwise network.
@@ -608,7 +628,7 @@ class NodeInfoResponse(PlugwiseResponse):
     @property
     def hardware(self) -> str:
         """Return hardware id."""
-        return self._hw_ver.value.decode(UTF8)
+        return str(self._hw_ver.value)
 
     @property
     def firmware(self) -> datetime:
@@ -633,7 +653,7 @@ class NodeInfoResponse(PlugwiseResponse):
     @property
     def frequency(self) -> int:
         """Return frequency config of node."""
-        return self._frequency
+        return self._frequency.value
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
@@ -757,6 +777,28 @@ class CircleEnergyLogsResponse(PlugwiseResponse):
         """Return the gain A."""
         return self._logaddr.value
 
+    @property
+    def log_data(self) -> dict[int, tuple[datetime | None, int | None]]:
+        """Return log data."""
+        log_data: dict[int, tuple[datetime | None, int | None]] = {}
+        if self.logdate1.value_set:
+            log_data[1] = (self.logdate1.value, self.pulses1.value)
+        else:
+             log_data[1] = (None, None)
+        if self.logdate2.value_set:
+            log_data[2] = (self.logdate2.value, self.pulses2.value)
+        else:
+             log_data[2] = (None, None)
+        if self.logdate3.value_set:
+            log_data[3] = (self.logdate3.value, self.pulses3.value)
+        else:
+             log_data[3] = (None, None)
+        if self.logdate4.value_set:
+            log_data[4] = (self.logdate4.value, self.pulses4.value)
+        else:
+             log_data[4] = (None, None)
+        return log_data
+
     def __repr__(self) -> str:
         """Convert request into writable str."""
         return f"{super().__repr__()[:-1]}, log_address={self._logaddr.value})"
@@ -811,12 +853,16 @@ class NodeSwitchGroupResponse(PlugwiseResponse):
         """Initialize NodeSwitchGroupResponse message object."""
         super().__init__(NODE_SWITCH_GROUP_ID)
         self.group = Int(0, 2, False)
-        self.power_state = Int(0, length=2)
+        self._power_state = Int(0, length=2)
         self._params += [
             self.group,
-            self.power_state,
+            self._power_state,
         ]
 
+    @property
+    def switch_state(self) -> bool:
+        """Return state of switch (True = On, False = Off)."""
+        return (self._power_state.value != 0)
 
 class NodeFeaturesResponse(PlugwiseResponse):
     """Returns supported features of node.
@@ -860,7 +906,7 @@ class NodeAckResponse(PlugwiseResponse):
     def __init__(self) -> None:
         """Initialize NodeAckResponse message object."""
         super().__init__(b"0100")
-        self._node_ack_type = BaseType(0, length=4)
+        self._node_ack_type = Bytes(None, length=4)
         self._params += [self._node_ack_type]
         self.priority = Priority.HIGH
 
@@ -906,7 +952,7 @@ class CircleRelayInitStateResponse(PlugwiseResponse):
         self._params += [self.is_get, self.relay]
 
 
-def get_message_object(
+def get_message_object(  # noqa: C901
     identifier: bytes, length: int, seq_id: bytes
 ) -> PlugwiseResponse | None:
     """Return message class based on sequence ID, Length of message or message ID."""
@@ -928,7 +974,7 @@ def get_message_object(
         if length == 36:
             return NodeResponse()
         return None
-    
+
     # Regular response ID's
     if identifier == b"0002":
         return StickNetworkInfoResponse()
@@ -972,3 +1018,4 @@ def get_message_object(
         return SenseReportResponse()
     if identifier == b"0139":
         return CircleRelayInitStateResponse()
+    raise MessageError(f"Unknown message for identifier {identifier!r}")

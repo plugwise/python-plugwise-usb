@@ -24,11 +24,9 @@ class NodeCache(PlugwiseCache):
         """Cached node state information."""
         return self._states
 
-    def add_state(self, state: str, value: str, save: bool = False) -> None:
+    def update_state(self, state: str, value: str) -> None:
         """Add configuration state to cache."""
         self._states[state] = value
-        if save:
-            self.write_cache({state: value})
 
     def remove_state(self, state: str) -> None:
         """Remove configuration state from cache."""
