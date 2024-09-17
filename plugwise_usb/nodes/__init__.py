@@ -4,15 +4,18 @@ from __future__ import annotations
 
 from abc import ABC
 from asyncio import Task, create_task
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 import logging
 from typing import Any
 
 from ..api import (
+    BatteryConfig,
     EnergyStatistics,
+    MotionSensitivity,
     MotionState,
     NetworkStatistics,
+    NodeEvent,
     NodeFeature,
     NodeInfo,
     NodeType,
@@ -20,14 +23,14 @@ from ..api import (
     RelayState,
 )
 from ..connection import StickController
-from ..constants import SUPPRESS_INITIALIZATION_WARNINGS, UTF8, MotionSensitivity
+from ..constants import SUPPRESS_INITIALIZATION_WARNINGS, UTF8
 from ..exceptions import NodeError
+from ..helpers.util import version_to_model
 from ..messages.requests import NodeInfoRequest, NodePingRequest
 from ..messages.responses import NodeInfoResponse, NodePingResponse
-from ..helpers.util import version_to_model
-from .helpers import raise_not_loaded
+from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.cache import NodeCache
-from .helpers.counter import EnergyCalibration, EnergyCounters
+from .helpers.counter import EnergyCounters
 from .helpers.firmware import FEATURE_SUPPORTED_AT_FIRMWARE, SupportedVersions
 from .helpers.subscription import FeaturePublisher
 
@@ -51,12 +54,12 @@ class PlugwiseNode(FeaturePublisher, ABC):
         mac: str,
         address: int,
         controller: StickController,
-        loaded_callback: Callable,
+        loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
     ):
         """Initialize Plugwise base node class."""
         self._loaded_callback = loaded_callback
         self._message_subscribe = controller.subscribe_to_node_responses
-        self._features = NODE_FEATURES
+        self._features: tuple[NodeFeature, ...] = NODE_FEATURES
         self._last_update = datetime.now(UTC)
         self._node_info = NodeInfo(mac, address)
         self._ping = NetworkStatistics()
@@ -66,7 +69,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         self._mac_in_str = mac
         self._send = controller.send
         self._cache_enabled: bool = False
-        self._cache_save_task: Task | None = None
+        self._cache_save_task: Task[None] | None = None
         self._node_cache = NodeCache(mac, "")
 
         # Sensors
@@ -84,17 +87,14 @@ class PlugwiseNode(FeaturePublisher, ABC):
         self._node_protocols: SupportedVersions | None = None
         self._node_last_online: datetime | None = None
 
+        # Battery
+        self._battery_config = BatteryConfig()
+
         # Motion
         self._motion = False
         self._motion_state = MotionState()
-        self._motion_reset_timer: int | None = None
         self._scan_subscription: Callable[[], None] | None = None
-        self._motion_reset_timer = None
-        self._daylight_mode: bool | None = None
         self._sensitivity_level: MotionSensitivity | None = None
-        self._new_motion_reset_timer: int | None = None
-        self._new_daylight_mode: bool | None = None
-        self._new_sensitivity: MotionSensitivity | None = None
 
         # Node info
         self._current_log_address: int | None = None
@@ -107,6 +107,8 @@ class PlugwiseNode(FeaturePublisher, ABC):
         # Power & energy
         self._calibration: EnergyCalibration | None = None
         self._energy_counters = EnergyCounters(mac)
+
+    # region Properties
 
     @property
     def network_address(self) -> int:
@@ -149,40 +151,67 @@ class PlugwiseNode(FeaturePublisher, ABC):
         return self._available
 
     @property
+    def battery_config(self) -> BatteryConfig:
+        """Return battery configuration settings."""
+        if NodeFeature.BATTERY not in self._features:
+            raise NodeError(
+                f"Battery configuration settings are not supported for node {self.mac}"
+            )
+        return self._battery_config
+
+    @property
     def battery_powered(self) -> bool:
         """Return if node is battery powered."""
         return self._node_info.battery_powered
 
     @property
+    def daylight_mode(self) -> bool:
+        """Daylight mode of motion sensor."""
+        if NodeFeature.MOTION not in self._features:
+            raise NodeError(f"Daylight mode is not supported for node {self.mac}")
+        raise NotImplementedError()
+
+    @property
     def energy(self) -> EnergyStatistics | None:
-        """"Return energy statistics."""
+        """Energy statistics."""
         if NodeFeature.POWER not in self._features:
-            raise NodeError(
-                f"Energy state is not supported for node {self.mac}"
-            )
+            raise NodeError(f"Energy state is not supported for node {self.mac}")
+        raise NotImplementedError()
+
+    @property
+    def energy_consumption_interval(self) -> int | None:
+        """Interval (minutes) energy consumption counters are locally logged at Circle devices."""
+        if NodeFeature.ENERGY not in self._features:
+            raise NodeError(f"Energy log interval is not supported for node {self.mac}")
+        return self._energy_counters.consumption_interval
+
+    @property
+    def energy_production_interval(self) -> int | None:
+        """Interval (minutes) energy production counters are locally logged at Circle devices."""
+        if NodeFeature.ENERGY not in self._features:
+            raise NodeError(f"Energy log interval is not supported for node {self.mac}")
+        return self._energy_counters.production_interval
 
     @property
     def features(self) -> tuple[NodeFeature, ...]:
-        """"Return tuple with all supported feature types."""
+        """Supported feature types of node."""
         return self._features
 
     @property
     def node_info(self) -> NodeInfo:
-        """"Return node information."""
+        """Node information."""
         return self._node_info
 
     @property
     def humidity(self) -> float | None:
-        """"Return humidity state."""
+        """Humidity state."""
         if NodeFeature.HUMIDITY not in self._features:
-            raise NodeError(
-                f"Humidity state is not supported for node {self.mac}"
-            )
+            raise NodeError(f"Humidity state is not supported for node {self.mac}")
         return self._humidity
 
     @property
     def last_update(self) -> datetime:
-        """"Return timestamp of last update."""
+        """Timestamp of last update."""
         return self._last_update
 
     @property
@@ -203,22 +232,30 @@ class PlugwiseNode(FeaturePublisher, ABC):
         return self._mac_in_str
 
     @property
+    def maintenance_interval(self) -> int | None:
+        """Maintenance interval (seconds) a battery powered node sends it heartbeat."""
+        raise NotImplementedError()
+
+    @property
     def motion(self) -> bool | None:
         """Motion detection value."""
         if NodeFeature.MOTION not in self._features:
-            raise NodeError(
-                f"Motion state is not supported for node {self.mac}"
-            )
+            raise NodeError(f"Motion state is not supported for node {self.mac}")
         return self._motion
 
     @property
     def motion_state(self) -> MotionState:
         """Motion detection state."""
         if NodeFeature.MOTION not in self._features:
-            raise NodeError(
-                f"Motion state is not supported for node {self.mac}"
-            )
+            raise NodeError(f"Motion state is not supported for node {self.mac}")
         return self._motion_state
+
+    @property
+    def motion_reset_timer(self) -> int:
+        """Total minutes without motion before no motion is reported."""
+        if NodeFeature.MOTION not in self._features:
+            raise NodeError(f"Motion reset timer is not supported for node {self.mac}")
+        raise NotImplementedError()
 
     @property
     def ping(self) -> NetworkStatistics:
@@ -229,53 +266,24 @@ class PlugwiseNode(FeaturePublisher, ABC):
     def power(self) -> PowerStatistics:
         """Power statistics."""
         if NodeFeature.POWER not in self._features:
-            raise NodeError(
-                f"Power state is not supported for node {self.mac}"
-            )
+            raise NodeError(f"Power state is not supported for node {self.mac}")
         return self._power
-
-    @property
-    def switch(self) -> bool | None:
-        """Switch button value."""
-        if NodeFeature.SWITCH not in self._features:
-            raise NodeError(
-                f"Switch value is not supported for node {self.mac}"
-            )
-        return self._switch
 
     @property
     def relay_state(self) -> RelayState:
         """State of relay."""
         if NodeFeature.RELAY not in self._features:
-            raise NodeError(
-                f"Relay state is not supported for node {self.mac}"
-            )
+            raise NodeError(f"Relay state is not supported for node {self.mac}")
         return self._relay_state
 
     @property
     def relay(self) -> bool:
         """Relay value."""
         if NodeFeature.RELAY not in self._features:
-            raise NodeError(
-                f"Relay value is not supported for node {self.mac}"
-            )
+            raise NodeError(f"Relay value is not supported for node {self.mac}")
         if self._relay is None:
             raise NodeError(f"Relay value is unknown for node {self.mac}")
         return self._relay
-
-    @relay.setter
-    def relay(self, state: bool) -> None:
-        """Change relay to state value."""
-        raise NotImplementedError()
-
-    @property
-    def temperature(self) -> float | None:
-        """Temperature value."""
-        if NodeFeature.TEMPERATURE not in self._features:
-            raise NodeError(
-                f"Temperature state is not supported for node {self.mac}"
-            )
-        return self._temperature
 
     @property
     def relay_init(
@@ -284,15 +292,33 @@ class PlugwiseNode(FeaturePublisher, ABC):
         """Request the relay states at startup/power-up."""
         raise NotImplementedError()
 
-    @relay_init.setter
-    def relay_init(self, state: bool) -> None:
-        """Request to configure relay states at startup/power-up."""
+    @property
+    def sensitivity_level(self) -> MotionSensitivity:
+        """Sensitivity level of motion sensor."""
+        if NodeFeature.MOTION not in self._features:
+            raise NodeError(f"Sensitivity level is not supported for node {self.mac}")
         raise NotImplementedError()
+
+    @property
+    def switch(self) -> bool | None:
+        """Switch button value."""
+        if NodeFeature.SWITCH not in self._features:
+            raise NodeError(f"Switch value is not supported for node {self.mac}")
+        return self._switch
+
+    @property
+    def temperature(self) -> float | None:
+        """Temperature value."""
+        if NodeFeature.TEMPERATURE not in self._features:
+            raise NodeError(f"Temperature state is not supported for node {self.mac}")
+        return self._temperature
+
+    # endregion
 
     def _setup_protocol(
         self,
         firmware: dict[datetime, SupportedVersions],
-        node_features: tuple[NodeFeature],
+        node_features: tuple[NodeFeature, ...],
     ) -> None:
         """Determine protocol version based on firmware version and enable supported additional supported features."""
         if self._node_info.firmware is None:
@@ -307,7 +333,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
                 str(firmware.keys()),
             )
             return
-        new_feature_list = list(self._features)
+        # new_feature_list = list(self._features)
         for feature in node_features:
             if (
                 required_version := FEATURE_SUPPORTED_AT_FIRMWARE.get(feature)
@@ -316,10 +342,9 @@ class PlugwiseNode(FeaturePublisher, ABC):
                     self._node_protocols.min
                     <= required_version
                     <= self._node_protocols.max
-                    and feature not in new_feature_list
+                    and feature not in self._features
                 ):
-                    new_feature_list.append(feature)
-        self._features = tuple(new_feature_list)
+                    self._features += (feature,)
         self._node_info.features = self._features
 
     async def reconnect(self) -> None:
@@ -333,27 +358,8 @@ class PlugwiseNode(FeaturePublisher, ABC):
         self._connected = False
         await self._available_update_state(False)
 
-    @property
-    def energy_consumption_interval(self) -> int | None:
-        """Interval (minutes) energy consumption counters are locally logged at Circle devices."""
-        if NodeFeature.ENERGY not in self._features:
-            raise NodeError(
-                f"Energy log interval is not supported for node {self.mac}"
-            )
-        return self._energy_counters.consumption_interval
-
-    @property
-    def energy_production_interval(self) -> int | None:
-        """Interval (minutes) energy production counters are locally logged at Circle devices."""
-        if NodeFeature.ENERGY not in self._features:
-            raise NodeError(
-                f"Energy log interval is not supported for node {self.mac}"
-            )
-        return self._energy_counters.production_interval
-
-    @property
-    def maintenance_interval(self) -> int | None:
-        """Maintenance interval (seconds) a battery powered node sends it heartbeat."""
+    async def configure_motion_reset(self, delay: int) -> bool:
+        """Configure the duration to reset motion state."""
         raise NotImplementedError()
 
     async def scan_calibrate_light(self) -> bool:
@@ -402,10 +408,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
         # Node Info
         if not await self._node_info_load_from_cache():
-            _LOGGER.debug(
-                "Node %s failed to load node_info from cache",
-                self.mac
-            )
+            _LOGGER.debug("Node %s failed to load node_info from cache", self.mac)
             return False
         return True
 
@@ -413,7 +416,9 @@ class PlugwiseNode(FeaturePublisher, ABC):
         """Initialize node."""
         if self._initialized:
             return True
-        self._initialization_delay_expired = datetime.now(UTC) + timedelta(minutes=SUPPRESS_INITIALIZATION_WARNINGS)
+        self._initialization_delay_expired = datetime.now(UTC) + timedelta(
+            minutes=SUPPRESS_INITIALIZATION_WARNINGS
+        )
         self._initialized = True
         return True
 
@@ -430,23 +435,17 @@ class PlugwiseNode(FeaturePublisher, ABC):
             return
         _LOGGER.info("Device %s detected to be not available (off-line)", self.name)
         self._available = False
-        await self.publish_feature_update_to_subscribers(
-            NodeFeature.AVAILABLE, False
-        )
+        await self.publish_feature_update_to_subscribers(NodeFeature.AVAILABLE, False)
 
     async def node_info_update(
         self, node_info: NodeInfoResponse | None = None
     ) -> NodeInfo | None:
         """Update Node hardware information."""
         if node_info is None:
-            node_info = await self._send(
-                NodeInfoRequest(self._mac_in_bytes)
-            )
+            request = NodeInfoRequest(self._send, self._mac_in_bytes)
+            node_info = await request.send()
         if node_info is None:
-            _LOGGER.debug(
-                "No response for node_info_update() for %s",
-                self.mac
-            )
+            _LOGGER.debug("No response for node_info_update() for %s", self.mac)
             await self._available_update_state(False)
             return self._node_info
 
@@ -461,38 +460,12 @@ class PlugwiseNode(FeaturePublisher, ABC):
 
     async def _node_info_load_from_cache(self) -> bool:
         """Load node info settings from cache."""
-        firmware: datetime | None = None
+        firmware = self._get_cache_as_datetime(CACHE_FIRMWARE)
+        hardware = self._get_cache(CACHE_HARDWARE)
+        timestamp = self._get_cache_as_datetime(CACHE_NODE_INFO_TIMESTAMP)
         node_type: NodeType | None = None
-        hardware: str | None = self._get_cache(CACHE_HARDWARE)
-        timestamp: datetime | None = None
-        if (firmware_str := self._get_cache(CACHE_FIRMWARE)) is not None:
-            data = firmware_str.split("-")
-            if len(data) == 6:
-                firmware = datetime(
-                    year=int(data[0]),
-                    month=int(data[1]),
-                    day=int(data[2]),
-                    hour=int(data[3]),
-                    minute=int(data[4]),
-                    second=int(data[5]),
-                    tzinfo=UTC
-                )
         if (node_type_str := self._get_cache(CACHE_NODE_TYPE)) is not None:
             node_type = NodeType(int(node_type_str))
-        if (
-            timestamp_str := self._get_cache(CACHE_NODE_INFO_TIMESTAMP)
-        ) is not None:
-            data = timestamp_str.split("-")
-            if len(data) == 6:
-                timestamp = datetime(
-                    year=int(data[0]),
-                    month=int(data[1]),
-                    day=int(data[2]),
-                    hour=int(data[3]),
-                    minute=int(data[4]),
-                    second=int(data[5]),
-                    tzinfo=UTC
-                )
         return await self._node_info_update_state(
             firmware=firmware,
             hardware=hardware,
@@ -520,7 +493,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
             if self._node_info.version != hardware:
                 self._node_info.version = hardware
                 # Generate modelname based on hardware version
-                model_info = version_to_model(hardware).split(' ')
+                model_info = version_to_model(hardware).split(" ")
                 self._node_info.model = model_info[0]
                 if self._node_info.model == "Unknown":
                     _LOGGER.warning(
@@ -534,7 +507,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
                     self._node_info.model_type = ""
                 if self._node_info.model is not None:
                     self._node_info.name = f"{model_info[0]} {self._node_info.mac[-5:]}"
-                    
+
             self._set_cache(CACHE_HARDWARE, hardware)
         if timestamp is None:
             complete = False
@@ -552,10 +525,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
     async def is_online(self) -> bool:
         """Check if node is currently online."""
         if await self.ping_update() is None:
-            _LOGGER.debug(
-                "No response to ping for %s",
-                self.mac
-            )
+            _LOGGER.debug("No response to ping for %s", self.mac)
             return False
         return True
 
@@ -564,11 +534,8 @@ class PlugwiseNode(FeaturePublisher, ABC):
     ) -> NetworkStatistics | None:
         """Update ping statistics."""
         if ping_response is None:
-            ping_response = await self._send(
-                NodePingRequest(
-                    self._mac_in_bytes, retries
-                )
-            )
+            request = NodePingRequest(self._send, self._mac_in_bytes, retries)
+            ping_response = await request.send()
         if ping_response is None:
             await self._available_update_state(False)
             return None
@@ -579,9 +546,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         self._ping.rssi_out = ping_response.rssi_out
         self._ping.rtt = ping_response.rtt
 
-        await self.publish_feature_update_to_subscribers(
-            NodeFeature.PING, self._ping
-        )
+        await self.publish_feature_update_to_subscribers(NodeFeature.PING, self._ping)
         return self._ping
 
     async def switch_relay(self, state: bool) -> bool | None:
@@ -589,9 +554,7 @@ class PlugwiseNode(FeaturePublisher, ABC):
         raise NodeError(f"Relay control is not supported for node {self.mac}")
 
     @raise_not_loaded
-    async def get_state(
-        self, features: tuple[NodeFeature]
-    ) -> dict[NodeFeature, Any]:
+    async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
         """Update latest state for given feature."""
         states: dict[NodeFeature, Any] = {}
         for feature in features:
@@ -627,22 +590,40 @@ class PlugwiseNode(FeaturePublisher, ABC):
             return None
         return self._node_cache.get_state(setting)
 
+    def _get_cache_as_datetime(self, setting: str) -> datetime | None:
+        """Retrieve value of specified setting from cache memory and return it as datetime object."""
+        if (timestamp_str := self._get_cache(setting)) is not None:
+            data = timestamp_str.split("-")
+            if len(data) == 6:
+                return datetime(
+                    year=int(data[0]),
+                    month=int(data[1]),
+                    day=int(data[2]),
+                    hour=int(data[3]),
+                    minute=int(data[4]),
+                    second=int(data[5]),
+                    tzinfo=UTC,
+                )
+        return None
+
     def _set_cache(self, setting: str, value: Any) -> None:
         """Store setting with value in cache memory."""
         if not self._cache_enabled:
             return
         if isinstance(value, datetime):
-            self._node_cache.add_state(
+            self._node_cache.update_state(
                 setting,
-                f"{value.year}-{value.month}-{value.day}-{value.hour}" +
-                f"-{value.minute}-{value.second}"
+                f"{value.year}-{value.month}-{value.day}-{value.hour}"
+                + f"-{value.minute}-{value.second}",
             )
         elif isinstance(value, str):
-            self._node_cache.add_state(setting, value)
+            self._node_cache.update_state(setting, value)
         else:
-            self._node_cache.add_state(setting, str(value))
+            self._node_cache.update_state(setting, str(value))
 
-    async def save_cache(self, trigger_only: bool = True, full_write: bool = False) -> None:
+    async def save_cache(
+        self, trigger_only: bool = True, full_write: bool = False
+    ) -> None:
         """Save current cache to cache file."""
         if not self._cache_enabled or not self._loaded or not self._initialized:
             return
@@ -663,8 +644,6 @@ class PlugwiseNode(FeaturePublisher, ABC):
             return False
         if data_class.timestamp is None:
             return False
-        if data_class.timestamp + timedelta(
-            seconds=seconds
-        ) > datetime.now(UTC):
+        if data_class.timestamp + timedelta(seconds=seconds) > datetime.now(UTC):
             return True
         return False

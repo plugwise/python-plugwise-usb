@@ -7,14 +7,14 @@ in the LICENSE file.
 from __future__ import annotations
 
 from asyncio import get_running_loop
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable, Coroutine
 from functools import wraps
 import logging
 from typing import Any, TypeVar, cast
 
 from .api import NodeEvent, StickEvent
 from .connection import StickController
-from .exceptions import StickError
+from .exceptions import StickError, SubscriptionError
 from .network import StickNetwork
 from .nodes import PlugwiseNode
 
@@ -198,7 +198,7 @@ class Stick:
 
     def subscribe_to_stick_events(
         self,
-        stick_event_callback: Callable[[StickEvent], Awaitable[None]],
+        stick_event_callback: Callable[[StickEvent], Coroutine[Any, Any, None]],
         events: tuple[StickEvent],
     ) -> Callable[[], None]:
         """Subscribe callback when specified StickEvent occurs.
@@ -213,13 +213,15 @@ class Stick:
     @raise_not_initialized
     def subscribe_to_node_events(
         self,
-        node_event_callback: Callable[[NodeEvent, str], Awaitable[None]],
-        events: tuple[NodeEvent],
+        node_event_callback: Callable[[NodeEvent, str], Coroutine[Any, Any, None]],
+        events: tuple[NodeEvent, ...],
     ) -> Callable[[], None]:
         """Subscribe callback to be called when specific NodeEvent occurs.
 
         Returns the function to be called to unsubscribe later.
         """
+        if self._network is None:
+            raise SubscriptionError("Unable to subscribe to node events without network connection initialized")
         return self._network.subscribe_to_node_events(
             node_event_callback,
             events,

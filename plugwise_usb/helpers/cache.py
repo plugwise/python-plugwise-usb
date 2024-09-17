@@ -7,8 +7,11 @@ import logging
 from os import getenv as os_getenv, name as os_name
 from os.path import expanduser as os_path_expand_user, join as os_path_join
 
-from aiofiles import open as aiofiles_open, ospath
-from aiofiles.os import makedirs, remove as aiofiles_os_remove
+from aiofiles import open as aiofiles_open, ospath  # type: ignore[import-untyped]
+from aiofiles.os import (  # type: ignore[import-untyped]
+    makedirs,
+    remove as aiofiles_os_remove,
+)
 
 from ..constants import CACHE_DIR, CACHE_KEY_SEPARATOR, UTF8
 from ..exceptions import CacheError
@@ -125,12 +128,12 @@ class PlugwiseCache:
         try:
             async with aiofiles_open(
                 file=self._cache_file,
-                mode="r",
                 encoding=UTF8,
             ) as read_file_data:
                 lines: list[str] = await read_file_data.readlines()
         except OSError as exc:
-            # suppress file errors
+            # suppress file errors as this is expected the first time
+            # when no cache file exists yet.
             _LOGGER.warning(
                 "OS error %s while reading cache file %s", exc, str(self._cache_file)
             )

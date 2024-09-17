@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from asyncio import Future, gather, get_event_loop, wait_for
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Coroutine
 import logging
 from typing import Any
 
@@ -32,18 +32,26 @@ class StickConnectionManager:
         self._connected: bool = False
         self._stick_event_subscribers: dict[
             Callable[[], None],
-            tuple[Callable[[StickEvent], Awaitable[None]], StickEvent | None]
+            tuple[Callable[[StickEvent], Awaitable[None]], tuple[StickEvent, ...]],
         ] = {}
         self._unsubscribe_stick_events: Callable[[], None] | None = None
 
     @property
     def reduce_receive_logging(self) -> bool:
         """Return if logging must reduced."""
+        if self._receiver is None:
+            raise StickError(
+                "Unable to return log settings when connection is not active."
+            )
         return self._receiver.reduce_logging
 
     @reduce_receive_logging.setter
     def reduce_receive_logging(self, state: bool) -> None:
         """Reduce logging of unhandled received messages."""
+        if self._receiver is None:
+            raise StickError(
+                "Unable to set log settings when connection is not active."
+            )
         self._receiver.reduce_logging = state
 
     @property
@@ -62,14 +70,12 @@ class StickConnectionManager:
 
     def _subscribe_to_stick_events(self) -> None:
         """Subscribe to handle stick events by manager."""
-        if not self.is_connected:
+        if not self.is_connected or self._receiver is None:
             raise StickError("Unable to subscribe to events")
         if self._unsubscribe_stick_events is None:
-            self._unsubscribe_stick_events = (
-                self._receiver.subscribe_to_stick_events(
-                    self._handle_stick_event,
-                    (StickEvent.CONNECTED, StickEvent.DISCONNECTED)
-                )
+            self._unsubscribe_stick_events = self._receiver.subscribe_to_stick_events(
+                self._handle_stick_event,
+                (StickEvent.CONNECTED, StickEvent.DISCONNECTED),
             )
 
     async def _handle_stick_event(
@@ -79,11 +85,9 @@ class StickConnectionManager:
         """Call callback for stick event subscribers."""
         if len(self._stick_event_subscribers) == 0:
             return
-        callback_list: list[Callable] = []
-        for callback, filtered_events in list(
-            self._stick_event_subscribers.values()
-        ):
-            if event in filtered_events:
+        callback_list: list[Awaitable[None]] = []
+        for callback, stick_events in self._stick_event_subscribers.values():
+            if event in stick_events:
                 callback_list.append(callback(event))
         if len(callback_list) > 0:
             await gather(*callback_list)
@@ -91,35 +95,37 @@ class StickConnectionManager:
     def subscribe_to_stick_events(
         self,
         stick_event_callback: Callable[[StickEvent], Awaitable[None]],
-        events: tuple[StickEvent],
+        events: tuple[StickEvent, ...],
     ) -> Callable[[], None]:
         """Subscribe callback when specified StickEvent occurs.
 
         Returns the function to be called to unsubscribe later.
         """
+
         def remove_subscription() -> None:
             """Remove stick event subscription."""
             self._stick_event_subscribers.pop(remove_subscription)
-        self._stick_event_subscribers[remove_subscription] = (stick_event_callback, events)
+
+        self._stick_event_subscribers[remove_subscription] = (
+            stick_event_callback,
+            events,
+        )
         return remove_subscription
 
     def subscribe_to_stick_replies(
         self,
-        callback: Callable[
-            [StickResponse], Awaitable[None]
-        ],
+        callback: Callable[[StickResponse], Coroutine[Any, Any, None]],
     ) -> Callable[[], None]:
         """Subscribe to response messages from stick."""
         if self._receiver is None or not self._receiver.is_connected:
             raise StickError(
-                "Unable to subscribe to stick response when receiver " +
-                "is not loaded"
+                "Unable to subscribe to stick response when receiver " + "is not loaded"
             )
         return self._receiver.subscribe_to_stick_responses(callback)
 
     def subscribe_to_node_responses(
         self,
-        node_response_callback: Callable[[PlugwiseResponse], Awaitable[None]],
+        node_response_callback: Callable[[PlugwiseResponse], Coroutine[Any, Any, bool]],
         mac: bytes | None = None,
         message_ids: tuple[bytes] | None = None,
     ) -> Callable[[], None]:
@@ -129,21 +135,18 @@ class StickConnectionManager:
         """
         if self._receiver is None or not self._receiver.is_connected:
             raise StickError(
-                "Unable to subscribe to node response when receiver " +
-                "is not loaded"
+                "Unable to subscribe to node response when receiver " + "is not loaded"
             )
         return self._receiver.subscribe_to_node_responses(
             node_response_callback, mac, message_ids
         )
 
-    async def setup_connection_to_stick(
-        self, serial_path: str
-    ) -> None:
+    async def setup_connection_to_stick(self, serial_path: str) -> None:
         """Create serial connection to USB-stick."""
         if self._connected:
             raise StickError("Cannot setup connection, already connected")
         loop = get_event_loop()
-        connected_future: Future[Any] = Future()
+        connected_future: Future[bool] = Future()
         self._receiver = StickReceiver(connected_future)
         self._port = serial_path
 
@@ -187,14 +190,14 @@ class StickConnectionManager:
         _LOGGER.debug("Write to USB-stick: %s", request)
         if not request.resend:
             raise StickError(
-                f"Failed to send {request.__class__.__name__} " +
-                f"to node {request.mac_decoded}, maximum number " +
-                f"of retries ({request.max_retries}) has been reached"
+                f"Failed to send {request.__class__.__name__} "
+                + f"to node {request.mac_decoded}, maximum number "
+                + f"of retries ({request.max_retries}) has been reached"
             )
         if self._sender is None:
             raise StickError(
-                f"Failed to send {request.__class__.__name__}" +
-                "because USB-Stick connection is not setup"
+                f"Failed to send {request.__class__.__name__}"
+                + "because USB-Stick connection is not setup"
             )
         await self._sender.write_request_to_port(request)
 

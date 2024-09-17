@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import datetime as dt
-from enum import Enum, auto
 import logging
 from typing import Final
 
@@ -86,11 +85,3 @@ HW_MODELS: Final[dict[str, str]] = {
     "070051": "Switch",
     "080029": "Switch",
 }
-
-
-class MotionSensitivity(Enum):
-    """Motion sensitivity levels for Scan devices."""
-
-    HIGH = auto()
-    MEDIUM = auto()
-    OFF = auto()
