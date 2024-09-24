@@ -340,7 +340,7 @@ known-third-party = [
     "tests",
 ]
 known-first-party = [
-    "plugwise",
+    "plugwise_usb",
     "voluptuous",
     "pytest",
 ]
