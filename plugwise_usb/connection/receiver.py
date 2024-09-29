@@ -335,7 +335,7 @@ class StickReceiver(Protocol):
             message_ids,
             seq_id,
         )
-        _LOGGER.warning("node subscription created for %s - %s", mac, seq_id)
+        _LOGGER.debug("node subscription created for %s - %s", mac, seq_id)
         return remove_listener
 
     async def _notify_node_response_subscribers(
@@ -348,10 +348,6 @@ class StickReceiver(Protocol):
         if node_response.seq_id in self._last_processed_messages:
             _LOGGER.debug("Drop previously processed duplicate %s", node_response)
             return
-
-        _LOGGER.warning(
-            "total node subscriptions: %s", len(self._node_response_subscribers)
-        )
 
         notify_tasks: list[Coroutine[Any, Any, bool]] = []
         for node_subscription in self._node_response_subscribers.values():

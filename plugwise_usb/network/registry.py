@@ -111,9 +111,7 @@ class StickNetworkRegister:
         """Initialize load the network registry."""
         if self._cache_enabled:
             await self.restore_network_cache()
-            await sleep(0)
             await self.load_registry_from_cache()
-            await sleep(0)
         await self.update_missing_registrations(quick=True)
 
     async def restore_network_cache(self) -> None:
