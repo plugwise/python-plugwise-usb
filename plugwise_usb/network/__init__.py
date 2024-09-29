@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import logging
 from typing import Any
 
-from ..api import NodeEvent, NodeType, StickEvent
+from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
 from ..constants import UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
@@ -30,13 +30,7 @@ from ..messages.responses import (
     NodeResponseType,
     PlugwiseResponse,
 )
-from ..nodes import PlugwiseNode
-from ..nodes.circle import PlugwiseCircle
-from ..nodes.circle_plus import PlugwiseCirclePlus
-from ..nodes.scan import PlugwiseScan
-from ..nodes.sense import PlugwiseSense
-from ..nodes.stealth import PlugwiseStealth
-from ..nodes.switch import PlugwiseSwitch
+from ..nodes import get_plugwise_node
 from .registry import StickNetworkRegister
 
 _LOGGER = logging.getLogger(__name__)
@@ -206,7 +200,9 @@ class StickNetwork:
     async def node_awake_message(self, response: PlugwiseResponse) -> bool:
         """Handle NodeAwakeResponse message."""
         if not isinstance(response, NodeAwakeResponse):
-            raise MessageError(f"Invalid response message type ({response.__class__.__name__}) received, expected NodeAwakeResponse")
+            raise MessageError(
+                f"Invalid response message type ({response.__class__.__name__}) received, expected NodeAwakeResponse"
+            )
         mac = response.mac_decoded
         if self._awake_discovery.get(mac) is None:
             self._awake_discovery[mac] = response.timestamp - timedelta(seconds=15)
@@ -236,7 +232,9 @@ class StickNetwork:
     async def node_join_available_message(self, response: PlugwiseResponse) -> bool:
         """Handle NodeJoinAvailableResponse messages."""
         if not isinstance(response, NodeJoinAvailableResponse):
-            raise MessageError(f"Invalid response message type ({response.__class__.__name__}) received, expected NodeJoinAvailableResponse")
+            raise MessageError(
+                f"Invalid response message type ({response.__class__.__name__}) received, expected NodeJoinAvailableResponse"
+            )
         mac = response.mac_decoded
         await self._notify_node_event_subscribers(NodeEvent.JOIN, mac)
         return True
@@ -303,62 +301,21 @@ class StickNetwork:
                 mac,
             )
             return
-        supported_type = True
-        if node_type == NodeType.CIRCLE_PLUS:
-            self._nodes[mac] = PlugwiseCirclePlus(
-                mac,
-                address,
-                self._controller,
-                self._notify_node_event_subscribers,
-            )
-            _LOGGER.debug("Circle+ node %s added", mac)
-        elif node_type == NodeType.CIRCLE:
-            self._nodes[mac] = PlugwiseCircle(
-                mac,
-                address,
-                self._controller,
-                self._notify_node_event_subscribers,
-            )
-            _LOGGER.debug("Circle node %s added", mac)
-        elif node_type == NodeType.SWITCH:
-            self._nodes[mac] = PlugwiseSwitch(
-                mac,
-                address,
-                self._controller,
-                self._notify_node_event_subscribers,
-            )
-            _LOGGER.debug("Switch node %s added", mac)
-        elif node_type == NodeType.SENSE:
-            self._nodes[mac] = PlugwiseSense(
-                mac,
-                address,
-                self._controller,
-                self._notify_node_event_subscribers,
-            )
-            _LOGGER.debug("Sense node %s added", mac)
-        elif node_type == NodeType.SCAN:
-            self._nodes[mac] = PlugwiseScan(
-                mac,
-                address,
-                self._controller,
-                self._notify_node_event_subscribers,
-            )
-            _LOGGER.debug("Scan node %s added", mac)
-        elif node_type == NodeType.STEALTH:
-            self._nodes[mac] = PlugwiseStealth(
-                mac,
-                address,
-                self._controller,
-                self._notify_node_event_subscribers,
-            )
-            _LOGGER.debug("Stealth node %s added", mac)
-        else:
-            supported_type = False
+        node = get_plugwise_node(
+            mac,
+            address,
+            self._controller,
+            self._notify_node_event_subscribers,
+            node_type,
+        )
+        if node is None:
             _LOGGER.warning("Node %s of type %s is unsupported", mac, str(node_type))
-        if supported_type:
-            self._register.update_network_registration(address, mac, node_type)
+            return
+        self._nodes[mac] = node
+        _LOGGER.debug("%s node %s added", node.__class__.__name__, mac)
+        self._register.update_network_registration(address, mac, node_type)
 
-        if self._cache_enabled and supported_type:
+        if self._cache_enabled:
             _LOGGER.debug(
                 "Enable caching for node %s to folder '%s'",
                 mac,
@@ -416,6 +373,7 @@ class StickNetwork:
 
         Return True if discovery succeeded.
         """
+        _LOGGER.debug("Start discovery of node %s ", mac)
         if self._nodes.get(mac) is not None:
             _LOGGER.debug("Skip discovery of already known node %s ", mac)
             return True
@@ -432,10 +390,22 @@ class StickNetwork:
             return False
         self._create_node_object(mac, address, node_info.node_type)
 
-        # Forward received NodeInfoResponse message to node object
-        await self._nodes[mac].node_info_update(node_info)
+        # Forward received NodeInfoResponse message to node
+        await self._nodes[mac].update_node_details(
+            node_info.firmware,
+            node_info.hardware,
+            node_info.node_type,
+            node_info.timestamp,
+            node_info.relay_state,
+            node_info.current_logaddress_pointer,
+        )
         if node_ping is not None:
-            await self._nodes[mac].ping_update(node_ping)
+            self._nodes[mac].update_ping_stats(
+                node_ping.timestamp,
+                node_ping.rssi_in,
+                node_ping.rssi_out,
+                node_ping.rtt,
+            )
         await self._notify_node_event_subscribers(NodeEvent.DISCOVERED, mac)
         return True
 
@@ -457,7 +427,7 @@ class StickNetwork:
         """Load node."""
         if self._nodes.get(mac) is None:
             return False
-        if self._nodes[mac].loaded:
+        if self._nodes[mac].is_loaded:
             return True
         if await self._nodes[mac].load():
             await self._notify_node_event_subscribers(NodeEvent.LOADED, mac)
@@ -469,11 +439,11 @@ class StickNetwork:
         _LOGGER.debug("_load_discovered_nodes | START | %s", len(self._nodes))
         for mac, node in self._nodes.items():
             _LOGGER.debug(
-                "_load_discovered_nodes | mac=%s | loaded=%s", mac, node.loaded
+                "_load_discovered_nodes | mac=%s | loaded=%s", mac, node.is_loaded
             )
 
         nodes_not_loaded = tuple(
-            mac for mac, node in self._nodes.items() if not node.loaded
+            mac for mac, node in self._nodes.items() if not node.is_loaded
         )
         _LOGGER.debug("_load_discovered_nodes | nodes_not_loaded=%s", nodes_not_loaded)
         load_result = await gather(*[self._load_node(mac) for mac in nodes_not_loaded])
@@ -499,6 +469,7 @@ class StickNetwork:
     # region - Network instance
     async def start(self) -> None:
         """Start and activate network."""
+
         self._register.quick_scan_finished(self._discover_registered_nodes)
         self._register.full_scan_finished(self._discover_registered_nodes)
         await self._register.start()
@@ -507,10 +478,10 @@ class StickNetwork:
 
     async def discover_nodes(self, load: bool = True) -> bool:
         """Discover nodes."""
+        if not await self.discover_network_coordinator(load=load):
+            return False
         if not self._is_running:
             await self.start()
-        if not await self.discover_network_coordinator():
-            return False
         await self._discover_registered_nodes()
         if load:
             return await self._load_discovered_nodes()

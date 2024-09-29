@@ -38,7 +38,7 @@ class PlugwiseSense(NodeSED):
         """Load and activate Sense node features."""
         if self._loaded:
             return True
-        self._node_info.battery_powered = True
+        self._node_info.is_battery_powered = True
         if self._cache_enabled:
             _LOGGER.debug("Load Sense node %s from cache", self._node_info.mac)
             if await self._load_from_cache():

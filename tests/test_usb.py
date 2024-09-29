@@ -1,7 +1,7 @@
 """Test plugwise USB Stick."""
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
 from datetime import UTC, datetime as dt, timedelta as td
 import importlib
 import logging
@@ -32,6 +32,7 @@ pw_requests = importlib.import_module("plugwise_usb.messages.requests")
 pw_responses = importlib.import_module("plugwise_usb.messages.responses")
 pw_userdata = importlib.import_module("stick_test_data")
 pw_circle = importlib.import_module("plugwise_usb.nodes.circle")
+pw_scan = importlib.import_module("plugwise_usb.nodes.scan")
 pw_energy_counter = importlib.import_module("plugwise_usb.nodes.helpers.counter")
 pw_energy_calibration = importlib.import_module("plugwise_usb.nodes.helpers")
 pw_energy_pulses = importlib.import_module("plugwise_usb.nodes.helpers.pulses")
@@ -166,7 +167,7 @@ class MockSerial:
     ) -> None:
         """Init mocked serial connection."""
         self.custom_response = custom_response
-        self._protocol: pw_receiver.StickReceiver | None = None # type: ignore[name-defined]
+        self._protocol: pw_receiver.StickReceiver | None = None  # type: ignore[name-defined]
         self._transport: DummyTransport | None = None
 
     def inject_message(self, data: bytes, seq_id: bytes) -> None:
@@ -211,6 +212,35 @@ class MockOsPath:
     async def mkdir(self, path: str) -> None:
         """Make dir."""
         return
+
+
+class MockStickController:
+    """Mock stick controller."""
+
+    def subscribe_to_node_responses(
+        self,
+        node_response_callback: Callable[  # type: ignore[name-defined]
+            [pw_responses.PlugwiseResponse], Coroutine[Any, Any, bool]
+        ],
+        mac: bytes | None = None,
+        message_ids: tuple[bytes] | None = None,
+    ) -> Callable[[], None]:
+        """Subscribe a awaitable callback to be called when a specific message is received.
+
+        Returns function to unsubscribe.
+        """
+
+        def dummy_method() -> None:
+            """Fake method."""
+
+        return dummy_method
+
+    async def send(
+        self,
+        request: pw_requests.PlugwiseRequest,  # type: ignore[name-defined]
+        suppress_node_errors: bool = True,
+    ) -> pw_responses.PlugwiseResponse | None:  # type: ignore[name-defined]
+        """Submit request to queue and return response."""
 
 
 aiofiles.threadpool.wrap.register(MagicMock)(
@@ -520,7 +550,7 @@ class TestStick:
         assert stick.nodes["5555555555555555"].node_info.model == "Scan"
         assert stick.nodes["5555555555555555"].node_info.model_type == ""
         assert stick.nodes["5555555555555555"].available
-        assert stick.nodes["5555555555555555"].node_info.battery_powered
+        assert stick.nodes["5555555555555555"].node_info.is_battery_powered
         assert sorted(stick.nodes["5555555555555555"].features) == sorted(
             (
                 pw_api.NodeFeature.AVAILABLE,
@@ -911,9 +941,9 @@ class TestStick:
         assert tst_consumption.log_interval_consumption is None
         assert tst_consumption.log_interval_production is None
         assert not tst_consumption.production_logging
-        assert (tst_consumption.collected_pulses(
+        assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=True
-        ) == (None, None))
+        ) == (None, None)
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
 
         # Test consumption - Log import #4, no change
@@ -1139,7 +1169,7 @@ class TestStick:
 
         # Test consumption & production - Log import #3 - production
         # Interval of consumption is not yet available
-        test_timestamp = fixed_this_hour - td(hours=2) # type: ignore[unreachable]
+        test_timestamp = fixed_this_hour - td(hours=2)  # type: ignore[unreachable]
         tst_production.add_log(199, 4, test_timestamp, 4000)
         missing_check = list(range(199, 157, -1))
         assert tst_production.log_addresses_missing == missing_check
@@ -1664,6 +1694,20 @@ class TestStick:
             )
 
     @pytest.mark.asyncio
+    async def test_scan_node(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Testing properties of scan."""
+
+        mock_stick_controller = MockStickController()
+
+        async def load_callback(event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
+            """Load callback for event."""
+
+        test_scan = pw_scan.PlugwiseScan(
+            "1298347650AFBECD", 1, mock_stick_controller, load_callback
+        )
+        assert await test_scan.load()
+
+    @pytest.mark.asyncio
     async def test_node_discovery_and_load(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -1691,6 +1735,9 @@ class TestStick:
             await stick.initialize()
             await stick.discover_nodes(load=True)
 
+        assert len(stick.nodes) == 6
+
+        assert stick.nodes["0098765432101234"].is_loaded
         assert stick.nodes["0098765432101234"].name == "Circle+ 01234"
         assert stick.nodes["0098765432101234"].node_info.firmware == dt(
             2011, 6, 27, 8, 47, 37, tzinfo=UTC
@@ -1700,8 +1747,8 @@ class TestStick:
         assert stick.nodes["0098765432101234"].node_info.model_type == "type F"
         assert stick.nodes["0098765432101234"].node_info.name == "Circle+ 01234"
         assert stick.nodes["0098765432101234"].available
-        assert not stick.nodes["0098765432101234"].node_info.battery_powered
-        assert not stick.nodes["0098765432101234"].battery_powered
+        assert not stick.nodes["0098765432101234"].node_info.is_battery_powered
+        assert not stick.nodes["0098765432101234"].is_battery_powered
         assert stick.nodes["0098765432101234"].network_address == -1
         assert stick.nodes["0098765432101234"].cache_folder == ""
         assert not stick.nodes["0098765432101234"].cache_folder_create
@@ -1716,7 +1763,7 @@ class TestStick:
         # Get state
         get_state_timestamp = dt.now(UTC).replace(minute=0, second=0, microsecond=0)
         state = await stick.nodes["0098765432101234"].get_state(
-            (pw_api.NodeFeature.PING, pw_api.NodeFeature.INFO)
+            (pw_api.NodeFeature.PING, pw_api.NodeFeature.INFO, pw_api.NodeFeature.RELAY)
         )
 
         # Check Ping
@@ -1729,11 +1776,20 @@ class TestStick:
             )
             == get_state_timestamp
         )
+        assert stick.nodes["0098765432101234"].ping_stats.rssi_in == 69
+        assert stick.nodes["0098765432101234"].ping_stats.rssi_out == 70
+        assert stick.nodes["0098765432101234"].ping_stats.rtt == 1074
+        assert (
+            stick.nodes["0098765432101234"].ping_stats.timestamp.replace(
+                minute=0, second=0, microsecond=0
+            )
+            == get_state_timestamp
+        )
 
         # Check INFO
         assert state[pw_api.NodeFeature.INFO].mac == "0098765432101234"
         assert state[pw_api.NodeFeature.INFO].zigbee_address == -1
-        assert not state[pw_api.NodeFeature.INFO].battery_powered
+        assert not state[pw_api.NodeFeature.INFO].is_battery_powered
         assert sorted(state[pw_api.NodeFeature.INFO].features) == sorted(
             (
                 pw_api.NodeFeature.AVAILABLE,
@@ -1750,7 +1806,7 @@ class TestStick:
         assert state[pw_api.NodeFeature.INFO].name == "Circle+ 01234"
         assert state[pw_api.NodeFeature.INFO].model == "Circle+"
         assert state[pw_api.NodeFeature.INFO].model_type == "type F"
-        assert state[pw_api.NodeFeature.INFO].type == pw_api.NodeType.CIRCLE_PLUS
+        assert state[pw_api.NodeFeature.INFO].node_type == pw_api.NodeType.CIRCLE_PLUS
         assert (
             state[pw_api.NodeFeature.INFO].timestamp.replace(
                 minute=0, second=0, microsecond=0
@@ -1758,6 +1814,8 @@ class TestStick:
             == get_state_timestamp
         )
         assert state[pw_api.NodeFeature.INFO].version == "000000730007"
+
+        assert state[pw_api.NodeFeature.RELAY].relay_state
 
         # Check 1111111111111111
         get_state_timestamp = dt.now(UTC).replace(minute=0, second=0, microsecond=0)
@@ -1767,9 +1825,9 @@ class TestStick:
 
         assert state[pw_api.NodeFeature.INFO].mac == "1111111111111111"
         assert state[pw_api.NodeFeature.INFO].zigbee_address == 0
-        assert not state[pw_api.NodeFeature.INFO].battery_powered
+        assert not state[pw_api.NodeFeature.INFO].is_battery_powered
         assert state[pw_api.NodeFeature.INFO].version == "000000070140"
-        assert state[pw_api.NodeFeature.INFO].type == pw_api.NodeType.CIRCLE
+        assert state[pw_api.NodeFeature.INFO].node_type == pw_api.NodeType.CIRCLE
         assert (
             state[pw_api.NodeFeature.INFO].timestamp.replace(
                 minute=0, second=0, microsecond=0

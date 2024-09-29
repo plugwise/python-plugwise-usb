@@ -12,11 +12,10 @@ from functools import wraps
 import logging
 from typing import Any, TypeVar, cast
 
-from .api import NodeEvent, StickEvent
+from .api import NodeEvent, PlugwiseNode, StickEvent
 from .connection import StickController
 from .exceptions import StickError, SubscriptionError
 from .network import StickNetwork
-from .nodes import PlugwiseNode
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
