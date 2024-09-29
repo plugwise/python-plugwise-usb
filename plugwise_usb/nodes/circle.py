@@ -9,7 +9,14 @@ from functools import wraps
 import logging
 from typing import Any, TypeVar, cast
 
-from ..api import EnergyStatistics, NodeEvent, NodeFeature, NodeInfo, PowerStatistics
+from ..api import (
+    EnergyStatistics,
+    NodeEvent,
+    NodeFeature,
+    NodeInfo,
+    NodeType,
+    PowerStatistics,
+)
 from ..constants import (
     MAX_TIME_DRIFT,
     MINIMAL_POWER_UPDATE,
@@ -28,10 +35,10 @@ from ..messages.requests import (
     NodeInfoRequest,
 )
 from ..messages.responses import NodeInfoResponse, NodeResponse, NodeResponseType
-from ..nodes import PlugwiseNode
 from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
 from .helpers.pulses import PulseLogRecord, calc_log_address
+from .node import PlugwiseBaseNode
 
 CACHE_CURRENT_LOG_ADDRESS = "current_log_address"
 CACHE_CALIBRATION_GAIN_A = "calibration_gain_a"
@@ -58,7 +65,7 @@ def raise_calibration_missing(func: FuncT) -> FuncT:
     return cast(FuncT, decorated)
 
 
-class PlugwiseCircle(PlugwiseNode):
+class PlugwiseCircle(PlugwiseBaseNode):
     """Plugwise Circle node."""
 
     _retrieve_energy_logs_task: None | Task[None] = None
@@ -860,6 +867,30 @@ class PlugwiseCircle(PlugwiseNode):
             return result
         return False
 
+    async def update_node_details(
+        self,
+        firmware: datetime | None,
+        hardware: str | None,
+        node_type: NodeType | None,
+        timestamp: datetime | None,
+        relay_state: bool | None,
+        logaddress_pointer: int | None,
+    ) -> bool:
+        """Process new node info and return true if all fields are updated."""
+        if relay_state is not None:
+            self._relay_state.relay_state = relay_state
+            self._relay_state.timestamp = timestamp
+        if logaddress_pointer is not None:
+            self._current_log_address = logaddress_pointer
+        return await super().update_node_details(
+            firmware,
+            hardware,
+            node_type,
+            timestamp,
+            relay_state,
+            logaddress_pointer,
+        )
+
     async def unload(self) -> None:
         """Deactivate and unload node features."""
         self._loaded = False
@@ -887,7 +918,9 @@ class PlugwiseCircle(PlugwiseNode):
                 "Retrieval of initial state of relay is not "
                 + f"supported for device {self.name}"
             )
-        request = CircleRelayInitStateRequest(self._send, self._mac_in_bytes, False, False)
+        request = CircleRelayInitStateRequest(
+            self._send, self._mac_in_bytes, False, False
+        )
         if (response := await request.send()) is not None:
             await self._relay_init_update_state(response.relay.value == 1)
             return self._relay_init_state
@@ -900,7 +933,9 @@ class PlugwiseCircle(PlugwiseNode):
                 "Configuring of initial state of relay is not"
                 + f"supported for device {self.name}"
             )
-        request = CircleRelayInitStateRequest(self._send, self._mac_in_bytes, True, state)
+        request = CircleRelayInitStateRequest(
+            self._send, self._mac_in_bytes, True, state
+        )
         if (response := await request.send()) is not None:
             await self._relay_init_update_state(response.relay.value == 1)
             return self._relay_init_state

@@ -27,7 +27,8 @@ class PlugwiseCelsius(NodeSED):
         """Load and activate node features."""
         if self._loaded:
             return True
-        self._node_info.battery_powered = True
+        self._node_info.is_battery_powered = True
+
         if self._cache_enabled:
             _LOGGER.debug(
                 "Load Celsius node %s from cache", self._node_info.mac
