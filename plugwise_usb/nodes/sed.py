@@ -28,8 +28,8 @@ from ..messages.responses import (
     NodeResponseType,
     PlugwiseResponse,
 )
-from ..nodes import PlugwiseNode
 from .helpers import raise_not_loaded
+from .node import PlugwiseBaseNode
 
 # Defaults for 'Sleeping End Devices'
 
@@ -56,7 +56,7 @@ CACHE_MAINTENANCE_INTERVAL = "maintenance_interval"
 _LOGGER = logging.getLogger(__name__)
 
 
-class NodeSED(PlugwiseNode):
+class NodeSED(PlugwiseBaseNode):
     """provides base class for SED based nodes like Scan, Sense & Switch."""
 
     # SED configuration
@@ -85,7 +85,7 @@ class NodeSED(PlugwiseNode):
         """Initialize base class for Sleeping End Device."""
         super().__init__(mac, address, controller, loaded_callback)
         self._loop = get_running_loop()
-        self._node_info.battery_powered = True
+        self._node_info.is_battery_powered = True
         self._maintenance_interval = 86400  # Assume standard interval of 24h
         self._send_task_queue: list[Coroutine[Any, Any, bool]] = []
         self._send_task_lock = Lock()
@@ -180,7 +180,6 @@ class NodeSED(PlugwiseNode):
         """Reset node alive state."""
         if self._awake_future is not None:
             self._awake_future.set_result(True)
-
         # Setup new maintenance timer
         self._awake_future = self._loop.create_future()
         self._awake_timer_task = self._loop.create_task(
@@ -215,10 +214,8 @@ class NodeSED(PlugwiseNode):
         """Send all tasks in queue."""
         if len(self._send_task_queue) == 0:
             return
-
         await self._send_task_lock.acquire()
         task_result = await gather(*self._send_task_queue)
-
         if not all(task_result):
             _LOGGER.warning(
                 "Executed %s tasks (result=%s) for %s",
