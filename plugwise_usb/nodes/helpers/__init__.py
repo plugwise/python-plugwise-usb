@@ -27,8 +27,7 @@ def raise_not_loaded(func: FuncT) -> FuncT:
     """Raise NodeError when node is not loaded."""
     @wraps(func)
     def decorated(*args: Any, **kwargs: Any) -> Any:
-
-        if not args[0].loaded:
+        if not args[0].is_loaded:
             raise NodeError(f"Node {args[0].mac} is not loaded yet")
         return func(*args, **kwargs)
     return cast(FuncT, decorated)
