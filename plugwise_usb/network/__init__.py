@@ -421,7 +421,6 @@ class StickNetwork:
                 counter += 1
                 await sleep(0)
         _LOGGER.debug("Total %s registered node(s)", str(counter))
-        self._controller.reduce_receive_logging = False
 
     async def _load_node(self, mac: str) -> bool:
         """Load node."""
