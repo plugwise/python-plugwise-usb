@@ -30,9 +30,13 @@ pw_receiver = importlib.import_module("plugwise_usb.connection.receiver")
 pw_sender = importlib.import_module("plugwise_usb.connection.sender")
 pw_requests = importlib.import_module("plugwise_usb.messages.requests")
 pw_responses = importlib.import_module("plugwise_usb.messages.responses")
+pw_msg_properties = importlib.import_module("plugwise_usb.messages.properties")
 pw_userdata = importlib.import_module("stick_test_data")
+pw_node = importlib.import_module("plugwise_usb.nodes.node")
 pw_circle = importlib.import_module("plugwise_usb.nodes.circle")
+pw_sed = importlib.import_module("plugwise_usb.nodes.sed")
 pw_scan = importlib.import_module("plugwise_usb.nodes.scan")
+pw_switch = importlib.import_module("plugwise_usb.nodes.switch")
 pw_energy_counter = importlib.import_module("plugwise_usb.nodes.helpers.counter")
 pw_energy_calibration = importlib.import_module("plugwise_usb.nodes.helpers")
 pw_energy_pulses = importlib.import_module("plugwise_usb.nodes.helpers.pulses")
@@ -95,6 +99,8 @@ class DummyTransport:
     def write(self, data: bytes) -> None:
         """Write data back to system."""
         log = None
+        ack = None
+        response = None
         if data in self._processed and self._second_response is not None:
             log, ack, response = self._second_response.get(data, (None, None, None))
         if log is None and self._first_response is not None:
@@ -205,7 +211,13 @@ class MockOsPath:
             return True
         if file_or_path == "mock_folder_that_exists/nodes.cache":
             return True
+        if file_or_path == "mock_folder_that_exists\\nodes.cache":
+            return True
         if file_or_path == "mock_folder_that_exists/0123456789ABCDEF.cache":
+            return True
+        if file_or_path == "mock_folder_that_exists\\0123456789ABCDEF.cache":
+            return True
+        if file_or_path == "mock_folder_that_exists\\file_that_exists.ext":
             return True
         return file_or_path == "mock_folder_that_exists/file_that_exists.ext"
 
@@ -217,7 +229,7 @@ class MockOsPath:
 class MockStickController:
     """Mock stick controller."""
 
-    def subscribe_to_node_responses(
+    async def subscribe_to_messages(
         self,
         node_response_callback: Callable[  # type: ignore[name-defined]
             [pw_responses.PlugwiseResponse], Coroutine[Any, Any, bool]
@@ -273,11 +285,9 @@ class TestStick:
         node_add_request = pw_requests.NodeAddRequest(
             self.dummy_fn, b"1111222233334444", True
         )
-        await asyncio.sleep(0.001)
         relay_switch_request = pw_requests.CircleRelaySwitchRequest(
             self.dummy_fn, b"1234ABCD12341234", True
         )
-        await asyncio.sleep(0.001)
         circle_plus_allow_joining_request = pw_requests.CirclePlusAllowJoiningRequest(
             self.dummy_fn, True
         )
@@ -309,6 +319,20 @@ class TestStick:
         assert relay_switch_request >= node_add_request
         assert circle_plus_allow_joining_request > node_add_request
         assert circle_plus_allow_joining_request >= node_add_request
+
+    @pytest.mark.asyncio
+    async def test_msg_properties(self) -> None:
+        """Test message properties."""
+
+        # UnixTimestamp
+        unix_timestamp = pw_msg_properties.UnixTimestamp(
+            dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC), 8
+        )
+        assert unix_timestamp.serialize() == b"4E08478A"
+        with pytest.raises(pw_exceptions.MessageError):
+            assert unix_timestamp.value == dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC)
+        unix_timestamp.deserialize(b"4E08478A")
+        assert unix_timestamp.value == dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC)
 
     @pytest.mark.asyncio
     async def test_stick_connect_without_port(self) -> None:
@@ -768,9 +792,9 @@ class TestStick:
         with pytest.raises(pw_exceptions.NodeError):
             assert stick.nodes["0098765432101234"].relay_init
         with pytest.raises(pw_exceptions.NodeError):
-            await stick.nodes["0098765432101234"].switch_relay_init(True)
+            await stick.nodes["0098765432101234"].configure_relay_init_state(True)
         with pytest.raises(pw_exceptions.NodeError):
-            await stick.nodes["0098765432101234"].switch_relay_init(False)
+            await stick.nodes["0098765432101234"].configure_relay_init_state(False)
 
         # Check Circle is raising NodeError for unsupported features
         with pytest.raises(pw_exceptions.NodeError):
@@ -796,13 +820,15 @@ class TestStick:
         # Test async switching back init_state from on to off
         assert stick.nodes["2222222222222222"].relay_init
         self.test_init_relay_state_off = asyncio.Future()
-        assert not await stick.nodes["2222222222222222"].switch_relay_init(False)
+        assert not await stick.nodes["2222222222222222"].configure_relay_init_state(
+            False
+        )
         assert not await self.test_init_relay_state_off
         assert not stick.nodes["2222222222222222"].relay_init
 
         # Test async switching back from off to on
         self.test_init_relay_state_on = asyncio.Future()
-        assert await stick.nodes["2222222222222222"].switch_relay_init(True)
+        assert await stick.nodes["2222222222222222"].configure_relay_init_state(True)
         assert await self.test_init_relay_state_on
         assert stick.nodes["2222222222222222"].relay_init
 
@@ -1566,6 +1592,25 @@ class TestStick:
         monkeypatch.setattr(pw_helpers_cache, "os_getenv", self.fake_env)
         monkeypatch.setattr(pw_helpers_cache, "os_path_expand_user", self.fake_env)
         monkeypatch.setattr(pw_helpers_cache, "os_path_join", self.os_path_join)
+
+        async def aiofiles_os_remove(file: str) -> None:
+            if file == "mock_folder_that_exists/file_that_exists.ext":
+                return
+            if file == "mock_folder_that_exists/nodes.cache":
+                return
+            if file == "mock_folder_that_exists/0123456789ABCDEF.cache":
+                return
+            raise pw_exceptions.CacheError("Invalid file")
+
+        async def makedirs(cache_dir: str, exist_ok: bool) -> None:
+            if cache_dir == "mock_folder_that_exists":
+                return
+            if cache_dir == "non_existing_folder":
+                return
+            raise pw_exceptions.CacheError("wrong folder to create")
+
+        monkeypatch.setattr(pw_helpers_cache, "aiofiles_os_remove", aiofiles_os_remove)
+        monkeypatch.setattr(pw_helpers_cache, "makedirs", makedirs)
         monkeypatch.setattr(pw_helpers_cache, "ospath", MockOsPath())
 
         pw_nw_cache = pw_network_cache.NetworkRegistrationCache(
@@ -1697,6 +1742,39 @@ class TestStick:
     async def test_scan_node(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Testing properties of scan."""
 
+        def fake_cache(dummy: object, setting: str) -> str | None:
+            """Fake cache retrieval."""
+            if setting == pw_node.CACHE_FIRMWARE:
+                return "2011-6-27-8-55-44"
+            if setting == pw_node.CACHE_HARDWARE:
+                return "080007"
+            if setting == pw_node.CACHE_NODE_TYPE:
+                return "6"
+            if setting == pw_node.CACHE_NODE_INFO_TIMESTAMP:
+                return "2024-12-7-1-0-0"
+            if setting == pw_sed.CACHE_AWAKE_DURATION:
+                return "20"
+            if setting == pw_sed.CACHE_CLOCK_INTERVAL:
+                return "12600"
+            if setting == pw_sed.CACHE_CLOCK_SYNC:
+                return "True"
+            if setting == pw_sed.CACHE_MAINTENANCE_INTERVAL:
+                return "43200"
+            if setting == pw_sed.CACHE_SLEEP_DURATION:
+                return "120"
+            if setting == pw_scan.CACHE_MOTION_STATE:
+                return "False"
+            if setting == pw_scan.CACHE_MOTION_TIMESTAMP:
+                return "2024-12-6-1-0-0"
+            if setting == pw_scan.CACHE_MOTION_RESET_TIMER:
+                return "10"
+            if setting == pw_scan.CACHE_SCAN_SENSITIVITY:
+                return "MEDIUM"
+            if setting == pw_scan.CACHE_SCAN_DAYLIGHT_MODE:
+                return "True"
+            return None
+
+        monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache", fake_cache)
         mock_stick_controller = MockStickController()
 
         async def load_callback(event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
@@ -1705,7 +1783,215 @@ class TestStick:
         test_scan = pw_scan.PlugwiseScan(
             "1298347650AFBECD", 1, mock_stick_controller, load_callback
         )
+        assert not test_scan.cache_enabled
+        with pytest.raises(pw_exceptions.NodeError):
+            battery_config = test_scan.battery_config
+
+        assert sorted(test_scan.features) == sorted(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.PING,
+            )
+        )
+        await test_scan.update_node_details(
+            firmware=dt(2011, 6, 27, 8, 55, 44, tzinfo=UTC),
+            hardware="080007",
+            node_type=None,
+            timestamp=None,
+            relay_state=None,
+            logaddress_pointer=None,
+        )
         assert await test_scan.load()
+
+        # test default SED config
+        assert test_scan.sed_awake_duration == 10
+        assert test_scan.sed_clock_interval == 25200
+        assert test_scan.sed_clock_sync is False
+        assert test_scan.sed_maintenance_interval == 600
+        assert test_scan.sed_sleep_duration == 60
+        assert test_scan.battery_config.awake_duration == 10
+        assert test_scan.battery_config.clock_interval == 25200
+        assert test_scan.battery_config.clock_sync is False
+        assert test_scan.battery_config.maintenance_interval == 600
+        assert test_scan.battery_config.sleep_duration == 60
+
+        #  Scan specific defaults
+        assert test_scan.daylight_mode is False
+        assert test_scan.motion_reset_timer == 10
+        assert test_scan.sensitivity_level == pw_api.MotionSensitivity.MEDIUM
+
+        # scan with cache enabled
+        test_scan = pw_scan.PlugwiseScan(
+            "1298347650AFBECD", 1, mock_stick_controller, load_callback
+        )
+        await test_scan.update_node_details(
+            firmware=dt(2011, 6, 27, 8, 55, 44, tzinfo=UTC),
+            hardware="080007",
+            node_type=None,
+            timestamp=None,
+            relay_state=None,
+            logaddress_pointer=None,
+        )
+        test_scan.cache_enabled = True
+        assert await test_scan.load()
+        assert sorted(test_scan.features) == sorted(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.BATTERY,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.MOTION,
+                pw_api.NodeFeature.PING,
+            )
+        )
+        # Validate if we get values from (faked) cache
+        assert test_scan.sed_awake_duration == 20
+        assert test_scan.sed_clock_interval == 12600
+        assert test_scan.sed_clock_sync
+        assert test_scan.sed_maintenance_interval == 43200
+        assert test_scan.sed_sleep_duration == 120
+        assert test_scan.battery_config.awake_duration == 20
+        assert test_scan.battery_config.clock_interval == 12600
+        assert test_scan.battery_config.clock_sync
+        assert test_scan.battery_config.maintenance_interval == 43200
+        assert test_scan.battery_config.sleep_duration == 120
+
+        state = await test_scan.get_state(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.BATTERY,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.MOTION,
+            )
+        )
+        assert not state[pw_api.NodeFeature.AVAILABLE]
+        assert state[pw_api.NodeFeature.BATTERY].maintenance_interval == 43200
+        assert state[pw_api.NodeFeature.BATTERY].awake_duration == 20
+        assert state[pw_api.NodeFeature.BATTERY].clock_sync
+        assert state[pw_api.NodeFeature.BATTERY].clock_interval == 12600
+        assert state[pw_api.NodeFeature.BATTERY].sleep_duration == 120
+
+    @pytest.mark.asyncio
+    async def test_switch_node(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Testing properties of switch."""
+
+        def fake_cache(dummy: object, setting: str) -> str | None:
+            """Fake cache retrieval."""
+            if setting == pw_node.CACHE_FIRMWARE:
+                return "2011-5-13-7-26-54"
+            if setting == pw_node.CACHE_HARDWARE:
+                return "080029"
+            if setting == pw_node.CACHE_NODE_TYPE:
+                return "3"
+            if setting == pw_node.CACHE_NODE_INFO_TIMESTAMP:
+                return "2024-12-7-1-0-0"
+            if setting == pw_sed.CACHE_AWAKE_DURATION:
+                return "15"
+            if setting == pw_sed.CACHE_CLOCK_INTERVAL:
+                return "14600"
+            if setting == pw_sed.CACHE_CLOCK_SYNC:
+                return "False"
+            if setting == pw_sed.CACHE_MAINTENANCE_INTERVAL:
+                return "900"
+            if setting == pw_sed.CACHE_SLEEP_DURATION:
+                return "180"
+            return None
+
+        monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache", fake_cache)
+        mock_stick_controller = MockStickController()
+
+        async def load_callback(event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
+            """Load callback for event."""
+
+        test_switch = pw_switch.PlugwiseSwitch(
+            "1298347650AFBECD", 1, mock_stick_controller, load_callback
+        )
+        assert not test_switch.cache_enabled
+        with pytest.raises(pw_exceptions.NodeError):
+            battery_config = test_switch.battery_config
+
+        assert sorted(test_switch.features) == sorted(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.PING,
+            )
+        )
+        await test_switch.update_node_details(
+            firmware=dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC),
+            hardware="070051",
+            node_type=None,
+            timestamp=None,
+            relay_state=None,
+            logaddress_pointer=None,
+        )
+        assert await test_switch.load()
+
+        # test default SED config
+        assert test_switch.sed_awake_duration == 10
+        assert test_switch.sed_clock_interval == 25200
+        assert test_switch.sed_clock_sync is False
+        assert test_switch.sed_maintenance_interval == 600
+        assert test_switch.sed_sleep_duration == 60
+        assert test_switch.battery_config.awake_duration == 10
+        assert test_switch.battery_config.clock_interval == 25200
+        assert test_switch.battery_config.clock_sync is False
+        assert test_switch.battery_config.maintenance_interval == 600
+        assert test_switch.battery_config.sleep_duration == 60
+
+        #  Switch specific defaults
+        assert test_switch.switch is False
+
+        # switch with cache enabled
+        test_switch = pw_switch.PlugwiseSwitch(
+            "1298347650AFBECD", 1, mock_stick_controller, load_callback
+        )
+        await test_switch.update_node_details(
+            firmware=dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC),
+            hardware="070051",
+            node_type=None,
+            timestamp=None,
+            relay_state=None,
+            logaddress_pointer=None,
+        )
+        test_switch.cache_enabled = True
+        assert test_switch.cache_enabled is True
+        assert await test_switch.load()
+        assert sorted(test_switch.features) == sorted(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.BATTERY,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.PING,
+                pw_api.NodeFeature.SWITCH,
+            )
+        )
+        # Validate if we get values from (faked) cache
+        assert test_switch.sed_awake_duration == 15
+        assert test_switch.sed_clock_interval == 14600
+        assert test_switch.sed_clock_sync is False
+        assert test_switch.sed_maintenance_interval == 900
+        assert test_switch.sed_sleep_duration == 180
+        assert test_switch.battery_config.awake_duration == 15
+        assert test_switch.battery_config.clock_interval == 14600
+        assert test_switch.battery_config.clock_sync is False
+        assert test_switch.battery_config.maintenance_interval == 900
+        assert test_switch.battery_config.sleep_duration == 180
+
+        state = await test_switch.get_state(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.BATTERY,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.SWITCH,
+            )
+        )
+        assert not state[pw_api.NodeFeature.AVAILABLE]
+        assert state[pw_api.NodeFeature.BATTERY].maintenance_interval == 900
+        assert state[pw_api.NodeFeature.BATTERY].awake_duration == 15
+        assert state[pw_api.NodeFeature.BATTERY].clock_sync is False
+        assert state[pw_api.NodeFeature.BATTERY].clock_interval == 14600
+        assert state[pw_api.NodeFeature.BATTERY].sleep_duration == 180
 
     @pytest.mark.asyncio
     async def test_node_discovery_and_load(
@@ -1845,6 +2131,105 @@ class TestStick:
             )
         )
         assert state[pw_api.NodeFeature.RELAY].relay_state
+
+        # region Scan
+        self.test_node_awake = asyncio.Future()
+        unsub_awake = stick.subscribe_to_node_events(
+            node_event_callback=self.node_awake,
+            events=(pw_api.NodeEvent.AWAKE,),
+        )
+        mock_serial.inject_message(b"004F555555555555555500", b"FFFE")
+        assert await self.test_node_awake
+        unsub_awake()
+
+        assert stick.nodes["5555555555555555"].node_info.firmware == dt(
+            2011, 6, 27, 8, 55, 44, tzinfo=UTC
+        )
+        assert stick.nodes["5555555555555555"].node_info.version == "000000070008"
+        assert stick.nodes["5555555555555555"].node_info.model == "Scan"
+        assert stick.nodes["5555555555555555"].node_info.model_type == ""
+        assert stick.nodes["5555555555555555"].available
+        assert stick.nodes["5555555555555555"].node_info.is_battery_powered
+        assert sorted(stick.nodes["5555555555555555"].features) == sorted(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.BATTERY,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.PING,
+                pw_api.NodeFeature.MOTION,
+            )
+        )
+        state = await stick.nodes["5555555555555555"].get_state(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.BATTERY,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.MOTION,
+            )
+        )
+        assert state[pw_api.NodeFeature.AVAILABLE]
+        assert state[pw_api.NodeFeature.BATTERY].maintenance_interval == 600
+        assert state[pw_api.NodeFeature.BATTERY].awake_duration == 10
+        assert not state[pw_api.NodeFeature.BATTERY].clock_sync
+        assert state[pw_api.NodeFeature.BATTERY].clock_interval == 25200
+        assert state[pw_api.NodeFeature.BATTERY].sleep_duration == 60
+
+        # Motion
+        self.test_motion_on = asyncio.Future()
+        self.test_motion_off = asyncio.Future()
+        unsub_motion = stick.nodes["5555555555555555"].subscribe_to_feature_update(
+            node_feature_callback=self.node_motion_state,
+            features=(pw_api.NodeFeature.MOTION,),
+        )
+        # Inject motion message to trigger a 'motion on' event
+        mock_serial.inject_message(b"005655555555555555550001", b"FFFF")
+        motion_on = await self.test_motion_on
+        assert motion_on
+        assert stick.nodes["5555555555555555"].motion
+
+        # Inject motion message to trigger a 'motion off' event
+        mock_serial.inject_message(b"005655555555555555550000", b"FFFF")
+        motion_off = await self.test_motion_off
+        assert not motion_off
+        assert not stick.nodes["5555555555555555"].motion
+        unsub_motion()
+        # endregion
+
+        # region Switch
+        self.test_node_awake = asyncio.Future()
+        unsub_awake = stick.subscribe_to_node_events(
+            node_event_callback=self.node_awake,
+            events=(pw_api.NodeEvent.AWAKE,),
+        )
+        mock_serial.inject_message(b"004F888888888888888800", b"FFFE")
+        assert await self.test_node_awake
+        unsub_awake()
+        assert stick.nodes["8888888888888888"].node_info.firmware == dt(
+            2011, 6, 27, 9, 4, 10, tzinfo=UTC
+        )
+        assert stick.nodes["8888888888888888"].node_info.version == "000000070051"
+        assert stick.nodes["8888888888888888"].node_info.model == "Switch"
+        assert stick.nodes["8888888888888888"].node_info.model_type == ""
+        assert stick.nodes["8888888888888888"].available
+        assert stick.nodes["8888888888888888"].node_info.is_battery_powered
+        assert sorted(stick.nodes["8888888888888888"].features) == sorted(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.BATTERY,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.PING,
+                pw_api.NodeFeature.SWITCH,
+            )
+        )
+        state = await stick.nodes["8888888888888888"].get_state(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.BATTERY,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.SWITCH,
+            )
+        )
+        # endregion
 
         # test disable cache
         assert stick.cache_enabled

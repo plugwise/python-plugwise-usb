@@ -96,7 +96,7 @@ RESPONSE_MESSAGES = {
         b"0019" + b"0098765432101234" + b"7777777777777777" + b"06",
     ),
     b"\x05\x05\x03\x030018009876543210123407CE1E\r\n": (
-        "SCAN 07",
+        "SWITCH 01",
         b"000000C1",  # Success ack
         b"0019" + b"0098765432101234" + b"8888888888888888" + b"07",
     ),
@@ -657,6 +657,19 @@ RESPONSE_MESSAGES = {
         + b"000000070008"  # hw_ver
         + b"4E084590"  # fw_ver
         + b"06",  # node_type (Scan)
+    ),
+    b"\x05\x05\x03\x03002388888888888888886C1F\r\n": (
+        "Node info for 8888888888888888",
+        b"000000C1",  # Success ack
+        b"0024"  # msg_id
+        + b"8888888888888888"  # mac
+        + b"22026A68"  # datetime
+        + b"00000000"  # log address
+        + b"00"  # relay
+        + b"01"  # hz
+        + b"000000070051"  # hw_ver
+        + b"4E08478A"  # fw_ver
+        + b"03",  # node_type (Switch)
     ),
     b"\x05\x05\x03\x03001200987654321012340A72\r\n": (
         "Power usage for 0098765432101234",
