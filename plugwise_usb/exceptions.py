@@ -13,6 +13,10 @@ class EnergyError(PlugwiseException):
     """Energy error."""
 
 
+class FeatureError(PlugwiseException):
+    """Feature error."""
+
+
 class MessageError(PlugwiseException):
     """Message errors."""
 
