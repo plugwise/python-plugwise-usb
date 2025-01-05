@@ -50,8 +50,7 @@ class StickController:
         """MAC address of USB-Stick. Raises StickError when not connected."""
         if not self._manager.is_connected or self._mac_stick is None:
             raise StickError(
-                "No mac address available. " +
-                "Connect and initialize USB-Stick first."
+                "No mac address available. Connect and initialize USB-Stick first."
             )
         return self._mac_stick
 
@@ -72,8 +71,7 @@ class StickController:
         """Returns the Zigbee network ID. Raises StickError when not connected."""
         if not self._manager.is_connected or self._network_id is None:
             raise StickError(
-                "No network ID available. " +
-                "Connect and initialize USB-Stick first."
+                "No network ID available. Connect and initialize USB-Stick first."
             )
         return self._network_id
 
@@ -82,8 +80,7 @@ class StickController:
         """Return the network state."""
         if not self._manager.is_connected:
             raise StickError(
-                "Network status not available. " +
-                "Connect and initialize USB-Stick first."
+                "Network status not available. Connect and initialize USB-Stick first."
             )
         return self._network_online
 
@@ -156,15 +153,15 @@ class StickController:
             init_response: StickInitResponse | None = await request.send()
         except StickError as err:
             raise StickError(
-                "No response from USB-Stick to initialization request." +
-                " Validate USB-stick is connected to port " +
-                f"' {self._manager.serial_path}'"
+                "No response from USB-Stick to initialization request."
+                + " Validate USB-stick is connected to port "
+                + f"' {self._manager.serial_path}'"
             ) from err
         if init_response is None:
             raise StickError(
-                "No response from USB-Stick to initialization request." +
-                " Validate USB-stick is connected to port " +
-                f"' {self._manager.serial_path}'"
+                "No response from USB-Stick to initialization request."
+                + " Validate USB-stick is connected to port "
+                + f"' {self._manager.serial_path}'"
             )
         self._mac_stick = init_response.mac_decoded
         self._network_online = init_response.network_online
@@ -175,9 +172,7 @@ class StickController:
         self._is_initialized = True
 
         if not self._network_online:
-            raise StickError(
-                "Zigbee network connection to Circle+ is down."
-            )
+            raise StickError("Zigbee network connection to Circle+ is down.")
 
     async def send(
         self, request: PlugwiseRequest, suppress_node_errors: bool = True
