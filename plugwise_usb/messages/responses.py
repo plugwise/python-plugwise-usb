@@ -400,10 +400,10 @@ class NodeImageValidationResponse(PlugwiseResponse):
     Response to request : NodeImageValidationRequest
     """
 
-    def __init__(self) -> None:
+    def __init__(self, timestamp: datetime | None = None) -> None:
         """Initialize NodeImageValidationResponse message object."""
         super().__init__(b"0010")
-        self.image_timestamp = UnixTimestamp(0)
+        self.image_timestamp = UnixTimestamp(timestamp)
         self._params += [self.image_timestamp]
 
 
