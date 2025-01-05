@@ -13,7 +13,7 @@ from serial_asyncio_fast import SerialTransport, create_serial_connection
 from ..api import StickEvent
 from ..exceptions import StickError
 from ..messages.requests import PlugwiseRequest
-from ..messages.responses import PlugwiseResponse, StickResponse
+from ..messages.responses import PlugwiseResponse
 from .receiver import StickReceiver
 from .sender import StickSender
 
@@ -94,22 +94,12 @@ class StickConnectionManager:
         )
         return remove_subscription
 
-    def subscribe_to_stick_replies(
-        self,
-        callback: Callable[[StickResponse], Coroutine[Any, Any, None]],
-    ) -> Callable[[], None]:
-        """Subscribe to response messages from stick."""
-        if self._receiver is None or not self._receiver.is_connected:
-            raise StickError(
-                "Unable to subscribe to stick response when receiver " + "is not loaded"
-            )
-        return self._receiver.subscribe_to_stick_responses(callback)
-
-    def subscribe_to_node_responses(
+    async def subscribe_to_messages(
         self,
         node_response_callback: Callable[[PlugwiseResponse], Coroutine[Any, Any, bool]],
         mac: bytes | None = None,
         message_ids: tuple[bytes] | None = None,
+        seq_id: bytes | None = None,
     ) -> Callable[[], None]:
         """Subscribe a awaitable callback to be called when a specific message is received.
 
@@ -119,8 +109,8 @@ class StickConnectionManager:
             raise StickError(
                 "Unable to subscribe to node response when receiver " + "is not loaded"
             )
-        return self._receiver.subscribe_to_node_responses(
-            node_response_callback, mac, message_ids
+        return await self._receiver.subscribe_to_node_responses(
+            node_response_callback, mac, message_ids, seq_id
         )
 
     async def setup_connection_to_stick(self, serial_path: str) -> None:
