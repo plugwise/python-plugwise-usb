@@ -29,40 +29,40 @@ def get_plugwise_node(
             address,
             controller,
             loaded_callback,
-        )  # type: ignore[return-value]
+        )
     if node_type == NodeType.CIRCLE:
         return PlugwiseCircle(
             mac,
             address,
             controller,
             loaded_callback,
-        )  # type: ignore[return-value]
+        )
     if node_type == NodeType.SWITCH:
         return PlugwiseSwitch(
             mac,
             address,
             controller,
             loaded_callback,
-        )  # type: ignore[return-value]
+        )
     if node_type == NodeType.SENSE:
         return PlugwiseSense(
             mac,
             address,
             controller,
             loaded_callback,
-        )  # type: ignore[return-value]
+        )
     if node_type == NodeType.SCAN:
         return PlugwiseScan(
             mac,
             address,
             controller,
             loaded_callback,
-        )  # type: ignore[return-value]
+        )
     if node_type == NodeType.STEALTH:
         return PlugwiseStealth(
             mac,
             address,
             controller,
             loaded_callback,
-        )  # type: ignore[return-value]
+        )
     return None
