@@ -1098,6 +1098,17 @@ class NodeAddToGroupRequest(PlugwiseRequest):
         port_mask_val = String(port_mask, length=16)
         self._args += [group_mac_val, task_id_val, port_mask_val]
 
+    async def send(self, suppress_node_errors: bool = False) -> NodeResponse | None:
+        """Send request."""
+        result = await self._send_request(suppress_node_errors)
+        if isinstance(result, NodeResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeResponse"
+        )
+
 
 class NodeRemoveFromGroupRequest(PlugwiseRequest):
     """Remove node from group.
