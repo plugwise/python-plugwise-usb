@@ -24,9 +24,7 @@ class StickController:
         self._manager = StickConnectionManager()
         self._queue = StickQueue()
         self._unsubscribe_stick_event: Callable[[], None] | None = None
-
         self._init_sequence_id: bytes | None = None
-
         self._is_initialized = False
         self._mac_stick: str | None = None
         self._mac_nc: str | None = None
@@ -90,11 +88,9 @@ class StickController:
             raise StickError("Already connected")
         await self._manager.setup_connection_to_stick(serial_path)
         if self._unsubscribe_stick_event is None:
-            self._unsubscribe_stick_event = (
-                self._manager.subscribe_to_stick_events(
-                    self._handle_stick_event,
-                    (StickEvent.CONNECTED, StickEvent.DISCONNECTED),
-                )
+            self._unsubscribe_stick_event = self._manager.subscribe_to_stick_events(
+                self._handle_stick_event,
+                (StickEvent.CONNECTED, StickEvent.DISCONNECTED),
             )
         self._queue.start(self._manager)
 
