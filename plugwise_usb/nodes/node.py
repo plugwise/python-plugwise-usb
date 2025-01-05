@@ -10,8 +10,10 @@ import logging
 from typing import Any
 
 from ..api import (
+    AvailableState,
     BatteryConfig,
     EnergyStatistics,
+    MotionConfig,
     MotionSensitivity,
     MotionState,
     NetworkStatistics,
@@ -20,17 +22,17 @@ from ..api import (
     NodeInfo,
     NodeType,
     PowerStatistics,
+    RelayConfig,
     RelayState,
 )
 from ..connection import StickController
 from ..constants import SUPPRESS_INITIALIZATION_WARNINGS, UTF8
-from ..exceptions import NodeError
+from ..exceptions import FeatureError, NodeError
 from ..helpers.util import version_to_model
 from ..messages.requests import NodeInfoRequest, NodePingRequest
 from ..messages.responses import NodeInfoResponse, NodePingResponse
-from .helpers import EnergyCalibration, raise_not_loaded
+from .helpers import raise_not_loaded
 from .helpers.cache import NodeCache
-from .helpers.counter import EnergyCounters
 from .helpers.firmware import FEATURE_SUPPORTED_AT_FIRMWARE, SupportedVersions
 from .helpers.subscription import FeaturePublisher
 
@@ -64,51 +66,61 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         self._loaded_callback = loaded_callback
         self._message_subscribe = controller.subscribe_to_messages
         self._features: tuple[NodeFeature, ...] = NODE_FEATURES
-        self._last_update = datetime.now(UTC)
+        self._last_seen = datetime.now(tz=UTC)
         self._node_info = NodeInfo(mac, address)
         self._ping = NetworkStatistics()
-        self._power = PowerStatistics()
         self._mac_in_bytes = bytes(mac, encoding=UTF8)
         self._mac_in_str = mac
         self._send = controller.send
         self._cache_enabled: bool = False
+        self._cache_folder_create: bool = False
         self._cache_save_task: Task[None] | None = None
         self._node_cache = NodeCache(mac, "")
         # Sensors
         self._available: bool = False
-        self._humidity: float | None = None
-        self._motion: bool | None = None
-        self._switch: bool | None = None
-        self._temperature: float | None = None
         self._connected: bool = False
         self._initialized: bool = False
         self._initialization_delay_expired: datetime | None = None
         self._loaded: bool = False
         self._node_protocols: SupportedVersions | None = None
-        self._node_last_online: datetime | None = None
-        # Battery
-        self._battery_config = BatteryConfig()
-        # Motion
-        self._motion = False
-        self._motion_state = MotionState()
-        self._scan_subscription: Callable[[], None] | None = None
-        self._sensitivity_level: MotionSensitivity | None = None
+
         # Node info
         self._current_log_address: int | None = None
-        # Relay
-        self._relay: bool | None = None
-        self._relay_state: RelayState = RelayState()
-        self._relay_init_state: bool | None = None
-        # Power & energy
-        self._calibration: EnergyCalibration | None = None
-        self._energy_counters = EnergyCounters(mac)
 
     # region Properties
 
     @property
-    def network_address(self) -> int:
-        """Zigbee network registration address."""
-        return self._node_info.zigbee_address
+    def available(self) -> bool:
+        """Return network availability state."""
+        return self._available
+
+    @property
+    def available_state(self) -> AvailableState:
+        """Network availability state."""
+        return AvailableState(
+            self._available,
+            self._last_seen,
+        )
+
+    @property
+    @raise_not_loaded
+    def battery_config(self) -> BatteryConfig:
+        """Battery related configuration settings."""
+        if NodeFeature.BATTERY not in self._features:
+            raise FeatureError(
+                f"Battery configuration property is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
+
+    @property
+    @raise_not_loaded
+    def clock_sync(self) -> bool:
+        """Indicate if the internal clock must be synced."""
+        if NodeFeature.BATTERY not in self._features:
+            raise FeatureError(
+                f"Clock sync property is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
 
     @property
     def cache_folder(self) -> str:
@@ -141,51 +153,32 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         self._cache_enabled = enable
 
     @property
-    def available(self) -> bool:
-        """Return network availability state."""
-        return self._available
-
-    @property
-    def battery_config(self) -> BatteryConfig:
-        """Return battery configuration settings."""
-        if NodeFeature.BATTERY not in self._features:
-            raise NodeError(
-                f"Battery configuration settings are not supported for node {self.mac}"
-            )
-        return self._battery_config
-
-    @property
-    def is_battery_powered(self) -> bool:
-        """Return if node is battery powered."""
-        return self._node_info.is_battery_powered
-
-    @property
-    def daylight_mode(self) -> bool:
-        """Daylight mode of motion sensor."""
-        if NodeFeature.MOTION not in self._features:
-            raise NodeError(f"Daylight mode is not supported for node {self.mac}")
-        raise NotImplementedError()
-
-    @property
-    def energy(self) -> EnergyStatistics | None:
+    @raise_not_loaded
+    def energy(self) -> EnergyStatistics:
         """Energy statistics."""
         if NodeFeature.POWER not in self._features:
-            raise NodeError(f"Energy state is not supported for node {self.mac}")
+            raise FeatureError(f"Energy state is not supported for node {self.mac}")
         raise NotImplementedError()
 
     @property
+    @raise_not_loaded
     def energy_consumption_interval(self) -> int | None:
         """Interval (minutes) energy consumption counters are locally logged at Circle devices."""
         if NodeFeature.ENERGY not in self._features:
-            raise NodeError(f"Energy log interval is not supported for node {self.mac}")
-        return self._energy_counters.consumption_interval
+            raise FeatureError(
+                f"Energy log interval is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
 
     @property
+    @raise_not_loaded
     def energy_production_interval(self) -> int | None:
         """Interval (minutes) energy production counters are locally logged at Circle devices."""
         if NodeFeature.ENERGY not in self._features:
-            raise NodeError(f"Energy log interval is not supported for node {self.mac}")
-        return self._energy_counters.production_interval
+            raise FeatureError(
+                f"Energy log interval is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
 
     @property
     def features(self) -> tuple[NodeFeature, ...]:
@@ -193,26 +186,27 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         return self._features
 
     @property
-    def node_info(self) -> NodeInfo:
-        """Node information."""
-        return self._node_info
-
-    @property
-    def humidity(self) -> float | None:
+    @raise_not_loaded
+    def humidity(self) -> float:
         """Humidity state."""
         if NodeFeature.HUMIDITY not in self._features:
-            raise NodeError(f"Humidity state is not supported for node {self.mac}")
-        return self._humidity
+            raise FeatureError(f"Humidity state is not supported for node {self.mac}")
+        raise NotImplementedError()
 
     @property
-    def last_update(self) -> datetime:
-        """Timestamp of last update."""
-        return self._last_update
+    def is_battery_powered(self) -> bool:
+        """Return if node is battery powered."""
+        return self._node_info.is_battery_powered
 
     @property
     def is_loaded(self) -> bool:
         """Return load status."""
         return self._loaded
+
+    @property
+    def last_seen(self) -> datetime:
+        """Timestamp of last network activity."""
+        return self._last_seen
 
     @property
     def name(self) -> str:
@@ -222,34 +216,44 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         return self._mac_in_str
 
     @property
+    def network_address(self) -> int:
+        """Zigbee network registration address."""
+        return self._node_info.zigbee_address
+
+    @property
+    def node_info(self) -> NodeInfo:
+        """Node information."""
+        return self._node_info
+
+    @property
     def mac(self) -> str:
         """Zigbee mac address of node."""
         return self._mac_in_str
 
     @property
-    def maintenance_interval(self) -> int | None:
-        """Maintenance interval (seconds) a battery powered node sends it heartbeat."""
+    @raise_not_loaded
+    def motion(self) -> bool:
+        """Motion detection value."""
+        if NodeFeature.MOTION not in self._features:
+            raise FeatureError(f"Motion state is not supported for node {self.mac}")
         raise NotImplementedError()
 
     @property
-    def motion(self) -> bool | None:
-        """Motion detection value."""
+    @raise_not_loaded
+    def motion_config(self) -> MotionConfig:
+        """Motion configuration settings."""
         if NodeFeature.MOTION not in self._features:
-            raise NodeError(f"Motion state is not supported for node {self.mac}")
-        return self._motion
+            raise FeatureError(
+                f"Motion configuration is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
 
     @property
+    @raise_not_loaded
     def motion_state(self) -> MotionState:
         """Motion detection state."""
         if NodeFeature.MOTION not in self._features:
-            raise NodeError(f"Motion state is not supported for node {self.mac}")
-        return self._motion_state
-
-    @property
-    def motion_reset_timer(self) -> int:
-        """Total minutes without motion before no motion is reported."""
-        if NodeFeature.MOTION not in self._features:
-            raise NodeError(f"Motion reset timer is not supported for node {self.mac}")
+            raise FeatureError(f"Motion state is not supported for node {self.mac}")
         raise NotImplementedError()
 
     @property
@@ -258,55 +262,56 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         return self._ping
 
     @property
+    @raise_not_loaded
     def power(self) -> PowerStatistics:
         """Power statistics."""
         if NodeFeature.POWER not in self._features:
-            raise NodeError(f"Power state is not supported for node {self.mac}")
-        return self._power
+            raise FeatureError(f"Power state is not supported for node {self.mac}")
+        raise NotImplementedError()
 
     @property
+    @raise_not_loaded
     def relay_state(self) -> RelayState:
         """State of relay."""
         if NodeFeature.RELAY not in self._features:
-            raise NodeError(f"Relay state is not supported for node {self.mac}")
-        return self._relay_state
+            raise FeatureError(f"Relay state is not supported for node {self.mac}")
+        raise NotImplementedError()
 
     @property
+    @raise_not_loaded
     def relay(self) -> bool:
         """Relay value."""
         if NodeFeature.RELAY not in self._features:
-            raise NodeError(f"Relay value is not supported for node {self.mac}")
-        if self._relay is None:
-            raise NodeError(f"Relay value is unknown for node {self.mac}")
-        return self._relay
-
-    @property
-    def relay_init(
-        self,
-    ) -> bool | None:
-        """Request the relay states at startup/power-up."""
+            raise FeatureError(f"Relay value is not supported for node {self.mac}")
         raise NotImplementedError()
 
     @property
-    def sensitivity_level(self) -> MotionSensitivity:
-        """Sensitivity level of motion sensor."""
-        if NodeFeature.MOTION not in self._features:
-            raise NodeError(f"Sensitivity level is not supported for node {self.mac}")
+    @raise_not_loaded
+    def relay_config(self) -> RelayConfig:
+        """Relay configuration."""
+        if NodeFeature.RELAY_INIT not in self._features:
+            raise FeatureError(
+                f"Relay configuration is not supported for node {self.mac}"
+            )
         raise NotImplementedError()
 
     @property
-    def switch(self) -> bool | None:
+    @raise_not_loaded
+    def switch(self) -> bool:
         """Switch button value."""
         if NodeFeature.SWITCH not in self._features:
-            raise NodeError(f"Switch value is not supported for node {self.mac}")
-        return self._switch
+            raise FeatureError(f"Switch value is not supported for node {self.mac}")
+        raise NotImplementedError()
 
     @property
-    def temperature(self) -> float | None:
+    @raise_not_loaded
+    def temperature(self) -> float:
         """Temperature value."""
         if NodeFeature.TEMPERATURE not in self._features:
-            raise NodeError(f"Temperature state is not supported for node {self.mac}")
-        return self._temperature
+            raise FeatureError(
+                f"Temperature state is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
 
     # endregion
 
@@ -345,28 +350,15 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Reconnect node to Plugwise Zigbee network."""
         if await self.ping_update() is not None:
             self._connected = True
-            await self._available_update_state(True)
+            await self._available_update_state(True, None)
 
     async def disconnect(self) -> None:
         """Disconnect node from Plugwise Zigbee network."""
         self._connected = False
         await self._available_update_state(False)
 
-    async def configure_motion_reset(self, delay: int) -> bool:
-        """Configure the duration to reset motion state."""
-        raise NotImplementedError()
-
     async def scan_calibrate_light(self) -> bool:
         """Request to calibration light sensitivity of Scan device. Returns True if successful."""
-        raise NotImplementedError()
-
-    async def scan_configure(
-        self,
-        motion_reset_timer: int,
-        sensitivity_level: MotionSensitivity,
-        daylight_mode: bool,
-    ) -> bool:
-        """Configure Scan device settings. Returns True if successful."""
         raise NotImplementedError()
 
     async def load(self) -> bool:
@@ -409,26 +401,39 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Initialize node configuration."""
         if self._initialized:
             return True
-        self._initialization_delay_expired = datetime.now(UTC) + timedelta(
+        self._initialization_delay_expired = datetime.now(tz=UTC) + timedelta(
             minutes=SUPPRESS_INITIALIZATION_WARNINGS
         )
         self._initialized = True
         return True
 
-    async def _available_update_state(self, available: bool) -> None:
+    async def _available_update_state(
+        self, available: bool, timestamp: datetime | None = None
+    ) -> None:
         """Update the node availability state."""
         if self._available == available:
+            if (
+                self._last_seen is not None
+                and timestamp is not None
+                and self._last_seen < timestamp
+            ):
+                self._last_seen = timestamp
+                await self.publish_feature_update_to_subscribers(
+                    NodeFeature.AVAILABLE, self.available_state
+                )
             return
+        if timestamp is not None:
+            self._last_seen = timestamp
         if available:
             _LOGGER.info("Device %s detected to be available (on-line)", self.name)
             self._available = True
             await self.publish_feature_update_to_subscribers(
-                NodeFeature.AVAILABLE, True
+                NodeFeature.AVAILABLE, self.available_state
             )
             return
         _LOGGER.info("Device %s detected to be not available (off-line)", self.name)
         self._available = False
-        await self.publish_feature_update_to_subscribers(NodeFeature.AVAILABLE, False)
+        await self.publish_feature_update_to_subscribers(NodeFeature.AVAILABLE, self.available_state)
 
     async def node_info_update(
         self, node_info: NodeInfoResponse | None = None
@@ -441,7 +446,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             _LOGGER.debug("No response for node_info_update() for %s", self.mac)
             await self._available_update_state(False)
             return self._node_info
-        await self._available_update_state(True)
+        await self._available_update_state(True, node_info.timestamp)
         await self.update_node_details(
             firmware=node_info.firmware,
             node_type=node_info.node_type,
@@ -517,6 +522,10 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             self._node_info.node_type = NodeType(node_type)
             self._set_cache(CACHE_NODE_TYPE, self._node_info.node_type.value)
         await self.save_cache()
+        if timestamp is not None and timestamp > datetime.now(tz=UTC) - timedelta(
+            minutes=5
+        ):
+            await self._available_update_state(True, timestamp)
         return complete
 
     async def is_online(self) -> bool:
@@ -536,7 +545,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         if ping_response is None:
             await self._available_update_state(False)
             return None
-        await self._available_update_state(True)
+        await self._available_update_state(True, ping_response.timestamp)
         self.update_ping_stats(
             ping_response.timestamp,
             ping_response.rssi_in,
@@ -556,14 +565,6 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         self._ping.rtt = rtt
         self._available = True
 
-    async def switch_relay(self, state: bool) -> bool | None:
-        """Switch relay state."""
-        raise NodeError(f"Relay control is not supported for node {self.mac}")
-
-    async def switch_relay_init(self, state: bool) -> bool:
-        """Switch state of initial power-up relay state. Returns new state of relay."""
-        raise NodeError(f"Control of initial (power-up) state of relay is not supported for node {self.mac}")
-
     @raise_not_loaded
     async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
         """Update latest state for given feature."""
@@ -577,7 +578,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             if feature == NodeFeature.INFO:
                 states[NodeFeature.INFO] = await self.node_info_update()
             elif feature == NodeFeature.AVAILABLE:
-                states[NodeFeature.AVAILABLE] = self._available
+                states[NodeFeature.AVAILABLE] = self.available_state
             elif feature == NodeFeature.PING:
                 states[NodeFeature.PING] = await self.ping_update()
             else:
@@ -655,6 +656,108 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             return False
         if data_class.timestamp is None:
             return False
-        if data_class.timestamp + timedelta(seconds=seconds) > datetime.now(UTC):
+        if data_class.timestamp + timedelta(seconds=seconds) > datetime.now(tz=UTC):
             return True
         return False
+
+    # region Configuration of properties
+    @raise_not_loaded
+    async def set_awake_duration(self, seconds: int) -> bool:
+        """Change the awake duration."""
+        if NodeFeature.BATTERY not in self._features:
+            raise FeatureError(
+                f"Changing awake duration is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
+
+    @raise_not_loaded
+    async def set_clock_interval(self, minutes: int) -> bool:
+        """Change the clock interval."""
+        if NodeFeature.BATTERY not in self._features:
+            raise FeatureError(
+                f"Changing clock interval is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
+
+    @raise_not_loaded
+    async def set_clock_sync(self, sync: bool) -> bool:
+        """Change the clock synchronization setting."""
+        if NodeFeature.BATTERY not in self._features:
+            raise FeatureError(
+                f"Configuration of clock sync is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
+
+    @raise_not_loaded
+    async def set_maintenance_interval(self, minutes: int) -> bool:
+        """Change the maintenance interval."""
+        if NodeFeature.BATTERY not in self._features:
+            raise FeatureError(
+                f"Changing maintenance interval is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
+
+    @raise_not_loaded
+    async def set_motion_daylight_mode(self, state: bool) -> bool:
+        """Configure if motion must be detected when light level is below threshold."""
+        if NodeFeature.MOTION not in self._features:
+            raise FeatureError(
+                f"Configuration of daylight mode is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
+
+    @raise_not_loaded
+    async def set_motion_reset_timer(self, minutes: int) -> bool:
+        """Configure the motion reset timer in minutes."""
+        if NodeFeature.MOTION not in self._features:
+            raise FeatureError(
+                f"Changing motion reset timer is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
+
+    @raise_not_loaded
+    async def set_motion_sensitivity_level(self, level: MotionSensitivity) -> bool:
+        """Configure motion sensitivity level."""
+        if NodeFeature.MOTION not in self._features:
+            raise FeatureError(
+                f"Configuration of motion sensitivity is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
+
+    @raise_not_loaded
+    async def set_relay(self, state: bool) -> bool:
+        """Change the state of the relay."""
+        if NodeFeature.RELAY not in self._features:
+            raise FeatureError(
+                f"Changing state of relay is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
+
+    @raise_not_loaded
+    async def set_relay_init(self, state: bool) -> bool:
+        """Change the initial power-on state of the relay."""
+        if NodeFeature.RELAY_INIT not in self._features:
+            raise FeatureError(
+                f"Configuration of initial power-up relay state is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
+
+    @raise_not_loaded
+    async def set_sleep_duration(self, minutes: int) -> bool:
+        """Change the sleep duration."""
+        if NodeFeature.BATTERY not in self._features:
+            raise FeatureError(
+                f"Configuration of sleep duration is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
+
+    # endregion
+
+    async def message_for_node(self, message: Any) -> None:
+        """Process message for node."""
+        if isinstance(message, NodePingResponse):
+            await self.ping_update(message)
+        elif isinstance(message, NodeInfoResponse):
+            await self.node_info_update(message)
+        else:
+            raise NotImplementedError()
