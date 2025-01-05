@@ -1203,59 +1203,64 @@ class CircleHandlesOnRequest(PlugwiseRequest):
 class NodeSleepConfigRequest(PlugwiseRequest):
     """Configure timers for SED nodes to minimize battery usage.
 
-    stay_active             : Duration in seconds the SED will be
-                              awake for receiving commands
-    sleep_for               : Duration in minutes the SED will be
-                              in sleeping mode and not able to respond
-                              any command
-    maintenance_interval    : Interval in minutes the node will wake up
-                             and able to receive commands
-    clock_sync              : Enable/disable clock sync
-    clock_interval          : Duration in minutes the node synchronize
-                              its clock
+    Description:
+        Response message: NodeResponse with SLEEP_SET
 
-    Response message: NodeAckResponse with SLEEP_SET
+    Args:
+        send_fn: Send function
+        mac: MAC address of the node
+        awake_duration: Duration in seconds the SED will be awake for receiving commands
+        sleep_for: Duration in minutes the SED will be in sleeping mode and not able to respond any command
+        maintenance_interval: Interval in minutes the node will wake up and able to receive commands
+        sync_clock: Enable/disable clock sync
+        clock_interval: Duration in minutes the node synchronize its clock
+
     """
 
     _identifier = b"0050"
-    _reply_identifier = b"0100"
+    _reply_identifier = b"0000"
 
     def __init__(
         self,
         send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
         mac: bytes,
-        stay_active: int,
+        awake_duration: int,
         maintenance_interval: int,
-        sleep_for: int,
+        sleep_duration: int,
         sync_clock: bool,
         clock_interval: int,
     ):
         """Initialize NodeSleepConfigRequest message object."""
         super().__init__(send_fn, mac)
-        stay_active_val = Int(stay_active, length=2)
-        sleep_for_val = Int(sleep_for, length=4)
-        maintenance_interval_val = Int(maintenance_interval, length=4)
+        self.awake_duration_val = Int(awake_duration, length=2)
+        self.sleep_duration_val = Int(sleep_duration, length=4)
+        self.maintenance_interval_val = Int(maintenance_interval, length=4)
         val = 1 if sync_clock else 0
-        clock_sync_val = Int(val, length=2)
-        clock_interval_val = Int(clock_interval, length=4)
+        self.clock_sync_val = Int(val, length=2)
+        self.clock_interval_val = Int(clock_interval, length=4)
         self._args += [
-            stay_active_val,
-            maintenance_interval_val,
-            sleep_for_val,
-            clock_sync_val,
-            clock_interval_val,
+            self.awake_duration_val,
+            self.maintenance_interval_val,
+            self.sleep_duration_val,
+            self.clock_sync_val,
+            self.clock_interval_val,
         ]
 
-    async def send(self, suppress_node_errors: bool = False) -> NodeAckResponse | None:
+    async def send(self, suppress_node_errors: bool = False) -> NodeResponse | None:
         """Send request."""
         result = await self._send_request(suppress_node_errors)
-        if isinstance(result, NodeAckResponse):
+        _LOGGER.warning("NodeSleepConfigRequest result: %s", result)
+        if isinstance(result, NodeResponse):
             return result
         if result is None:
             return None
         raise MessageError(
             f"Invalid response message. Received {result.__class__.__name__}, expected NodeAckResponse"
         )
+
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return f"{super().__repr__()[:-1]}, awake_duration={self.awake_duration_val.value}, maintenance_interval={self.maintenance_interval_val.value}, sleep_duration={self.sleep_duration_val.value}, clock_interval={self.clock_interval_val.value}, clock_sync={self.clock_sync_val.value})"
 
 
 class NodeSelfRemoveRequest(PlugwiseRequest):
