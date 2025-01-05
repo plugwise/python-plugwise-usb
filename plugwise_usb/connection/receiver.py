@@ -19,12 +19,14 @@ from __future__ import annotations
 
 from asyncio import (
     Future,
+    Lock,
     PriorityQueue,
     Protocol,
+    Queue,
     Task,
-    TimerHandle,
     gather,
     get_running_loop,
+    sleep,
 )
 from collections.abc import Awaitable, Callable, Coroutine
 from dataclasses import dataclass
@@ -64,7 +66,7 @@ class StickResponseSubscription:
 
     callback_fn: Callable[[StickResponse], Coroutine[Any, Any, None]]
     seq_id: bytes | None
-    stick_response_type: StickResponseType | None
+    stick_response_type: tuple[StickResponseType, ...] | None
 
 
 @dataclass
@@ -89,14 +91,23 @@ class StickReceiver(Protocol):
         self._loop = get_running_loop()
         self._connected_future = connected_future
         self._transport: SerialTransport | None = None
-        self._buffer: bytes = bytes([])
         self._connection_state = False
-        self._receive_queue: PriorityQueue[PlugwiseResponse] = PriorityQueue()
+
+        # Data processing
+        self._buffer: bytes = bytes([])
+        self._data_queue: Queue[bytes] = Queue()
+        self._data_worker_task: Task[None] | None = None
+
+        # Message processing
+        self._message_queue: PriorityQueue[PlugwiseResponse] = PriorityQueue()
         self._last_processed_messages: list[bytes] = []
         self._responses: dict[bytes, Callable[[PlugwiseResponse], None]] = {}
-        self._receive_worker_task: Task[None] | None = None
-        self._delayed_processing_tasks: dict[bytes, TimerHandle] = {}
+        self._message_worker_task: Task[None] | None = None
+        self._delayed_processing_tasks: dict[bytes, Task[None]] = {}
+
         # Subscribers
+        self._stick_subscription_lock = Lock()
+        self._node_subscription_lock = Lock()
         self._stick_event_subscribers: dict[
             Callable[[], None], StickEventSubscription
         ] = {}
@@ -110,7 +121,7 @@ class StickReceiver(Protocol):
 
     def connection_lost(self, exc: Exception | None = None) -> None:
         """Call when port was closed expectedly or unexpectedly."""
-        _LOGGER.info("Connection lost")
+        _LOGGER.warning("Connection lost")
         if exc is not None:
             _LOGGER.warning("Connection to Plugwise USB-stick lost %s", exc)
         self._loop.create_task(self.close())
@@ -150,14 +161,19 @@ class StickReceiver(Protocol):
         for task in self._delayed_processing_tasks.values():
             task.cancel()
         if (
-            self._receive_worker_task is not None
-            and not self._receive_worker_task.done()
+            self._message_worker_task is not None
+            and not self._message_worker_task.done()
         ):
             cancel_response = StickResponse()
             cancel_response.priority = Priority.CANCEL
-            await self._receive_queue.put(cancel_response)
-            await self._receive_worker_task
-        self._receive_worker_task = None
+            await self._message_queue.put(cancel_response)
+            await self._message_worker_task
+        self._message_worker_task = None
+        if self._data_worker_task is not None and not self._data_worker_task.done():
+            await self._data_queue.put(b"FFFFFFFF")
+            await self._data_worker_task
+
+    # region Process incoming data
 
     def data_received(self, data: bytes) -> None:
         """Receive data from USB-Stick connection.
@@ -167,74 +183,103 @@ class StickReceiver(Protocol):
         _LOGGER.debug("Received data from USB-Stick: %s", data)
         self._buffer += data
         if MESSAGE_FOOTER in self._buffer:
-            msgs = self._buffer.split(MESSAGE_FOOTER)
-            for msg in msgs[:-1]:
-                if (response := self.extract_message_from_line_buffer(msg)) is not None:
-                    self._put_message_in_receiver_queue(response)
-            if len(msgs) > 4:
-                _LOGGER.debug("Reading %d messages at once from USB-Stick", len(msgs))
-            self._buffer = msgs[-1]  # whatever was left over
-            if self._buffer == b"\x83":
-                self._buffer = b""
+            data_of_messages = self._buffer.split(MESSAGE_FOOTER)
+            for msg_data in data_of_messages[:-1]:
+                # Ignore ASCII messages without a header and footer like:
+                #    # SENDING PING UNICAST: Macid: ????????????????
+                #    # HANDLE: 0x??
+                #    # APSRequestNodeInfo
+                if (header_index := msg_data.find(MESSAGE_HEADER)) != -1:
+                    data = msg_data[header_index:]
+                    self._put_data_in_queue(data)
+            if len(data_of_messages) > 4:
+                _LOGGER.debug(
+                    "Reading %d messages at once from USB-Stick", len(data_of_messages)
+                )
+            self._buffer = data_of_messages[-1]  # whatever was left over
 
-    def _put_message_in_receiver_queue(self, response: PlugwiseResponse) -> None:
-        """Put message in queue."""
-        _LOGGER.debug("Add response to queue: %s", response)
-        self._receive_queue.put_nowait(response)
-        if self._receive_worker_task is None or self._receive_worker_task.done():
-            self._receive_worker_task = self._loop.create_task(
-                self._receive_queue_worker(), name="Receive queue worker"
+    def _put_data_in_queue(self, data: bytes) -> None:
+        """Put raw message data in queue to be converted to messages."""
+        self._data_queue.put_nowait(data)
+        if self._data_worker_task is None or self._data_worker_task.done():
+            self._data_worker_task = self._loop.create_task(
+                self._data_queue_worker(), name="Plugwise data receiver queue worker"
             )
 
-    def extract_message_from_line_buffer(self, msg: bytes) -> PlugwiseResponse | None:
+    async def _data_queue_worker(self) -> None:
+        """Convert collected data into messages and place then im message queue."""
+        _LOGGER.debug("Data queue worker started")
+        while self.is_connected:
+            if (data := await self._data_queue.get()) != b"FFFFFFFF":
+                if (response := self.extract_message_from_data(data)) is not None:
+                    await self._put_message_in_queue(response)
+                self._data_queue.task_done()
+            else:
+                self._data_queue.task_done()
+                return
+            await sleep(0)
+        _LOGGER.debug("Data queue worker stopped")
+
+    def extract_message_from_data(self, msg_data: bytes) -> PlugwiseResponse | None:
         """Extract message from buffer."""
-        # Lookup header of message, there are stray \x83
-        if (_header_index := msg.find(MESSAGE_HEADER)) == -1:
-            return None
-        _LOGGER.debug("Extract message from data: %s", msg)
-        msg = msg[_header_index:]
-        # Detect response message type
-        identifier = msg[4:8]
-        seq_id = msg[8:12]
-        msg_length = len(msg)
-        if (response := get_message_object(identifier, msg_length, seq_id)) is None:
-            _raw_msg_data = msg[2:][: msg_length - 4]
-            _LOGGER.warning("Drop unknown message type %s", str(_raw_msg_data))
+        identifier = msg_data[4:8]
+        seq_id = msg_data[8:12]
+        msg_data_length = len(msg_data)
+        if (
+            response := get_message_object(identifier, msg_data_length, seq_id)
+        ) is None:
+            _raw_msg_data_data = msg_data[2:][: msg_data_length - 4]
+            _LOGGER.warning("Drop unknown message type %s", str(_raw_msg_data_data))
             return None
 
         # Populate response message object with data
         try:
-            response.deserialize(msg, has_footer=False)
+            response.deserialize(msg_data, has_footer=False)
         except MessageError as err:
             _LOGGER.warning(err)
             return None
 
-        _LOGGER.debug("Data %s converted into %s", msg, response)
+        _LOGGER.debug("Data %s converted into %s", msg_data, response)
         return response
 
-    async def _receive_queue_worker(self) -> None:
-        """Process queue items."""
-        _LOGGER.debug("Receive_queue_worker started")
+    # endregion
+
+    # region Process incoming messages
+
+    async def _put_message_in_queue(
+        self, response: PlugwiseResponse, delay: float = 0.0
+    ) -> None:
+        """Put message in queue to be processed."""
+        if delay > 0:
+            await sleep(delay)
+        _LOGGER.debug("Add response to queue: %s", response)
+        await self._message_queue.put(response)
+        if self._message_worker_task is None or self._message_worker_task.done():
+            self._message_worker_task = self._loop.create_task(
+                self._message_queue_worker(),
+                name="Plugwise message receiver queue worker",
+            )
+
+    async def _message_queue_worker(self) -> None:
+        """Process messages in receiver queue."""
+        _LOGGER.debug("Message queue worker started")
         while self.is_connected:
-            response: PlugwiseResponse = await self._receive_queue.get()
+            response: PlugwiseResponse = await self._message_queue.get()
             if response.priority == Priority.CANCEL:
-                self._receive_queue.task_done()
+                self._message_queue.task_done()
                 return
-            _LOGGER.debug("Process from receive queue: %s", response)
+            _LOGGER.debug("Message queue worker queue: %s", response)
             if isinstance(response, StickResponse):
                 await self._notify_stick_response_subscribers(response)
             else:
                 await self._notify_node_response_subscribers(response)
-            self._receive_queue.task_done()
-        _LOGGER.debug("Receive_queue_worker stopped")
+            self._message_queue.task_done()
+            await sleep(0.001)
+        _LOGGER.debug("Message queue worker stopped")
 
-    def _reset_buffer(self, new_buffer: bytes) -> None:
-        if new_buffer[:2] == MESSAGE_FOOTER:
-            new_buffer = new_buffer[2:]
-        if new_buffer == b"\x83":
-            # Skip additional byte sometimes appended after footer
-            new_buffer = bytes([])
-        self._buffer = new_buffer
+    # endregion
+
+    # region Stick
 
     def subscribe_to_stick_events(
         self,
@@ -267,13 +312,14 @@ class StickReceiver(Protocol):
         if len(callback_list) > 0:
             await gather(*callback_list)
 
-    def subscribe_to_stick_responses(
+    async def subscribe_to_stick_responses(
         self,
         callback: Callable[[StickResponse], Coroutine[Any, Any, None]],
         seq_id: bytes | None = None,
-        response_type: StickResponseType | None = None,
+        response_type: tuple[StickResponseType, ...] | None = None,
     ) -> Callable[[], None]:
         """Subscribe to response messages from stick."""
+        await self._stick_subscription_lock.acquire()
 
         def remove_subscription() -> None:
             """Remove update listener."""
@@ -282,6 +328,7 @@ class StickReceiver(Protocol):
         self._stick_response_subscribers[remove_subscription] = (
             StickResponseSubscription(callback, seq_id, response_type)
         )
+        self._stick_subscription_lock.release()
         return remove_subscription
 
     async def _notify_stick_response_subscribers(
@@ -296,13 +343,16 @@ class StickReceiver(Protocol):
                 continue
             if (
                 subscription.stick_response_type is not None
-                and subscription.stick_response_type != stick_response.response_type
+                and stick_response.response_type not in subscription.stick_response_type
             ):
                 continue
             _LOGGER.debug("Notify stick response subscriber for %s", stick_response)
             await subscription.callback_fn(stick_response)
 
-    def subscribe_to_node_responses(
+    # endregion
+    # region node
+
+    async def subscribe_to_node_responses(
         self,
         node_response_callback: Callable[[PlugwiseResponse], Coroutine[Any, Any, bool]],
         mac: bytes | None = None,
@@ -313,13 +363,27 @@ class StickReceiver(Protocol):
 
         Returns function to unsubscribe.
         """
+        await self._node_subscription_lock.acquire()
 
         def remove_listener() -> None:
             """Remove update listener."""
+            _LOGGER.debug(
+                "Node response subscriber removed: mac=%s, msg_idS=%s, seq_id=%s",
+                mac,
+                message_ids,
+                seq_id,
+            )
             self._node_response_subscribers.pop(remove_listener)
 
         self._node_response_subscribers[remove_listener] = NodeResponseSubscription(
-            node_response_callback,
+            callback_fn=node_response_callback,
+            mac=mac,
+            response_ids=message_ids,
+            seq_id=seq_id,
+        )
+        self._node_subscription_lock.release()
+        _LOGGER.debug(
+            "Node response subscriber added: mac=%s, msg_idS=%s, seq_id=%s",
             mac,
             message_ids,
             seq_id,
@@ -337,6 +401,8 @@ class StickReceiver(Protocol):
         if node_response.seq_id in self._last_processed_messages:
             _LOGGER.debug("Drop previously processed duplicate %s", node_response)
             return
+
+        await self._node_subscription_lock.acquire()
 
         notify_tasks: list[Coroutine[Any, Any, bool]] = []
         for node_subscription in self._node_response_subscribers.values():
@@ -357,16 +423,19 @@ class StickReceiver(Protocol):
                 continue
             notify_tasks.append(node_subscription.callback_fn(node_response))
 
+        self._node_subscription_lock.release()
         if len(notify_tasks) > 0:
-            _LOGGER.info("Received %s", node_response)
+            _LOGGER.debug("Received %s", node_response)
             if node_response.seq_id not in BROADCAST_IDS:
                 self._last_processed_messages.append(node_response.seq_id)
-            if node_response.seq_id in self._delayed_processing_tasks:
-                del self._delayed_processing_tasks[node_response.seq_id]
             # Limit tracking to only the last appended request (FIFO)
             self._last_processed_messages = self._last_processed_messages[
                 -CACHED_REQUESTS:
             ]
+
+            # Cleanup pending task
+            if node_response.seq_id in self._delayed_processing_tasks:
+                del self._delayed_processing_tasks[node_response.seq_id]
 
             # execute callbacks
             _LOGGER.debug(
@@ -388,17 +457,15 @@ class StickReceiver(Protocol):
 
         if node_response.retries > 10:
             _LOGGER.warning(
-                "No subscriber to handle %s, seq_id=%s from %s after 10 retries",
-                node_response.__class__.__name__,
-                node_response.seq_id,
-                node_response.mac_decoded,
+                "No subscriber to handle %s after 10 retries",
+                node_response,
             )
             return
         node_response.retries += 1
-        if node_response.retries > 2:
-            _LOGGER.info("No subscription for %s, retry later", node_response)
-        self._delayed_processing_tasks[node_response.seq_id] = self._loop.call_later(
-            0.1 * node_response.retries,
-            self._put_message_in_receiver_queue,
-            node_response,
+        self._delayed_processing_tasks[node_response.seq_id] = self._loop.create_task(
+            self._put_message_in_queue(node_response, 0.1 * node_response.retries),
+            name=f"Postpone subscription task for {node_response.seq_id!r} retry {node_response.retries}",
         )
+
+
+# endregion
