@@ -11,7 +11,7 @@ crc_fun = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0x0000, xorOut=0x0000)
 
 
 def validate_mac(mac: str) -> bool:
-    """Validate the supplied string to be an MAC address."""
+    """Validate the supplied string is in a MAC address format."""
     if not re.match("^[A-F0-9]+$", mac):
         return False
     try:
@@ -25,7 +25,6 @@ def version_to_model(version: str | None) -> str:
     """Translate hardware_version to device type."""
     if version is None:
         return "Unknown"
-
     model = HW_MODELS.get(version)
     if model is None:
         model = HW_MODELS.get(version[4:10])
