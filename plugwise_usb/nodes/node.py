@@ -62,7 +62,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
     ):
         """Initialize Plugwise base node class."""
         self._loaded_callback = loaded_callback
-        self._message_subscribe = controller.subscribe_to_node_responses
+        self._message_subscribe = controller.subscribe_to_messages
         self._features: tuple[NodeFeature, ...] = NODE_FEATURES
         self._last_update = datetime.now(UTC)
         self._node_info = NodeInfo(mac, address)

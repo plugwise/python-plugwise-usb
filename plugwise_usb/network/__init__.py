@@ -170,15 +170,20 @@ class StickNetwork:
             self._handle_stick_event,
             (StickEvent.CONNECTED, StickEvent.DISCONNECTED),
         )
-        self._unsubscribe_node_awake = self._controller.subscribe_to_node_responses(
+
+    async def _subscribe_to_node_events(self) -> None:
+        """Subscribe to events from protocol."""
+        self._unsubscribe_node_awake = await self._controller.subscribe_to_messages(
             self.node_awake_message,
             None,
             (NODE_AWAKE_RESPONSE_ID,),
-        )
-        self._unsubscribe_node_join = self._controller.subscribe_to_node_responses(
-            self.node_join_available_message,
             None,
-            (NODE_JOIN_ID,),
+        )
+        self._unsubscribe_node_join = await self._controller.subscribe_to_messages(
+            self.node_join_available_message, None, (NODE_JOIN_ID,), None
+        )
+        self._unsubscribe_node_rejoin = await self._controller.subscribe_to_messages(
+            self.node_rejoin_message, None, (NODE_REJOIN_ID,), None
         )
 
     async def _handle_stick_event(self, event: StickEvent) -> None:
