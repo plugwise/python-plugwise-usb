@@ -46,6 +46,7 @@ class NodeFeature(str, Enum):
     HUMIDITY = "humidity"
     INFO = "info"
     MOTION = "motion"
+    MOTION_CONFIG = "motion_config"
     PING = "ping"
     POWER = "power"
     RELAY = "relay"
@@ -73,33 +74,52 @@ class NodeType(Enum):
 
 
 PUSHING_FEATURES = (
+    NodeFeature.AVAILABLE,
+    NodeFeature.BATTERY,
     NodeFeature.HUMIDITY,
     NodeFeature.MOTION,
+    NodeFeature.MOTION_CONFIG,
     NodeFeature.TEMPERATURE,
     NodeFeature.SWITCH,
 )
 
 
-@dataclass
+@dataclass(frozen=True)
+class AvailableState:
+    """Availability of node.
+
+    Description: Availability of node on Zigbee network.
+
+    Attributes:
+        state: bool: Indicate if node is operational (True) or off-line (False). Battery powered nodes which are in sleeping mode report to be operational.
+        last_seen: datetime: Last time a messages was received from the Node.
+
+    """
+
+    state: bool
+    last_seen: datetime
+
+
+@dataclass(frozen=True)
 class BatteryConfig:
-    """Battery related configuration settings."""
+    """Battery related configuration settings.
 
-    # Duration in minutes the node synchronize its clock
+    Description: Configuration settings for battery powered devices.
+
+    Attributes:
+        awake_duration: int | None: Duration in seconds a battery powered devices is awake to accept (configuration) messages.
+        clock_interval: int | None: Interval in minutes a battery powered devices is synchronizing its clock.
+        clock_sync: bool | None: Indicate if the internal clock must be synced.
+        maintenance_interval: int | None: Interval in minutes a battery powered devices is awake for maintenance purposes.
+        sleep_duration: int | None: Interval in minutes a battery powered devices is sleeping.
+
+    """
+
+    awake_duration: int | None = None
     clock_interval: int | None = None
-
-    # Enable/disable clock sync
     clock_sync: bool | None = None
-
-    # Minimal interval in minutes the node will wake up
-    # and able to receive (maintenance) commands
     maintenance_interval: int | None = None
-
-    # Duration in seconds the SED will be awake for receiving commands
-    stay_active: int | None = None
-
-    #  Duration in minutes the SED will be in sleeping mode
-    #  and not able to respond any command
-    sleep_for: int | None = None
+    sleep_duration: int | None = None
 
 
 @dataclass
@@ -138,22 +158,53 @@ class PowerStatistics:
     timestamp: datetime | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
+class RelayConfig:
+    """Configuration of relay.
+
+    Description: Configuration settings for relay.
+
+    Attributes:
+        init_state: bool | None: Configured state at which the relay must be at initial power-up of device.
+
+    """
+
+    init_state: bool | None = None
+
+
+@dataclass(frozen=True)
 class RelayState:
     """Status of relay."""
 
-    relay_state: bool | None = None
+    state: bool | None = None
     timestamp: datetime | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class MotionState:
     """Status of motion sensor."""
 
-    motion: bool | None = None
+    state: bool | None = None
     timestamp: datetime | None = None
-    reset_timer: int | None = None
+
+
+@dataclass(frozen=True)
+class MotionConfig:
+    """Configuration of motion sensor.
+
+    Description: Configuration settings for motion detection.
+                 When value is scheduled to be changed the returned value is the optimistic value
+
+    Attributes:
+        reset_timer: int | None: Motion reset timer in minutes before the motion detection is switched off.
+        daylight_mode: bool | None: Motion detection when light level is below threshold.
+        sensitivity_level: MotionSensitivity | None: Motion sensitivity level.
+
+    """
+
     daylight_mode: bool | None = None
+    reset_timer: int | None = None
+    sensitivity_level: MotionSensitivity | None = None
 
 
 @dataclass
@@ -187,22 +238,18 @@ class PlugwiseNode(Protocol):
     ) -> None:
         """Initialize plugwise node object."""
 
-    # region Generic node details
+    # region Generic node properties
     @property
     def features(self) -> tuple[NodeFeature, ...]:
         """Supported feature types of node."""
 
     @property
     def is_battery_powered(self) -> bool:
-        """Indicate if node is power by battery."""
+        """Indicate if node is powered by battery."""
 
     @property
     def is_loaded(self) -> bool:
-        """Indicate if node is loaded."""
-
-    @property
-    def last_update(self) -> datetime:
-        """Timestamp of last update."""
+        """Indicate if node is loaded and available to interact."""
 
     @property
     def name(self) -> str:
@@ -210,31 +257,27 @@ class PlugwiseNode(Protocol):
 
     @property
     def node_info(self) -> NodeInfo:
-        """Node information."""
+        """Return NodeInfo class with all node information."""
 
+    # endregion
     async def load(self) -> bool:
         """Load configuration and activate node features."""
 
-    async def update_node_details(
-        self,
-        firmware: datetime | None,
-        hardware: str | None,
-        node_type: NodeType | None,
-        timestamp: datetime | None,
-        relay_state: bool | None,
-        logaddress_pointer: int | None,
-    ) -> bool:
-        """Update node information."""
-
     async def unload(self) -> None:
-        """Load configuration and activate node features."""
+        """Unload and deactivate node."""
 
-    # endregion
-
-    # region Network
+    # region Network properties
     @property
     def available(self) -> bool:
         """Last known network availability state."""
+
+    @property
+    def available_state(self) -> AvailableState:
+        """Network availability state."""
+
+    @property
+    def last_seen(self) -> datetime:
+        """Timestamp of last network activity."""
 
     @property
     def mac(self) -> str:
@@ -246,15 +289,12 @@ class PlugwiseNode(Protocol):
 
     @property
     def ping_stats(self) -> NetworkStatistics:
-        """Ping statistics."""
+        """Ping statistics for node."""
+
+    # endregion
 
     async def is_online(self) -> bool:
-        """Check network status."""
-
-    def update_ping_stats(
-        self, timestamp: datetime, rssi_in: int, rssi_out: int, rtt: int
-    ) -> None:
-        """Update ping statistics."""
+        """Check network status of node."""
 
     # TODO: Move to node with subscription to stick event
     async def reconnect(self) -> None:
@@ -264,10 +304,7 @@ class PlugwiseNode(Protocol):
     async def disconnect(self) -> None:
         """Disconnect from Plugwise Zigbee network."""
 
-    # endregion
-
-    # region cache
-
+    # region Cache settings
     @property
     def cache_folder(self) -> str:
         """Path to cache folder."""
@@ -302,16 +339,16 @@ class PlugwiseNode(Protocol):
 
     # endregion
 
-    # region sensors
+    # region Sensors
     @property
-    def energy(self) -> EnergyStatistics | None:
+    def energy(self) -> EnergyStatistics:
         """Energy statistics.
 
         Raises NodeError when energy feature is not present at device.
         """
 
     @property
-    def humidity(self) -> float | None:
+    def humidity(self) -> float:
         """Last received humidity state.
 
         Raises NodeError when humidity feature is not present at device.
@@ -353,19 +390,22 @@ class PlugwiseNode(Protocol):
         """
 
     @property
-    def switch(self) -> bool | None:
+    def switch(self) -> bool:
         """Current state of the switch.
 
         Raises NodeError when switch feature is not present at device.
         """
 
     @property
-    def temperature(self) -> float | None:
+    def temperature(self) -> float:
         """Last received temperature state.
 
         Raises NodeError when temperature feature is not present at device.
         """
 
+    # endregion
+
+    # region control
     async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
         """Request an updated state for given feature.
 
@@ -374,60 +414,280 @@ class PlugwiseNode(Protocol):
 
     # endregion
 
-    # region control & configure
+    # region Actions to execute
+    async def set_relay(self, state: bool) -> bool:
+        """Change the state of the relay.
+
+        Description:
+            Configures the state of the relay.
+
+        Args:
+            state: Boolean indicating the required state of the relay (True = ON, False = OFF)
+
+        Returns:
+            Boolean: with the newly set state of the relay
+
+        Raises:
+            FeatureError: When the relay feature is not present at device.
+            NodeError: When the node is not yet loaded or setting the state failed.
+
+        """
+
+    # endregion
+
+    # region configuration properties
+
     @property
     def battery_config(self) -> BatteryConfig:
         """Battery configuration settings.
 
-        Raises NodeError when battery configuration feature is not present at device.
+        Returns:
+            BatteryConfig: Currently configured battery settings.
+                           When settings are scheduled to be changed it will return the new settings.
+
+        Raises:
+            FeatureError: When this configuration feature is not present at device.
+            NodeError: When the node is not yet loaded or configuration failed.
+
         """
 
     @property
-    def relay_init(self) -> bool | None:
-        """Configured state at which the relay must be at initial power-up of device.
+    def motion_config(self) -> MotionConfig:
+        """Motion configuration settings.
 
-        Raises NodeError when relay configuration feature is not present at device.
-        """
+        Returns:
+            MotionConfig: with the current motion configuration settings.
 
-    async def switch_relay(self, state: bool) -> bool | None:
-        """Change the state of the relay and return the new state of relay.
+        Raises:
+            FeatureError: When this configuration feature is not present at device.
+            NodeError: When the node is not yet loaded or configuration failed.
 
-        Raises NodeError when relay feature is not present at device.
-        """
-
-    async def switch_relay_init_off(self, state: bool) -> bool | None:
-        """Change the state of initial (power-up) state of the relay and return the new configured setting.
-
-        Raises NodeError when the initial (power-up) relay configure feature is not present at device.
         """
 
     @property
-    def energy_consumption_interval(self) -> int | None: ...  # noqa: D102
+    def relay_config(self) -> RelayConfig:
+        """Relay configuration settings.
 
-    @property
-    def energy_production_interval(self) -> int | None: ...  # noqa: D102
+        Returns:
+            RelayConfig: Current relay configuration settings.
 
-    @property
-    def maintenance_interval(self) -> int | None: ...  # noqa: D102
+        Raises:
+            FeatureError: When this configuration feature is not present at device.
+            NodeError: When the node is not yet loaded or configuration failed.
 
-    @property
-    def motion_reset_timer(self) -> int: ...  # noqa: D102
+        """
 
-    @property
-    def daylight_mode(self) -> bool: ...  # noqa: D102
+    # endregion
 
-    @property
-    def sensitivity_level(self) -> MotionSensitivity: ...  # noqa: D102
+    # region Configuration actions
+    async def set_awake_duration(self, seconds: int) -> bool:
+        """Change the awake duration.
 
-    async def configure_motion_reset(self, delay: int) -> bool: ...  # noqa: D102
+        Description:
+            Configure the duration for a battery powered device (Sleeping Endpoint Device) to be awake.
+            The configuration will be set the next time the device is awake for maintenance purposes.
 
-    async def scan_calibrate_light(self) -> bool: ...  # noqa: D102
+            Use the 'is_battery_powered' property to determine if the device is battery powered.
 
-    async def scan_configure(  # noqa: D102
-        self,
-        motion_reset_timer: int,
-        sensitivity_level: MotionSensitivity,
-        daylight_mode: bool,
-    ) -> bool: ...
+        Args:
+            seconds: Number of seconds between each time the device must wake-up for maintenance purposes
+                      Minimum value: 1
+                      Maximum value: 255
+
+        Returns:
+            Boolean: True when the configuration is successfully scheduled to be changed. False when
+                     the configuration is already set.
+
+        Raises:
+            FeatureError: When this configuration feature is not present at device.
+            NodeError: When the node is not yet loaded or configuration failed.
+            ValueError: When the seconds value is out of range.
+
+        """
+
+    async def set_clock_interval(self, minutes: int) -> bool:
+        """Change the clock interval.
+
+        Description:
+            Configure the duration for a battery powered device (Sleeping Endpoint Device) to synchronize the internal clock.
+            Use the 'is_battery_powered' property to determine if the device is battery powered.
+
+        Args:
+            minutes: Number of minutes between each time the device must synchronize the clock
+                      Minimum value: 1
+                      Maximum value: 65535
+
+        Returns:
+            Boolean: True when the configuration is successfully scheduled to be changed. False when
+                     the configuration is already set.
+
+        Raises:
+            FeatureError: When this configuration feature is not present at device.
+            NodeError: When the node is not yet loaded or configuration failed.
+            ValueError: When the minutes value is out of range.
+
+        """
+
+    async def set_clock_sync(self, sync: bool) -> bool:
+        """Change the clock synchronization setting.
+
+        Description:
+            Configure the duration for a battery powered device (Sleeping Endpoint Device) to synchronize the internal clock.
+            Use the 'is_battery_powered' property to determine if the device is battery powered.
+
+        Args:
+            sync: Boolean indicating the internal clock must be synced (True = sync enabled, False = sync disabled)
+
+        Returns:
+            Boolean: True when the configuration is successfully scheduled to be changed. False when
+                     the configuration is already set.
+
+        Raises:
+            FeatureError: When this configuration feature is not present at device.
+            NodeError: When the node is not yet loaded or configuration failed.
+
+        """
+
+    async def set_maintenance_interval(self, minutes: int) -> bool:
+        """Change the maintenance interval.
+
+        Description:
+            Configure the maintenance interval for a battery powered device (Sleeping Endpoint Device).
+            The configuration will be set the next time the device is awake for maintenance purposes.
+
+            Use the 'is_battery_powered' property to determine if the device is battery powered.
+
+        Args:
+            minutes: Number of minutes between each time the device must wake-up for maintenance purposes
+                      Minimum value: 1
+                      Maximum value: 1440
+
+        Returns:
+            Boolean: True when the configuration is successfully scheduled to be changed. False when
+                     the configuration is already set.
+
+        Raises:
+            FeatureError: When this configuration feature is not present at device.
+            NodeError: When the node is not yet loaded or configuration failed.
+            ValueError: When the seconds value is out of range.
+
+        """
+
+    async def set_motion_daylight_mode(self, state: bool) -> bool:
+        """Configure motion daylight mode.
+
+        Description:
+            Configure if motion must be detected when light level is below threshold.
+
+        Args:
+            state: Boolean indicating the required state (True = ON, False = OFF)
+
+        Returns:
+            Boolean: with the newly configured state of the daylight mode
+
+        Raises:
+            FeatureError: When the daylight mode feature is not present at device.
+            NodeError: When the node is not yet loaded or configuration failed.
+
+        """
+
+    async def set_motion_reset_timer(self, minutes: int) -> bool:
+        """Configure the motion reset timer in minutes.
+
+        Description:
+            Configure the duration in minutes a Scan device must not detect motion before reporting no motion.
+            The configuration will be set the next time the device is awake for maintenance purposes.
+
+            Use the 'is_battery_powered' property to determine if the device is battery powered.
+
+        Args:
+            minutes: Number of minutes before the motion detection is switched off
+                      Minimum value: 1
+                      Maximum value: 255
+
+        Returns:
+            Boolean: True when the configuration is successfully scheduled to be changed. False when
+                     the configuration is already set.
+
+        Raises:
+            FeatureError: When this configuration feature is not present at device.
+            NodeError: When the node is not yet loaded or configuration failed.
+            ValueError: When the seconds value is out of range.
+
+        """
+
+    async def set_motion_sensitivity_level(self, level: MotionSensitivity) -> bool:
+        """Configure motion sensitivity level.
+
+        Description:
+            Configure the sensitivity level of motion detection.
+
+        Args:
+            level: MotionSensitivity indicating the required sensitivity level
+
+        Returns:
+            Boolean: True when the configuration is successfully scheduled to be changed. False when
+                     the configuration is already set.
+
+        Raises:
+            FeatureError: When the motion sensitivity feature is not present at device.
+            NodeError: When the node is not yet loaded or configuration failed.
+
+        """
+
+    async def set_relay_init(self, state: bool) -> bool:
+        """Change the initial state of the relay.
+
+        Description:
+            Configures the state of the relay to be directly after power-up of the device.
+
+        Args:
+            state: Boolean indicating the required state of the relay (True = ON, False = OFF)
+
+        Returns:
+            Boolean: with the newly configured state of the relay
+
+        Raises:
+            FeatureError: When the initial (power-up) relay configure feature is not present at device.
+            NodeError: When the node is not yet loaded or configuration failed.
+
+        """
+
+    async def set_sleep_duration(self, minutes: int) -> bool:
+        """Change the sleep duration.
+
+        Description:
+            Configure the duration for a battery powered device (Sleeping Endpoint Device) to sleep.
+            Use the 'is_battery_powered' property to determine if the device is battery powered.
+
+        Args:
+            minutes: Number of minutes to sleep
+                      Minimum value: 1
+                      Maximum value: 65535
+
+        Returns:
+            Boolean: True when the configuration is successfully scheduled to be changed. False when
+                     the configuration is already set.
+
+        Raises:
+            FeatureError: When this configuration feature is not present at device.
+            NodeError: When the node is not yet loaded or configuration failed.
+            ValueError: When the minutes value is out of range.
+
+        """
+
+    # endregion
+
+    # region Helper functions
+    async def message_for_node(self, message: Any) -> None:
+        """Process message for node.
+
+        Description: Submit a plugwise message for this node.
+
+        Args:
+            message: Plugwise message to process.
+
+        """
+
 
     # endregion
