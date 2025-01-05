@@ -911,7 +911,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
             return result
         return False
 
-    async def update_node_details( # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments
+    async def update_node_details(
         self,
         firmware: datetime | None,
         hardware: str | None,
