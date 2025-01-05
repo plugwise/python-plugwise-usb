@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from asyncio import gather, sleep
+from asyncio import Task, create_task, gather, sleep
 from collections.abc import Callable, Coroutine
 from datetime import datetime, timedelta
 import logging
@@ -77,6 +77,8 @@ class StickNetwork:
         self._unsubscribe_node_awake: Callable[[], None] | None = None
         self._unsubscribe_node_join: Callable[[], None] | None = None
         self._unsubscribe_node_rejoin: Callable[[], None] | None = None
+
+        self._discover_sed_tasks: dict[str, Task[bool]] = {}
 
     # region - Properties
 
@@ -221,20 +223,26 @@ class StickNetwork:
                 await self._notify_node_event_subscribers(NodeEvent.AWAKE, mac)
             self._awake_discovery[mac] = response.timestamp
             return True
-        if self._register.network_address(mac) is None:
+        address = self._register.network_address(mac)
+        if address is None:
             if self._register.scan_completed:
                 return True
             _LOGGER.debug(
                 "Skip node awake message for %s because network registry address is unknown",
                 mac,
             )
-            return False
-        address = self._register.network_address(mac)
-        if (address := self._register.network_address(mac)) is not None:
-            if self._nodes.get(mac) is None:
-                return await self._discover_battery_powered_node(address, mac)
-        else:
-            raise NodeError("Unknown network address for node {mac}")
+            return True
+
+        if self._nodes.get(mac) is None:
+            if (
+                self._discover_sed_tasks.get(mac) is None
+                or self._discover_sed_tasks[mac].done()
+            ):
+                self._discover_sed_tasks[mac] = create_task(
+                    self._discover_battery_powered_node(address, mac)
+                )
+            else:
+                _LOGGER.debug("duplicate maintenance awake discovery for %s", mac)
         return True
 
     async def node_join_available_message(self, response: PlugwiseResponse) -> bool:
@@ -293,12 +301,12 @@ class StickNetwork:
 
         # Validate the network controller is online
         # try to ping first and raise error at stick timeout
+        ping_request = NodePingRequest(
+            self._controller.send,
+            bytes(self._controller.mac_coordinator, UTF8),
+            retries=1,
+        )
         try:
-            ping_request = NodePingRequest(
-                self._controller.send,
-                bytes(self._controller.mac_coordinator, UTF8),
-                retries=1,
-            )
             ping_response = await ping_request.send()
         except StickTimeout as err:
             raise StickError(
@@ -368,13 +376,20 @@ class StickNetwork:
             ping_request = NodePingRequest(
                 self._controller.send, bytes(mac, UTF8), retries=1
             )
-            ping_response = await ping_request.send(suppress_node_errors=True)
+            try:
+                ping_response = await ping_request.send(suppress_node_errors=True)
+            except StickError:
+                return (None, None)
             if ping_response is None:
                 return (None, None)
+
         info_request = NodeInfoRequest(
             self._controller.send, bytes(mac, UTF8), retries=1
         )
-        info_response = await info_request.send()
+        try:
+            info_response = await info_request.send()
+        except StickError:
+            return (None, None)
         return (info_response, ping_response)
 
     async def _discover_battery_powered_node(
@@ -424,21 +439,9 @@ class StickNetwork:
         self._create_node_object(mac, address, node_info.node_type)
 
         # Forward received NodeInfoResponse message to node
-        await self._nodes[mac].update_node_details(
-            node_info.firmware,
-            node_info.hardware,
-            node_info.node_type,
-            node_info.timestamp,
-            node_info.relay_state,
-            node_info.current_logaddress_pointer,
-        )
+        await self._nodes[mac].message_for_node(node_info)
         if node_ping is not None:
-            self._nodes[mac].update_ping_stats(
-                node_ping.timestamp,
-                node_ping.rssi_in,
-                node_ping.rssi_out,
-                node_ping.rtt,
-            )
+            await self._nodes[mac].message_for_node(node_ping)
         await self._notify_node_event_subscribers(NodeEvent.DISCOVERED, mac)
         return True
 
@@ -501,7 +504,6 @@ class StickNetwork:
     # region - Network instance
     async def start(self) -> None:
         """Start and activate network."""
-
         self._register.quick_scan_finished(self._discover_registered_nodes)
         self._register.full_scan_finished(self._discover_registered_nodes)
         await self._register.start()
@@ -523,6 +525,9 @@ class StickNetwork:
     async def stop(self) -> None:
         """Stop network discovery."""
         _LOGGER.debug("Stopping")
+        for task in self._discover_sed_tasks.values():
+            if not task.done():
+                task.cancel()
         self._is_running = False
         self._unsubscribe_to_protocol_events()
         await self._unload_discovered_nodes()
