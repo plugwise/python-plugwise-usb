@@ -23,10 +23,12 @@ from ..messages.requests import (
 from ..messages.responses import (
     NODE_AWAKE_RESPONSE_ID,
     NODE_JOIN_ID,
+    NODE_REJOIN_ID,
     NodeAwakeResponse,
     NodeInfoResponse,
     NodeJoinAvailableResponse,
     NodePingResponse,
+    NodeRejoinResponse,
     NodeResponseType,
     PlugwiseResponse,
 )
@@ -74,6 +76,7 @@ class StickNetwork:
         self._unsubscribe_stick_event: Callable[[], None] | None = None
         self._unsubscribe_node_awake: Callable[[], None] | None = None
         self._unsubscribe_node_join: Callable[[], None] | None = None
+        self._unsubscribe_node_rejoin: Callable[[], None] | None = None
 
     # region - Properties
 
@@ -242,6 +245,31 @@ class StickNetwork:
             )
         mac = response.mac_decoded
         await self._notify_node_event_subscribers(NodeEvent.JOIN, mac)
+        return True
+
+    async def node_rejoin_message(self, response: PlugwiseResponse) -> bool:
+        """Handle NodeRejoinResponse messages."""
+        if not isinstance(response, NodeRejoinResponse):
+            raise MessageError(
+                f"Invalid response message type ({response.__class__.__name__}) received, expected NodeRejoinResponse"
+            )
+        mac = response.mac_decoded
+        address = self._register.network_address(mac)
+        if (address := self._register.network_address(mac)) is not None:
+            if self._nodes.get(mac) is None:
+                if self._discover_sed_tasks.get(mac) is None:
+                    self._discover_sed_tasks[mac] = create_task(
+                        self._discover_battery_powered_node(address, mac)
+                    )
+                elif self._discover_sed_tasks[mac].done():
+                    self._discover_sed_tasks[mac] = create_task(
+                        self._discover_battery_powered_node(address, mac)
+                    )
+                else:
+                    _LOGGER.debug("duplicate awake discovery for %s", mac)
+                return True
+        else:
+            raise NodeError("Unknown network address for node {mac}")
         return True
 
     def _unsubscribe_to_protocol_events(self) -> None:
@@ -478,6 +506,7 @@ class StickNetwork:
         self._register.full_scan_finished(self._discover_registered_nodes)
         await self._register.start()
         self._subscribe_to_protocol_events()
+        await self._subscribe_to_node_events()
         self._is_running = True
 
     async def discover_nodes(self, load: bool = True) -> bool:

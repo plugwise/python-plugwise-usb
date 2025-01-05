@@ -25,6 +25,7 @@ from .properties import (
 
 NODE_JOIN_ID: Final = b"0006"
 NODE_AWAKE_RESPONSE_ID: Final = b"004F"
+NODE_REJOIN_ID: Final = b"0061"
 NODE_SWITCH_GROUP_ID: Final = b"0056"
 SENSE_REPORT_ID: Final = b"0105"
 
@@ -896,7 +897,7 @@ class NodeRejoinResponse(PlugwiseResponse):
 
     def __init__(self) -> None:
         """Initialize NodeRejoinResponse message object."""
-        super().__init__(b"0061")
+        super().__init__(NODE_REJOIN_ID)
 
 
 class NodeAckResponse(PlugwiseResponse):
