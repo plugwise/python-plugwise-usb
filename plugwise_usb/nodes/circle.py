@@ -279,7 +279,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             if await self.node_info_update() is None:
                 if (
                     self._initialization_delay_expired is not None
-                    and datetime.now(UTC) < self._initialization_delay_expired
+                    and datetime.now(tz=UTC) < self._initialization_delay_expired
                 ):
                     _LOGGER.info(
                         "Unable to return energy statistics for %s, because it is not responding",
@@ -369,7 +369,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
         if (
             self._initialization_delay_expired is not None
-            and datetime.now(UTC) < self._initialization_delay_expired
+            and datetime.now(tz=UTC) < self._initialization_delay_expired
         ):
             _LOGGER.info(
                 "Unable to return energy statistics for %s, collecting required data...",

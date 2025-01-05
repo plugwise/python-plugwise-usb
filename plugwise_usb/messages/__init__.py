@@ -31,7 +31,7 @@ class PlugwiseMessage:
         self._args: list[Any] = []
         self._seq_id: bytes | None = None
         self.priority: Priority = Priority.MEDIUM
-        self.timestamp = datetime.now(UTC)
+        self.timestamp = datetime.now(tz=UTC)
 
     @property
     def seq_id(self) -> bytes | None:
