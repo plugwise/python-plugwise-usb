@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from asyncio import Task, create_task, gather
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
+from dataclasses import replace
 from datetime import UTC, datetime
 from functools import wraps
 import logging
@@ -16,14 +17,17 @@ from ..api import (
     NodeInfo,
     NodeType,
     PowerStatistics,
+    RelayConfig,
+    RelayState,
 )
+from ..connection import StickController
 from ..constants import (
     MAX_TIME_DRIFT,
     MINIMAL_POWER_UPDATE,
     PULSES_PER_KW_SECOND,
     SECOND_IN_NANOSECONDS,
 )
-from ..exceptions import NodeError
+from ..exceptions import FeatureError, NodeError
 from ..messages.requests import (
     CircleClockGetRequest,
     CircleClockSetRequest,
@@ -36,6 +40,7 @@ from ..messages.requests import (
 )
 from ..messages.responses import NodeInfoResponse, NodeResponse, NodeResponseType
 from .helpers import EnergyCalibration, raise_not_loaded
+from .helpers.counter import EnergyCounters
 from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
 from .helpers.pulses import PulseLogRecord, calc_log_address
 from .node import PlugwiseBaseNode
@@ -68,8 +73,30 @@ def raise_calibration_missing(func: FuncT) -> FuncT:
 class PlugwiseCircle(PlugwiseBaseNode):
     """Plugwise Circle node."""
 
-    _retrieve_energy_logs_task: None | Task[None] = None
-    _last_energy_log_requested: bool = False
+    def __init__(
+        self,
+        mac: str,
+        address: int,
+        controller: StickController,
+        loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
+    ):
+        """Initialize base class for Sleeping End Device."""
+        super().__init__(mac, address, controller, loaded_callback)
+
+        # Relay
+        self._relay_state: RelayState = RelayState()
+        self._relay_config: RelayConfig = RelayConfig()
+
+        # Power
+        self._power: PowerStatistics = PowerStatistics()
+        self._calibration: EnergyCalibration | None = None
+
+        # Energy
+        self._energy_counters = EnergyCounters(mac)
+        self._retrieve_energy_logs_task: None | Task[None] = None
+        self._last_energy_log_requested: bool = False
+
+        self._group_member: list[int] = []
 
     # region Properties
 
@@ -81,36 +108,62 @@ class PlugwiseCircle(PlugwiseBaseNode):
         return False
 
     @property
-    def energy(self) -> EnergyStatistics | None:
+    def energy(self) -> EnergyStatistics:
         """Energy statistics."""
         return self._energy_counters.energy_statistics
 
     @property
     @raise_not_loaded
+    def energy_consumption_interval(self) -> int | None:
+        """Interval (minutes) energy consumption counters are locally logged at Circle devices."""
+        if NodeFeature.ENERGY not in self._features:
+            raise NodeError(f"Energy log interval is not supported for node {self.mac}")
+        return self._energy_counters.consumption_interval
+
+    @property
+    def energy_production_interval(self) -> int | None:
+        """Interval (minutes) energy production counters are locally logged at Circle devices."""
+        if NodeFeature.ENERGY not in self._features:
+            raise NodeError(f"Energy log interval is not supported for node {self.mac}")
+        return self._energy_counters.production_interval
+
+    @property
+    @raise_not_loaded
+    def power(self) -> PowerStatistics:
+        """Power statistics."""
+        return self._power
+
+    @property
+    @raise_not_loaded
     def relay(self) -> bool:
         """Current value of relay."""
-        return bool(self._relay)
+        return bool(self._relay_state.state)
+
+    @property
+    @raise_not_loaded
+    def relay_config(self) -> RelayConfig:
+        """Configuration state of relay."""
+        if NodeFeature.RELAY_INIT not in self._features:
+            raise FeatureError(
+                f"Configuration of relay is not supported for device {self.name}"
+            )
+        return self._relay_config
+
+    @property
+    @raise_not_loaded
+    def relay_state(self) -> RelayState:
+        """State of relay."""
+        return self._relay_state
 
     @raise_not_loaded
     async def relay_off(self) -> None:
         """Switch relay off."""
-        await self.switch_relay(False)
+        await self.set_relay(False)
 
     @raise_not_loaded
     async def relay_on(self) -> None:
         """Switch relay on."""
-        await self.switch_relay(True)
-
-    @property
-    def relay_init(
-        self,
-    ) -> bool | None:
-        """Request the relay states at startup/power-up."""
-        if NodeFeature.RELAY_INIT not in self._features:
-            raise NodeError(
-                f"Initial state of relay is not supported for device {self.name}"
-            )
-        return self._relay_init_state
+        await self.set_relay(True)
 
     @raise_not_loaded
     async def relay_init_off(self) -> None:
@@ -139,7 +192,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             await self._available_update_state(False)
             return False
-        await self._available_update_state(True)
+        await self._available_update_state(True, calibration_response.timestamp)
         await self._calibration_update_state(
             calibration_response.gain_a,
             calibration_response.gain_b,
@@ -227,7 +280,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             await self._available_update_state(False)
             return None
-        await self._available_update_state(True)
+        await self._available_update_state(True, response.timestamp)
 
         # Update power stats
         self._power.last_second = self._calc_watts(
@@ -262,10 +315,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
             if await self.node_info_update() is None:
                 if (
                     self._initialization_delay_expired is not None
-                    and datetime.now(UTC) < self._initialization_delay_expired
+                    and datetime.now(tz=UTC) < self._initialization_delay_expired
                 ):
                     _LOGGER.info(
-                        "Unable to return energy statistics for %s, because it is not responding",
+                        "Unable to return energy statistics for %s during initialization, because it is not responding",
                         self.name,
                     )
                 else:
@@ -282,7 +335,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     and datetime.now(tz=UTC) < self._initialization_delay_expired
                 ):
                     _LOGGER.info(
-                        "Unable to return energy statistics for %s, because it is not responding",
+                        "Unable to return energy statistics for %s during initialization, because it is not responding",
                         self.name,
                     )
                 else:
@@ -372,7 +425,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             and datetime.now(tz=UTC) < self._initialization_delay_expired
         ):
             _LOGGER.info(
-                "Unable to return energy statistics for %s, collecting required data...",
+                "Unable to return energy statistics for %s during initialization, collecting required data...",
                 self.name,
             )
         else:
@@ -434,7 +487,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         """Request energy log statistics from node. Returns true if successful."""
         if address is None:
             return False
-        _LOGGER.info(
+        _LOGGER.debug(
             "Request of energy log at address %s for node %s",
             str(address),
             self.name,
@@ -449,7 +502,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             return False
 
-        await self._available_update_state(True)
+        await self._available_update_state(True, response.timestamp)
         energy_record_update = False
 
         # Forward historical energy log information to energy counters
@@ -477,7 +530,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         """Load energy_log_record from cache."""
         cache_data = self._get_cache(CACHE_ENERGY_COLLECTION)
         if cache_data is None:
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Failed to restore energy log records from cache for node %s", self.name
             )
             return False
@@ -580,21 +633,19 @@ class PlugwiseCircle(PlugwiseBaseNode):
         self._set_cache(CACHE_ENERGY_COLLECTION, log_cache_record)
         return True
 
-    async def switch_relay(self, state: bool) -> bool | None:
-        """Switch state of relay.
-
-        Return new state of relay
-        """
-        _LOGGER.debug("switch_relay() start")
+    @raise_not_loaded
+    async def set_relay(self, state: bool) -> bool:
+        """Change the state of the relay."""
+        if NodeFeature.RELAY not in self._features:
+            raise FeatureError(
+                f"Changing state of relay is not supported for node {self.mac}"
+            )
+        _LOGGER.debug("set_relay() start")
         request = CircleRelaySwitchRequest(self._send, self._mac_in_bytes, state)
         response = await request.send()
 
         if response is None or response.ack_id == NodeResponseType.RELAY_SWITCH_FAILED:
-            _LOGGER.warning(
-                "Request to switch relay for %s failed",
-                self.name,
-            )
-            return None
+            raise NodeError(f"Request to switch relay for {self.name} failed")
 
         if response.ack_id == NodeResponseType.RELAY_SWITCHED_OFF:
             await self._relay_update_state(state=False, timestamp=response.timestamp)
@@ -602,18 +653,14 @@ class PlugwiseCircle(PlugwiseBaseNode):
         if response.ack_id == NodeResponseType.RELAY_SWITCHED_ON:
             await self._relay_update_state(state=True, timestamp=response.timestamp)
             return True
-        _LOGGER.warning(
-            "Unexpected NodeResponseType %s response for CircleRelaySwitchRequest at node %s...",
-            str(response.ack_id),
-            self.name,
+
+        raise NodeError(
+            f"Unexpected NodeResponseType {response.ack_id!r} received "
+            + "in response to CircleRelaySwitchRequest for node {self.mac}"
         )
-        return None
 
     async def _relay_load_from_cache(self) -> bool:
         """Load relay state from cache."""
-        if self._relay is not None:
-            # State already known, no need to load from cache
-            return True
         if (cached_relay_data := self._get_cache(CACHE_RELAY)) is not None:
             _LOGGER.debug("Restore relay state cache for node %s", self._mac_in_str)
             relay_state = False
@@ -633,18 +680,16 @@ class PlugwiseCircle(PlugwiseBaseNode):
         self, state: bool, timestamp: datetime | None = None
     ) -> None:
         """Process relay state update."""
-        self._relay_state.relay_state = state
-        self._relay_state.timestamp = timestamp
         state_update = False
         if state:
             self._set_cache(CACHE_RELAY, "True")
-            if self._relay is None or not self._relay:
+            if self._relay_state.state is None or not self._relay_state.state:
                 state_update = True
         if not state:
             self._set_cache(CACHE_RELAY, "False")
-            if self._relay is None or self._relay:
+            if self._relay_state.state is None or self._relay_state.state:
                 state_update = True
-        self._relay = state
+        self._relay_state = replace(self._relay_state, state=state, timestamp=timestamp)
         if state_update:
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.RELAY, self._relay_state
@@ -812,9 +857,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
             and await self.node_info_update() is None
         ):
             _LOGGER.debug("Failed to retrieve node info for %s", self._mac_in_str)
-        if NodeFeature.RELAY_INIT in self._features and self._relay_init_state is None:
+        if NodeFeature.RELAY_INIT in self._features:
             if (state := await self._relay_init_get()) is not None:
-                self._relay_init_state = state
+                self._relay_config = replace(self._relay_config, init_state=state)
             else:
                 _LOGGER.debug(
                     "Failed to initialized node %s, relay init", self._mac_in_str
@@ -878,8 +923,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
     ) -> bool:
         """Process new node info and return true if all fields are updated."""
         if relay_state is not None:
-            self._relay_state.relay_state = relay_state
-            self._relay_state.timestamp = timestamp
+            self._relay_state = replace(
+                self._relay_state, state=relay_state, timestamp=timestamp
+            )
         if logaddress_pointer is not None:
             self._current_log_address = logaddress_pointer
         return await super().update_node_details(
@@ -904,12 +950,17 @@ class PlugwiseCircle(PlugwiseBaseNode):
             await self._energy_log_records_save_to_cache()
         await super().unload()
 
-    async def switch_relay_init(self, state: bool) -> bool:
-        """Switch state of initial power-up relay state. Returns new state of relay."""
+    @raise_not_loaded
+    async def set_relay_init(self, state: bool) -> bool:
+        """Change the initial power-on state of the relay."""
+        if NodeFeature.RELAY_INIT not in self._features:
+            raise FeatureError(
+                f"Configuration of initial power-up relay state is not supported for node {self.mac}"
+            )
         await self._relay_init_set(state)
-        if self._relay_init_state is None:
-            raise NodeError("Unknown relay init setting")
-        return self._relay_init_state
+        if self._relay_config.init_state is None:
+            raise NodeError("Failed to configure relay init setting")
+        return self._relay_config.init_state
 
     async def _relay_init_get(self) -> bool | None:
         """Get current configuration of the power-up state of the relay. Returns None if retrieval failed."""
@@ -923,7 +974,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
         if (response := await request.send()) is not None:
             await self._relay_init_update_state(response.relay.value == 1)
-            return self._relay_init_state
+            return self._relay_config.init_state
         return None
 
     async def _relay_init_set(self, state: bool) -> bool | None:
@@ -938,7 +989,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
         if (response := await request.send()) is not None:
             await self._relay_init_update_state(response.relay.value == 1)
-            return self._relay_init_state
+            return self._relay_config.init_state
         return None
 
     async def _relay_init_load_from_cache(self) -> bool:
@@ -956,16 +1007,19 @@ class PlugwiseCircle(PlugwiseBaseNode):
         state_update = False
         if state:
             self._set_cache(CACHE_RELAY_INIT, "True")
-            if self._relay_init_state is None or not self._relay_init_state:
+            if (
+                self._relay_config.init_state is None
+                or not self._relay_config.init_state
+            ):
                 state_update = True
         if not state:
             self._set_cache(CACHE_RELAY_INIT, "False")
-            if self._relay_init_state is None or self._relay_init_state:
+            if self._relay_config.init_state is None or self._relay_config.init_state:
                 state_update = True
         if state_update:
-            self._relay_init_state = state
+            self._relay_config = replace(self._relay_config, init_state=state)
             await self.publish_feature_update_to_subscribers(
-                NodeFeature.RELAY_INIT, self._relay_init_state
+                NodeFeature.RELAY_INIT, self._relay_config
             )
             await self.save_cache()
 
@@ -1035,7 +1089,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 )
                 for feature in features:
                     states[feature] = None
-                states[NodeFeature.AVAILABLE] = False
+                states[NodeFeature.AVAILABLE] = self.available_state
                 return states
 
         for feature in features:
@@ -1058,7 +1112,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     states[feature],
                 )
             elif feature == NodeFeature.RELAY_INIT:
-                states[feature] = self._relay_init_state
+                states[feature] = self._relay_config
             elif feature == NodeFeature.POWER:
                 states[feature] = await self.power_update()
                 _LOGGER.debug(
@@ -1069,6 +1123,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
             else:
                 state_result = await super().get_state((feature,))
                 states[feature] = state_result[feature]
-
-        states[NodeFeature.AVAILABLE] = self._available
+        if NodeFeature.AVAILABLE not in states:
+            states[NodeFeature.AVAILABLE] = self.available_state
         return states
