@@ -667,7 +667,7 @@ RESPONSE_MESSAGES = {
         + b"00000000"  # log address
         + b"00"  # relay
         + b"01"  # hz
-        + b"000000070051"  # hw_ver
+        + b"000007005100"  # hw_ver
         + b"4E08478A"  # fw_ver
         + b"03",  # node_type (Switch)
     ),
