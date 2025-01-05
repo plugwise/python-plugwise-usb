@@ -320,7 +320,7 @@ class PlugwiseRequest(PlugwiseMessage):
     @property
     def resend(self) -> bool:
         """Return true if retry counter is not reached yet."""
-        return (self._max_retries > self._send_counter)
+        return self._max_retries > self._send_counter
 
     def add_send_attempt(self) -> None:
         """Increase the number of retries."""
