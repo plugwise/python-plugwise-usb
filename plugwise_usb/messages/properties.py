@@ -1,7 +1,7 @@
 """Message property types."""
 
 import binascii
-import datetime
+from datetime import UTC, date, datetime, time, timedelta
 import struct
 from typing import Any
 
@@ -161,10 +161,10 @@ class SInt(BaseType):
 class UnixTimestamp(BaseType):
     """Unix formatted timestamp property."""
 
-    def __init__(self, value: float, length: int = 8) -> None:
+    def __init__(self, value: datetime | None, length: int = 8) -> None:
         """Initialize Unix formatted timestamp property."""
         super().__init__(value, length)
-        self._value: datetime.datetime | None = None
+        self._value: datetime | None = None
 
     def serialize(self) -> bytes:
         """Return current string formatted value into an iterable list of bytes."""
@@ -173,10 +173,10 @@ class UnixTimestamp(BaseType):
 
     def deserialize(self, val: bytes) -> None:
         """Convert data into datetime based on Unix timestamp format."""
-        self._value = datetime.datetime.fromtimestamp(int(val, 16), datetime.UTC)
+        self._value = datetime.fromtimestamp(int(val, 16), UTC)
 
     @property
-    def value(self) -> datetime.datetime:
+    def value(self) -> datetime:
         """Return converted datetime value."""
         if self._value is None:
             raise MessageError("Unable to return value. Deserialize data first")
@@ -218,7 +218,7 @@ class DateTime(CompositeType):
         self.month = Int(month, 2, False)
         self.minutes = Int(minutes, 4, False)
         self.contents += [self.year, self.month, self.minutes]
-        self._value: datetime.datetime | None = None
+        self._value: datetime | None = None
         self._deserialized = False
 
     def deserialize(self, val: bytes) -> None:
@@ -227,9 +227,9 @@ class DateTime(CompositeType):
             self._value = None
         else:
             CompositeType.deserialize(self, val)
-            self._value = datetime.datetime(
+            self._value = datetime(
                 year=self.year.value, month=self.month.value, day=1
-            ) + datetime.timedelta(minutes=self.minutes.value)
+            ) + timedelta(minutes=self.minutes.value)
         self._deserialized = True
 
     @property
@@ -240,7 +240,7 @@ class DateTime(CompositeType):
         return (self._value is not None)
 
     @property
-    def value(self) -> datetime.datetime:
+    def value(self) -> datetime:
         """Return converted datetime value."""
         if self._value is None:
             raise MessageError("Unable to return value. Deserialize data first")
@@ -257,17 +257,15 @@ class Time(CompositeType):
         self.minute = Int(minute, 2, False)
         self.second = Int(second, 2, False)
         self.contents += [self.hour, self.minute, self.second]
-        self._value: datetime.time | None = None
+        self._value: time | None = None
 
     def deserialize(self, val: bytes) -> None:
         """Convert data into time value."""
         CompositeType.deserialize(self, val)
-        self._value = datetime.time(
-            self.hour.value, self.minute.value, self.second.value
-        )
+        self._value = time(self.hour.value, self.minute.value, self.second.value)
 
     @property
-    def value(self) -> datetime.time:
+    def value(self) -> time:
         """Return converted time value."""
         if self._value is None:
             raise MessageError("Unable to return value. Deserialize data first")
@@ -309,19 +307,19 @@ class RealClockTime(CompositeType):
         self.minute = IntDec(minute, 2)
         self.second = IntDec(second, 2)
         self.contents += [self.second, self.minute, self.hour]
-        self._value: datetime.time | None = None
+        self._value: time | None = None
 
     def deserialize(self, val: bytes) -> None:
         """Convert data into time value based on integer formatted data."""
         CompositeType.deserialize(self, val)
-        self._value = datetime.time(
+        self._value = time(
             int(self.hour.value),
             int(self.minute.value),
             int(self.second.value),
         )
 
     @property
-    def value(self) -> datetime.time:
+    def value(self) -> time:
         """Return converted time value."""
         if self._value is None:
             raise MessageError("Unable to return value. Deserialize data first")
@@ -338,19 +336,19 @@ class RealClockDate(CompositeType):
         self.month = IntDec(month, 2)
         self.year = IntDec(year - PLUGWISE_EPOCH, 2)
         self.contents += [self.day, self.month, self.year]
-        self._value: datetime.date | None = None
+        self._value: date | None = None
 
     def deserialize(self, val: bytes) -> None:
         """Convert data into date value based on integer formatted data."""
         CompositeType.deserialize(self, val)
-        self._value = datetime.date(
+        self._value = date(
             int(self.year.value) + PLUGWISE_EPOCH,
             int(self.month.value),
             int(self.day.value),
         )
 
     @property
-    def value(self) -> datetime.date:
+    def value(self) -> date:
         """Return converted date value."""
         if self._value is None:
             raise MessageError("Unable to return value. Deserialize data first")
