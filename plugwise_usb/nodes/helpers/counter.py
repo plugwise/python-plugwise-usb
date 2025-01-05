@@ -88,7 +88,7 @@ class EnergyCounters:
         timestamp: datetime,
         pulses: int,
         import_only: bool = False
-    ) -> None: #pylint: disable=too-many-arguments
+    ) -> None: # pylint: disable=too-many-arguments
         """Add pulse log."""
         if self._pulse_collection.add_log(
             address,
