@@ -90,7 +90,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             )
             await self._available_update_state(False)
             return False
-        await self._available_update_state(True)
+        await self._available_update_state(True, clock_response.timestamp)
 
         _dt_of_circle: datetime = datetime.now(tz=UTC).replace(
             hour=clock_response.time.value.hour,
