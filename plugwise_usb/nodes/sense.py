@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 import logging
 from typing import Any, Final
 
 from ..api import NodeEvent, NodeFeature
+from ..connection import StickController
 from ..exceptions import MessageError, NodeError
 from ..messages.responses import SENSE_REPORT_ID, PlugwiseResponse, SenseReportResponse
 from ..nodes.sed import NodeSED
@@ -32,7 +33,20 @@ SENSE_FEATURES: Final = (
 class PlugwiseSense(NodeSED):
     """Plugwise Sense node."""
 
-    _sense_subscription: Callable[[], None] | None = None
+    def __init__(
+        self,
+        mac: str,
+        address: int,
+        controller: StickController,
+        loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
+    ):
+        """Initialize Scan Device."""
+        super().__init__(mac, address, controller, loaded_callback)
+
+        self._humidity: float | None = None
+        self._temperature: float | None = None
+
+        self._sense_subscription: Callable[[], None] | None = None
 
     async def load(self) -> bool:
         """Load and activate Sense node features."""
@@ -58,7 +72,7 @@ class PlugwiseSense(NodeSED):
         """Initialize Sense node."""
         if self._initialized:
             return True
-        self._sense_subscription = self._message_subscribe(
+        self._sense_subscription = await self._message_subscribe(
             self._sense_report,
             self._mac_in_bytes,
             (SENSE_REPORT_ID,),
@@ -78,7 +92,7 @@ class PlugwiseSense(NodeSED):
             raise MessageError(
                 f"Invalid response message type ({response.__class__.__name__}) received, expected SenseReportResponse"
             )
-        await self._available_update_state(True)
+        await self._available_update_state(True, response.timestamp)
         if response.temperature.value != 65535:
             self._temperature = int(
                 SENSE_TEMPERATURE_MULTIPLIER * (response.temperature.value / 65536)
@@ -121,6 +135,6 @@ class PlugwiseSense(NodeSED):
             else:
                 state_result = await super().get_state((feature,))
                 states[feature] = state_result[feature]
-
-        states[NodeFeature.AVAILABLE] = self._available
+        if NodeFeature.AVAILABLE not in states:
+            states[NodeFeature.AVAILABLE] = self.available_state
         return states
