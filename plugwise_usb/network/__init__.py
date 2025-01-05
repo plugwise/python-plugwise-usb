@@ -223,8 +223,7 @@ class StickNetwork:
                 await self._notify_node_event_subscribers(NodeEvent.AWAKE, mac)
             self._awake_discovery[mac] = response.timestamp
             return True
-        address = self._register.network_address(mac)
-        if address is None:
+        if (address := self._register.network_address(mac)) is None:
             if self._register.scan_completed:
                 return True
             _LOGGER.debug(
@@ -540,7 +539,7 @@ class StickNetwork:
         """Enable or disable Plugwise network."""
         request = CirclePlusAllowJoiningRequest(self._controller.send, state)
         response = await request.send()
-        if response is None:
+        if (response := await request.send()) is None:
             raise NodeError("No response to get notifications for join request.")
         if response.response_type != NodeResponseType.JOIN_ACCEPTED:
             raise MessageError(
