@@ -685,7 +685,7 @@ class NodeSED(PlugwiseBaseNode):
             sleep_duration,
         )
         response = await request.send()
-        if response is None:
+        if (response := await request.send()) is None:
             self._new_battery_config = BatteryConfig()
             _LOGGER.warning(
                 "No response from %s to configure sleep settings request", self.name
