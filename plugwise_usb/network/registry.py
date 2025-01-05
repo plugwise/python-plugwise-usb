@@ -145,7 +145,7 @@ class StickNetworkRegister:
         """Return the network mac registration of specified address."""
         request = CirclePlusScanRequest(self._send_to_controller, self._mac_nc, address)
         response: CirclePlusScanResponse | None = await request.send()
-        if response is None:
+        if (response := await request.send()) is None:
             if retry:
                 return await self.retrieve_network_registration(address, retry=False)
             return None
@@ -276,7 +276,7 @@ class StickNetworkRegister:
 
         request = NodeRemoveRequest(self._send_to_controller, self._mac_nc, mac)
         response = await request.send()
-        if response is None:
+        if (response := await request.send()) is None:
             raise NodeError(
                 f"The Zigbee network coordinator '{self._mac_nc!r}'"
                 + f" did not respond to unregister node '{mac}'"
