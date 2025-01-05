@@ -1,7 +1,7 @@
 """Manage the communication sessions towards the USB-Stick."""
 from __future__ import annotations
 
-from asyncio import PriorityQueue, Task, get_running_loop
+from asyncio import PriorityQueue, Task, get_running_loop, sleep
 from collections.abc import Callable
 from dataclasses import dataclass
 import logging
@@ -97,7 +97,7 @@ class StickQueue:
                 if isinstance(request, NodePingRequest):
                     # For ping requests it is expected to receive timeouts, so lower log level
                     _LOGGER.debug("%s, cancel because timeout is expected for NodePingRequests", e)
-                if request.resend:
+                elif request.resend:
                     _LOGGER.info("%s, retrying", e)
                 else:
                     _LOGGER.warning("%s, cancel request", e)  # type: ignore[unreachable]
@@ -142,5 +142,6 @@ class StickQueue:
                 return
             await self._stick.write_to_stick(request)
             self._submit_queue.task_done()
+            await sleep(0.001)
             _LOGGER.debug("Sent from queue %s", request)
         _LOGGER.debug("Send_queue_worker stopped")
