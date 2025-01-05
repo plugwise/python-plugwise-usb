@@ -1,4 +1,5 @@
 """Energy counter."""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -81,21 +82,17 @@ class EnergyCounters:
         """Add empty energy log record to mark any start of beginning of energy log collection."""
         self._pulse_collection.add_empty_log(address, slot)
 
-    def add_pulse_log(
+    def add_pulse_log(  # pylint: disable=too-many-arguments
         self,
         address: int,
         slot: int,
         timestamp: datetime,
         pulses: int,
-        import_only: bool = False
-    ) -> None: # pylint: disable=too-many-arguments
+        import_only: bool = False,
+    ) -> None:
         """Add pulse log."""
         if self._pulse_collection.add_log(
-            address,
-            slot,
-            timestamp,
-            pulses,
-            import_only
+            address, slot, timestamp, pulses, import_only
         ):
             if not import_only:
                 self.update()
@@ -160,45 +157,37 @@ class EnergyCounters:
         self._pulse_collection.recalculate_missing_log_addresses()
         if self._calibration is None:
             return
-        self._energy_statistics.log_interval_consumption = self._pulse_collection.log_interval_consumption
-        self._energy_statistics.log_interval_production = self._pulse_collection.log_interval_production
+        self._energy_statistics.log_interval_consumption = (
+            self._pulse_collection.log_interval_consumption
+        )
+        self._energy_statistics.log_interval_production = (
+            self._pulse_collection.log_interval_production
+        )
         (
             self._energy_statistics.hour_consumption,
             self._energy_statistics.hour_consumption_reset,
-        ) = self._counters[EnergyType.CONSUMPTION_HOUR].update(
-            self._pulse_collection
-        )
+        ) = self._counters[EnergyType.CONSUMPTION_HOUR].update(self._pulse_collection)
         (
             self._energy_statistics.day_consumption,
             self._energy_statistics.day_consumption_reset,
-        ) = self._counters[EnergyType.CONSUMPTION_DAY].update(
-            self._pulse_collection
-        )
+        ) = self._counters[EnergyType.CONSUMPTION_DAY].update(self._pulse_collection)
         (
             self._energy_statistics.week_consumption,
             self._energy_statistics.week_consumption_reset,
-        ) = self._counters[EnergyType.CONSUMPTION_WEEK].update(
-            self._pulse_collection
-        )
+        ) = self._counters[EnergyType.CONSUMPTION_WEEK].update(self._pulse_collection)
 
         (
             self._energy_statistics.hour_production,
             self._energy_statistics.hour_production_reset,
-        ) = self._counters[EnergyType.PRODUCTION_HOUR].update(
-            self._pulse_collection
-        )
+        ) = self._counters[EnergyType.PRODUCTION_HOUR].update(self._pulse_collection)
         (
             self._energy_statistics.day_production,
             self._energy_statistics.day_production_reset,
-        ) = self._counters[EnergyType.PRODUCTION_DAY].update(
-            self._pulse_collection
-        )
+        ) = self._counters[EnergyType.PRODUCTION_DAY].update(self._pulse_collection)
         (
             self._energy_statistics.week_production,
             self._energy_statistics.week_production_reset,
-        ) = self._counters[EnergyType.PRODUCTION_WEEK].update(
-            self._pulse_collection
-        )
+        ) = self._counters[EnergyType.PRODUCTION_WEEK].update(self._pulse_collection)
 
     @property
     def timestamp(self) -> datetime | None:
@@ -223,9 +212,7 @@ class EnergyCounter:
         """Initialize energy counter based on energy id."""
         self._mac = mac
         if energy_id not in ENERGY_COUNTERS:
-            raise EnergyError(
-                f"Invalid energy id '{energy_id}' for Energy counter"
-            )
+            raise EnergyError(f"Invalid energy id '{energy_id}' for Energy counter")
         self._calibration: EnergyCalibration | None = None
         self._duration = "hour"
         if energy_id in ENERGY_DAY_COUNTERS:
@@ -311,9 +298,7 @@ class EnergyCounter:
         if self._energy_id in ENERGY_HOUR_COUNTERS:
             last_reset = last_reset.replace(minute=0, second=0, microsecond=0)
         elif self._energy_id in ENERGY_DAY_COUNTERS:
-            last_reset = last_reset.replace(
-                hour=0, minute=0, second=0, microsecond=0
-            )
+            last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
         elif self._energy_id in ENERGY_WEEK_COUNTERS:
             last_reset = last_reset - timedelta(days=last_reset.weekday())
             last_reset = last_reset.replace(

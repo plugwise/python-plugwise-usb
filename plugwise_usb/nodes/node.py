@@ -433,7 +433,9 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             return
         _LOGGER.info("Device %s detected to be not available (off-line)", self.name)
         self._available = False
-        await self.publish_feature_update_to_subscribers(NodeFeature.AVAILABLE, self.available_state)
+        await self.publish_feature_update_to_subscribers(
+            NodeFeature.AVAILABLE, self.available_state
+        )
 
     async def node_info_update(
         self, node_info: NodeInfoResponse | None = None
@@ -474,6 +476,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             logaddress_pointer=None,
         )
 
+    # pylint: disable=too-many-arguments
     async def update_node_details(
         self,
         firmware: datetime | None,

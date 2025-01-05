@@ -363,6 +363,7 @@ class PulseCollection:
         if recalculate:
             self.recalculate_missing_log_addresses()
 
+    # pylint: disable=too-many-arguments
     def add_log(
         self,
         address: int,
@@ -370,7 +371,7 @@ class PulseCollection:
         timestamp: datetime,
         pulses: int,
         import_only: bool = False,
-    ) -> bool: # pylint: disable=too-many-arguments
+    ) -> bool:
         """Store pulse log."""
         log_record = PulseLogRecord(timestamp, pulses, CONSUMED)
         if not self._add_log_record(address, slot, log_record):
