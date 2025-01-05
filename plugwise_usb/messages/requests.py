@@ -750,7 +750,7 @@ class CircleClockSetRequest(PlugwiseRequest):
     _identifier = b"0016"
     _reply_identifier = b"0000"
 
-    def __init__( #pylint: disable=too-many-arguments
+    def __init__( # pylint: disable=too-many-arguments
         self,
         send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
         mac: bytes,
@@ -1083,7 +1083,7 @@ class NodeAddToGroupRequest(PlugwiseRequest):
     _identifier = b"0045"
     _reply_identifier = b"0000"
 
-    def __init__( #pylint: disable=too-many-arguments
+    def __init__( # pylint: disable=too-many-arguments
         self,
         send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
         mac: bytes,
@@ -1231,7 +1231,7 @@ class NodeSleepConfigRequest(PlugwiseRequest):
     _identifier = b"0050"
     _reply_identifier = b"0000"
 
-    def __init__( #pylint: disable=too-many-arguments
+    def __init__( # pylint: disable=too-many-arguments
         self,
         send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
         mac: bytes,
@@ -1402,7 +1402,7 @@ class ScanConfigureRequest(PlugwiseRequest):
     _identifier = b"0101"
     _reply_identifier = b"0100"
 
-    def __init__( #pylint: disable=too-many-arguments
+    def __init__( # pylint: disable=too-many-arguments
         self,
         send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
         mac: bytes,
