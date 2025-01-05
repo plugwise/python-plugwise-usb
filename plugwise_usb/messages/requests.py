@@ -83,7 +83,7 @@ class PlugwiseRequest(PlugwiseMessage):
                 [
                     Callable[[StickResponse], Coroutine[Any, Any, None]],
                     bytes | None,
-                    StickResponseType | None,
+                    tuple[StickResponseType, ...] | None,
                 ],
                 Callable[[], None],
             ]
@@ -141,18 +141,41 @@ class PlugwiseRequest(PlugwiseMessage):
                 f"Unable to set seq_id to {seq_id!r}. Already set to {self._seq_id!r}"
             )
         self._seq_id = seq_id
-        # Subscribe to receive the response messages
-        if self._stick_subscription_fn is not None:
-            self._unsubscribe_stick_response = self._stick_subscription_fn(
-                self._process_stick_response, self._seq_id, None
+
+    async def subscribe_to_response(
+        self,
+        stick_subscription_fn: Callable[
+            [
+                Callable[[StickResponse], Coroutine[Any, Any, None]],
+                bytes | None,
+                tuple[StickResponseType, ...] | None,
+            ],
+            Coroutine[Any, Any, Callable[[], None]],
+        ],
+        node_subscription_fn: Callable[
+            [
+                Callable[[PlugwiseResponse], Coroutine[Any, Any, bool]],
+                bytes | None,
+                tuple[bytes, ...] | None,
+                bytes | None,
+            ],
+            Coroutine[Any, Any, Callable[[], None]],
+        ],
+    ) -> None:
+        """Subscribe to receive the response messages."""
+        if self._seq_id is None:
+            raise MessageError(
+                "Unable to subscribe to response because seq_id is not set"
             )
-        if self._node_subscription_fn is not None:
-            self._unsubscribe_node_response = self._node_subscription_fn(
-                self._process_node_response,
-                self._mac,
-                (self._reply_identifier,),
-                self._seq_id,
-            )
+        self._unsubscribe_stick_response = await stick_subscription_fn(
+            self._process_stick_response, self._seq_id, None
+        )
+        self._unsubscribe_node_response = await node_subscription_fn(
+            self.process_node_response,
+            self._mac,
+            (self._reply_identifier,),
+            self._seq_id,
+        )
 
     def _unsubscribe_from_stick(self) -> None:
         """Unsubscribe from StickResponse messages."""
@@ -165,32 +188,6 @@ class PlugwiseRequest(PlugwiseMessage):
         if self._unsubscribe_node_response is not None:
             self._unsubscribe_node_response()
             self._unsubscribe_node_response = None
-
-    def subscribe_to_responses(
-        self,
-        stick_subscription_fn: Callable[
-            [
-                Callable[[StickResponse], Coroutine[Any, Any, None]],
-                bytes | None,
-                StickResponseType | None,
-            ],
-            Callable[[], None],
-        ]
-        | None,
-        node_subscription_fn: Callable[
-            [
-                Callable[[PlugwiseResponse], Coroutine[Any, Any, bool]],
-                bytes | None,
-                tuple[bytes, ...] | None,
-                bytes | None,
-            ],
-            Callable[[], None],
-        ]
-        | None,
-    ) -> None:
-        """Register for response messages."""
-        self._node_subscription_fn = node_subscription_fn
-        self._stick_subscription_fn = stick_subscription_fn
 
     def start_response_timeout(self) -> None:
         """Start timeout for node response."""
@@ -237,7 +234,7 @@ class PlugwiseRequest(PlugwiseMessage):
             return
         self._response_future.set_exception(error)
 
-    async def _process_node_response(self, response: PlugwiseResponse) -> bool:
+    async def process_node_response(self, response: PlugwiseResponse) -> bool:
         """Process incoming message from node."""
         if self._seq_id is None:
             _LOGGER.warning(
@@ -262,7 +259,7 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_from_stick()
         self._unsubscribe_from_node()
         if self._send_counter > 1:
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Received %s after %s retries as reply to %s",
                 self._response,
                 self._send_counter,
