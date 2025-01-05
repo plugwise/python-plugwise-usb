@@ -616,7 +616,7 @@ class NodeInfoResponse(PlugwiseResponse):
             ]
         self._frequency = Int(0, length=2)
         self._hw_ver = String(None, length=12)
-        self._fw_ver = UnixTimestamp(0)
+        self._fw_ver = UnixTimestamp(None)
         self._node_type = Int(0, length=2)
         self._params += [
             self._frequency,
@@ -863,6 +863,10 @@ class NodeSwitchGroupResponse(PlugwiseResponse):
     def switch_state(self) -> bool:
         """Return state of switch (True = On, False = Off)."""
         return (self._power_state.value != 0)
+
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return f"{super().__repr__()[:-1]}, power_state={self._power_state.value}, group={self.group.value})"
 
 class NodeFeaturesResponse(PlugwiseResponse):
     """Returns supported features of node.
