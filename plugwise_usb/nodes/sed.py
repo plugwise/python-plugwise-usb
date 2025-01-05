@@ -657,7 +657,7 @@ class NodeSED(PlugwiseBaseNode):
         self._send_task_queue.append(task_fn)
         self._send_task_lock.release()
 
-    async def sed_configure( #pylint: disable=too-many-arguments
+    async def sed_configure( # pylint: disable=too-many-arguments
         self,
         awake_duration: int,
         sleep_duration: int,
@@ -712,7 +712,7 @@ class NodeSED(PlugwiseBaseNode):
         )
         return False
 
-    async def _sed_configure_update( #pylint: disable=too-many-arguments
+    async def _sed_configure_update( # pylint: disable=too-many-arguments
         self,
         awake_duration: int = SED_DEFAULT_AWAKE_DURATION,
         clock_interval: int = SED_DEFAULT_CLOCK_INTERVAL,
