@@ -84,7 +84,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             self._send, self._mac_in_bytes
         )
         clock_response = await clock_request.send()
-        if clock_response is None:
+        if (clock_response := await clock_request.send()) is None:
             _LOGGER.debug(
                 "No response for async_realtime_clock_synchronize() for %s", self.mac
             )

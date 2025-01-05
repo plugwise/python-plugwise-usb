@@ -185,7 +185,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
         request = EnergyCalibrationRequest(self._send, self._mac_in_bytes)
         calibration_response = await request.send()
-        if calibration_response is None:
+        if (calibration_response := await request.send()) is None:
             _LOGGER.warning(
                 "Retrieving energy calibration information for %s failed",
                 self.name,
@@ -494,7 +494,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
         request = CircleEnergyLogsRequest(self._send, self._mac_in_bytes, address)
         response = await request.send()
-        if response is None:
+        if (response := await request.send()) is None:
             _LOGGER.debug(
                 "Retrieving of energy log at address %s for node %s failed",
                 str(address),
@@ -529,7 +529,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
     async def _energy_log_records_load_from_cache(self) -> bool:
         """Load energy_log_record from cache."""
         cache_data = self._get_cache(CACHE_ENERGY_COLLECTION)
-        if cache_data is None:
+        if (cache_data := self._get_cache(CACHE_ENERGY_COLLECTION)) is None:
             _LOGGER.debug(
                 "Failed to restore energy log records from cache for node %s", self.name
             )
@@ -730,8 +730,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             self._node_protocols.max,
         )
         node_response: NodeResponse | None = await set_clock_request.send()
-
-        if node_response is None:
+        if (node_response := await set_clock_request.send()) is None:
             _LOGGER.warning(
                 "Failed to (re)set the internal clock of %s",
                 self.name,
