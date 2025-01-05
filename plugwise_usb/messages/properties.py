@@ -75,6 +75,7 @@ class Bytes(BaseType):
             raise MessageError("Unable to return value. Deserialize data first")
         return self._value
 
+
 class String(BaseType):
     """String based property."""
 
@@ -168,8 +169,11 @@ class UnixTimestamp(BaseType):
 
     def serialize(self) -> bytes:
         """Return current string formatted value into an iterable list of bytes."""
+        if not isinstance(self._raw_value, datetime):
+            raise MessageError("Unable to serialize. Value is not a datetime object")
         fmt = "%%0%dX" % self.length
-        return bytes(fmt % self._raw_value, UTF8)
+        date_in_float = self._raw_value.timestamp()
+        return bytes(fmt % int(date_in_float), UTF8)
 
     def deserialize(self, val: bytes) -> None:
         """Convert data into datetime based on Unix timestamp format."""
@@ -237,7 +241,7 @@ class DateTime(CompositeType):
         """True when datetime is converted."""
         if not self._deserialized:
             raise MessageError("Unable to return value. Deserialize data first")
-        return (self._value is not None)
+        return self._value is not None
 
     @property
     def value(self) -> datetime:
