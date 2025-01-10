@@ -512,8 +512,7 @@ class StickNetwork:
 
     async def discover_nodes(self, load: bool = True) -> bool:
         """Discover nodes."""
-        if not await self.discover_network_coordinator(load=load):
-            return False
+        await self.discover_network_coordinator(load=load)
         if not self._is_running:
             await self.start()
         await self._discover_registered_nodes()
