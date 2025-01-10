@@ -18,6 +18,7 @@ and publish detected connection status changes
 from __future__ import annotations
 
 from asyncio import (
+    ensure_future,
     Future,
     Lock,
     PriorityQueue,
@@ -101,6 +102,7 @@ class StickReceiver(Protocol):
         # Message processing
         self._message_queue: PriorityQueue[PlugwiseResponse] = PriorityQueue()
         self._last_processed_messages: list[bytes] = []
+        self._current_seq_id: bytes | None = None
         self._responses: dict[bytes, Callable[[PlugwiseResponse], None]] = {}
         self._message_worker_task: Task[None] | None = None
         self._delayed_processing_tasks: dict[bytes, Task[None]] = {}
@@ -108,10 +110,14 @@ class StickReceiver(Protocol):
         # Subscribers
         self._stick_subscription_lock = Lock()
         self._node_subscription_lock = Lock()
+
         self._stick_event_subscribers: dict[
             Callable[[], None], StickEventSubscription
         ] = {}
-        self._stick_response_subscribers: dict[
+        self._stick_subscribers_for_requests: dict[
+            Callable[[], None], StickResponseSubscription
+        ] = {}
+        self._stick_subscribers_for_responses: dict[
             Callable[[], None], StickResponseSubscription
         ] = {}
 
@@ -250,7 +256,7 @@ class StickReceiver(Protocol):
         self, response: PlugwiseResponse, delay: float = 0.0
     ) -> None:
         """Put message in queue to be processed."""
-        if delay > 0:
+        if delay > 0.0:
             await sleep(delay)
         _LOGGER.debug("Add response to queue: %s", response)
         await self._message_queue.put(response)
@@ -270,11 +276,11 @@ class StickReceiver(Protocol):
                 return
             _LOGGER.debug("Message queue worker queue: %s", response)
             if isinstance(response, StickResponse):
-                await self._notify_stick_response_subscribers(response)
+                await self._notify_stick_subscribers(response)
             else:
                 await self._notify_node_response_subscribers(response)
             self._message_queue.task_done()
-            await sleep(0.001)
+            await sleep(0)
         _LOGGER.debug("Message queue worker stopped")
 
     # endregion
@@ -319,23 +325,49 @@ class StickReceiver(Protocol):
         response_type: tuple[StickResponseType, ...] | None = None,
     ) -> Callable[[], None]:
         """Subscribe to response messages from stick."""
-        await self._stick_subscription_lock.acquire()
 
-        def remove_subscription() -> None:
+        def remove_subscription_for_requests() -> None:
             """Remove update listener."""
-            self._stick_response_subscribers.pop(remove_subscription)
+            self._stick_subscribers_for_requests.pop(remove_subscription_for_requests)
 
-        self._stick_response_subscribers[remove_subscription] = (
+        def remove_subscription_for_responses() -> None:
+            """Remove update listener."""
+            self._stick_subscribers_for_responses.pop(remove_subscription_for_responses)
+
+        if seq_id is None:
+            await self._stick_subscription_lock.acquire()
+            self._stick_subscribers_for_requests[remove_subscription_for_requests] = (
+                StickResponseSubscription(callback, seq_id, response_type)
+            )
+            self._stick_subscription_lock.release()
+            return remove_subscription_for_requests
+
+        self._stick_subscribers_for_responses[remove_subscription_for_responses] = (
             StickResponseSubscription(callback, seq_id, response_type)
         )
-        self._stick_subscription_lock.release()
-        return remove_subscription
+        return remove_subscription_for_responses
 
-    async def _notify_stick_response_subscribers(
+    async def _notify_stick_subscribers(
         self, stick_response: StickResponse
     ) -> None:
         """Call callback for all stick response message subscribers."""
-        for subscription in list(self._stick_response_subscribers.values()):
+        await self._stick_subscription_lock.acquire()
+        for subscription in self._stick_subscribers_for_requests.values():
+            if (
+                subscription.seq_id is not None
+                and subscription.seq_id != stick_response.seq_id
+            ):
+                continue
+            if (
+                subscription.stick_response_type is not None
+                and stick_response.response_type not in subscription.stick_response_type
+            ):
+                continue
+            _LOGGER.debug("Notify stick request subscriber for %s", stick_response)
+            await subscription.callback_fn(stick_response)
+        self._stick_subscription_lock.release()
+
+        for subscription in list(self._stick_subscribers_for_responses.values()):
             if (
                 subscription.seq_id is not None
                 and subscription.seq_id != stick_response.seq_id
@@ -348,6 +380,9 @@ class StickReceiver(Protocol):
                 continue
             _LOGGER.debug("Notify stick response subscriber for %s", stick_response)
             await subscription.callback_fn(stick_response)
+        _LOGGER.debug("Finished Notify stick response subscriber for %s", stick_response)
+
+
 
     # endregion
     # region node
@@ -466,6 +501,5 @@ class StickReceiver(Protocol):
             self._put_message_in_queue(node_response, 0.1 * node_response.retries),
             name=f"Postpone subscription task for {node_response.seq_id!r} retry {node_response.retries}",
         )
-
 
 # endregion
