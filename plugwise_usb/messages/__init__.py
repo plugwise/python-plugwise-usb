@@ -79,31 +79,31 @@ class PlugwiseMessage:
     def __gt__(self, other: PlugwiseMessage) -> bool:
         """Greater than."""
         if self.priority.value == other.priority.value:
+            if self.seq_id is not None and other.seq_id is not None:
+                return self.seq_id < other.seq_id
             return self.timestamp > other.timestamp
-        if self.priority.value < other.priority.value:
-            return True
-        return False
+        return self.priority.value < other.priority.value
 
     def __lt__(self, other: PlugwiseMessage) -> bool:
         """Less than."""
         if self.priority.value == other.priority.value:
+            if self.seq_id is not None and other.seq_id is not None:
+                return self.seq_id > other.seq_id
             return self.timestamp < other.timestamp
-        if self.priority.value > other.priority.value:
-            return True
-        return False
+        return self.priority.value > other.priority.value
 
     def __ge__(self, other: PlugwiseMessage) -> bool:
         """Greater than or equal."""
         if self.priority.value == other.priority.value:
+            if self.seq_id is not None and other.seq_id is not None:
+                return self.seq_id < other.seq_id
             return self.timestamp >= other.timestamp
-        if self.priority.value < other.priority.value:
-            return True
-        return False
+        return self.priority.value < other.priority.value
 
     def __le__(self, other: PlugwiseMessage) -> bool:
         """Less than or equal."""
         if self.priority.value == other.priority.value:
+            if self.seq_id is not None and other.seq_id is not None:
+                return self.seq_id <= other.seq_id
             return self.timestamp <= other.timestamp
-        if self.priority.value > other.priority.value:
-            return True
-        return False
+        return self.priority.value > other.priority.value
