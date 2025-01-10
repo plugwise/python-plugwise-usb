@@ -346,9 +346,7 @@ class StickReceiver(Protocol):
         )
         return remove_subscription_for_responses
 
-    async def _notify_stick_subscribers(
-        self, stick_response: StickResponse
-    ) -> None:
+    async def _notify_stick_subscribers(self, stick_response: StickResponse) -> None:
         """Call callback for all stick response message subscribers."""
         await self._stick_subscription_lock.acquire()
         for subscription in self._stick_subscribers_for_requests.values():
@@ -379,9 +377,9 @@ class StickReceiver(Protocol):
                 continue
             _LOGGER.debug("Notify stick response subscriber for %s", stick_response)
             await subscription.callback_fn(stick_response)
-        _LOGGER.debug("Finished Notify stick response subscriber for %s", stick_response)
-
-
+        _LOGGER.debug(
+            "Finished Notify stick response subscriber for %s", stick_response
+        )
 
     # endregion
     # region node
@@ -500,5 +498,6 @@ class StickReceiver(Protocol):
             self._put_message_in_queue(node_response, 0.1 * node_response.retries),
             name=f"Postpone subscription task for {node_response.seq_id!r} retry {node_response.retries}",
         )
+
 
 # endregion
