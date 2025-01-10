@@ -83,7 +83,6 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         clock_request = CirclePlusRealTimeClockGetRequest(
             self._send, self._mac_in_bytes
         )
-        clock_response = await clock_request.send()
         if (clock_response := await clock_request.send()) is None:
             _LOGGER.debug(
                 "No response for async_realtime_clock_synchronize() for %s", self.mac
@@ -113,7 +112,6 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         clock_set_request = CirclePlusRealTimeClockSetRequest(
             self._send, self._mac_in_bytes, datetime.now(tz=UTC)
         )
-        node_response = await clock_set_request.send()
         if (node_response := await clock_set_request.send()) is not None:
             return node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED
         _LOGGER.warning(

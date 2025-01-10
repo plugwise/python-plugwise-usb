@@ -184,7 +184,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
             self._mac_in_str,
         )
         request = EnergyCalibrationRequest(self._send, self._mac_in_bytes)
-        calibration_response = await request.send()
         if (calibration_response := await request.send()) is None:
             _LOGGER.warning(
                 "Retrieving energy calibration information for %s failed",
@@ -493,7 +492,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
             self.name,
         )
         request = CircleEnergyLogsRequest(self._send, self._mac_in_bytes, address)
-        response = await request.send()
         if (response := await request.send()) is None:
             _LOGGER.debug(
                 "Retrieving of energy log at address %s for node %s failed",
