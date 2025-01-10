@@ -121,9 +121,9 @@ class PlugwiseRequest(PlugwiseMessage):
     @property
     def response(self) -> PlugwiseResponse:
         """Return response message."""
-        if not self._response_future.done():
+        if self._response is None:
             raise StickError("No response available")
-        return self._response_future.result()
+        return self._response
 
     @property
     def seq_id(self) -> bytes | None:
