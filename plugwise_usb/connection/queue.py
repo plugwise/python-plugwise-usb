@@ -1,4 +1,5 @@
 """Manage the communication sessions towards the USB-Stick."""
+
 from __future__ import annotations
 
 from asyncio import PriorityQueue, Task, get_running_loop, sleep
@@ -7,7 +8,7 @@ from dataclasses import dataclass
 import logging
 
 from ..api import StickEvent
-from ..exceptions import NodeTimeout, StickError, StickTimeout
+from ..exceptions import MessageError, NodeTimeout, StickError, StickTimeout
 from ..messages import Priority
 from ..messages.requests import NodePingRequest, PlugwiseCancelRequest, PlugwiseRequest
 from ..messages.responses import PlugwiseResponse
@@ -41,21 +42,15 @@ class StickQueue:
         """Return the state of the queue."""
         return self._running
 
-    def start(
-        self,
-        stick_connection_manager: StickConnectionManager
-    ) -> None:
+    def start(self, stick_connection_manager: StickConnectionManager) -> None:
         """Start sending request from queue."""
         if self._running:
             raise StickError("Cannot start queue manager, already running")
         self._stick = stick_connection_manager
         if self._stick.is_connected:
             self._running = True
-        self._unsubscribe_connection_events = (
-            self._stick.subscribe_to_stick_events(
-                self._handle_stick_event,
-                (StickEvent.CONNECTED, StickEvent.DISCONNECTED)
-            )
+        self._unsubscribe_connection_events = self._stick.subscribe_to_stick_events(
+            self._handle_stick_event, (StickEvent.CONNECTED, StickEvent.DISCONNECTED)
         )
 
     async def _handle_stick_event(self, event: StickEvent) -> None:
@@ -79,16 +74,19 @@ class StickQueue:
         self._stick = None
         _LOGGER.debug("queue stopped")
 
-    async def submit(
-        self, request: PlugwiseRequest
-    ) -> PlugwiseResponse:
+    async def submit(self, request: PlugwiseRequest) -> PlugwiseResponse:
         """Add request to queue and return the response of node. Raises an error when something fails."""
-        _LOGGER.debug("Submit %s", request)
-        while request.resend:
+        if request.waiting_for_response:
+            raise MessageError(
+                f"Cannot send message {request} which is currently waiting for response."
+            )
+
+        while request.resend and not request.waiting_for_response:
+            _LOGGER.warning("submit | start (%s) %s", request.retries_left, request)
             if not self._running or self._stick is None:
                 raise StickError(
-                    f"Cannot send message {request.__class__.__name__} for" +
-                    f"{request.mac_decoded} because queue manager is stopped"
+                    f"Cannot send message {request.__class__.__name__} for"
+                    + f"{request.mac_decoded} because queue manager is stopped"
                 )
             await self._add_request_to_queue(request)
             try:
@@ -96,30 +94,26 @@ class StickQueue:
             except (NodeTimeout, StickTimeout) as e:
                 if isinstance(request, NodePingRequest):
                     # For ping requests it is expected to receive timeouts, so lower log level
-                    _LOGGER.debug("%s, cancel because timeout is expected for NodePingRequests", e)
+                    _LOGGER.debug(
+                        "%s, cancel because timeout is expected for NodePingRequests", e
+                    )
                 elif request.resend:
-                    _LOGGER.info("%s, retrying", e)
+                    _LOGGER.debug("%s, retrying", e)
                 else:
                     _LOGGER.warning("%s, cancel request", e)  # type: ignore[unreachable]
             except StickError as exception:
                 _LOGGER.error(exception)
                 raise StickError(
-                    f"No response received for {request.__class__.__name__} " +
-                    f"to {request.mac_decoded}"
+                    f"No response received for {request.__class__.__name__} "
+                    + f"to {request.mac_decoded}"
                 ) from exception
             except BaseException as exception:
                 raise StickError(
-                    f"No response received for {request.__class__.__name__} " +
-                    f"to {request.mac_decoded}"
+                    f"No response received for {request.__class__.__name__} "
+                    + f"to {request.mac_decoded}"
                 ) from exception
-            else:
-                return response
 
-        raise StickError(
-            f"Failed to send {request.__class__.__name__} " +
-            f"to node {request.mac_decoded}, maximum number " +
-            f"of retries ({request.max_retries}) has been reached"
-        )
+        return response
 
     async def _add_request_to_queue(self, request: PlugwiseRequest) -> None:
         """Add request to send queue."""
@@ -127,8 +121,7 @@ class StickQueue:
         await self._submit_queue.put(request)
         if self._submit_worker_task is None or self._submit_worker_task.done():
             self._submit_worker_task = self._loop.create_task(
-                self._send_queue_worker(),
-                name="Send queue worker"
+                self._send_queue_worker(), name="Send queue worker"
             )
 
     async def _send_queue_worker(self) -> None:
