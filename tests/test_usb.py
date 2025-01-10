@@ -696,6 +696,7 @@ class TestStick:
         await stick.initialize()
         await stick.discover_nodes(load=False)
         assert stick.joined_nodes == 11
+        assert stick.nodes.get("0098765432101234") is not None
         assert len(stick.nodes) == 6  # Discovered nodes
         await stick.disconnect()
 
