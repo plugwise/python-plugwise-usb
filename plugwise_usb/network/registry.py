@@ -144,7 +144,6 @@ class StickNetworkRegister:
     ) -> tuple[int, str] | None:
         """Return the network mac registration of specified address."""
         request = CirclePlusScanRequest(self._send_to_controller, self._mac_nc, address)
-        response: CirclePlusScanResponse | None = await request.send()
         if (response := await request.send()) is None:
             if retry:
                 return await self.retrieve_network_registration(address, retry=False)
