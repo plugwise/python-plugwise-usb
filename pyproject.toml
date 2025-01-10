@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools~=72.1", "wheel~=0.44.0"]
+requires = ["setuptools~=75.1", "wheel~=0.45.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -44,8 +44,11 @@ dependencies    = [
 platforms = ["any"]
 include-package-data = true
 
+[tool.setuptools.package-data]
+"plugwise" = ["py.typed"]
+
 [tool.setuptools.packages.find]
-include = ["plugwise_usb*"]
+include = ["plugwise*"]
 
 [tool.black]
 target-version = ["py312"]
@@ -57,7 +60,7 @@ profile = "black"
 # will group `import x` and `from x import` of the same module.
 force_sort_within_sections = true
 known_first_party = [
-    "plugwise_usb",
+    "plugwise",
     "homeassistant",
     "tests",
 ]
@@ -113,18 +116,23 @@ good-names = [
 # too-many-ancestors - it's too strict.
 # wrong-import-order - isort guards this
 disable = [
-    "format",
     "abstract-method",
     "consider-using-f-string",
     "cyclic-import",
     "duplicate-code",
     "fixme",
+    "format",
     "inconsistent-return-statements",
     "locally-disabled",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "missing-module-docstring",
     "not-context-manager",
+    "raise-missing-from",
     "too-few-public-methods",
     "too-many-ancestors",
     "too-many-arguments",
+    "too-many-boolean-expressions",
     "too-many-branches",
     "too-many-instance-attributes",
     "too-many-lines",
@@ -133,14 +141,9 @@ disable = [
     "too-many-public-methods",
     "too-many-return-statements",
     "too-many-statements",
-    "too-many-boolean-expressions",
+    "too-many-nested-blocks",
     "unused-argument",
     "wrong-import-order",
-    "raise-missing-from",
-    "missing-class-docstring",
-    "missing-function-docstring",
-    "missing-module-docstring",
-    "too-many-nested-blocks",
 ]
 # for now (20201031) added the below while we are codemerging/-improving
 # too-many-positional-arguments
@@ -209,7 +212,7 @@ warn_unreachable = true
 exclude = []
 
 [tool.coverage.run]
-source = [ "plugwise_usb" ]
+source = [ "plugwise" ]
 omit= [
     "*/venv/*",
     "setup.py",
@@ -239,7 +242,7 @@ lint.select = [
     "N804", # First argument of a class method should be named cls
     "N805", # First argument of a method should be named self
     "N815", # Variable {name} in class scope should not be mixedCase
-    # "PGH001", # No builtin eval() allowed remapped to S307
+    # "PGH001", # PGH001 has been remapped to S307
     "PGH004", # Use specific rule codes when using noqa
     "PL", # https://github.com/astral-sh/ruff/issues/7491#issuecomment-1730008111
     "PLC0414", # Useless import alias. Import alias does not rename original package.
@@ -279,7 +282,7 @@ lint.select = [
     "T20",  # flake8-print
     "TID251", # Banned imports
     "TRY004", # Prefer TypeError exception for invalid type
-    # "TRY200", # Use raise from to specify exception cause
+    # "TRY200", # TRY200 has been remapped to B904
     "TRY302", # Remove exception handler; error is immediately re-raised
     "UP",  # pyupgrade
     "W",  # pycodestyle

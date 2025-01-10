@@ -244,6 +244,8 @@ jobs:
         with:
           name: coverage-${{ matrix.python-version }}
           path: .coverage
+          if-no-files-found: error
+          include-hidden-files: true
 
   mypy:
     runs-on: ubuntu-latest
@@ -346,7 +348,7 @@ jobs:
           echo "***"
           coverage xml
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
