@@ -18,7 +18,6 @@ and publish detected connection status changes
 from __future__ import annotations
 
 from asyncio import (
-    ensure_future,
     Future,
     Lock,
     PriorityQueue,
