@@ -105,6 +105,7 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_node_response: Callable[[], None] | None = None
         self._response_timeout: TimerHandle | None = None
         self._response_future: Future[PlugwiseResponse] = self._loop.create_future()
+        self._waiting_for_response = False
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
@@ -195,11 +196,18 @@ class PlugwiseRequest(PlugwiseMessage):
         self._response_timeout = self._loop.call_later(
             NODE_TIME_OUT, self._response_timeout_expired
         )
+        self._waiting_for_response = True
 
     def stop_response_timeout(self) -> None:
         """Stop timeout for node response."""
+        self._waiting_for_response = True
         if self._response_timeout is not None:
             self._response_timeout.cancel()
+
+    @property
+    def waiting_for_response(self) -> bool:
+        """Indicate if request is actively waiting for a response."""
+        return self._waiting_for_response
 
     def _response_timeout_expired(self, stick_timeout: bool = False) -> None:
         """Handle response timeout."""
@@ -232,6 +240,7 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_from_node()
         if self._response_future.done():
             return
+        self._waiting_for_response = False
         self._response_future.set_exception(error)
 
     async def process_node_response(self, response: PlugwiseResponse) -> bool:
