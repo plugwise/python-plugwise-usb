@@ -49,8 +49,13 @@ class StickSender:
         # Other stick responses are not related to this request.
         self._unsubscribe_stick_response = (
             await self._receiver.subscribe_to_stick_responses(
-                self._process_stick_response, None, (StickResponseType.ACCEPT,)
-                # self._process_stick_response, None, (StickResponseType.ACCEPT, StickResponseType.FAILED)
+                self._process_stick_response,
+                None,
+                (
+                    StickResponseType.ACCEPT,
+                    StickResponseType.TIMEOUT,
+                    StickResponseType.FAILED,
+                ),
             )
         )
 
@@ -68,7 +73,7 @@ class StickSender:
 
         # Write message to serial port buffer
         serialized_data = request.serialize()
-        _LOGGER.debug("Write %s to port as %s", request, serialized_data)
+        _LOGGER.debug("write_request_to_port | Write %s to port as %s", request, serialized_data)
         self._transport.write(serialized_data)
         request.start_response_timeout()
 
@@ -93,15 +98,21 @@ class StickSender:
             _LOGGER.warning("Exception for %s: %s", request, exc)
             request.assign_error(exc)
         else:
-            _LOGGER.debug(
-                "USB-Stick replied with %s to request %s", response, request
-            )
+            _LOGGER.debug("write_request_to_port | USB-Stick replied with %s to request %s", response, request)
             if response.response_type == StickResponseType.ACCEPT:
-                request.seq_id = response.seq_id
-                await request.subscribe_to_response(
-                    self._receiver.subscribe_to_stick_responses,
-                    self._receiver.subscribe_to_node_responses,
-                )
+                if request.seq_id is not None:
+                    request.assign_error(
+                        BaseException(
+                            StickError(f"USB-Stick failed communication for {request}")
+                        )
+                    )
+                else:
+                    request.seq_id = response.seq_id
+                    await request.subscribe_to_response(
+                        self._receiver.subscribe_to_stick_responses,
+                        self._receiver.subscribe_to_node_responses,
+                    )
+                _LOGGER.debug("write_request_to_port | request has subscribed : %s", request)
             elif response.response_type == StickResponseType.TIMEOUT:
                 _LOGGER.warning(
                     "USB-Stick directly responded with communication timeout for %s",
