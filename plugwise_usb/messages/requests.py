@@ -1402,7 +1402,7 @@ class ScanConfigureRequest(PlugwiseRequest):
     """Configure a Scan node.
 
     reset_timer : Delay in minutes when signal is send
-                  when no motion is detected
+                  when no motion is detected. Minimum 1, max 255
     sensitivity : Sensitivity of Motion sensor
                   (High, Medium, Off)
     light       : Daylight override to only report motion
