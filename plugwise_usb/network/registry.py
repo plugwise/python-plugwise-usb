@@ -17,11 +17,7 @@ from ..messages.requests import (
     NodeRemoveRequest,
     PlugwiseRequest,
 )
-from ..messages.responses import (
-    CirclePlusScanResponse,
-    NodeResponseType,
-    PlugwiseResponse,
-)
+from ..messages.responses import NodeResponseType, PlugwiseResponse
 from .cache import NetworkRegistrationCache
 
 _LOGGER = logging.getLogger(__name__)
