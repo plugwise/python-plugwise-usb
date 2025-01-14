@@ -63,6 +63,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
     ):
         """Initialize Plugwise base node class."""
+        super().__init__()
         self._loaded_callback = loaded_callback
         self._message_subscribe = controller.subscribe_to_messages
         self._features: tuple[NodeFeature, ...] = NODE_FEATURES
@@ -415,7 +416,8 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             if (
                 self._last_seen is not None
                 and timestamp is not None
-                and self._last_seen < timestamp
+                and (timestamp - self._last_seen).seconds > 5
+
             ):
                 self._last_seen = timestamp
                 await self.publish_feature_update_to_subscribers(
