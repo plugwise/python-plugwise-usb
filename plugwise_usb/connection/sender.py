@@ -38,11 +38,17 @@ class StickSender:
         self._loop = get_running_loop()
         self._receiver = stick_receiver
         self._transport = transport
+        self._processed_msgs = 0
         self._stick_response: Future[StickResponse] | None = None
         self._stick_lock = Lock()
         self._current_request: None | PlugwiseRequest = None
         self._unsubscribe_stick_response: Callable[[], None] | None = None
 
+    @property
+    def processed_messages(self) -> int:
+        """Return the number of processed messages."""
+        return self._processed_msgs
+    
     async def start(self) -> None:
         """Start the sender."""
         # Subscribe to ACCEPT stick responses, which contain the seq_id we need.
@@ -133,6 +139,7 @@ class StickSender:
         finally:
             self._stick_response.cancel()
             self._stick_lock.release()
+            self._processed_msgs += 1
 
     async def _process_stick_response(self, response: StickResponse) -> None:
         """Process stick response."""
