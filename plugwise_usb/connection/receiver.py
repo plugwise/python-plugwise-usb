@@ -99,6 +99,7 @@ class StickReceiver(Protocol):
         self._data_worker_task: Task[None] | None = None
 
         # Message processing
+        self._processed_msgs = 0
         self._message_queue: PriorityQueue[PlugwiseResponse] = PriorityQueue()
         self._last_processed_messages: list[bytes] = []
         self._current_seq_id: bytes | None = None
@@ -138,9 +139,18 @@ class StickReceiver(Protocol):
         self._connection_state = False
 
     @property
+    def processed_messages(self) -> int:
+        """Return the number of processed messages."""
+        return self._processed_msgs
+
+    @property
     def is_connected(self) -> bool:
         """Return current connection state of the USB-Stick."""
         return self._connection_state
+
+    def correct_processed_messages(self, correction: int) -> None:
+        """Return the number of processed messages."""
+        self._processed_msgs += correction
 
     def connection_made(self, transport: SerialTransport) -> None:
         """Call when the serial connection to USB-Stick is established."""
@@ -278,6 +288,7 @@ class StickReceiver(Protocol):
                 await self._notify_stick_subscribers(response)
             else:
                 await self._notify_node_response_subscribers(response)
+                self._processed_msgs += 1
             self._message_queue.task_done()
             await sleep(0)
         _LOGGER.debug("Message queue worker stopped")
@@ -457,7 +468,7 @@ class StickReceiver(Protocol):
 
         self._node_subscription_lock.release()
         if len(notify_tasks) > 0:
-            _LOGGER.debug("Received %s", node_response)
+            _LOGGER.debug("Received %s %s", node_response, node_response.seq_id)
             if node_response.seq_id not in BROADCAST_IDS:
                 self._last_processed_messages.append(node_response.seq_id)
             # Limit tracking to only the last appended request (FIFO)

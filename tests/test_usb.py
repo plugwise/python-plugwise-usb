@@ -838,7 +838,7 @@ class TestStick:
         assert await stick.nodes["2222222222222222"].load()
         self.test_init_relay_state_on = asyncio.Future()
         self.test_init_relay_state_off = asyncio.Future()
-        unsub_inti_relay = stick.nodes["0098765432101234"].subscribe_to_feature_update(
+        unsub_inti_relay = stick.nodes["2222222222222222"].subscribe_to_feature_update(
             node_feature_callback=self.node_init_relay_state,
             features=(pw_api.NodeFeature.RELAY_INIT,),
         )

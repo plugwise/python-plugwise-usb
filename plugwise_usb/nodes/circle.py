@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import Task, create_task, gather
+from asyncio import Task, create_task
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -453,11 +453,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 log_address, _ = calc_log_address(log_address, 1, -4)
                 total_addresses -= 1
 
-            if not all(await gather(*log_update_tasks)):
-                _LOGGER.info(
-                    "Failed to request one or more update energy log for %s",
-                    self._mac_in_str,
-                )
+            for task in log_update_tasks:
+                await task
 
             if self._cache_enabled:
                 await self._energy_log_records_save_to_cache()
@@ -475,9 +472,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
 
             missing_addresses = sorted(missing_addresses, reverse=True)
-            await gather(
-                *[self.energy_log_update(address) for address in missing_addresses]
-            )
+            for address in missing_addresses:
+                await self.energy_log_update(address)
 
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
@@ -528,7 +524,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         """Load energy_log_record from cache."""
         cache_data = self._get_cache(CACHE_ENERGY_COLLECTION)
         if (cache_data := self._get_cache(CACHE_ENERGY_COLLECTION)) is None:
-            _LOGGER.debug(
+            _LOGGER.warning(
                 "Failed to restore energy log records from cache for node %s", self.name
             )
             return False
@@ -811,7 +807,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             return False
         # Energy collection
         if await self._energy_log_records_load_from_cache():
-            _LOGGER.debug(
+            _LOGGER.warning(
                 "Node %s failed to load energy_log_records from cache",
                 self._mac_in_str,
             )
