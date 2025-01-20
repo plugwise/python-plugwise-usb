@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.40.0 (a22)
+
+ - Correcting messageflow to HA
+
 ## v0.40.0 (a4)
 
 Full rewrite of library into async version. Main list of changes:
