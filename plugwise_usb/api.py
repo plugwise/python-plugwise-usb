@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
 import logging
-from typing import Any, Protocol
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -227,7 +227,7 @@ class EnergyStatistics:
     week_production_reset: datetime | None = None
 
 
-class PlugwiseNode(Protocol):
+class PlugwiseNode:
     """Protocol definition of a Plugwise device node."""
 
     def __init__(
