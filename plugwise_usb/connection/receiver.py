@@ -468,7 +468,7 @@ class StickReceiver(Protocol):
 
         self._node_subscription_lock.release()
         if len(notify_tasks) > 0:
-            _LOGGER.debug("Received %s %s", node_response, node_response.seq_id)
+            _LOGGER.info("Received %s %s", node_response, node_response.seq_id)
             if node_response.seq_id not in BROADCAST_IDS:
                 self._last_processed_messages.append(node_response.seq_id)
             # Limit tracking to only the last appended request (FIFO)
