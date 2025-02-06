@@ -1,6 +1,5 @@
 """Plugwise USB-Stick API."""
 
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
@@ -229,14 +228,6 @@ class EnergyStatistics:
 
 class PlugwiseNode(Protocol):
     """Protocol definition of a Plugwise device node."""
-
-    def __init__(
-        self,
-        mac: str,
-        address: int,
-        loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
-    ) -> None:
-        """Initialize plugwise node object."""
 
     # region Generic node properties
     @property
