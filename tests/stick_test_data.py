@@ -36,7 +36,7 @@ RESPONSE_MESSAGES = {
         + b"01"  # network_is_online
         + b"0098765432101234"  # circle_plus_mac
         + b"4321"  # network_id
-        + b"00",  # unknown2
+        + b"FF",  # unknown2
     ),
     b"\x05\x05\x03\x0300230123456789012345A0EC\r\n": (
         "Node Info of stick 0123456789012345",
@@ -49,7 +49,7 @@ RESPONSE_MESSAGES = {
         + b"01"  # hz
         + b"000000730007"  # hw_ver
         + b"4E0843A9"  # fw_ver
-        + b"01",  # node_type (Circle+)
+        + b"00",  # node_type (Stick)
     ),
     b"\x05\x05\x03\x03002300987654321012341AE2\r\n": (
         "Node Info of network controller 0098765432101234",
