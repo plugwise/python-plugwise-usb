@@ -38,7 +38,7 @@ RESPONSE_MESSAGES = {
         + b"4321"  # network_id
         + b"00",  # unknown2
     ),
-    b"\x05\x05\x03\x03002301234567890123451AE2\r\n": (
+    b"\x05\x05\x03\x0300230123456789012345A0EC\r\n": (
         "Node Info of stick 0123456789012345",
         b"000000C1",  # Success ack
         b"0024"  # msg_id
