@@ -460,6 +460,8 @@ class TestStick:
         await stick.initialize()
         assert stick.mac_stick == "0123456789012345"
         assert stick.mac_coordinator == "0098765432101234"
+        _LOGGER.debug("HOI fw_stick: %s", stick.firmware_stick)
+        _LOGGER.debug("HOI hw_stick: %s", stick.hardware_stick)
         assert not stick.network_discovered
         assert stick.network_state
         assert stick.network_id == 17185
