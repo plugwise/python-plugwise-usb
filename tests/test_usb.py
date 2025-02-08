@@ -77,7 +77,7 @@ class DummyTransport:
     def __init__(
         self,
         loop: asyncio.AbstractEventLoop,
-        test_data: dict[bytes, tuple[str, bytes, bytes]] | None = None,
+        test_data: dict[bytes, tuple[str, bytes, bytes | None]] | None = None,
     ) -> None:
         """Initialize dummy transport class."""
         self._loop = loop
@@ -169,7 +169,7 @@ class MockSerial:
     """Mock serial connection."""
 
     def __init__(
-        self, custom_response: dict[bytes, tuple[str, bytes, bytes]] | None
+        self, custom_response: dict[bytes, tuple[str, bytes, bytes | None]] | None
     ) -> None:
         """Init mocked serial connection."""
         self.custom_response = custom_response
@@ -421,7 +421,7 @@ class TestStick:
                     b"\x05\x05\x03\x03000AB43C\r\n": (
                         "STICK INIT timeout",
                         b"000000E1",  # Timeout ack
-                        b"",
+                        None,
                     ),
                 }
             ).mock_connection,
@@ -526,6 +526,7 @@ class TestStick:
                     f"Invalid {event} event, expected " + f"{pw_api.NodeEvent.LOADED}"
                 )
             )
+
     async def node_motion_state(
         self,
         feature: pw_api.NodeFeature,  # type: ignore[name-defined]
@@ -1497,7 +1498,7 @@ class TestStick:
     def fake_env(self, env: str) -> str | None:
         """Fake environment."""
         if env == "APPDATA":
-            return "c:\\user\\tst\\appdata"
+            return "appdata_folder"
         if env == "~":
             return "/home/usr"
         return None
@@ -2125,7 +2126,6 @@ class TestStick:
             construct_message(b"0100555555555555555500BF", b"0000")
         )
 
-
         async def load_callback(event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
             """Load callback for event."""
 
@@ -2418,12 +2418,22 @@ class TestStick:
         # Get state
         get_state_timestamp = dt.now(UTC).replace(minute=0, second=0, microsecond=0)
         state = await stick.nodes["0098765432101234"].get_state(
-            (pw_api.NodeFeature.AVAILABLE, pw_api.NodeFeature.PING, pw_api.NodeFeature.INFO, pw_api.NodeFeature.RELAY)
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.PING,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.RELAY,
+            )
         )
 
         # Check Available
         assert state[pw_api.NodeFeature.AVAILABLE].state
-        assert state[pw_api.NodeFeature.AVAILABLE].last_seen.replace(minute=0, second=0, microsecond=0) == get_state_timestamp
+        assert (
+            state[pw_api.NodeFeature.AVAILABLE].last_seen.replace(
+                minute=0, second=0, microsecond=0
+            )
+            == get_state_timestamp
+        )
 
         # Check Ping
         assert state[pw_api.NodeFeature.PING].rssi_in == 69
