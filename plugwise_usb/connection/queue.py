@@ -137,9 +137,10 @@ class StickQueue:
                 self._submit_queue.task_done()
                 return
 
-            while self._stick.queue_depth > 3:
-                _LOGGER.info("Awaiting plugwise responses %d", self._stick.queue_depth)
+            if self._stick.queue_depth > 3:
                 await sleep(0.125)
+                if self._stick.queue_depth > 3:
+                    _LOGGER.warning("Awaiting plugwise responses %d", self._stick.queue_depth)
 
             await self._stick.write_to_stick(request)
             self._submit_queue.task_done()
