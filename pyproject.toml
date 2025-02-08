@@ -305,6 +305,7 @@ lint.ignore = [
     "PLW2901", # Outer {outer_kind} variable {name} overwritten by inner {inner_kind} target
     "UP006", # keep type annotation style as is
     "UP007", # keep type annotation style as is
+    "UP031"
     # Ignored due to performance: https://github.com/charliermarsh/ruff/issues/2923
     #"UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
 ]
