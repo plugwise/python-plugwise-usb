@@ -120,12 +120,12 @@ class Stick:
     @property
     def firmware_stick(self) -> str:
         """Firmware of USB-Stick."""
-        return self._controller.firmware_stick
+        return self._controller._fw_stick
 
     @property
     def hardware_stick(self) -> str:
         """Hardware of USB-Stick."""
-        return self._controller.hardware_stick
+        return self._controller._hw_stick
 
     @property
     def mac_stick(self) -> str:
