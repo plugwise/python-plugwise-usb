@@ -9,8 +9,18 @@ from typing import Any
 from ..api import StickEvent
 from ..constants import UTF8
 from ..exceptions import NodeError, StickError
-from ..messages.requests import NodeInfoRequest, PlugwiseRequest, StickInitRequest
-from ..messages.responses import PlugwiseResponse, StickInitResponse
+from ..messages.requests import (
+    NodeInfoRequest,
+    NodePingRequest,
+    PlugwiseRequest,
+    StickInitRequest,
+)
+from ..messages.responses import (
+    NodeInfoResponse,
+    NodePingResponse,
+    PlugwiseResponse,
+    StickInitResponse,
+)
 from .manager import StickConnectionManager
 from .queue import StickQueue
 
@@ -181,15 +191,39 @@ class StickController:
         self._is_initialized = True
 
         # add Stick NodeInfoRequest
-        info_request = NodeInfoRequest(
-            self.send, bytes(self._mac_stick, UTF8), retries=1
-        )
-        info_response = await info_request.send()
-        self._fw_stick = info_response.firmware
-        self._hw_stick = info_response.hardware
+        node_info, _ = await self.get_node_details(self._mac_stick, False)
+        if node_info is not None:
+            self._fw_stick = node_info.firmware
+            self._hw_stick = node_info.hardware
 
         if not self._network_online:
             raise StickError("Zigbee network connection to Circle+ is down.")
+
+    async def get_node_details(
+        self, mac: str, ping_first: bool
+    ) -> tuple[NodeInfoResponse | None, NodePingResponse | None]:
+        """Return node discovery type."""
+        ping_response: NodePingResponse | None = None
+        if ping_first:
+            # Define ping request with one retry
+            ping_request = NodePingRequest(
+                self.send, bytes(mac, UTF8), retries=1
+            )
+            try:
+                ping_response = await ping_request.send(suppress_node_errors=True)
+            except StickError:
+                return (None, None)
+            if ping_response is None:
+                return (None, None)
+
+        info_request = NodeInfoRequest(
+            self.send, bytes(mac, UTF8), retries=1
+        )
+        try:
+            info_response = await info_request.send()
+        except StickError:
+            return (None, None)
+        return (info_response, ping_response)
 
     async def send(
         self, request: PlugwiseRequest, suppress_node_errors: bool = True
