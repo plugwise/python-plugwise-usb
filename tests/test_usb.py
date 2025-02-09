@@ -461,7 +461,7 @@ class TestStick:
         assert stick.mac_stick == "0123456789012345"
         assert stick.mac_coordinator == "0098765432101234"
         assert stick.firmware_stick == None
-        assert stick.hardware_stick == None  # "653907008512"
+        assert stick.hardware_stick == None
         assert not stick.network_discovered
         assert stick.network_state
         assert stick.network_id == 17185
@@ -577,6 +577,9 @@ class TestStick:
             node_event_callback=self.node_awake,
             events=(pw_api.NodeEvent.AWAKE,),
         )
+
+        #assert stick.firmware_stick == None
+        assert stick.hardware_stick == "653907008512"
 
         # Inject NodeAwakeResponse message to trigger a 'node discovered' event
         mock_serial.inject_message(b"004F555555555555555500", b"FFFE")
