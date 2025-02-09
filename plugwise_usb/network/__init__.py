@@ -15,11 +15,7 @@ from ..connection import StickController
 from ..constants import UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
 from ..helpers.util import validate_mac
-from ..messages.requests import (
-    CirclePlusAllowJoiningRequest,
-    NodeInfoRequest,
-    NodePingRequest,
-)
+from ..messages.requests import CirclePlusAllowJoiningRequest, NodePingRequest
 from ..messages.responses import (
     NODE_AWAKE_RESPONSE_ID,
     NODE_JOIN_ID,
@@ -365,32 +361,6 @@ class StickNetwork:
             self._nodes[mac].cache_folder_create = self._cache_folder_create
             self._nodes[mac].cache_enabled = True
 
-    async def get_node_details(
-        self, mac: str, ping_first: bool
-    ) -> tuple[NodeInfoResponse | None, NodePingResponse | None]:
-        """Return node discovery type."""
-        ping_response: NodePingResponse | None = None
-        if ping_first:
-            # Define ping request with one retry
-            ping_request = NodePingRequest(
-                self._controller.send, bytes(mac, UTF8), retries=1
-            )
-            try:
-                ping_response = await ping_request.send(suppress_node_errors=True)
-            except StickError:
-                return (None, None)
-            if ping_response is None:
-                return (None, None)
-
-        info_request = NodeInfoRequest(
-            self._controller.send, bytes(mac, UTF8), retries=1
-        )
-        try:
-            info_response = await info_request.send()
-        except StickError:
-            return (None, None)
-        return (info_response, ping_response)
-
     async def _discover_battery_powered_node(
         self,
         address: int,
@@ -432,7 +402,7 @@ class StickNetwork:
 
         # Node type is unknown, so we need to discover it first
         _LOGGER.debug("Starting the discovery of node %s", mac)
-        node_info, node_ping = await self.get_node_details(mac, ping_first)
+        node_info, node_ping = await self._controller.get_node_details(mac, ping_first)
         if node_info is None:
             return False
         self._create_node_object(mac, address, node_info.node_type)
