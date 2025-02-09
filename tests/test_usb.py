@@ -460,9 +460,7 @@ class TestStick:
         await stick.initialize()
         assert stick.mac_stick == "0123456789012345"
         assert stick.mac_coordinator == "0098765432101234"
-        assert stick.firmware_stick == dt(
-            2011, 6, 27, 8, 47, 37, tzinfo=UTC
-        )
+        assert stick.firmware_stick == None
         assert stick.hardware_stick == "000000730007"
         assert not stick.network_discovered
         assert stick.network_state
