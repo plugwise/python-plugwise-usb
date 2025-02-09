@@ -2,6 +2,7 @@
 
 import binascii
 from datetime import UTC, date, datetime, time, timedelta
+import logging
 import struct
 from typing import Any
 
@@ -9,6 +10,7 @@ from ..constants import LOGADDR_OFFSET, PLUGWISE_EPOCH, UTF8
 from ..exceptions import MessageError
 from ..helpers.util import int_to_uint
 
+_LOGGER = logging.getLogger(__name__)
 
 class BaseType:
     """Generic single instance property."""
@@ -227,6 +229,7 @@ class DateTime(CompositeType):
 
     def deserialize(self, val: bytes) -> None:
         """Convert data into datetime based on timestamp with offset to Y2k."""
+        _LOGGER.debug("HOI val: %s", val)
         if val == b"FFFFFFFF":
             self._value = None
         else:
