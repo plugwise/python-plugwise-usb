@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
+import logging
 from typing import Any, Final
 
 from ..api import NodeType
@@ -40,6 +41,8 @@ BROADCAST_IDS: Final = (
     AWAKE_RESPONSE_SEQ_ID,
     SWITCH_GROUP_RESPONSE_SEQ_ID,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class StickResponseType(bytes, Enum):
@@ -190,6 +193,7 @@ class PlugwiseResponse(PlugwiseMessage):
             self._mac = response[:16]
             response = response[16:]
         if len(response) > 0:
+            _LOGGER.debug("HOI response: %s", response)
             try:
                 response = self._parse_params(response)
             except ValueError as ve:
@@ -203,8 +207,12 @@ class PlugwiseResponse(PlugwiseMessage):
     def _parse_params(self, response: bytes) -> bytes:
         for param in self._params:
             my_val = response[: len(param)]
+            _LOGGER.debug("HOI param: %s", param)
+            _LOGGER.debug("HOI my_val: %s", my_val)
             param.deserialize(my_val)
             response = response[len(my_val) :]
+            _LOGGER.debug("HOI response: %s", response)
+
         return response
 
     def __len__(self) -> int:
