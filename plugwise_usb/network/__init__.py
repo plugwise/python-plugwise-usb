@@ -294,11 +294,11 @@ class StickNetwork:
         _LOGGER.debug("Obtain Stick info")
         node_info, _ = await self._controller.get_node_details(self._controller.mac_stick, ping_first=False)
         if node_info is not None:
-            _LOGGER.debug("HOI fw_stick before: %s", self._controller.fw_stick)
-            self._controller.fw_stick = node_info.firmware
-            self._controller.hw_stick = node_info.hardware
-            _LOGGER.debug("HOI fw_stick: %s", self._controller.fw_stick)
-            _LOGGER.debug("HOI hw_stick: %s", self._controller.hw_stick)
+            _LOGGER.debug("HOI fw_stick before: %s", self._controller._fw_stick)
+            self._controller._fw_stick = node_info.firmware
+            self._controller._hw_stick = node_info.hardware
+            _LOGGER.debug("HOI fw_stick: %s", self._controller._fw_stick)
+            _LOGGER.debug("HOI hw_stick: %s", self._controller._hw_stick)
         
     # region - Coordinator
     async def discover_network_coordinator(self, load: bool = False) -> bool:
