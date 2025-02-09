@@ -43,11 +43,11 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"0024"  # msg_id
         + b"0123456789012345"  # mac
-        + b"22026A68"  # datetime
-        + b"00044280"  # log address 20
-        + b"01"  # relay
-        + b"01"  # hz
-        + b"000000730007"  # hw_ver
+        + b"00000000"  # datetime
+        + b"00000000"  # log address 0
+        + b"00"  # relay
+        + b"80"  # hz
+        + b"653907008512"  # hw_ver
         + b"4E0843A9"  # fw_ver
         + b"00",  # node_type (Stick)
     ),
