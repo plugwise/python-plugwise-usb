@@ -231,6 +231,7 @@ class DateTime(CompositeType):
         """Convert data into datetime based on timestamp with offset to Y2k."""
         _LOGGER.debug("HOI val: %s", val)
         if val == b"FFFFFFFF" or val == b"00000000":
+            _LOGGER.debug("Invalid DateTime value result")
             self._value = None
         else:
             CompositeType.deserialize(self, val)
