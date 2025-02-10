@@ -499,15 +499,15 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             complete = False
         else:
             if self._node_info.version != hardware:
-                self._node_info.version = hardware
                 # Generate modelname based on hardware version
-                model_info = version_to_model(hardware).split(" ")
+                hardware, model_info = version_to_model(hardware).split(" ")
                 self._node_info.model = model_info[0]
+                self._node_info.version = hardware
                 if self._node_info.model == "Unknown":
                     _LOGGER.warning(
                         "Failed to detect hardware model for %s based on '%s'",
                         self.mac,
-                        hardware,
+                        version,
                     )
                 if len(model_info) > 1:
                     self._node_info.model_type = " ".join(model_info[1:])
