@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "plugwise_usb"
-version         = "v0.40.0a27"
+version         = "v0.40.0a29"
 license         = {file = "LICENSE"}
 description     = "Plugwise USB (Stick) module for Python 3."
 readme          = "README.md"
@@ -219,7 +219,7 @@ omit= [
 ]
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py313"
 
 lint.select = [
     "B002", # Python does not support the unary prefix increment
@@ -306,6 +306,7 @@ lint.ignore = [
     "PLW2901", # Outer {outer_kind} variable {name} overwritten by inner {inner_kind} target
     "UP006", # keep type annotation style as is
     "UP007", # keep type annotation style as is
+    "UP031"
     # Ignored due to performance: https://github.com/charliermarsh/ruff/issues/2923
     #"UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
 ]

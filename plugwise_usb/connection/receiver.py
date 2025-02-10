@@ -166,10 +166,9 @@ class StickReceiver(Protocol):
 
     async def close(self) -> None:
         """Close connection."""
-        if self._transport is None:
-            return
-        self._transport.close()
         await self._stop_running_tasks()
+        if self._transport:
+            self._transport.close()
 
     async def _stop_running_tasks(self) -> None:
         """Cancel and stop any running task."""
@@ -183,10 +182,12 @@ class StickReceiver(Protocol):
             cancel_response.priority = Priority.CANCEL
             await self._message_queue.put(cancel_response)
             await self._message_worker_task
-        self._message_worker_task = None
+            self._message_worker_task = None
+
         if self._data_worker_task is not None and not self._data_worker_task.done():
             await self._data_queue.put(b"FFFFFFFF")
             await self._data_worker_task
+            self._data_worker_task = None
 
     # region Process incoming data
 
