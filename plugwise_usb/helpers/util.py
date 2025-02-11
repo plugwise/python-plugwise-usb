@@ -24,17 +24,18 @@ def validate_mac(mac: str) -> bool:
 def version_to_model(version: str | None) -> str:
     """Translate hardware_version to device type."""
     if version is None:
-        return "Unknown"
-    model = HW_MODELS.get(version)
+        return (None, "Unknown")
+    local_version = version
+    model = HW_MODELS.get(local_version)
     if model is None:
-        version = version[4:10]
-        model = HW_MODELS.get(version)
+        local_version = version[4:10]
+        model = HW_MODELS.get(local_version)
     if model is None:
         # Try again with reversed order
-        version = version[-2:] + version[-4:-2] + version[-6:-4]
-        model = HW_MODELS.get(version)
+        local_version = version[-2:] + version[-4:-2] + version[-6:-4]
+        model = HW_MODELS.get(local_version)
 
-    return (version, model) if model is not None else (None, "Unknown")
+    return (local_version, model) if model is not None else (None, "Unknown")
 
 
 # octals (and hex) type as int according to
