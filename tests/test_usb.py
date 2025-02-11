@@ -586,7 +586,7 @@ class TestStick:
         assert stick.nodes["5555555555555555"].node_info.firmware == dt(
             2011, 6, 27, 8, 55, 44, tzinfo=UTC
         )
-        assert stick.nodes["5555555555555555"].node_info.version == "000000070008"
+        assert stick.nodes["5555555555555555"].node_info.version == "080007"
         assert stick.nodes["5555555555555555"].node_info.model == "Scan"
         assert stick.nodes["5555555555555555"].node_info.model_type == ""
         assert stick.nodes["5555555555555555"].available
@@ -2397,7 +2397,7 @@ class TestStick:
         assert stick.nodes["0098765432101234"].node_info.firmware == dt(
             2011, 6, 27, 8, 47, 37, tzinfo=UTC
         )
-        assert stick.nodes["0098765432101234"].node_info.version == "000000730007"
+        assert stick.nodes["0098765432101234"].node_info.version == "070073"
         assert stick.nodes["0098765432101234"].node_info.model == "Circle+"
         assert stick.nodes["0098765432101234"].node_info.model_type == "type F"
         assert stick.nodes["0098765432101234"].node_info.name == "Circle+ 01234"
@@ -2482,7 +2482,7 @@ class TestStick:
             )
             == get_state_timestamp
         )
-        assert state[pw_api.NodeFeature.INFO].version == "000000730007"
+        assert state[pw_api.NodeFeature.INFO].version == "070073"
 
         assert state[pw_api.NodeFeature.RELAY].state
 
@@ -2495,7 +2495,7 @@ class TestStick:
         assert state[pw_api.NodeFeature.INFO].mac == "1111111111111111"
         assert state[pw_api.NodeFeature.INFO].zigbee_address == 0
         assert not state[pw_api.NodeFeature.INFO].is_battery_powered
-        assert state[pw_api.NodeFeature.INFO].version == "000000070140"
+        assert state[pw_api.NodeFeature.INFO].version == "070140"
         assert state[pw_api.NodeFeature.INFO].node_type == pw_api.NodeType.CIRCLE
         assert (
             state[pw_api.NodeFeature.INFO].timestamp.replace(
@@ -2529,7 +2529,7 @@ class TestStick:
         assert stick.nodes["5555555555555555"].node_info.firmware == dt(
             2011, 6, 27, 8, 55, 44, tzinfo=UTC
         )
-        assert stick.nodes["5555555555555555"].node_info.version == "000000070008"
+        assert stick.nodes["5555555555555555"].node_info.version == "080007"
         assert stick.nodes["5555555555555555"].node_info.model == "Scan"
         assert stick.nodes["5555555555555555"].node_info.model_type == ""
         assert stick.nodes["5555555555555555"].available
@@ -2594,7 +2594,7 @@ class TestStick:
         assert stick.nodes["8888888888888888"].node_info.firmware == dt(
             2011, 6, 27, 9, 4, 10, tzinfo=UTC
         )
-        assert stick.nodes["8888888888888888"].node_info.version == "000007005100"
+        assert stick.nodes["8888888888888888"].node_info.version == "070051"
         assert stick.nodes["8888888888888888"].node_info.model == "Switch"
         assert stick.nodes["8888888888888888"].node_info.model_type == ""
         assert stick.nodes["8888888888888888"].available
