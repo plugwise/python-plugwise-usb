@@ -654,7 +654,7 @@ RESPONSE_MESSAGES = {
         + b"00000000"  # log address
         + b"00"  # relay
         + b"01"  # hz
-        + b"000000070008"  # hw_ver
+        + b"000000080007"  # hw_ver
         + b"4E084590"  # fw_ver
         + b"06",  # node_type (Scan)
     ),
