@@ -21,12 +21,12 @@ def validate_mac(mac: str) -> bool:
     return True
 
 
-def version_to_model(version: str | None) -> str:
+def version_to_model(version: str | None) -> tuple[str|None, str]:
     """Translate hardware_version to device type."""
     if version is None:
         return (None, "Unknown")
     local_version = version
-    model = HW_MODELS.get(local_version)
+    model = HW_MODELS.get(version)
     if model is None:
         local_version = version[4:10]
         model = HW_MODELS.get(local_version)
