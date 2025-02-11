@@ -47,7 +47,7 @@ RESPONSE_MESSAGES = {
         + b"00044280"  # log address 20
         + b"01"  # relay
         + b"01"  # hz
-        + b"000000730007"  # hw_ver
+        + b"000073000700"  # hw_ver
         + b"4E0843A9"  # fw_ver
         + b"01",  # node_type (Circle+)
     ),
@@ -445,7 +445,7 @@ RESPONSE_MESSAGES = {
         + b"000442C0"  # log address  44000
         + b"01"  # relay
         + b"01"  # hz
-        + b"000000070140"  # hw_ver
+        + b"000007014000"  # hw_ver
         + b"4E0844C2"  # fw_ver
         + b"02",  # node_type (Circle)
     ),
@@ -458,7 +458,7 @@ RESPONSE_MESSAGES = {
         + b"00044300"  # log address
         + b"01"  # relay
         + b"01"  # hz
-        + b"000000090011"  # hw_ver
+        + b"000009001100"  # hw_ver
         + b"4EB28FD5"  # fw_ver
         + b"09",  # node_type (Stealth - Legrand)
     ),
@@ -495,7 +495,7 @@ RESPONSE_MESSAGES = {
         + b"00044340"  # log address
         + b"01"  # relay
         + b"01"  # hz
-        + b"000000070073"  # hw_ver
+        + b"000007007300"  # hw_ver
         + b"4DCCDB7B"  # fw_ver
         + b"02",  # node_type (Circle)
     ),
@@ -508,7 +508,7 @@ RESPONSE_MESSAGES = {
         + b"000443C0"  # log address
         + b"01"  # relay
         + b"01"  # hz
-        + b"000000070073"  # hw_ver
+        + b"000007007300"  # hw_ver
         + b"4E0844C2"  # fw_ver
         + b"02",  # node_type (Circle)
     ),
@@ -654,7 +654,7 @@ RESPONSE_MESSAGES = {
         + b"00000000"  # log address
         + b"00"  # relay
         + b"01"  # hz
-        + b"000000080007"  # hw_ver
+        + b"000008000700"  # hw_ver
         + b"4E084590"  # fw_ver
         + b"06",  # node_type (Scan)
     ),
