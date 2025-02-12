@@ -9,6 +9,7 @@ from typing import Any
 from ..api import StickEvent
 from ..constants import UTF8
 from ..exceptions import NodeError, StickError
+from ..helpers.util import version_to_model
 from ..messages.requests import (
     NodeInfoRequest,
     NodePingRequest,
@@ -194,7 +195,8 @@ class StickController:
         node_info, _ = await self.get_node_details(self._mac_stick, ping_first=False)
         if node_info is not None:
             self._fw_stick = node_info.firmware
-            self._hw_stick = node_info.hardware
+            hardware, _ = version_to_model(node_info.hardware)
+            self._hw_stick = hardware
 
         if not self._network_online:
             raise StickError("Zigbee network connection to Circle+ is down.")
