@@ -1466,7 +1466,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_network_down(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Testing timeout circle+ discovery."""
+        """Testing timeout Circle + discovery."""
         mock_serial = MockSerial(
             {
                 b"\x05\x05\x03\x03000AB43C\r\n": (
@@ -2393,14 +2393,14 @@ class TestStick:
         assert len(stick.nodes) == 6
 
         assert stick.nodes["0098765432101234"].is_loaded
-        assert stick.nodes["0098765432101234"].name == "Circle+ 01234"
+        assert stick.nodes["0098765432101234"].name == "Circle + 01234"
         assert stick.nodes["0098765432101234"].node_info.firmware == dt(
             2011, 6, 27, 8, 47, 37, tzinfo=UTC
         )
         assert stick.nodes["0098765432101234"].node_info.version == "070073"
-        assert stick.nodes["0098765432101234"].node_info.model == "Circle+"
+        assert stick.nodes["0098765432101234"].node_info.model == "Circle +"
         assert stick.nodes["0098765432101234"].node_info.model_type == "type F"
-        assert stick.nodes["0098765432101234"].node_info.name == "Circle+ 01234"
+        assert stick.nodes["0098765432101234"].node_info.name == "Circle + 01234"
         assert stick.nodes["0098765432101234"].available
         assert not stick.nodes["0098765432101234"].node_info.is_battery_powered
         assert not stick.nodes["0098765432101234"].is_battery_powered
@@ -2472,8 +2472,8 @@ class TestStick:
         assert state[pw_api.NodeFeature.INFO].firmware == dt(
             2011, 6, 27, 8, 47, 37, tzinfo=UTC
         )
-        assert state[pw_api.NodeFeature.INFO].name == "Circle+ 01234"
-        assert state[pw_api.NodeFeature.INFO].model == "Circle+"
+        assert state[pw_api.NodeFeature.INFO].name == "Circle + 01234"
+        assert state[pw_api.NodeFeature.INFO].model == "Circle +"
         assert state[pw_api.NodeFeature.INFO].model_type == "type F"
         assert state[pw_api.NodeFeature.INFO].node_type == pw_api.NodeType.CIRCLE_PLUS
         assert (
