@@ -504,7 +504,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                 model_info = model_info.split(" ")
                 self._node_info.model = model_info[0]
                 # Handle + devices
-                if "+" in model_info[1]:
+                if len(model_info) > 1 and "+" in model_info[1]:
                     self._node_info.model = model_info[0] = model_info[0:1]
                     model_info.pop(1)
 
