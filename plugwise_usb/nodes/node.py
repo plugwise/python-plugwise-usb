@@ -505,7 +505,8 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                 self._node_info.model = model_info[0]
                 # Handle + devices
                 if len(model_info) > 1 and "+" in model_info[1]:
-                    self._node_info.model = model_info[0] = model_info[0:1]
+                    self._node_info.model = model_info[0] + " " + model_info[1]
+                    model_info[0] = self._node_info.model
                     model_info.pop(1)
 
                 self._node_info.version = hardware
