@@ -190,11 +190,11 @@ class StickController:
         self._network_id = init_response.network_id
         self._is_initialized = True
 
-        # # add Stick NodeInfoRequest
-        # node_info, _ = await self.get_node_details(self._mac_stick, False)
-        # if node_info is not None:
-        #     self._fw_stick = node_info.firmware
-        #     self._hw_stick = node_info.hardware
+        # Add Stick NodeInfoRequest
+        node_info, _ = await self.get_node_details(self._mac_stick, ping_first=False)
+        if node_info is not None:
+            self._fw_stick = node_info.firmware
+            self._hw_stick = node_info.hardware
 
         if not self._network_online:
             raise StickError("Zigbee network connection to Circle+ is down.")
