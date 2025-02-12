@@ -588,7 +588,7 @@ class TestStick:
         )
         assert stick.nodes["5555555555555555"].node_info.version == "080007"
         assert stick.nodes["5555555555555555"].node_info.model == "Scan"
-        assert stick.nodes["5555555555555555"].node_info.model_type == ""
+        assert stick.nodes["5555555555555555"].node_info.model_type == None
         assert stick.nodes["5555555555555555"].available
         assert stick.nodes["5555555555555555"].node_info.is_battery_powered
         assert sorted(stick.nodes["5555555555555555"].features) == sorted(
@@ -2531,7 +2531,7 @@ class TestStick:
         )
         assert stick.nodes["5555555555555555"].node_info.version == "080007"
         assert stick.nodes["5555555555555555"].node_info.model == "Scan"
-        assert stick.nodes["5555555555555555"].node_info.model_type == ""
+        assert stick.nodes["5555555555555555"].node_info.model_type == None
         assert stick.nodes["5555555555555555"].available
         assert stick.nodes["5555555555555555"].node_info.is_battery_powered
         assert sorted(stick.nodes["5555555555555555"].features) == sorted(
@@ -2596,7 +2596,7 @@ class TestStick:
         )
         assert stick.nodes["8888888888888888"].node_info.version == "070051"
         assert stick.nodes["8888888888888888"].node_info.model == "Switch"
-        assert stick.nodes["8888888888888888"].node_info.model_type == ""
+        assert stick.nodes["8888888888888888"].node_info.model_type == None
         assert stick.nodes["8888888888888888"].available
         assert stick.nodes["8888888888888888"].node_info.is_battery_powered
         assert sorted(stick.nodes["8888888888888888"].features) == sorted(
