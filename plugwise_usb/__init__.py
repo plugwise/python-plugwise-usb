@@ -318,6 +318,16 @@ class Stick:
 
     @raise_not_connected
     @raise_not_initialized
+    async def discover_stick(self) -> None:
+        """Discover all nodes."""
+        if self._network is None:
+            raise StickError(
+                "Cannot load nodes when network is not initialized"
+            )
+        await self._network.discover_stick()
+
+    @raise_not_connected
+    @raise_not_initialized
     async def discover_coordinator(self, load: bool = False) -> None:
         """Discover the network coordinator."""
         if self._network is None:
