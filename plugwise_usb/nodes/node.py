@@ -503,6 +503,12 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                 hardware, model_info = version_to_model(hardware)
                 model_info = model_info.split(" ")
                 self._node_info.model = model_info[0]
+                # Handle Stealth M+ correctly
+                if model_info[1] == "M+":
+                    self._node_info.model = model_info[0:1]
+                    model_info[0] = model_info[0:1]
+                    model_info.pop[1]
+
                 self._node_info.version = hardware
                 if self._node_info.model == "Unknown":
                     _LOGGER.warning(
