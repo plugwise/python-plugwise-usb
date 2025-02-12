@@ -56,15 +56,15 @@ class StickController:
         """Return connection state from connection manager."""
         return self._manager.is_connected
 
-    # @property
-    # def firmware_stick(self) -> str | None:
-    #     """Firmware version of the Stick."""
-    #     return self._fw_stick
+    @property
+    def firmware_stick(self) -> str | None:
+        """Firmware version of the Stick."""
+        return self._fw_stick
 
-    # @property
-    # def hardware_stick(self) -> str | None:
-    #     """Hardware version of the Stick."""
-    #     return self._hw_stick
+    @property
+    def hardware_stick(self) -> str | None:
+        """Hardware version of the Stick."""
+        return self._hw_stick
 
     @property
     def mac_stick(self) -> str:
