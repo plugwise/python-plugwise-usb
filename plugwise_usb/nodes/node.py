@@ -510,10 +510,9 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                         self.mac,
                         hardware,
                     )
+                self._node_info.model_type = None
                 if len(model_info) > 1:
                     self._node_info.model_type = " ".join(model_info[1:])
-                else:
-                    self._node_info.model_type = ""
                 if self._node_info.model is not None:
                     self._node_info.name = f"{model_info[0]} {self._node_info.mac[-5:]}"
             self._set_cache(CACHE_HARDWARE, hardware)
