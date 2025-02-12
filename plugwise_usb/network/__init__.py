@@ -285,17 +285,6 @@ class StickNetwork:
             self._unsubscribe_stick_event = None
 
     # endregion
-
-    async def discover_stick(self) -> bool:
-        """Fetch data from the Stick."""
-        if self._controller.mac_stick is None:
-            raise NodeError("Unknown mac address for the Stick.")
-
-        _LOGGER.debug("Obtaining Stick info")
-        node_info, _ = await self._controller.get_node_details(self._controller.mac_stick, ping_first=False)
-        if node_info is not None:
-            self._controller._fw_stick = node_info.firmware
-            self._controller._hw_stick = node_info.hardware
         
     # region - Coordinator
     async def discover_network_coordinator(self, load: bool = False) -> bool:
@@ -493,7 +482,6 @@ class StickNetwork:
 
     async def discover_nodes(self, load: bool = True) -> bool:
         """Discover nodes."""
-        await self.discover_stick()
         await self.discover_network_coordinator(load=load)
         if not self._is_running:
             await self.start()
