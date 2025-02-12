@@ -227,7 +227,7 @@ class DateTime(CompositeType):
 
     def deserialize(self, val: bytes) -> None:
         """Convert data into datetime based on timestamp with offset to Y2k."""
-        if val == b"FFFFFFFF" or val == b"00000000":
+        if val in (b"FFFFFFFF", b"00000000"):
             self._value = None
         else:
             CompositeType.deserialize(self, val)
