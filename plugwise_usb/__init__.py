@@ -138,6 +138,11 @@ class Stick:
         return self._controller.mac_coordinator
 
     @property
+    def name(self) -> str:
+        """Return name of Stick."""
+        return self._controller._stick_name
+
+    @property
     def network_discovered(self) -> bool:
         """Indicate if discovery of network is active. Raises StickError is connection is missing."""
         if self._network is None:

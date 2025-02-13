@@ -184,6 +184,7 @@ class StickController:
                 + f"' {self._manager.serial_path}'"
             )
         self._mac_stick = init_response.mac_decoded
+        self._stick_name = f"Stick {self._mac_stick[-5:]}"
         self._network_online = init_response.network_online
 
         # Replace first 2 characters by 00 for mac of circle+ node
