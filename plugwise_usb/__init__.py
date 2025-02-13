@@ -118,12 +118,12 @@ class Stick:
         return len(self._network.registry) + 1
 
     @property
-    def firmware_stick(self) -> str:
+    def firmware(self) -> str:
         """Firmware of USB-Stick."""
         return self._controller.firmware_stick
 
     @property
-    def hardware_stick(self) -> str:
+    def hardware(self) -> str:
         """Hardware of USB-Stick."""
         return self._controller.hardware_stick
 
