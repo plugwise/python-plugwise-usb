@@ -205,6 +205,7 @@ class PlugwiseResponse(PlugwiseMessage):
             my_val = response[: len(param)]
             param.deserialize(my_val)
             response = response[len(my_val) :]
+
         return response
 
     def __len__(self) -> int:

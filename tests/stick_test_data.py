@@ -36,7 +36,20 @@ RESPONSE_MESSAGES = {
         + b"01"  # network_is_online
         + b"0098765432101234"  # circle_plus_mac
         + b"4321"  # network_id
-        + b"00",  # unknown2
+        + b"FF",  # unknown2
+    ),
+    b"\x05\x05\x03\x0300230123456789012345A0EC\r\n": (
+        "Node Info of stick 0123456789012345",
+        b"000000C1",  # Success ack
+        b"0024"  # msg_id
+        + b"0123456789012345"  # mac
+        + b"00000000"  # datetime
+        + b"00000000"  # log address 0
+        + b"00"  # relay
+        + b"80"  # hz
+        + b"653907008512"  # hw_ver
+        + b"4E0843A9"  # fw_ver
+        + b"00",  # node_type (Stick)
     ),
     b"\x05\x05\x03\x03002300987654321012341AE2\r\n": (
         "Node Info of network controller 0098765432101234",

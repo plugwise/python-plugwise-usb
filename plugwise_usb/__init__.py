@@ -118,6 +118,16 @@ class Stick:
         return len(self._network.registry) + 1
 
     @property
+    def firmware(self) -> str:
+        """Firmware of USB-Stick."""
+        return self._controller.firmware_stick
+
+    @property
+    def hardware(self) -> str:
+        """Hardware of USB-Stick."""
+        return self._controller.hardware_stick
+
+    @property
     def mac_stick(self) -> str:
         """MAC address of USB-Stick. Raises StickError is connection is missing."""
         return self._controller.mac_stick
@@ -126,6 +136,11 @@ class Stick:
     def mac_coordinator(self) -> str:
         """MAC address of the network coordinator (Circle+). Raises StickError is connection is missing."""
         return self._controller.mac_coordinator
+
+    @property
+    def name(self) -> str:
+        """Return name of Stick."""
+        return self._controller.stick_name
 
     @property
     def network_discovered(self) -> bool:

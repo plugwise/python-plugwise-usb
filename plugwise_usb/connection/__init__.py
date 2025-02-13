@@ -7,9 +7,21 @@ import logging
 from typing import Any
 
 from ..api import StickEvent
+from ..constants import UTF8
 from ..exceptions import NodeError, StickError
-from ..messages.requests import PlugwiseRequest, StickInitRequest
-from ..messages.responses import PlugwiseResponse, StickInitResponse
+from ..helpers.util import version_to_model
+from ..messages.requests import (
+    NodeInfoRequest,
+    NodePingRequest,
+    PlugwiseRequest,
+    StickInitRequest,
+)
+from ..messages.responses import (
+    NodeInfoResponse,
+    NodePingResponse,
+    PlugwiseResponse,
+    StickInitResponse,
+)
 from .manager import StickConnectionManager
 from .queue import StickQueue
 
@@ -26,10 +38,13 @@ class StickController:
         self._unsubscribe_stick_event: Callable[[], None] | None = None
         self._init_sequence_id: bytes | None = None
         self._is_initialized = False
+        self._fw_stick: str | None = None
+        self._hw_stick: str | None = None
         self._mac_stick: str | None = None
         self._mac_nc: str | None = None
         self._network_id: int | None = None
         self._network_online = False
+        self.stick_name: str | None = None
 
     @property
     def is_initialized(self) -> bool:
@@ -42,6 +57,16 @@ class StickController:
     def is_connected(self) -> bool:
         """Return connection state from connection manager."""
         return self._manager.is_connected
+
+    @property
+    def firmware_stick(self) -> str | None:
+        """Firmware version of the Stick."""
+        return self._fw_stick
+
+    @property
+    def hardware_stick(self) -> str | None:
+        """Hardware version of the Stick."""
+        return self._hw_stick
 
     @property
     def mac_stick(self) -> str:
@@ -160,6 +185,7 @@ class StickController:
                 + f"' {self._manager.serial_path}'"
             )
         self._mac_stick = init_response.mac_decoded
+        self.stick_name = f"Stick {self._mac_stick[-5:]}"
         self._network_online = init_response.network_online
 
         # Replace first 2 characters by 00 for mac of circle+ node
@@ -167,8 +193,41 @@ class StickController:
         self._network_id = init_response.network_id
         self._is_initialized = True
 
+        # Add Stick NodeInfoRequest
+        node_info, _ = await self.get_node_details(self._mac_stick, ping_first=False)
+        if node_info is not None:
+            self._fw_stick = node_info.firmware
+            hardware, _ = version_to_model(node_info.hardware)
+            self._hw_stick = hardware
+
         if not self._network_online:
             raise StickError("Zigbee network connection to Circle+ is down.")
+
+    async def get_node_details(
+        self, mac: str, ping_first: bool
+    ) -> tuple[NodeInfoResponse | None, NodePingResponse | None]:
+        """Return node discovery type."""
+        ping_response: NodePingResponse | None = None
+        if ping_first:
+            # Define ping request with one retry
+            ping_request = NodePingRequest(
+                self.send, bytes(mac, UTF8), retries=1
+            )
+            try:
+                ping_response = await ping_request.send(suppress_node_errors=True)
+            except StickError:
+                return (None, None)
+            if ping_response is None:
+                return (None, None)
+
+        info_request = NodeInfoRequest(
+            self.send, bytes(mac, UTF8), retries=1
+        )
+        try:
+            info_response = await info_request.send()
+        except StickError:
+            return (None, None)
+        return (info_response, ping_response)
 
     async def send(
         self, request: PlugwiseRequest, suppress_node_errors: bool = True

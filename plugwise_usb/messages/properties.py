@@ -227,7 +227,7 @@ class DateTime(CompositeType):
 
     def deserialize(self, val: bytes) -> None:
         """Convert data into datetime based on timestamp with offset to Y2k."""
-        if val == b"FFFFFFFF":
+        if val in (b"FFFFFFFF", b"00000000"):
             self._value = None
         else:
             CompositeType.deserialize(self, val)
@@ -389,6 +389,9 @@ class LogAddr(Int):
 
     def deserialize(self, val: bytes) -> None:
         """Convert data into integer value based on log address formatted data."""
+        if val == b"00000000":
+            self._value = int(0)
+            return
         Int.deserialize(self, val)
         self._value = (self.value - LOGADDR_OFFSET) // 32
 
