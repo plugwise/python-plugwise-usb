@@ -461,8 +461,8 @@ class TestStick:
         assert stick.mac_stick == "0123456789012345"
         assert stick.name == "Stick 12345"
         assert stick.mac_coordinator == "0098765432101234"
-        assert stick.firmware_stick == dt(2011, 6, 27, 8, 47, 37, tzinfo=UTC)
-        assert stick.hardware_stick == "070085"
+        assert stick.firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=UTC)
+        assert stick.hardware == "070085"
         assert not stick.network_discovered
         assert stick.network_state
         assert stick.network_id == 17185
