@@ -140,7 +140,7 @@ class Stick:
     @property
     def name(self) -> str:
         """Return name of Stick."""
-        return self._controller._stick_name
+        return self._controller.stick_name
 
     @property
     def network_discovered(self) -> bool:
