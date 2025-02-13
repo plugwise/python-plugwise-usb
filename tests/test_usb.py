@@ -586,9 +586,9 @@ class TestStick:
         assert stick.nodes["5555555555555555"].node_info.firmware == dt(
             2011, 6, 27, 8, 55, 44, tzinfo=UTC
         )
-        assert stick.nodes["5555555555555555"].node_info.version == "000000070008"
+        assert stick.nodes["5555555555555555"].node_info.version == "080007"
         assert stick.nodes["5555555555555555"].node_info.model == "Scan"
-        assert stick.nodes["5555555555555555"].node_info.model_type == ""
+        assert stick.nodes["5555555555555555"].node_info.model_type == None
         assert stick.nodes["5555555555555555"].available
         assert stick.nodes["5555555555555555"].node_info.is_battery_powered
         assert sorted(stick.nodes["5555555555555555"].features) == sorted(
@@ -1466,7 +1466,7 @@ class TestStick:
 
     @pytest.mark.asyncio
     async def test_stick_network_down(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Testing timeout circle+ discovery."""
+        """Testing timeout Circle + discovery."""
         mock_serial = MockSerial(
             {
                 b"\x05\x05\x03\x03000AB43C\r\n": (
@@ -2393,14 +2393,14 @@ class TestStick:
         assert len(stick.nodes) == 6
 
         assert stick.nodes["0098765432101234"].is_loaded
-        assert stick.nodes["0098765432101234"].name == "Circle+ 01234"
+        assert stick.nodes["0098765432101234"].name == "Circle + 01234"
         assert stick.nodes["0098765432101234"].node_info.firmware == dt(
             2011, 6, 27, 8, 47, 37, tzinfo=UTC
         )
-        assert stick.nodes["0098765432101234"].node_info.version == "000000730007"
-        assert stick.nodes["0098765432101234"].node_info.model == "Circle+"
+        assert stick.nodes["0098765432101234"].node_info.version == "070073"
+        assert stick.nodes["0098765432101234"].node_info.model == "Circle +"
         assert stick.nodes["0098765432101234"].node_info.model_type == "type F"
-        assert stick.nodes["0098765432101234"].node_info.name == "Circle+ 01234"
+        assert stick.nodes["0098765432101234"].node_info.name == "Circle + 01234"
         assert stick.nodes["0098765432101234"].available
         assert not stick.nodes["0098765432101234"].node_info.is_battery_powered
         assert not stick.nodes["0098765432101234"].is_battery_powered
@@ -2472,8 +2472,8 @@ class TestStick:
         assert state[pw_api.NodeFeature.INFO].firmware == dt(
             2011, 6, 27, 8, 47, 37, tzinfo=UTC
         )
-        assert state[pw_api.NodeFeature.INFO].name == "Circle+ 01234"
-        assert state[pw_api.NodeFeature.INFO].model == "Circle+"
+        assert state[pw_api.NodeFeature.INFO].name == "Circle + 01234"
+        assert state[pw_api.NodeFeature.INFO].model == "Circle +"
         assert state[pw_api.NodeFeature.INFO].model_type == "type F"
         assert state[pw_api.NodeFeature.INFO].node_type == pw_api.NodeType.CIRCLE_PLUS
         assert (
@@ -2482,7 +2482,7 @@ class TestStick:
             )
             == get_state_timestamp
         )
-        assert state[pw_api.NodeFeature.INFO].version == "000000730007"
+        assert state[pw_api.NodeFeature.INFO].version == "070073"
 
         assert state[pw_api.NodeFeature.RELAY].state
 
@@ -2495,7 +2495,7 @@ class TestStick:
         assert state[pw_api.NodeFeature.INFO].mac == "1111111111111111"
         assert state[pw_api.NodeFeature.INFO].zigbee_address == 0
         assert not state[pw_api.NodeFeature.INFO].is_battery_powered
-        assert state[pw_api.NodeFeature.INFO].version == "000000070140"
+        assert state[pw_api.NodeFeature.INFO].version == "070140"
         assert state[pw_api.NodeFeature.INFO].node_type == pw_api.NodeType.CIRCLE
         assert (
             state[pw_api.NodeFeature.INFO].timestamp.replace(
@@ -2529,9 +2529,9 @@ class TestStick:
         assert stick.nodes["5555555555555555"].node_info.firmware == dt(
             2011, 6, 27, 8, 55, 44, tzinfo=UTC
         )
-        assert stick.nodes["5555555555555555"].node_info.version == "000000070008"
+        assert stick.nodes["5555555555555555"].node_info.version == "080007"
         assert stick.nodes["5555555555555555"].node_info.model == "Scan"
-        assert stick.nodes["5555555555555555"].node_info.model_type == ""
+        assert stick.nodes["5555555555555555"].node_info.model_type == None
         assert stick.nodes["5555555555555555"].available
         assert stick.nodes["5555555555555555"].node_info.is_battery_powered
         assert sorted(stick.nodes["5555555555555555"].features) == sorted(
@@ -2594,9 +2594,9 @@ class TestStick:
         assert stick.nodes["8888888888888888"].node_info.firmware == dt(
             2011, 6, 27, 9, 4, 10, tzinfo=UTC
         )
-        assert stick.nodes["8888888888888888"].node_info.version == "000007005100"
+        assert stick.nodes["8888888888888888"].node_info.version == "070051"
         assert stick.nodes["8888888888888888"].node_info.model == "Switch"
-        assert stick.nodes["8888888888888888"].node_info.model_type == ""
+        assert stick.nodes["8888888888888888"].node_info.model_type == None
         assert stick.nodes["8888888888888888"].available
         assert stick.nodes["8888888888888888"].node_info.is_battery_powered
         assert sorted(stick.nodes["8888888888888888"].features) == sorted(
