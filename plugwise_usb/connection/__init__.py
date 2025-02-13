@@ -44,6 +44,7 @@ class StickController:
         self._mac_nc: str | None = None
         self._network_id: int | None = None
         self._network_online = False
+        self._stick_name: str | None = None
 
     @property
     def is_initialized(self) -> bool:
