@@ -1024,6 +1024,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
             return None
 
         pulses_per_s = self._correct_power_pulses(pulses, nano_offset) / float(seconds)
+        negative = False
+        if pulses_per_s < 0:
+            negative = True
+            pulses_per_s = abs(pulses_per_s)
+
         corrected_pulses = seconds * (
             (
                 (
@@ -1037,18 +1042,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             + self._calibration.off_tot
         )
+        if negative:
+            corrected_pulses = -corrected_pulses
 
-        # Fix minor miscalculations
-        # if (
-        calc_value = corrected_pulses / PULSES_PER_KW_SECOND / seconds * (1000)
-        # ) >= 0.0:
-        return calc_value
-        # _LOGGER.debug(
-        #     "Correct negative power %s to 0.0 for %s",
-        #     str(corrected_pulses / PULSES_PER_KW_SECOND / seconds * 1000),
-        #     self._mac_in_str,
-        # )
-        # return 0.0
+        return corrected_pulses / PULSES_PER_KW_SECOND / seconds * (1000)
 
     def _correct_power_pulses(self, pulses: int, offset: int) -> float:
         """Correct pulses based on given measurement time offset (ns)."""
