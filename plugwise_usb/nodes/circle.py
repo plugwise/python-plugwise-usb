@@ -1039,16 +1039,16 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
 
         # Fix minor miscalculations
-        if (
-            calc_value := corrected_pulses / PULSES_PER_KW_SECOND / seconds * (1000)
-        ) >= 0.0:
-            return calc_value
-        _LOGGER.debug(
-            "Correct negative power %s to 0.0 for %s",
-            str(corrected_pulses / PULSES_PER_KW_SECOND / seconds * 1000),
-            self._mac_in_str,
-        )
-        return 0.0
+        # if (
+        calc_value = corrected_pulses / PULSES_PER_KW_SECOND / seconds * (1000)
+        # ) >= 0.0:
+        return calc_value
+        # _LOGGER.debug(
+        #     "Correct negative power %s to 0.0 for %s",
+        #     str(corrected_pulses / PULSES_PER_KW_SECOND / seconds * 1000),
+        #     self._mac_in_str,
+        # )
+        # return 0.0
 
     def _correct_power_pulses(self, pulses: int, offset: int) -> float:
         """Correct pulses based on given measurement time offset (ns)."""
