@@ -689,7 +689,7 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"0013"  # msg_id
         + b"0098765432101234"  # mac
-        + b"FFF6"  # pulses 1s
+        + b"000A"  # pulses 1s
         + b"FF9A"  # pulses 8s
         + b"00001234"
         + b"00000000"
