@@ -905,7 +905,7 @@ class TestStick:
         )
         pu = await stick.nodes["0098765432101234"].power_update()
         assert pu.last_second == 21.2780505980402
-        assert pu.last_8_seconds == 27.150578775440106
+        assert pu.last_8_seconds == -27.150578775440106
 
         # Test energy state without request
         assert stick.nodes["0098765432101234"].energy == pw_api.EnergyStatistics(
