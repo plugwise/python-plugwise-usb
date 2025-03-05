@@ -105,11 +105,8 @@ class EnergyCounters:
         self, pulses_consumed: int, pulses_produced: int, timestamp: datetime
     ) -> None:
         """Add pulse statistics."""
-        _LOGGER.debug(
-            "add_pulse_stats | consumed=%s, for %s",
-            str(pulses_consumed),
-            self._mac,
-        )
+        _LOGGER.debug("add_pulse_stats for %s with timestamp=%s", self._mac, timestamp)
+        _LOGGER.debug("consumed=%s | produced=%s", pulses_consumed, pulses_produced)
         self._pulse_collection.update_pulse_counter(
             pulses_consumed, pulses_produced, timestamp
         )
