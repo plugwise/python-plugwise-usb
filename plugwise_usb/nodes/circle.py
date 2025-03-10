@@ -504,7 +504,12 @@ class PlugwiseCircle(PlugwiseBaseNode):
         # energy pulses collected during the previous hour of given timestamp
         for _slot in range(4, 0, -1):
             log_timestamp, log_pulses = response.log_data[_slot]
-
+            _LOGGER.debug(
+                "Energy data from slot=%s: pulses=%s, timestamp=%s",
+                _slot,
+                log_pulses,
+                log_timestamp
+            )
             if log_timestamp is None or log_pulses is None:
                 self._energy_counters.add_empty_log(response.log_address, _slot)
             elif await self._energy_log_record_update_state(
