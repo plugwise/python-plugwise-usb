@@ -263,7 +263,11 @@ class EnergyCounter:
         if self._pulses == 0:
             return 0.0
         # Handle both positive and negative pulses values
-        pulses_per_s = abs(self._pulses / float(HOUR_IN_SECONDS))
+        negative = False
+        if self._pulses < 0:
+            negative = True
+
+        pulses_per_s = abs(self._pulses) / float(HOUR_IN_SECONDS)
         corrected_pulses = HOUR_IN_SECONDS * (
             (
                 (
@@ -278,6 +282,8 @@ class EnergyCounter:
             + self._calibration.off_tot
         )
         calc_value = corrected_pulses / PULSES_PER_KW_SECOND / HOUR_IN_SECONDS
+        if negative:
+            calc_value = -calc_value
         return calc_value
 
     @property
