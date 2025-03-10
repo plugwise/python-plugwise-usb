@@ -496,6 +496,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             return False
 
+        _LOGGER.debug("EnergyLogs data from %s", address)
         await self._available_update_state(True, response.timestamp)
         energy_record_update = False
 
@@ -505,7 +506,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         for _slot in range(4, 0, -1):
             log_timestamp, log_pulses = response.log_data[_slot]
             _LOGGER.debug(
-                "Energy data from slot=%s: pulses=%s, timestamp=%s",
+                "In slot=%s: pulses=%s, timestamp=%s",
                 _slot,
                 log_pulses,
                 log_timestamp
