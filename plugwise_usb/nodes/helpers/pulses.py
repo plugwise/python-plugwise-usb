@@ -196,6 +196,13 @@ class PulseCollection:
                 is_consumption,
             )
             return (None, None)
+        _LOGGER.debug(
+            "collected_pulses | pulses=%s | log_pulses=%s | consumption=%s at timestamp=%s",
+            pulses,
+            log_pulses,
+            is_consumption,
+            timestamp,
+        )
         return (pulses + log_pulses, timestamp)
 
     def _collect_pulses_from_logs(
