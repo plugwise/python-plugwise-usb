@@ -326,5 +326,5 @@ class EnergyCounter:
         self._pulses = pulses
 
         energy = self.energy
-        _LOGGER.debug("energy=%s or last_update=%s", energy, last_update)
+        _LOGGER.debug("energy=%s on last_update=%s", energy, last_update)
         return (energy, last_reset)
