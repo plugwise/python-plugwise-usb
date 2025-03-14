@@ -88,7 +88,7 @@ class PulseCollection:
 
         self._logs: dict[int, dict[int, PulseLogRecord]] | None = None
         self._log_addresses_missing: list[int] | None = None
-        self._log_production: bool | None = None
+        self._log_production = True  # : bool | None = None
         self._pulses_consumption: int | None = None
         self._pulses_production: int | None = None
         self._pulses_timestamp: datetime | None = None
@@ -392,7 +392,11 @@ class PulseCollection:
             pulses,
             import_only,
         )
-        log_record = PulseLogRecord(timestamp, pulses, CONSUMED)
+        direction = CONSUMED
+        if pulses < 0:
+            direction = PRODUCED
+
+        log_record = PulseLogRecord(timestamp, pulses, direction)
         if not self._add_log_record(address, slot, log_record):
             if not self._log_exists(address, slot):
                 return False
