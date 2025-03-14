@@ -174,13 +174,13 @@ class PulseCollection:
             _LOGGER.debug("collected_pulses 2 | %s | _rollover_consumption", self._mac)
             return (None, None)
         if not is_consumption and self._rollover_production:
-            _LOGGER.debug("collected_pulses 3 | %s | _rollover_production", self._mac)
+            _LOGGER.debug("collected_pulses 2 | %s | _rollover_production", self._mac)
             return (None, None)
 
         if (
             log_pulses := self._collect_pulses_from_logs(from_timestamp, is_consumption)
         ) is None:
-            _LOGGER.debug("collected_pulses 4 | %s | log_pulses:None", self._mac)
+            _LOGGER.debug("collected_pulses 3 | %s | log_pulses:None", self._mac)
             return (None, None)
 
         pulses: int | None = None
@@ -195,13 +195,13 @@ class PulseCollection:
 
         if pulses is None:
             _LOGGER.debug(
-                "collected_pulses 5 | %s | is_consumption=%s, pulses=None",
+                "collected_pulses 4 | %s | is_consumption=%s, pulses=None",
                 self._mac,
                 is_consumption,
             )
             return (None, None)
         _LOGGER.debug(
-            "collected_pulses 6 | pulses=%s | log_pulses=%s | consumption=%s at timestamp=%s",
+            "collected_pulses 5 | pulses=%s | log_pulses=%s | consumption=%s at timestamp=%s",
             pulses,
             log_pulses,
             is_consumption,
@@ -384,6 +384,14 @@ class PulseCollection:
         import_only: bool = False,
     ) -> bool:
         """Store pulse log."""
+        _LOGGER.debug(
+            "add_log | address=%s | slot=%s | timestamp=%s | pulses=%s | import_only=%s",
+            address,
+            slot,
+            timestamp,
+            pulses,
+            import_only,
+        )
         log_record = PulseLogRecord(timestamp, pulses, CONSUMED)
         if not self._add_log_record(address, slot, log_record):
             if not self._log_exists(address, slot):
