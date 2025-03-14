@@ -398,7 +398,7 @@ class PulseCollection:
                 return False
             if address != self._last_log_address and slot != self._last_log_slot:
                 return False
-        self._update_log_direction(address, slot, timestamp)
+        # self._update_log_direction(address, slot, timestamp)
         self._update_log_references(address, slot)
         self._update_log_interval()
         self._update_rollover()
