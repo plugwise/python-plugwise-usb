@@ -623,29 +623,33 @@ class PulseCollection:
                 if log_record.is_consumption:
                     if self._last_log_consumption_timestamp is None:
                         self._last_log_consumption_timestamp = log_record.timestamp
-                    if self._last_log_consumption_timestamp <= log_record.timestamp:
-                        self._last_log_consumption_timestamp = log_record.timestamp
+                    self._last_log_consumption_timestamp = max(
+                        self._last_log_consumption_timestamp, log_record.timestamp
+                    )
                     self._last_log_consumption_address = address
                     self._last_log_consumption_slot = slot
 
                     if self._first_log_consumption_timestamp is None:
                         self._first_log_consumption_timestamp = log_record.timestamp
-                    if self._first_log_consumption_timestamp >= log_record.timestamp:
-                        self._first_log_consumption_timestamp = log_record.timestamp
+                    self._first_log_consumption_timestamp = min(
+                        self._first_log_consumption_timestamp, log_record.timestamp
+                    )
                     self._first_log_consumption_address = address
                     self._first_log_consumption_slot = slot
                 else:
                     if self._last_log_production_timestamp is None:
                         self._last_log_production_timestamp = log_record.timestamp
-                    if self._last_log_production_timestamp <= log_record.timestamp:
-                        self._last_log_production_timestamp = log_record.timestamp
+                    self._last_log_production_timestamp = max(
+                        self._last_log_production_timestamp, log_record.timestamp
+                    )
                     self._last_log_production_address = address
                     self._last_log_production_slot = slot
 
                     if self._first_log_production_timestamp is None:
                         self._first_log_production_timestamp = log_record.timestamp
-                    if self._first_log_production_timestamp > log_record.timestamp:
-                        self._first_log_production_timestamp = log_record.timestamp
+                    self._first_log_production_timestamp = min(
+                        self._first_log_production_timestamp, log_record.timestamp
+                    )
                     self._first_log_production_address = address
                     self._first_log_production_slot = slot
 
