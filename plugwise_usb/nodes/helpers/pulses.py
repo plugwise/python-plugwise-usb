@@ -599,8 +599,10 @@ class PulseCollection:
         self._first_log_production_address = None
         self._first_log_production_slot = None
         self._first_log_production_timestamp = None
+
         if self._logs is None:
             return
+
         for address in self._logs:
             for slot, log_record in self._logs[address].items():
                 if log_record.is_consumption:
@@ -608,28 +610,29 @@ class PulseCollection:
                         self._last_log_consumption_timestamp = log_record.timestamp
                     if self._last_log_consumption_timestamp <= log_record.timestamp:
                         self._last_log_consumption_timestamp = log_record.timestamp
-                        self._last_log_consumption_address = address
-                        self._last_log_consumption_slot = slot
+                    self._last_log_consumption_address = address
+                    self._last_log_consumption_slot = slot
 
                     if self._first_log_consumption_timestamp is None:
                         self._first_log_consumption_timestamp = log_record.timestamp
                     if self._first_log_consumption_timestamp >= log_record.timestamp:
                         self._first_log_consumption_timestamp = log_record.timestamp
-                        self._first_log_consumption_address = address
-                        self._first_log_consumption_slot = slot
+                    self._first_log_consumption_address = address
+                    self._first_log_consumption_slot = slot
                 else:
                     if self._last_log_production_timestamp is None:
                         self._last_log_production_timestamp = log_record.timestamp
                     if self._last_log_production_timestamp <= log_record.timestamp:
-                        self._last_log_production_address = address
-                        self._last_log_production_slot = slot
+                        self._last_log_production_timestamp = log_record.timestamp
+                    self._last_log_production_address = address
+                    self._last_log_production_slot = slot
 
                     if self._first_log_production_timestamp is None:
                         self._first_log_production_timestamp = log_record.timestamp
                     if self._first_log_production_timestamp > log_record.timestamp:
                         self._first_log_production_timestamp = log_record.timestamp
-                        self._first_log_production_address = address
-                        self._first_log_production_slot = slot
+                    self._first_log_production_address = address
+                    self._first_log_production_slot = slot
 
     def _update_last_production_log_reference(
         self, address: int, slot: int, timestamp: datetime
