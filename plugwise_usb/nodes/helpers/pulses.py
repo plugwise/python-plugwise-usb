@@ -284,13 +284,13 @@ class PulseCollection:
         if self._pulses_timestamp > self._next_log_consumption_timestamp:
             self._rollover_consumption = True
             _LOGGER.debug(
-                "_update_rollover | %s | consumption rollover to new log_comsumption interval",
+                "_update_rollover | %s | set consumption rollover: pulses in new log_comsumption interval",
                 self._mac,
             )
         elif self._pulses_timestamp < self._last_log_consumption_timestamp:
             self._rollover_consumption = True
             _LOGGER.debug(
-                "_update_rollover | %s | set consumption rollover => log newer",
+                "_update_rollover | %s | reset consumption rollover: pulses from last consumption interval",
                 self._mac,
             )
         elif (
@@ -298,7 +298,7 @@ class PulseCollection:
             < self._pulses_timestamp
             < self._next_log_consumption_timestamp
         ):
-            if self._rollover_consumption:
+            if self._rollover_consumption:  # due to consumption counter reset
                 _LOGGER.debug("_update_rollover | %s | reset consumption", self._mac)
             self._rollover_consumption = False
         else:
@@ -317,13 +317,13 @@ class PulseCollection:
         if self._pulses_timestamp > self._next_log_production_timestamp:
             self._rollover_production = True
             _LOGGER.debug(
-                "_update_rollover | %s | set production rollover => pulses newer",
+                "_update_rollover | %s | set production rollover: pulses in new log_production interval",
                 self._mac,
             )
         elif self._pulses_timestamp < self._last_log_production_timestamp:
             self._rollover_production = True
             _LOGGER.debug(
-                "_update_rollover | %s | reset production rollover => log newer",
+                "_update_rollover | %s | reset production rollover: pulses from last production interval",
                 self._mac,
             )
         elif (
@@ -331,7 +331,7 @@ class PulseCollection:
             < self._pulses_timestamp
             < self._next_log_production_timestamp
         ):
-            if self._rollover_production:
+            if self._rollover_production:  # due to production counter reset
                 _LOGGER.debug("_update_rollover | %s | reset production", self._mac)
             self._rollover_production = False
         else:
