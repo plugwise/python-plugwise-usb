@@ -449,7 +449,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
             log_address = self._current_log_address
             log_update_tasks = []
             while total_addresses > 0:
-                log_update_tasks.append(self.energy_log_update(log_address))
+                result = await self.energy_log_update(log_address)
+                log_update_tasks.append(result)
                 log_address, _ = calc_log_address(log_address, 1, -4)
                 total_addresses -= 1
 
