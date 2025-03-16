@@ -454,7 +454,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 log_address, _ = calc_log_address(log_address, 1, -4)
                 total_addresses -= 1
 
-             await gather(*log_update_tasks)
+            await gather(*log_update_tasks)
 
             if self._cache_enabled:
                 await self._energy_log_records_save_to_cache()
