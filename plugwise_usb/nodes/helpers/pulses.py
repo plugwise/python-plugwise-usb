@@ -264,6 +264,7 @@ class PulseCollection:
                 and self._pulses_production < pulses_produced
             ):
                 self._rollover_production = True
+
         self._pulses_consumption = pulses_consumed
         self._pulses_production = pulses_produced
 
@@ -271,6 +272,7 @@ class PulseCollection:
         """Update rollover states. Returns True if rollover is applicable."""
         if self._log_addresses_missing is not None and self._log_addresses_missing:
             return
+
         if (
             self._pulses_timestamp is None
             or self._last_log_consumption_timestamp is None
@@ -278,10 +280,11 @@ class PulseCollection:
         ):
             # Unable to determine rollover
             return
+
         if self._pulses_timestamp > self._next_log_consumption_timestamp:
             self._rollover_consumption = True
             _LOGGER.debug(
-                "_update_rollover | %s | set consumption rollover => pulses newer",
+                "_update_rollover | %s | consumption rollover to new log_comsumption interval",
                 self._mac,
             )
         elif self._pulses_timestamp < self._last_log_consumption_timestamp:
@@ -303,12 +306,14 @@ class PulseCollection:
 
         if not self._log_production:
             return
+
         if (
             self._last_log_production_timestamp is None
             or self._next_log_production_timestamp is None
         ):
             # Unable to determine rollover
             return
+
         if self._pulses_timestamp > self._next_log_production_timestamp:
             self._rollover_production = True
             _LOGGER.debug(
