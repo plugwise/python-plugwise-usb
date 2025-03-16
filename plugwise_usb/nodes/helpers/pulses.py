@@ -561,14 +561,10 @@ class PulseCollection:
         return True
 
     def _update_last_log_reference(
-        self, address: int, slot: int, timestamp: datetime, is_consumption: bool
+        self, address: int, slot: int, timestamp: datetime
     ) -> None:
         """Update references to last (most recent) log record."""
         if self._last_log_timestamp is None or self._last_log_timestamp < timestamp:
-            self._last_log_address = address
-            self._last_log_slot = slot
-            self._last_log_timestamp = timestamp
-        elif self._last_log_timestamp == timestamp and not is_consumption:
             self._last_log_address = address
             self._last_log_slot = slot
             self._last_log_timestamp = timestamp
@@ -584,6 +580,18 @@ class PulseCollection:
             self._last_log_consumption_timestamp = timestamp
             self._last_log_consumption_address = address
             self._last_log_consumption_slot = slot
+
+    def _update_last_production_log_reference(
+        self, address: int, slot: int, timestamp: datetime
+    ) -> None:
+        """Update references to last (most recent) log production record."""
+        if (
+            self._last_log_production_timestamp is None
+            or self._last_log_production_timestamp <= timestamp
+        ):
+            self._last_log_production_timestamp = timestamp
+            self._last_log_production_address = address
+            self._last_log_production_slot = slot
 
     def _reset_log_references(self) -> None:
         """Reset log references."""
@@ -634,27 +642,11 @@ class PulseCollection:
                     self._first_log_production_address = address
                     self._first_log_production_slot = slot
 
-    def _update_last_production_log_reference(
-        self, address: int, slot: int, timestamp: datetime
-    ) -> None:
-        """Update references to last (most recent) log production record."""
-        if (
-            self._last_log_production_timestamp is None
-            or self._last_log_production_timestamp <= timestamp
-        ):
-            self._last_log_production_timestamp = timestamp
-            self._last_log_production_address = address
-            self._last_log_production_slot = slot
-
     def _update_first_log_reference(
-        self, address: int, slot: int, timestamp: datetime, is_consumption: bool
+        self, address: int, slot: int, timestamp: datetime
     ) -> None:
         """Update references to first (oldest) log record."""
         if self._first_log_timestamp is None or self._first_log_timestamp > timestamp:
-            self._first_log_address = address
-            self._first_log_slot = slot
-            self._first_log_timestamp = timestamp
-        elif self._first_log_timestamp == timestamp and is_consumption:
             self._first_log_address = address
             self._first_log_slot = slot
             self._first_log_timestamp = timestamp
@@ -691,8 +683,8 @@ class PulseCollection:
         is_consumption = self._logs[address][slot].is_consumption
 
         # Update log references
-        self._update_first_log_reference(address, slot, log_time_stamp, is_consumption)
-        self._update_last_log_reference(address, slot, log_time_stamp, is_consumption)
+        self._update_first_log_reference(address, slot, log_time_stamp)
+        self._update_last_log_reference(address, slot, log_time_stamp)
 
         if is_consumption:
             self._update_first_consumption_log_reference(address, slot, log_time_stamp)
