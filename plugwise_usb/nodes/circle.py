@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import Task, create_task
+from asyncio import Task, create_task, gather
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -440,6 +440,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         self._energy_counters.update()
         if self._current_log_address is None:
             return None
+
         if self._energy_counters.log_addresses_missing is None:
             _LOGGER.debug(
                 "Start with initial energy request for the last 10 log addresses for node %s.",
@@ -453,12 +454,13 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 log_address, _ = calc_log_address(log_address, 1, -4)
                 total_addresses -= 1
 
-            for task in log_update_tasks:
-                await task
+            await gather(*log_update_tasks)
 
             if self._cache_enabled:
                 await self._energy_log_records_save_to_cache()
+
             return
+
         if self._energy_counters.log_addresses_missing is not None:
             _LOGGER.debug("Task created to get missing logs of %s", self._mac_in_str)
         if (
