@@ -517,9 +517,7 @@ class PulseCollection:
                     delta1.total_seconds() / MINUTE_IN_SECONDS
                 )
                 break
-            if not self._log_production:
-                return
-            address, slot = calc_log_address(address, slot, -1)
+
         if (
             self._log_interval_consumption is not None
             and self._last_log_consumption_timestamp is not None
@@ -531,12 +529,14 @@ class PulseCollection:
 
         if not self._log_production:
             return
+
         # Update interval of production
         last_prod_address, last_prod_slot = self._last_log_reference(
             is_consumption=False
         )
         if last_prod_address is None or last_prod_slot is None:
             return
+
         last_prod_timestamp = self._logs[last_prod_address][last_prod_slot].timestamp
         address, slot = calc_log_address(last_prod_address, last_prod_slot, -1)
         while self._log_exists(address, slot):
@@ -548,7 +548,7 @@ class PulseCollection:
                     delta2.total_seconds() / MINUTE_IN_SECONDS
                 )
                 break
-            address, slot = calc_log_address(address, slot, -1)
+
         if (
             self._log_interval_production is not None
             and self._last_log_production_timestamp is not None
