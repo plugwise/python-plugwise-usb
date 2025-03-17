@@ -326,6 +326,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                         self.name,
                     )
                 return None
+
         # request node info update every 30 minutes.
         elif not self.skip_update(self._node_info, 1800):
             if await self.node_info_update() is None:
@@ -405,7 +406,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         # Create task to request remaining missing logs
         if (
             self._retrieve_energy_logs_task is None
-            # or self._retrieve_energy_logs_task.done() - try retrieving once
+            or self._retrieve_energy_logs_task.done()
         ):
             _LOGGER.debug(
                 "Create task to update energy logs for node %s",
@@ -419,6 +420,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 "Skip creating task to update energy logs for node %s",
                 self._mac_in_str,
             )
+
         if (
             self._initialization_delay_expired is not None
             and datetime.now(tz=UTC) < self._initialization_delay_expired
@@ -432,6 +434,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 "Unable to return energy statistics for %s, collecting required data...",
                 self.name,
             )
+
         return None
 
     async def get_missing_energy_logs(self) -> None:
@@ -567,17 +570,19 @@ class PlugwiseCircle(PlugwiseBaseNode):
         self._energy_counters.update()
 
         # Create task to retrieve remaining (missing) logs
-        # if self._energy_counters.log_addresses_missing is None:
-        #     return False
+        if self._energy_counters.log_addresses_missing is None:
+            return False
 
-        # if len(self._energy_counters.log_addresses_missing) > 0:
-        #     if self._retrieve_energy_logs_task is not None:
-        #         if not self._retrieve_energy_logs_task.done():
-        #             await self._retrieve_energy_logs_task
-        #     self._retrieve_energy_logs_task = create_task(
-        #         self.get_missing_energy_logs()
-        #     )
-        #     return False
+        if len(self._energy_counters.log_addresses_missing) > 0:
+            if self._retrieve_energy_logs_task is not None:
+                if not self._retrieve_energy_logs_task.done():
+                    await self._retrieve_energy_logs_task
+
+            self._retrieve_energy_logs_task = create_task(
+                self.get_missing_energy_logs()
+            )
+            return False
+
         return True
 
     async def _energy_log_records_save_to_cache(self) -> None:
