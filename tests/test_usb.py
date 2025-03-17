@@ -960,7 +960,7 @@ class TestStick:
         # Test consumption logs
         tst_consumption = pw_energy_pulses.PulseCollection(mac="0098765432101234")
         assert tst_consumption.log_addresses_missing is None
-        assert tst_consumption.production_logging == True  # is None
+        assert tst_consumption.production_logging == False  # is None
 
         # Test consumption - Log import #1
         # No missing addresses yet
@@ -968,7 +968,7 @@ class TestStick:
         tst_consumption.add_log(100, 1, test_timestamp, 1000)
         assert tst_consumption.log_interval_consumption is None
         assert tst_consumption.log_interval_production is None
-        # assert tst_consumption.production_logging is None
+        assert not tst_consumption.production_logging  # is None
         assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=True
         ) == (None, None)
@@ -981,7 +981,7 @@ class TestStick:
         tst_consumption.add_log(95, 4, test_timestamp, 1000)
         assert tst_consumption.log_interval_consumption is None
         assert tst_consumption.log_interval_production is None
-        # assert tst_consumption.production_logging is None
+        assert not tst_consumption.production_logging  # is None
         assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=True
         ) == (None, None)
@@ -994,7 +994,7 @@ class TestStick:
         tst_consumption.add_log(95, 3, test_timestamp, 1000)
         assert tst_consumption.log_interval_consumption is None
         assert tst_consumption.log_interval_production is None
-        # assert not tst_consumption.production_logging
+        assert not tst_consumption.production_logging
         assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=True
         ) == (None, None)
@@ -1005,7 +1005,7 @@ class TestStick:
         tst_consumption.add_log(95, 2, test_timestamp, 1000)
         assert tst_consumption.log_interval_consumption is None
         assert tst_consumption.log_interval_production is None
-        # assert not tst_consumption.production_logging
+        assert not tst_consumption.production_logging
         assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=True
         ) == (None, None)
@@ -1017,7 +1017,7 @@ class TestStick:
         tst_consumption.add_log(95, 1, test_timestamp, 1000)
         assert tst_consumption.log_interval_consumption is None
         assert tst_consumption.log_interval_production is None
-        # assert not tst_consumption.production_logging
+        assert not tst_consumption.production_logging
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
 
         # Test consumption - Log import #6
@@ -1026,7 +1026,7 @@ class TestStick:
         tst_consumption.add_log(99, 4, test_timestamp, 750)
         assert tst_consumption.log_interval_consumption == 60
         assert tst_consumption.log_interval_production is None
-        # assert not tst_consumption.production_logging
+        assert not tst_consumption.production_logging
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
         assert tst_consumption.collected_pulses(
             fixed_this_hour, is_consumption=True
@@ -1035,7 +1035,7 @@ class TestStick:
         tst_consumption.add_log(99, 3, fixed_this_hour - td(hours=2), 1111)
         assert tst_consumption.log_interval_consumption == 60
         assert tst_consumption.log_interval_production is None
-        # assert not tst_consumption.production_logging
+        assert not tst_consumption.production_logging
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
         assert tst_consumption.collected_pulses(
             fixed_this_hour, is_consumption=True
@@ -1202,7 +1202,7 @@ class TestStick:
         # Test consumption and production logs
         tst_production = pw_energy_pulses.PulseCollection(mac="0098765432101234")
         assert tst_production.log_addresses_missing is None
-        assert tst_production.production_logging == True  # is None
+        assert not tst_production.production_logging  # is None
 
         # Test consumption & production - Log import #1 - production
         # Missing addresses can not be determined yet
