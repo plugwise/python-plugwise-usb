@@ -397,7 +397,7 @@ class PulseCollection:
             import_only,
         )
         direction = CONSUMED
-        if pulses < 0:
+        if self._log_production and pulses < 0:
             direction = PRODUCED
 
         log_record = PulseLogRecord(timestamp, pulses, direction)
