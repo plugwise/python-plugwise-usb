@@ -269,8 +269,8 @@ class PulseCollection:
             # Required for special cases like nodes which have been power off for several days
             _LOGGER.debug(
                 "_rollover_consumption | self._pulses_consumption=%s | pulses_consumed=%s",
-                self._pulses_production,
-                pulses_produced,
+                self._pulses_consumption,
+                pulses_consumed,
             )
             if (
                 self._pulses_consumption is not None
