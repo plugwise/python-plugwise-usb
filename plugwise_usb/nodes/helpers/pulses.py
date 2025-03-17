@@ -13,6 +13,7 @@ from ...exceptions import EnergyError
 _LOGGER = logging.getLogger(__name__)
 CONSUMED: Final = True
 PRODUCED: Final = False
+PODUCERS: tuple[str] = ("000D6F00029C32C7")
 
 MAX_LOG_HOURS = WEEK_IN_HOURS
 
@@ -88,10 +89,13 @@ class PulseCollection:
 
         self._logs: dict[int, dict[int, PulseLogRecord]] | None = None
         self._log_addresses_missing: list[int] | None = None
-        self._log_production = True  # : bool | None = None
         self._pulses_consumption: int | None = None
         self._pulses_production: int | None = None
         self._pulses_timestamp: datetime | None = None
+
+        self._log_production = False  # : bool | None = None
+        if mac in PRODUCERS:
+            self._log_production = False
 
     @property
     def collected_logs(self) -> int:
