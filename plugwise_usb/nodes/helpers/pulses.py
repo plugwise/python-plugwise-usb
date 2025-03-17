@@ -624,6 +624,7 @@ class PulseCollection:
                     if self._last_log_production_timestamp is None:
                         self._last_log_production_timestamp = log_record.timestamp
                     if self._last_log_production_timestamp <= log_record.timestamp:
+                        self._last_log_production_timestamp = log_record.timestamp
                         self._last_log_production_address = address
                         self._last_log_production_slot = slot
 
