@@ -95,7 +95,7 @@ class PulseCollection:
 
         self._log_production = False  # : bool | None = None
         if mac in PRODUCERS:
-            self._log_production = False
+            self._log_production = True
 
     @property
     def collected_logs(self) -> int:
