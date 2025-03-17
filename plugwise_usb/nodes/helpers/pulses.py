@@ -13,7 +13,7 @@ from ...exceptions import EnergyError
 _LOGGER = logging.getLogger(__name__)
 CONSUMED: Final = True
 PRODUCED: Final = False
-PODUCERS: tuple[str] = ("000D6F00029C32C7")
+PRODUCERS: tuple[str] = ("000D6F00029C32C7")
 
 MAX_LOG_HOURS = WEEK_IN_HOURS
 
