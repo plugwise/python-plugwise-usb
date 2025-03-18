@@ -160,9 +160,13 @@ class PulseCollection:
             return (None, None)
 
         if is_consumption and self._rollover_consumption:
+            # consumption-pulses reset every hour - pulses just before rollover are lost?
             _LOGGER.debug("collected_pulses 2 | %s | _rollover_consumption", self._mac)
             return (None, None)
         if not is_consumption and self._rollover_production:
+            # production-pulses do not reset every hour but at the max counter value - double-check
+            # if this is correct the pulses lost at rollover can be calculated:
+            # max-counter - prev-value + counter after reset
             _LOGGER.debug("collected_pulses 2 | %s | _rollover_production", self._mac)
             return (None, None)
 
