@@ -481,18 +481,10 @@ class PulseCollection:
             return
 
         log_time_stamp = self._logs[address][slot].timestamp
-        is_consumption = self._logs[address][slot].is_consumption
 
         # Update log references
         self._update_first_log_reference(address, slot, log_time_stamp)
         self._update_last_log_reference(address, slot, log_time_stamp)
-
-        if is_consumption:
-            self._update_first_consumption_log_reference(address, slot, log_time_stamp)
-            self._update_last_consumption_log_reference(address, slot, log_time_stamp)
-        elif self._log_production:
-            self._update_first_production_log_reference(address, slot, log_time_stamp)
-            self._update_last_production_log_reference(address, slot, log_time_stamp)
 
     @property
     def log_addresses_missing(self) -> list[int] | None:
