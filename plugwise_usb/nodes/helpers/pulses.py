@@ -379,7 +379,7 @@ class PulseCollection:
         """Update the detected log interval based on the most recent two logs."""
         if self._logs is None:
             _LOGGER.debug(
-                "_update_log_interval fail | %s | _logs=%s,
+                "_update_log_interval fail | %s | _logs=%s",
                 self._mac,
                 self._logs,
             )
