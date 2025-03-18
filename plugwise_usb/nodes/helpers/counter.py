@@ -212,18 +212,21 @@ class EnergyCounter:
         self._mac = mac
         if energy_id not in ENERGY_COUNTERS:
             raise EnergyError(f"Invalid energy id '{energy_id}' for Energy counter")
+
         self._calibration: EnergyCalibration | None = None
         self._duration = "hour"
         if energy_id in ENERGY_DAY_COUNTERS:
             self._duration = "day"
         #elif energy_id in ENERGY_WEEK_COUNTERS:
         #    self._duration = "week"
+
         self._energy_id: EnergyType = energy_id
         self._is_consumption = True
         self._direction = "consumption"
         if self._energy_id in ENERGY_PRODUCTION_COUNTERS:
             self._direction = "production"
             self._is_consumption = False
+
         self._last_reset: datetime | None = None
         self._last_update: datetime | None = None
         self._pulses: int | None = None
@@ -258,8 +261,10 @@ class EnergyCounter:
         """Total energy (in kWh) since last reset."""
         if self._pulses is None or self._calibration is None:
             return None
+
         if self._pulses == 0:
             return 0.0
+
         # Handle both positive and negative pulses values
         negative = False
         if self._pulses < 0:
@@ -282,6 +287,7 @@ class EnergyCounter:
         calc_value = corrected_pulses / PULSES_PER_KW_SECOND / HOUR_IN_SECONDS
         if negative:
             calc_value = -calc_value
+
         return calc_value
 
     @property
@@ -323,6 +329,7 @@ class EnergyCounter:
         )
         if pulses is None or last_update is None:
             return (None, None)
+
         self._last_update = last_update
         self._last_reset = last_reset
         self._pulses = pulses
