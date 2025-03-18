@@ -48,13 +48,12 @@ class PulseLogRecord:
 
 
 class PulseCollection:
-    """Store consumed and produced energy pulses of the current interval and past (history log) intervals."""
+    """Store energy pulses of the current interval and past (history log) intervals."""
 
     def __init__(self, mac: str) -> None:
         """Initialize PulseCollection class."""
         self._mac = mac
-        self._log_interval_consumption: int | None = None
-        self._log_interval_production: int | None = None
+        self._log_interval: int | None = None
 
         self._last_log_address: int | None = None
         self._last_log_slot: int | None = None
@@ -132,14 +131,9 @@ class PulseCollection:
         return self._log_production
 
     @property
-    def log_interval_consumption(self) -> int | None:
-        """Interval in minutes between last consumption pulse logs."""
-        return self._log_interval_consumption
-
-    @property
-    def log_interval_production(self) -> int | None:
-        """Interval in minutes between last production pulse logs."""
-        return self._log_interval_production
+    def log_interval(self) -> int | None:
+        """Interval in minutes between the last two pulse logs."""
+        return self._log_interval
 
     @property
     def log_rollover(self) -> bool:
@@ -179,15 +173,12 @@ class PulseCollection:
             return (None, None)
 
         pulses: int | None = None
-        timestamp: datetime | None = None
+        timestamp = self._pulses_timestamp
         if is_consumption and self._pulses_consumption is not None:
             pulses = self._pulses_consumption
-            timestamp = self._pulses_timestamp
         if not is_consumption and self._pulses_production is not None:
             pulses = self._pulses_production
-            timestamp = self._pulses_timestamp
         # _LOGGER.debug("collected_pulses | %s | pulses=%s", self._mac, pulses)
-
         if pulses is None:
             _LOGGER.debug(
                 "collected_pulses 4 | %s | is_consumption=%s, pulses=None",
@@ -195,6 +186,7 @@ class PulseCollection:
                 is_consumption,
             )
             return (None, None)
+    
         _LOGGER.debug(
             "collected_pulses 5 | pulses=%s | log_pulses=%s | consumption=%s at timestamp=%s",
             pulses,
@@ -232,7 +224,6 @@ class PulseCollection:
             return None
 
         log_pulses = 0
-
         for log_item in self._logs.values():
             for slot_item in log_item.values():
                 if (
@@ -577,17 +568,8 @@ class PulseCollection:
         # Check if we are able to calculate log interval
         address, slot = calc_log_address(first_address, first_slot, -1)
         log_interval: int | None = None
-        if self._log_interval_consumption is not None:
-            log_interval = self._log_interval_consumption
-        elif self._log_interval_production is not None:
-            log_interval = self._log_interval_production
-
-        if (
-            self._log_interval_production is not None
-            and log_interval is not None
-            and self._log_interval_production < log_interval
-        ):
-            log_interval = self._log_interval_production
+        if self._log_interval is not None:
+            log_interval = self._log_interval
 
         if log_interval is None:
             return None
@@ -638,53 +620,24 @@ class PulseCollection:
             return addresses
 
         # default interval
-        calc_interval_cons = timedelta(hours=1)
+        calc_interval = timedelta(hours=1)
         if (
-            self._log_interval_consumption is not None
-            and self._log_interval_consumption > 0
+            self._log_interval is not None
+            and self._log_interval > 0
         ):
-            # Use consumption interval
-            calc_interval_cons = timedelta(minutes=self._log_interval_consumption)
-            if self._log_interval_consumption == 0:
+            calc_interval = timedelta(minutes=self._log_interval)
+            if self._log_interval == 0:
                 pass
 
-        if not self._log_production:  #False
-            expected_timestamp = (
-                self._logs[address][slot].timestamp - calc_interval_cons
-            )
+        expected_timestamp = (
+            self._logs[address][slot].timestamp - calc_interval
+        )
+        address, slot = calc_log_address(address, slot, -1)
+        while expected_timestamp > target and address > 0:
+            if address not in addresses:
+                addresses.append(address)
+            expected_timestamp -= calc_interval
             address, slot = calc_log_address(address, slot, -1)
-            while expected_timestamp > target and address > 0:
-                if address not in addresses:
-                    addresses.append(address)
-                expected_timestamp -= calc_interval_cons
-                address, slot = calc_log_address(address, slot, -1)
-        else:
-            # Production logging active
-            calc_interval_prod = timedelta(hours=1)
-            if (
-                self._log_interval_production is not None
-                and self._log_interval_production > 0
-            ):
-                calc_interval_prod = timedelta(minutes=self._log_interval_production)
-
-            expected_timestamp_cons = (
-                self._logs[address][slot].timestamp - calc_interval_cons
-            )
-            expected_timestamp_prod = (
-                self._logs[address][slot].timestamp - calc_interval_prod
-            )
-
-            address, slot = calc_log_address(address, slot, -1)
-            while (
-                expected_timestamp_cons > target or expected_timestamp_prod > target
-            ) and address > 0:
-                if address not in addresses:
-                    addresses.append(address)
-                if expected_timestamp_prod > expected_timestamp_cons:
-                    expected_timestamp_prod -= calc_interval_prod
-                else:
-                    expected_timestamp_cons -= calc_interval_cons
-                address, slot = calc_log_address(address, slot, -1)
 
         return addresses
 
@@ -693,52 +646,25 @@ class PulseCollection:
     ) -> list[int]:
         """Return list of any missing address(es) after given log timestamp."""
         addresses: list[int] = []
-
         if self._logs is None:
             return addresses
 
         # default interval
-        calc_interval_cons = timedelta(hours=1)
+        calc_interval = timedelta(hours=1)
         if (
-            self._log_interval_consumption is not None
-            and self._log_interval_consumption > 0
+            self._log_interval is not None
+            and self._log_interval > 0
         ):
-            # Use consumption interval
-            calc_interval_cons = timedelta(minutes=self._log_interval_consumption)
+            calc_interval = timedelta(minutes=self._log_interval)
 
-        if not self._log_production:  # False
-            expected_timestamp = (
-                self._logs[address][slot].timestamp + calc_interval_cons
-            )
-            address, slot = calc_log_address(address, slot, 1)
-            while expected_timestamp < target:
-                address, slot = calc_log_address(address, slot, 1)
-                expected_timestamp += timedelta(hours=1)
-                if address not in addresses:
-                    addresses.append(address)
-            return addresses
-
-        # Production logging active
-        calc_interval_prod = timedelta(hours=1)
-        if (
-            self._log_interval_production is not None
-            and self._log_interval_production > 0
-        ):
-            calc_interval_prod = timedelta(minutes=self._log_interval_production)
-
-        expected_timestamp_cons = (
-            self._logs[address][slot].timestamp + calc_interval_cons
-        )
-        expected_timestamp_prod = (
-            self._logs[address][slot].timestamp + calc_interval_prod
+        expected_timestamp = (
+            self._logs[address][slot].timestamp + calc_interval
         )
         address, slot = calc_log_address(address, slot, 1)
-        while expected_timestamp_cons < target or expected_timestamp_prod < target:
+        while expected_timestamp < target:
+            address, slot = calc_log_address(address, slot, 1)
+            expected_timestamp += timedelta(hours=1)
             if address not in addresses:
                 addresses.append(address)
-            if expected_timestamp_prod < expected_timestamp_cons:
-                expected_timestamp_prod += calc_interval_prod
-            else:
-                expected_timestamp_cons += calc_interval_cons
-            address, slot = calc_log_address(address, slot, 1)
+
         return addresses
