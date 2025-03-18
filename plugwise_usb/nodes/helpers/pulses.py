@@ -68,21 +68,13 @@ class PulseCollection:
         self._last_empty_log_address: int | None = None
         self._last_empty_log_slot: int | None = None
 
-        self._last_log_consumption_timestamp: datetime | None = None
-        self._last_log_consumption_address: int | None = None
-        self._last_log_consumption_slot: int | None = None
-        self._first_log_consumption_timestamp: datetime | None = None
-        self._first_log_consumption_address: int | None = None
-        self._first_log_consumption_slot: int | None = None
-        self._next_log_consumption_timestamp: datetime | None = None
-
-        self._last_log_production_timestamp: datetime | None = None
-        self._last_log_production_address: int | None = None
-        self._last_log_production_slot: int | None = None
-        self._first_log_production_timestamp: datetime | None = None
-        self._first_log_production_address: int | None = None
-        self._first_log_production_slot: int | None = None
-        self._next_log_production_timestamp: datetime | None = None
+        self._last_log_timestamp: datetime | None = None
+        self._last_log_address: int | None = None
+        self._last_log_slot: int | None = None
+        self._first_log_timestamp: datetime | None = None
+        self._first_log_address: int | None = None
+        self._first_log_slot: int | None = None
+        self._next_log_timestamp: datetime | None = None
 
         self._rollover_consumption = False
         self._rollover_production = False
@@ -128,11 +120,11 @@ class PulseCollection:
     def last_log(self) -> tuple[int, int] | None:
         """Return address and slot of last imported log."""
         if (
-            self._last_log_consumption_address is None
-            or self._last_log_consumption_slot is None
+            self._last_log_address is None
+            or self._last_log_slot is None
         ):
             return None
-        return (self._last_log_consumption_address, self._last_log_consumption_slot)
+        return (self._last_log_address, self._last_log_slot)
 
     @property
     def production_logging(self) -> bool | None:
