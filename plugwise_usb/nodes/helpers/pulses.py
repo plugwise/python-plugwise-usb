@@ -177,11 +177,13 @@ class PulseCollection:
             return (None, None)
 
         pulses: int | None = None
-        timestamp = self._pulses_timestamp
+        timestamp: datetime | None = None
         if is_consumption and self._pulses_consumption is not None:
             pulses = self._pulses_consumption
+            timestamp = self._pulses_timestamp
         if not is_consumption and self._pulses_production is not None:
             pulses = self._pulses_production
+            timestamp = self._pulses_timestamp
         # _LOGGER.debug("collected_pulses | %s | pulses=%s", self._mac, pulses)
         if pulses is None:
             _LOGGER.debug(
