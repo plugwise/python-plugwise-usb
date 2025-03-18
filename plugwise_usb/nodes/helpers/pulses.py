@@ -436,50 +436,31 @@ class PulseCollection:
 
     def _reset_log_references(self) -> None:
         """Reset log references."""
-        self._last_log_consumption_address = None
-        self._last_log_consumption_slot = None
-        self._last_log_consumption_timestamp = None
-        self._first_log_consumption_address = None
-        self._first_log_consumption_slot = None
-        self._first_log_consumption_timestamp = None
-        self._last_log_production_address = None
-        self._last_log_production_slot = None
-        self._last_log_production_timestamp = None
-        self._first_log_production_address = None
-        self._first_log_production_slot = None
-        self._first_log_production_timestamp = None
+        self._last_log_address = None
+        self._last_log_slot = None
+        self._last_log_timestamp = None
+        self._first_log_address = None
+        self._first_log_slot = None
+        self._first_log_timestamp = None
+
         if self._logs is None:
             return
+
         for address in self._logs:
-            for slot, log_record in self._logs[address].items():
-                if log_record.is_consumption:
-                    if self._last_log_consumption_timestamp is None:
-                        self._last_log_consumption_timestamp = log_record.timestamp
-                    if self._last_log_consumption_timestamp <= log_record.timestamp:
-                        self._last_log_consumption_timestamp = log_record.timestamp
-                        self._last_log_consumption_address = address
-                        self._last_log_consumption_slot = slot
+            for slot, _ in self._logs[address].items():
+                if self._last_log_timestamp is None:
+                    self._last_log_timestamp = log_record.timestamp
+                if self._last_log_timestamp <= log_record.timestamp:
+                    self._last_log_timestamp = log_record.timestamp
+                    self._last_log_address = address
+                    self._last_log_slot = slot
 
-                    if self._first_log_consumption_timestamp is None:
-                        self._first_log_consumption_timestamp = log_record.timestamp
-                    if self._first_log_consumption_timestamp >= log_record.timestamp:
-                        self._first_log_consumption_timestamp = log_record.timestamp
-                        self._first_log_consumption_address = address
-                        self._first_log_consumption_slot = slot
-                else:
-                    if self._last_log_production_timestamp is None:
-                        self._last_log_production_timestamp = log_record.timestamp
-                    if self._last_log_production_timestamp <= log_record.timestamp:
-                        self._last_log_production_timestamp = log_record.timestamp
-                        self._last_log_production_address = address
-                        self._last_log_production_slot = slot
-
-                    if self._first_log_production_timestamp is None:
-                        self._first_log_production_timestamp = log_record.timestamp
-                    if self._first_log_production_timestamp > log_record.timestamp:
-                        self._first_log_production_timestamp = log_record.timestamp
-                        self._first_log_production_address = address
-                        self._first_log_production_slot = slot
+                if self._first_log_timestamp is None:
+                    self._first_log_timestamp = log_record.timestamp
+                if self._first_log_timestamp >= log_record.timestamp:
+                    self._first_log_timestamp = log_record.timestamp
+                    self._first_log_address = address
+                    self._first_log_slot = slot
 
     def _update_first_log_reference(
         self, address: int, slot: int, timestamp: datetime, is_consumption: bool
