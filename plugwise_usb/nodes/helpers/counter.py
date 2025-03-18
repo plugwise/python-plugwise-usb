@@ -171,7 +171,7 @@ class EnergyCounters:
         #     self._energy_statistics.week_consumption_reset,
         # ) = self._counters[EnergyType.CONSUMPTION_WEEK].update(self._pulse_collection)
 
-        if self.pulse_collection._log_production:
+        if self._pulse_collection._log_production:
             self._energy_statistics.log_interval_production = (
                 self._pulse_collection.log_interval_production
             )
