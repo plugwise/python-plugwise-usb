@@ -120,12 +120,12 @@ class EnergyCounters:
     @property
     def consumption_interval(self) -> int | None:
         """Measurement interval for energy consumption."""
-        return self._pulse_collection.log_interval_consumption
+        return self._pulse_collection.log_interval
 
     @property
     def production_interval(self) -> int | None:
         """Measurement interval for energy production."""
-        return self._pulse_collection.log_interval_production
+        return self._pulse_collection.log_interval
 
     @property
     def log_addresses_missing(self) -> list[int] | None:
@@ -155,8 +155,8 @@ class EnergyCounters:
         if self._calibration is None:
             return
 
-        self._energy_statistics.log_interval_consumption = (
-            self._pulse_collection.log_interval_consumption
+        self._energy_statistics.log_interval = (
+            self._pulse_collection.log_interval
         )
         (
             self._energy_statistics.hour_consumption,
@@ -172,9 +172,6 @@ class EnergyCounters:
         # ) = self._counters[EnergyType.CONSUMPTION_WEEK].update(self._pulse_collection)
 
         if self._pulse_collection.production_logging:
-            self._energy_statistics.log_interval_production = (
-                self._pulse_collection.log_interval_production
-            )
             (
                 self._energy_statistics.hour_production,
                 self._energy_statistics.hour_production_reset,
