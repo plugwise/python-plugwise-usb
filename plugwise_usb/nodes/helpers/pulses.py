@@ -219,24 +219,16 @@ class PulseCollection:
         if self._logs is None:
             _LOGGER.debug("_collect_pulses_from_logs | %s | self._logs=None", self._mac)
             return None
-        if is_consumption:
-            if self._last_log_consumption_timestamp is None:
-                _LOGGER.debug(
-                    "_collect_pulses_from_logs | %s | self._last_log_consumption_timestamp=None",
-                    self._mac,
-                )
-                return None
-            if from_timestamp > self._last_log_consumption_timestamp:
-                return 0
-        else:
-            if self._last_log_production_timestamp is None:
-                _LOGGER.debug(
-                    "_collect_pulses_from_logs | %s | self._last_log_production_timestamp=None",
-                    self._mac,
-                )
-                return None
-            if from_timestamp > self._last_log_production_timestamp:
-                return 0
+
+        if self._last_log_timestamp is None:
+            _LOGGER.debug(
+                "_collect_pulses_from_logs | %s | self._last_log_timestamp=None",
+                self._mac,
+            )
+            return None
+
+        if from_timestamp > self._last_log_timestamp:
+            return 0
 
         missing_logs = self._logs_missing(from_timestamp)
         if missing_logs is None or missing_logs:
@@ -256,112 +248,38 @@ class PulseCollection:
                     and slot_item.timestamp > from_timestamp
                 ):
                     log_pulses += slot_item.pulses
+
         return log_pulses
 
     def update_pulse_counter(
         self, pulses_consumed: int, pulses_produced: int, timestamp: datetime
     ) -> None:
-        """Update pulse counter."""
+        """Update pulse counter, checking for rollover based on counter reset."""
         self._pulses_timestamp = timestamp
-        self._update_rollover()
-        if not (self._rollover_consumption or self._rollover_production):
-            # No rollover based on time, check rollover based on counter reset
-            # Required for special cases like nodes which have been power off for several days
-            if (
-                self._pulses_consumption is not None
-                and self._pulses_consumption > pulses_consumed
-            ):
-                self._rollover_consumption = True
-                _LOGGER.debug(
-                    "_rollover_consumption | self._pulses_consumption=%s > pulses_consumed=%s",
-                    self._pulses_consumption,
-                    pulses_consumed,
-                )
+        if (
+            self._pulses_consumption is not None
+            and self._pulses_consumption > pulses_consumed
+        ):
+            self._rollover_consumption = True
+            _LOGGER.debug(
+                "_rollover_consumption | self._pulses_consumption=%s > pulses_consumed=%s",
+                self._pulses_consumption,
+                pulses_consumed,
+            )
 
-            if (
-                self._pulses_production is not None
-                and self._pulses_production < pulses_produced
-            ):
-                self._rollover_production = True
-                _LOGGER.debug(
-                    "_rollover_production | self._pulses_production=%s < pulses_produced=%s",
-                    self._pulses_production,
-                    pulses_produced,
-                )
+        if (
+            self._pulses_production is not None
+            and self._pulses_production < pulses_produced
+        ):
+            self._rollover_production = True
+            _LOGGER.debug(
+                "_rollover_production | self._pulses_production=%s < pulses_produced=%s",
+                self._pulses_production,
+                pulses_produced,
+            )
 
         self._pulses_consumption = pulses_consumed
         self._pulses_production = pulses_produced
-
-    def _update_rollover(self) -> None:
-        """Update rollover states. Returns True if rollover is applicable."""
-        if self._log_addresses_missing is not None and self._log_addresses_missing:
-            return
-        if (
-            self._pulses_timestamp is None
-            or self._last_log_consumption_timestamp is None
-            or self._next_log_consumption_timestamp is None
-        ):
-            # Unable to determine rollover
-            return
-
-        if self._pulses_timestamp > self._next_log_consumption_timestamp:
-            self._rollover_consumption = True
-            _LOGGER.debug(
-                "_update_rollover | %s | set consumption rollover => pulses newer",
-                self._mac,
-            )
-        elif self._pulses_timestamp < self._last_log_consumption_timestamp:
-            self._rollover_consumption = True
-            _LOGGER.debug(
-                "_update_rollover | %s | set consumption rollover => log newer",
-                self._mac,
-            )
-        elif (
-            self._last_log_consumption_timestamp
-            < self._pulses_timestamp
-            < self._next_log_consumption_timestamp
-        ):
-            if self._rollover_consumption:
-                _LOGGER.debug("_update_rollover | %s | reset consumption", self._mac)
-            self._rollover_consumption = False
-        else:
-            _LOGGER.debug("_update_rollover | %s | unexpected consumption", self._mac)
-
-        if not self._log_production:
-            return
-
-        if (
-            self._last_log_production_timestamp is None
-            or self._next_log_production_timestamp is None
-        ):
-            # Unable to determine rollover
-            return
-
-        if not self._log_production:
-            return
-
-        if self._pulses_timestamp > self._next_log_production_timestamp:
-            self._rollover_production = True
-            _LOGGER.debug(
-                "_update_rollover | %s | set production rollover => pulses newer",
-                self._mac,
-            )
-        elif self._pulses_timestamp < self._last_log_production_timestamp:
-            self._rollover_production = True
-            _LOGGER.debug(
-                "_update_rollover | %s | reset production rollover => log newer",
-                self._mac,
-            )
-        elif (
-            self._last_log_production_timestamp
-            < self._pulses_timestamp
-            < self._next_log_production_timestamp
-        ):
-            if self._rollover_production:
-                _LOGGER.debug("_update_rollover | %s | reset production", self._mac)
-            self._rollover_production = False
-        else:
-            _LOGGER.debug("_update_rollover | %s | unexpected production", self._mac)
 
     def add_empty_log(self, address: int, slot: int) -> None:
         """Add empty energy log record to mark any start of beginning of energy log collection."""
@@ -426,7 +344,6 @@ class PulseCollection:
                 return False
         self._update_log_references(address, slot)
         self._update_log_interval()
-        self._update_rollover()
         if not import_only:
             self.recalculate_missing_log_addresses()
         return True
@@ -554,14 +471,10 @@ class PulseCollection:
         return True
 
     def _update_last_log_reference(
-        self, address: int, slot: int, timestamp: datetime, is_consumption: bool
+        self, address: int, slot: int, timestamp: datetime
     ) -> None:
         """Update references to last (most recent) log record."""
         if self._last_log_timestamp is None or self._last_log_timestamp < timestamp:
-            self._last_log_address = address
-            self._last_log_slot = slot
-            self._last_log_timestamp = timestamp
-        elif self._last_log_timestamp == timestamp and not is_consumption:
             self._last_log_address = address
             self._last_log_slot = slot
             self._last_log_timestamp = timestamp
@@ -683,8 +596,8 @@ class PulseCollection:
         is_consumption = self._logs[address][slot].is_consumption
 
         # Update log references
-        self._update_first_log_reference(address, slot, log_time_stamp, is_consumption)
-        self._update_last_log_reference(address, slot, log_time_stamp, is_consumption)
+        self._update_first_log_reference(address, slot, log_time_stamp)
+        self._update_last_log_reference(address, slot, log_time_stamp)
 
         if is_consumption:
             self._update_first_consumption_log_reference(address, slot, log_time_stamp)
@@ -698,32 +611,13 @@ class PulseCollection:
         """Return the addresses of missing logs."""
         return self._log_addresses_missing
 
-    def _last_log_reference(
-        self, is_consumption: bool | None = None
-    ) -> tuple[int | None, int | None]:
+    def _last_log_reference(self) -> tuple[int | None, int | None]:
         """Address and slot of last log."""
-        if is_consumption is None:
-            return (self._last_log_address, self._last_log_slot)
+        return (self._last_log_address, self._last_log_slot)
 
-        if is_consumption:
-            return (self._last_log_consumption_address, self._last_log_consumption_slot)
-
-        return (self._last_log_production_address, self._last_log_production_slot)
-
-    def _first_log_reference(
-        self, is_consumption: bool | None = None
-    ) -> tuple[int | None, int | None]:
+    def _first_log_reference(self) -> tuple[int | None, int | None]:
         """Address and slot of first log."""
-        if is_consumption is None:
-            return (self._first_log_address, self._first_log_slot)
-
-        if is_consumption:
-            return (
-                self._first_log_consumption_address,
-                self._first_log_consumption_slot,
-            )
-
-        return (self._first_log_production_address, self._first_log_production_slot)
+        return (self._first_log_address, self._first_log_slot)
 
     def _logs_missing(self, from_timestamp: datetime) -> list[int] | None:
         """Calculate list of missing log addresses."""
