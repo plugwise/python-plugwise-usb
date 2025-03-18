@@ -389,18 +389,15 @@ class PulseCollection:
         if last_address is None or last_slot is None:
             return
 
-        last_timestamp = self._logs[last_address][last__slot].timestamp
+        last_timestamp = self._logs[last_address][last_slot].timestamp
         address, slot = calc_log_address(last_address, last_slot, -1)
-        while self._log_exists(address, slot):
+        if self._log_exists(address, slot):
             delta: timedelta = (
                 last_timestamp - self._logs[address][slot].timestamp
             )
             self._log_interval = int(
                 delta.total_seconds() / MINUTE_IN_SECONDS
             )
-            break
-
-            address, slot = calc_log_address(address, slot, -1)
 
         if (
             self._log_interval is not None
@@ -442,7 +439,7 @@ class PulseCollection:
             return
 
         for address in self._logs:
-            for slot, _ in self._logs[address].items():
+            for slot, log_record in self._logs[address].items():
                 if self._last_log_timestamp is None:
                     self._last_log_timestamp = log_record.timestamp
                 if self._last_log_timestamp <= log_record.timestamp:
@@ -458,14 +455,10 @@ class PulseCollection:
                     self._first_log_slot = slot
 
     def _update_first_log_reference(
-        self, address: int, slot: int, timestamp: datetime, is_consumption: bool
+        self, address: int, slot: int, timestamp: datetime
     ) -> None:
         """Update references to first (oldest) log record."""
         if self._first_log_timestamp is None or self._first_log_timestamp > timestamp:
-            self._first_log_address = address
-            self._first_log_slot = slot
-            self._first_log_timestamp = timestamp
-        elif self._first_log_timestamp == timestamp and is_consumption:
             self._first_log_address = address
             self._first_log_slot = slot
             self._first_log_timestamp = timestamp
