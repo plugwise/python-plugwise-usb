@@ -243,6 +243,8 @@ class PulseCollection:
     ) -> None:
         """Update pulse counter, checking for rollover based on counter reset."""
         self._pulses_timestamp = timestamp
+        self._rollover_consumption = False
+        self._rollover_production = False
         if (
             self._pulses_consumption is not None
             and self._pulses_consumption > pulses_consumed
