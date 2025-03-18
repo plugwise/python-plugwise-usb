@@ -724,6 +724,7 @@ class PulseCollection:
         """Update next expected log timestamps."""
         if self._logs is None:
             return
+
         log_time_stamp = self._logs[address][slot].timestamp
         is_consumption = self._logs[address][slot].is_consumption
 
@@ -852,12 +853,14 @@ class PulseCollection:
             log_interval = self._log_interval_consumption
         elif self._log_interval_production is not None:
             log_interval = self._log_interval_production
+
         if (
             self._log_interval_production is not None
             and log_interval is not None
             and self._log_interval_production < log_interval
         ):
             log_interval = self._log_interval_production
+
         if log_interval is None:
             return None
 
@@ -917,7 +920,7 @@ class PulseCollection:
             if self._log_interval_consumption == 0:
                 pass
 
-        if self._log_production is False:
+        if not self._log_production:  #False
             expected_timestamp = (
                 self._logs[address][slot].timestamp - calc_interval_cons
             )
@@ -975,7 +978,7 @@ class PulseCollection:
             # Use consumption interval
             calc_interval_cons = timedelta(minutes=self._log_interval_consumption)
 
-        if self._log_production is False:
+        if not self._log_production:  # False
             expected_timestamp = (
                 self._logs[address][slot].timestamp + calc_interval_cons
             )
