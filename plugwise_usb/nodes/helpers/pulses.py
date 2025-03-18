@@ -170,9 +170,8 @@ class PulseCollection:
             from_timestamp,
         )
         _LOGGER.debug("collected_pulses 1a | _log_production=%s", self._log_production)
-        if not is_consumption:
-            if self._log_production is None or not self._log_production:
-                return (None, None)
+        if not is_consumption and not self._log_production:
+            return (None, None)
 
         if is_consumption and self._rollover_consumption:
             _LOGGER.debug("collected_pulses 2 | %s | _rollover_consumption", self._mac)
@@ -425,7 +424,6 @@ class PulseCollection:
                 return False
             if address != self._last_log_address and slot != self._last_log_slot:
                 return False
-        # self._update_log_direction(address, slot, timestamp)
         self._update_log_references(address, slot)
         self._update_log_interval()
         self._update_rollover()
@@ -473,57 +471,13 @@ class PulseCollection:
             self._last_empty_log_slot = None
         return True
 
-    def _update_log_direction(
-        self, address: int, slot: int, timestamp: datetime
-    ) -> None:
-        """Update Energy direction of log record.
-
-        Two subsequential logs with the same timestamp indicates the first
-        is consumption and second production.
-        """
-        if self._logs is None:
-            return
-
-        prev_address, prev_slot = calc_log_address(address, slot, -1)
-        if self._log_exists(prev_address, prev_slot):
-            if self._logs[prev_address][prev_slot].timestamp == timestamp:
-                # Given log is the second log with same timestamp,
-                # mark direction as production
-                self._logs[address][slot].is_consumption = False
-                self._logs[prev_address][prev_slot].is_consumption = True
-                self._log_production = True
-            elif self._log_production:
-                self._logs[address][slot].is_consumption = True
-                if self._logs[prev_address][prev_slot].is_consumption:
-                    self._logs[prev_address][prev_slot].is_consumption = False
-                    self._reset_log_references()
-            elif self._log_production is None:
-                self._log_production = False
-
-        next_address, next_slot = calc_log_address(address, slot, 1)
-        if self._log_exists(next_address, next_slot):
-            if self._logs[next_address][next_slot].timestamp == timestamp:
-                # Given log is the first log with same timestamp,
-                # mark direction as production of next log
-                self._logs[address][slot].is_consumption = True
-                if self._logs[next_address][next_slot].is_consumption:
-                    self._logs[next_address][next_slot].is_consumption = False
-                    self._reset_log_references()
-                self._log_production = True
-            elif self._log_production:
-                self._logs[address][slot].is_consumption = False
-                self._logs[next_address][next_slot].is_consumption = True
-            elif self._log_production is None:
-                self._log_production = False
-
     def _update_log_interval(self) -> None:
         """Update the detected log interval based on the most recent two logs."""
-        if self._logs is None or self._log_production is None:
+        if self._logs is None:
             _LOGGER.debug(
-                "_update_log_interval | %s | _logs=%s, _log_production=%s",
+                "_update_log_interval fail | %s | _logs=%s,
                 self._mac,
                 self._logs,
-                self._log_production,
             )
             return
 
