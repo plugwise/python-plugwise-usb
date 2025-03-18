@@ -700,8 +700,7 @@ class PulseCollection:
         if is_consumption:
             self._update_first_consumption_log_reference(address, slot, log_time_stamp)
             self._update_last_consumption_log_reference(address, slot, log_time_stamp)
-        else:
-            # production
+        elif self._log_production:
             self._update_first_production_log_reference(address, slot, log_time_stamp)
             self._update_last_production_log_reference(address, slot, log_time_stamp)
 
