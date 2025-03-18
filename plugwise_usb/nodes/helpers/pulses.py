@@ -304,6 +304,7 @@ class PulseCollection:
         ):
             # Unable to determine rollover
             return
+
         if self._pulses_timestamp > self._next_log_consumption_timestamp:
             self._rollover_consumption = True
             _LOGGER.debug(
@@ -336,6 +337,10 @@ class PulseCollection:
         ):
             # Unable to determine rollover
             return
+
+        if not self._log_production:
+            return
+
         if self._pulses_timestamp > self._next_log_production_timestamp:
             self._rollover_production = True
             _LOGGER.debug(
