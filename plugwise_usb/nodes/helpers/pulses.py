@@ -84,7 +84,7 @@ class PulseCollection:
         self._pulses_production: int | None = None
         self._pulses_timestamp: datetime | None = None
 
-        self._log_production = False  # : bool | None = None
+        self._log_production = False
         if mac in PRODUCERS:
             self._log_production = True
 
