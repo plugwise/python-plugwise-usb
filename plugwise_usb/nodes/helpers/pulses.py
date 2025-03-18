@@ -238,6 +238,7 @@ class PulseCollection:
                 return None
             if from_timestamp > self._last_log_production_timestamp:
                 return 0
+
         missing_logs = self._logs_missing(from_timestamp)
         if missing_logs is None or missing_logs:
             _LOGGER.debug(
@@ -328,6 +329,7 @@ class PulseCollection:
 
         if not self._log_production:
             return
+
         if (
             self._last_log_production_timestamp is None
             or self._next_log_production_timestamp is None
@@ -519,6 +521,7 @@ class PulseCollection:
                 self._log_production,
             )
             return
+
         last_cons_address, last_cons_slot = self._last_log_reference(
             is_consumption=True
         )
@@ -537,9 +540,6 @@ class PulseCollection:
                     delta1.total_seconds() / MINUTE_IN_SECONDS
                 )
                 break
-
-            if not self._log_production:
-                return
 
             address, slot = calc_log_address(address, slot, -1)
 
