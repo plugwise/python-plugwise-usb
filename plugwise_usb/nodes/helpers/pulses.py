@@ -277,7 +277,7 @@ class PulseCollection:
         self._pulses_consumption = pulses_consumed
         self._pulses_production = pulses_produced
 
-        def _update_rollover(self, consumption: bool) -> None:
+    def _update_rollover(self, consumption: bool) -> None:
         """Update rollover states.
         
         When the last found timestamp is outside the interval `_last_log_timestamp`
