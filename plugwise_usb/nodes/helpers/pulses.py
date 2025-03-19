@@ -13,7 +13,7 @@ from ...exceptions import EnergyError
 _LOGGER = logging.getLogger(__name__)
 CONSUMED: Final = True
 PRODUCED: Final = False
-PRODUCERS: tuple[str] = ("000D6F00029C32C7")
+PRODUCERS: tuple[str] = ("000D6F00029C32C7", "dummy")
 
 MAX_LOG_HOURS = WEEK_IN_HOURS
 
@@ -333,7 +333,6 @@ class PulseCollection:
             if self._rollover_production:
                 _LOGGER.debug("_update_rollover | %s | reset production rollover", self._mac)
             self._rollover_production = False
-        return
 
     def add_empty_log(self, address: int, slot: int) -> None:
         """Add empty energy log record to mark any start of beginning of energy log collection."""
