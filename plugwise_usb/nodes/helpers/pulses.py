@@ -277,8 +277,7 @@ class PulseCollection:
         self._pulses_consumption = pulses_consumed
         self._pulses_production = pulses_produced
 
-    ######### still to finish
-    def _update_rollover(self) -> None:
+        def _update_rollover(self, consumption: bool) -> None:
         """Update rollover states.
         
         When the last found timestamp is outside the interval `_last_log_timestamp`
@@ -296,13 +295,13 @@ class PulseCollection:
             return
 
         if self._pulses_timestamp > self._next_log_timestamp:
-            if CONSUMPTION: # TODO
+            if consumption:
                 self._rollover_consumption = True
                 _LOGGER.debug(
                     "_update_rollover | %s | set consumption rollover => pulses newer",
                     self._mac,
                 )
-            if PRODUCTION: # TODO
+            else:
                 self._rollover_production = True
                 _LOGGER.debug(
                     "_update_rollover | %s | set production rollover => pulses newer",
@@ -311,13 +310,13 @@ class PulseCollection:
             return
 
         if self._pulses_timestamp < self._last_log_timestamp:
-            if CONSUMPTION: # TODO
+            if consumption:
                 self._rollover_consumption = True
                 _LOGGER.debug(
                     "_update_rollover | %s | set consumption rollover => log newer",
                     self._mac,
                 )
-            if PRODUCTION: # TODO
+            else:
                 self._rollover_production = True
                 _LOGGER.debug(
                     "_update_rollover | %s | reset production rollover => log newer",
@@ -326,13 +325,13 @@ class PulseCollection:
             return
 
         # _last_log_timestamp <= _pulses_timestamp <= _next_log_timestamp
-        if CONSUMPTION: # TODO
+        if consumption:
             if self._rollover_consumption:
-                _LOGGER.debug("_update_rollover | %s | reset consumption", self._mac)
+                _LOGGER.debug("_update_rollover | %s | reset consumption rollover", self._mac)
             self._rollover_consumption = False
-        if PRODUCTION: # TODO
+        else:
             if self._rollover_production:
-                _LOGGER.debug("_update_rollover | %s | reset production", self._mac)
+                _LOGGER.debug("_update_rollover | %s | reset production rollover", self._mac)
             self._rollover_production = False
         return
 
@@ -399,6 +398,7 @@ class PulseCollection:
                 return False
         self._update_log_references(address, slot)
         self._update_log_interval()
+        self._update_rollover(direction)
         if not import_only:
             self.recalculate_missing_log_addresses()
         return True
