@@ -277,28 +277,6 @@ class PulseCollection:
         self._pulses_consumption = pulses_consumed
         self._pulses_production = pulses_produced
 
-    def update_pulse_counter(
-        self, pulses_consumed: int, pulses_produced: int, timestamp: datetime
-    ) -> None:
-        """Update pulse counter."""
-        self._pulses_timestamp = timestamp
-        self._update_rollover()
-        if not (self._rollover_consumption or self._rollover_production):
-            # No rollover based on time, check rollover based on counter reset
-            # Required for special cases like nodes which have been power off for several days
-            if (
-                self._pulses_consumption is not None
-                and self._pulses_consumption > pulses_consumed
-            ):
-                self._rollover_consumption = True
-            if (
-                self._pulses_production is not None
-                and self._pulses_production > pulses_produced
-            ):
-                self._rollover_production = True
-        self._pulses_consumption = pulses_consumed
-        self._pulses_production = pulses_produced
-
     ######### still to finish
     def _update_rollover(self) -> None:
         """Update rollover states. Returns True if rollover is applicable."""
