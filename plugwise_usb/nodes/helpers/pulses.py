@@ -75,6 +75,8 @@ class PulseCollection:
         self._first_log_slot: int | None = None
         self._next_log_timestamp: datetime | None = None
 
+        self._consumption_counter_reset = False
+        self._production_counter_reset = False
         self._rollover_consumption = False
         self._rollover_production = False
 
@@ -159,14 +161,17 @@ class PulseCollection:
         if not is_consumption and not self._log_production:
             return (None, None)
 
-        # if is_consumption and self._rollover_consumption:
-            # consumption-pulses reset every hour - pulses just before rollover are lost?
-            # _LOGGER.debug("collected_pulses 2 | %s | _rollover_consumption", self._mac)
-            # return (None, None)
+        # !! consumption-pulses reset every hour - pulses just before rollover are lost?
+
+        # !! production-pulses do not reset every hour but at the max counter value - double-check
+        # if this is correct the pulses lost at rollover can be calculated:
+        # max-counter - prev-value + counter after reset
+
+        # Is the below code (6 lines) correct?
+        if is_consumption and self._rollover_consumption:
+            _LOGGER.debug("collected_pulses 2 | %s | _rollover_consumption", self._mac)
+            return (None, None)
         if not is_consumption and self._rollover_production:
-            # production-pulses do not reset every hour but at the max counter value - double-check
-            # if this is correct the pulses lost at rollover can be calculated:
-            # max-counter - prev-value + counter after reset
             _LOGGER.debug("collected_pulses 2 | %s | _rollover_production", self._mac)
             return (None, None)
 
@@ -245,15 +250,15 @@ class PulseCollection:
     ) -> None:
         """Update pulse counter, checking for rollover based on counter reset."""
         self._pulses_timestamp = timestamp
-        self._rollover_consumption = False
-        self._rollover_production = False
+        self._consumption_counter_reset = False
+        self._production_counter_reset = False
         if (
             self._pulses_consumption is not None
             and self._pulses_consumption > pulses_consumed
         ):
-            self._rollover_consumption = True
+            self._consumption_counter_reset = True
             _LOGGER.debug(
-                "_rollover_consumption | self._pulses_consumption=%s > pulses_consumed=%s",
+                "_consumption_counter_reset | self._pulses_consumption=%s > pulses_consumed=%s",
                 self._pulses_consumption,
                 pulses_consumed,
             )
@@ -262,9 +267,9 @@ class PulseCollection:
             self._pulses_production is not None
             and self._pulses_production < pulses_produced
         ):
-            self._rollover_production = True
+            self._production_counter_reset = True
             _LOGGER.debug(
-                "_rollover_production | self._pulses_production=%s < pulses_produced=%s",
+                "_production_counter_reset | self._pulses_production=%s < pulses_produced=%s",
                 self._pulses_production,
                 pulses_produced,
             )
