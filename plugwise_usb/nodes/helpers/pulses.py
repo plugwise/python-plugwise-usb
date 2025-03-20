@@ -250,8 +250,15 @@ class PulseCollection:
     ) -> None:
         """Update pulse counter, checking for rollover based on counter reset."""
         self._pulses_timestamp = timestamp
-        self._consumption_counter_reset = False
-        self._production_counter_reset = False
+        self._update_rollover(True)
+        if self._log_production:
+            self._update_rollover(False)
+
+        if (self._rollover_consumption or self._rollover_production):
+            return
+
+        # No rollover based on time, check rollover based on counter reset
+        # Required for special cases like nodes which have been power off for several days
         if (
             self._pulses_consumption is not None
             and self._pulses_consumption > pulses_consumed
@@ -319,7 +326,7 @@ class PulseCollection:
             else:
                 self._rollover_production = True
                 _LOGGER.debug(
-                    "_update_rollover | %s | reset production rollover => log newer",
+                    "_update_rollover | %s | set production rollover => log newer",
                     self._mac,
                 )
             return
