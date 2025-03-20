@@ -297,6 +297,7 @@ class PulseCollection:
         if (
             self._pulses_timestamp is None
             or self._last_log_timestamp is None
+            or self._next_log_timestamp is None
         ):
             # Unable to determine rollover
             return
