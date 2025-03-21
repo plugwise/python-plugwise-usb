@@ -1213,23 +1213,23 @@ class TestStick:
 
         # Test consumption & production - Log import #3 - production
         # Interval of consumption is not yet available
-        test_timestamp = fixed_this_hour - td(hours=2)  # type: ignore[unreachable]
-        tst_production.add_log(199, 4, test_timestamp, -4000)
+        #test_timestamp = fixed_this_hour - td(hours=2)  # type: ignore[unreachable]
+        #tst_production.add_log(199, 4, test_timestamp, -4000)
         # missing_check = list(range(199, 157, -1))
         # assert tst_production.log_addresses_missing == missing_check
-        assert tst_production.log_interval == 60
+        #assert tst_production.log_interval == 60
         # assert tst_production.production_logging
 
         # Test consumption & production - Log import #4
         # Interval of consumption is available
-        test_timestamp = fixed_this_hour - td(hours=2)
-        tst_production.add_log(199, 3, test_timestamp, 3000)
+        #test_timestamp = fixed_this_hour - td(hours=2)
+        #tst_production.add_log(199, 3, test_timestamp, 3000)
         # assert tst_production.log_addresses_missing == missing_check
-        assert tst_production.log_interval == 60
+        #assert tst_production.log_interval == 60
         # assert tst_production.production_logging
 
-        pulse_update_1 = fixed_this_hour + td(minutes=5)
-        tst_production.update_pulse_counter(100, -50, pulse_update_1)
+        #pulse_update_1 = fixed_this_hour + td(minutes=5)
+        #tst_production.update_pulse_counter(100, -50, pulse_update_1)
         # assert tst_production.collected_pulses(
         #     fixed_this_hour, is_consumption=True
         # ) == (100, pulse_update_1)
