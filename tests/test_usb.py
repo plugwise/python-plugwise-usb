@@ -936,8 +936,8 @@ class TestStick:
             day_consumption_reset=None,
             week_consumption=None,
             week_consumption_reset=None,
-            hour_production=None,
-            hour_production_reset=None,
+            hour_production=0.0,
+            hour_production_reset=utc_now.replace(minute=0, second=0, microsecond=0),
             day_production=None,
             day_production_reset=None,
             week_production=None,
@@ -958,14 +958,14 @@ class TestStick:
         # Test consumption logs
         tst_consumption = pw_energy_pulses.PulseCollection(mac="0098765432101234")
         assert tst_consumption.log_addresses_missing is None
-        assert tst_consumption.production_logging == False  # is None
+        assert tst_consumption.production_logging  # is None
 
         # Test consumption - Log import #1
         # No missing addresses yet
         test_timestamp = fixed_this_hour
         tst_consumption.add_log(100, 1, test_timestamp, 1000)
         assert tst_consumption.log_interval is None
-        assert not tst_consumption.production_logging  # is None
+        assert tst_consumption.production_logging  # is None
         assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=True
         ) == (None, None)
@@ -977,7 +977,7 @@ class TestStick:
         test_timestamp = fixed_this_hour - td(hours=17)
         tst_consumption.add_log(95, 4, test_timestamp, 1000)
         assert tst_consumption.log_interval is None
-        assert not tst_consumption.production_logging  # is None
+        assert tst_consumption.production_logging  # is None
         assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=True
         ) == (None, None)
@@ -989,7 +989,7 @@ class TestStick:
         test_timestamp = fixed_this_hour - td(hours=18)
         tst_consumption.add_log(95, 3, test_timestamp, 1000)
         assert tst_consumption.log_interval is None
-        assert not tst_consumption.production_logging
+        assert tst_consumption.production_logging
         assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=True
         ) == (None, None)
@@ -999,7 +999,7 @@ class TestStick:
         test_timestamp = fixed_this_hour - td(hours=19)
         tst_consumption.add_log(95, 2, test_timestamp, 1000)
         assert tst_consumption.log_interval is None
-        assert not tst_consumption.production_logging
+        assert tst_consumption.production_logging
         assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=True
         ) == (None, None)
@@ -1010,7 +1010,7 @@ class TestStick:
         test_timestamp = fixed_this_hour - td(hours=20)
         tst_consumption.add_log(95, 1, test_timestamp, 1000)
         assert tst_consumption.log_interval is None
-        assert not tst_consumption.production_logging
+        assert tst_consumption.production_logging
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
 
         # Test consumption - Log import #6
@@ -1018,7 +1018,7 @@ class TestStick:
         test_timestamp = fixed_this_hour - td(hours=1)
         tst_consumption.add_log(99, 4, test_timestamp, 750)
         assert tst_consumption.log_interval == 60
-        assert not tst_consumption.production_logging
+        assert tst_consumption.production_logging
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
         assert tst_consumption.collected_pulses(
             fixed_this_hour, is_consumption=True
@@ -1026,7 +1026,7 @@ class TestStick:
 
         tst_consumption.add_log(99, 3, fixed_this_hour - td(hours=2), 1111)
         assert tst_consumption.log_interval == 60
-        assert not tst_consumption.production_logging
+        assert tst_consumption.production_logging
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
         assert tst_consumption.collected_pulses(
             fixed_this_hour, is_consumption=True
@@ -1040,7 +1040,7 @@ class TestStick:
         ) == (1234, pulse_update_1)
         assert tst_consumption.collected_pulses(
             fixed_this_hour, is_consumption=False
-        ) == (None, None)
+        ) == (0, pulse_update_1)
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
 
         # Test consumption - pulse update #2
@@ -1052,7 +1052,7 @@ class TestStick:
         ) == (2345, pulse_update_2)
         assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=False
-        ) == (None, None)
+        ) == (0, pulse_update_2)
 
         # Test consumption - pulses + log (address=100, slot=1)
         test_timestamp = fixed_this_hour - td(hours=1)
@@ -1061,7 +1061,7 @@ class TestStick:
         ) == (2345 + 1000, pulse_update_2)
         assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=False
-        ) == (None, None)
+        ) == (0, pulse_update_2)
         assert tst_consumption.log_addresses_missing == [99, 98, 97, 96]
 
         # Test consumption - pulses + logs (address=100, slot=1 & address=99, slot=4)
@@ -1071,7 +1071,7 @@ class TestStick:
         ) == (2345 + 1000 + 750, pulse_update_2)
         assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=False
-        ) == (None, None)
+        ) == (0, pulse_update_2)
 
         # Test consumption - pulses + missing logs
         test_timestamp = fixed_this_hour - td(hours=3)
@@ -1119,7 +1119,7 @@ class TestStick:
             test_timestamp, is_consumption=True
         ) == (None, None)
         tst_consumption.add_log(100, 2, (fixed_this_hour + td(hours=1)), 2222)
-        assert not tst_consumption.log_rollover
+        assert tst_consumption.log_rollover
         assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=True
         ) == (45, pulse_update_3)
@@ -1193,7 +1193,7 @@ class TestStick:
         # Test consumption and production logs
         tst_production = pw_energy_pulses.PulseCollection(mac="0098765432101234")
         assert tst_production.log_addresses_missing is None
-        assert not tst_production.production_logging  # is None
+        assert tst_production.production_logging  # is None
 
         # Test consumption & production - Log import #1 - production
         # Missing addresses can not be determined yet
@@ -1208,7 +1208,7 @@ class TestStick:
         test_timestamp = fixed_this_hour - td(hours=1)
         tst_production.add_log(200, 1, test_timestamp, 1000)
         assert tst_production.log_addresses_missing is None
-        assert tst_production.log_interval is None
+        assert tst_production.log_interval == 0
         # assert tst_production.production_logging
 
         # Test consumption & production - Log import #3 - production
