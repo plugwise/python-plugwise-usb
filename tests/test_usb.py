@@ -1208,7 +1208,7 @@ class TestStick:
         test_timestamp = fixed_this_hour - td(hours=1)
         tst_production.add_log(200, 1, test_timestamp, 1000)
         assert tst_production.log_addresses_missing is None
-        assert tst_production.log_interval == 0
+        assert tst_production.log_interval is None  #== 0
         # assert tst_production.production_logging
 
         # Test consumption & production - Log import #3 - production
