@@ -1235,10 +1235,10 @@ class TestStick:
         ) == (100, pulse_update_1)
         assert tst_production.collected_pulses(
             fixed_this_hour, is_consumption=False
-        ) == (-50, pulse_update_1)
+        ) == (50, pulse_update_1)
         assert tst_production.collected_pulses(
             fixed_this_hour - td(hours=1), is_consumption=False
-        ) == (-50, pulse_update_1)
+        ) == (50, pulse_update_1)
         assert tst_production.collected_pulses(
             fixed_this_hour - td(hours=2), is_consumption=True
         ) == (100, pulse_update_1)
@@ -1247,7 +1247,7 @@ class TestStick:
         ) == (1000 + 100, pulse_update_1)
         assert tst_production.collected_pulses(
             fixed_this_hour - td(hours=4), is_consumption=False
-        ) == (-6000 - 50, pulse_update_1)
+        ) == (6000 + 50, pulse_update_1)
 
     _pulse_update = 0
 
