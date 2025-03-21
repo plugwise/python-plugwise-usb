@@ -256,32 +256,32 @@ class PulseCollection:
         if self._log_production:
             self._update_rollover(False)
 
-        if (self._rollover_consumption or self._rollover_production):
-            return
+        _LOGGER.debug("HOI _rollover_consumption: %s", self._rollover_consumption)
+        _LOGGER.debug("HOI _rollover_production: %s", self._rollover_production)
+        if not (self._rollover_consumption or self._rollover_production):
+            # No rollover based on time, check rollover based on counter reset
+            # Required for special cases like nodes which have been power off for several days
+            if (
+                self._pulses_consumption is not None
+                and self._pulses_consumption > pulses_consumed
+            ):
+                self._consumption_counter_reset = True
+                _LOGGER.debug(
+                    "_consumption_counter_reset | self._pulses_consumption=%s > pulses_consumed=%s",
+                    self._pulses_consumption,
+                    pulses_consumed,
+                )
 
-        # No rollover based on time, check rollover based on counter reset
-        # Required for special cases like nodes which have been power off for several days
-        if (
-            self._pulses_consumption is not None
-            and self._pulses_consumption > pulses_consumed
-        ):
-            self._consumption_counter_reset = True
-            _LOGGER.debug(
-                "_consumption_counter_reset | self._pulses_consumption=%s > pulses_consumed=%s",
-                self._pulses_consumption,
-                pulses_consumed,
-            )
-
-        if (
-            self._pulses_production is not None
-            and self._pulses_production < pulses_produced
-        ):
-            self._production_counter_reset = True
-            _LOGGER.debug(
-                "_production_counter_reset | self._pulses_production=%s < pulses_produced=%s",
-                self._pulses_production,
-                pulses_produced,
-            )
+            if (
+                self._pulses_production is not None
+                and self._pulses_production < pulses_produced
+            ):
+                self._production_counter_reset = True
+                _LOGGER.debug(
+                    "_production_counter_reset | self._pulses_production=%s < pulses_produced=%s",
+                    self._pulses_production,
+                    pulses_produced,
+                )
 
         self._pulses_consumption = pulses_consumed
         self._pulses_production = pulses_produced
