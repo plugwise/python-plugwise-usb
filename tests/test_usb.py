@@ -1213,7 +1213,7 @@ class TestStick:
 
         # Test consumption & production - Log import #3 - production
         # Interval of consumption is not yet available
-        #test_timestamp = fixed_this_hour - td(hours=2)  # type: ignore[unreachable]
+        test_timestamp = fixed_this_hour - td(hours=2)  # type: ignore[unreachable]
         #tst_production.add_log(199, 4, test_timestamp, -4000)
         # missing_check = list(range(199, 157, -1))
         # assert tst_production.log_addresses_missing == missing_check
