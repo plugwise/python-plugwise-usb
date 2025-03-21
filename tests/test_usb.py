@@ -1222,7 +1222,7 @@ class TestStick:
         # assert tst_production.production_logging
 
         # Test consumption & production - Log import #4
-        test_timestamp = fixed_this_hour - td(hours=2)
+        test_timestamp = fixed_this_hour - td(hours=4)
         tst_production.add_log(199, 3, test_timestamp, 3000)
         assert tst_production.log_addresses_missing == missing_check
         assert tst_production.log_interval == 60
@@ -1237,17 +1237,17 @@ class TestStick:
             fixed_this_hour, is_consumption=False
         ) == (-50, pulse_update_1)
         assert tst_production.collected_pulses(
-            fixed_this_hour - td(hours=1), is_consumption=True
-        ) == (100, pulse_update_1)
-        assert tst_production.collected_pulses(
-            fixed_this_hour - td(hours=2), is_consumption=True
-        ) == (1000 + 100, pulse_update_1)
-        assert tst_production.collected_pulses(
             fixed_this_hour - td(hours=1), is_consumption=False
         ) == (-50, pulse_update_1)
         assert tst_production.collected_pulses(
-            fixed_this_hour - td(hours=2), is_consumption=False
-        ) == (-2000 - 50, pulse_update_1)
+            fixed_this_hour - td(hours=2), is_consumption=True
+        ) == (100, pulse_update_1)
+        assert tst_production.collected_pulses(
+            fixed_this_hour - td(hours=3), is_consumption=True
+        ) == (1000 + 100, pulse_update_1)
+        assert tst_production.collected_pulses(
+            fixed_this_hour - td(hours=4), is_consumption=False
+        ) == (-6000 - 50, pulse_update_1)
 
     _pulse_update = 0
 
