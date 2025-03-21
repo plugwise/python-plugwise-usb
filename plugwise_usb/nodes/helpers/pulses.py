@@ -243,7 +243,7 @@ class PulseCollection:
                 ):
                     log_pulses += slot_item.pulses
 
-        return log_pulses
+        return abs(log_pulses)
 
     def update_pulse_counter(
         self, pulses_consumed: int, pulses_produced: int, timestamp: datetime
