@@ -1205,27 +1205,27 @@ class TestStick:
         # Test consumption & production - Log import #2 - consumption
         # production must be enabled & intervals are unknown
         # Log at address 200 is known and expect production logs too
-        test_timestamp = fixed_this_hour - td(hours=1)
+        test_timestamp = fixed_this_hour - td(hours=2)
         tst_production.add_log(200, 1, test_timestamp, 1000)
-        assert tst_production.log_addresses_missing is None
-        assert tst_production.log_interval == 0
+        missing_check = list(range(199, 157, -1))
+        assert tst_production.log_addresses_missing == missing_check
+        assert tst_production.log_interval == 60
         # assert tst_production.production_logging
 
         # Test consumption & production - Log import #3 - production
-        # Interval of consumption is not yet available
-        test_timestamp = fixed_this_hour - td(hours=2)  # type: ignore[unreachable]
-        #tst_production.add_log(199, 4, test_timestamp, -4000)
+        # Interval of consumption is available
+        test_timestamp = fixed_this_hour - td(hours=3)  # type: ignore[unreachable]
+        tst_production.add_log(199, 4, test_timestamp, -4000)
         # missing_check = list(range(199, 157, -1))
-        # assert tst_production.log_addresses_missing == missing_check
-        #assert tst_production.log_interval == 60
+        assert tst_production.log_addresses_missing == missing_check
+        assert tst_production.log_interval == 60
         # assert tst_production.production_logging
 
         # Test consumption & production - Log import #4
-        # Interval of consumption is available
-        #test_timestamp = fixed_this_hour - td(hours=2)
-        #tst_production.add_log(199, 3, test_timestamp, 3000)
-        # assert tst_production.log_addresses_missing == missing_check
-        #assert tst_production.log_interval == 60
+        test_timestamp = fixed_this_hour - td(hours=2)
+        tst_production.add_log(199, 3, test_timestamp, 3000)
+        assert tst_production.log_addresses_missing == missing_check
+        assert tst_production.log_interval == 60
         # assert tst_production.production_logging
 
         #pulse_update_1 = fixed_this_hour + td(minutes=5)
