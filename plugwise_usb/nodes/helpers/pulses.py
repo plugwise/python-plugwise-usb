@@ -205,7 +205,7 @@ class PulseCollection:
             is_consumption,
             timestamp,
         )
-        return (pulses + log_pulses, timestamp)
+        return (abs(pulses + log_pulses), timestamp)
 
     def _collect_pulses_from_logs(
         self, from_timestamp: datetime, is_consumption: bool
@@ -243,7 +243,7 @@ class PulseCollection:
                 ):
                     log_pulses += slot_item.pulses
 
-        return abs(log_pulses)
+        return log_pulses
 
     def update_pulse_counter(
         self, pulses_consumed: int, pulses_produced: int, timestamp: datetime
