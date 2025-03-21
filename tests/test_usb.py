@@ -1110,22 +1110,40 @@ class TestStick:
         assert tst_consumption.collected_logs == 24
 
         # Test rollover by updating pulses before log record
+        #assert not tst_consumption.log_rollover
+        #pulse_update_3 = fixed_this_hour + td(hours=1, seconds=3)
+        #tst_consumption.update_pulse_counter(45, 0, pulse_update_3)
+        #test_timestamp = fixed_this_hour + td(hours=1, seconds=5)
+        #assert tst_consumption.collected_pulses(
+        #    test_timestamp, is_consumption=True
+        #) == (None, None)
+        #assert tst_consumption.log_rollover
+        #tst_consumption.add_log(100, 2, (fixed_this_hour + td(hours=1)), 2222)
+        #assert tst_consumption.collected_pulses(
+        #    test_timestamp, is_consumption=True
+        #) == (45, pulse_update_3)
+        #assert tst_consumption.collected_pulses(
+        #    fixed_this_hour, is_consumption=True
+        #) == (45 + 2222, pulse_update_3)
+        #assert not tst_consumption.log_rollover
+
+        # Test rollover by updating pulses before log record
         assert not tst_consumption.log_rollover
         pulse_update_3 = fixed_this_hour + td(hours=1, seconds=3)
         tst_consumption.update_pulse_counter(45, 0, pulse_update_3)
+        assert tst_consumption.log_rollover
         test_timestamp = fixed_this_hour + td(hours=1, seconds=5)
         assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=True
         ) == (None, None)
-        assert tst_consumption.log_rollover
         tst_consumption.add_log(100, 2, (fixed_this_hour + td(hours=1)), 2222)
+        assert not tst_consumption.log_rollover
         assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=True
         ) == (45, pulse_update_3)
         assert tst_consumption.collected_pulses(
             fixed_this_hour, is_consumption=True
         ) == (45 + 2222, pulse_update_3)
-        assert not tst_consumption.log_rollover
 
         # Test log rollover by updating log first before updating pulses
         tst_consumption.add_log(100, 3, (fixed_this_hour + td(hours=2)), 3333)
