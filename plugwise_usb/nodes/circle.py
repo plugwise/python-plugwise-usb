@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import Task, create_task
+from asyncio import Task, create_task, gather
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -326,6 +326,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                         self.name,
                     )
                 return None
+
         # request node info update every 30 minutes.
         elif not self.skip_update(self._node_info, 1800):
             if await self.node_info_update() is None:
@@ -419,6 +420,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 "Skip creating task to update energy logs for node %s",
                 self._mac_in_str,
             )
+
         if (
             self._initialization_delay_expired is not None
             and datetime.now(tz=UTC) < self._initialization_delay_expired
@@ -432,6 +434,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 "Unable to return energy statistics for %s, collecting required data...",
                 self.name,
             )
+
         return None
 
     async def get_missing_energy_logs(self) -> None:
@@ -440,6 +443,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         self._energy_counters.update()
         if self._current_log_address is None:
             return None
+
         if self._energy_counters.log_addresses_missing is None:
             _LOGGER.debug(
                 "Start with initial energy request for the last 10 log addresses for node %s.",
@@ -453,12 +457,13 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 log_address, _ = calc_log_address(log_address, 1, -4)
                 total_addresses -= 1
 
-            for task in log_update_tasks:
-                await task
+            await gather(*log_update_tasks)
 
             if self._cache_enabled:
                 await self._energy_log_records_save_to_cache()
+
             return
+
         if self._energy_counters.log_addresses_missing is not None:
             _LOGGER.debug("Task created to get missing logs of %s", self._mac_in_str)
         if (
@@ -496,6 +501,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             return False
 
+        _LOGGER.debug("EnergyLogs data from %s, address=%s", self._mac_in_str, address)
         await self._available_update_state(True, response.timestamp)
         energy_record_update = False
 
@@ -504,7 +510,12 @@ class PlugwiseCircle(PlugwiseBaseNode):
         # energy pulses collected during the previous hour of given timestamp
         for _slot in range(4, 0, -1):
             log_timestamp, log_pulses = response.log_data[_slot]
-
+            _LOGGER.debug(
+                "In slot=%s: pulses=%s, timestamp=%s",
+                _slot,
+                log_pulses,
+                log_timestamp
+            )
             if log_timestamp is None or log_pulses is None:
                 self._energy_counters.add_empty_log(response.log_address, _slot)
             elif await self._energy_log_record_update_state(
@@ -561,14 +572,17 @@ class PlugwiseCircle(PlugwiseBaseNode):
         # Create task to retrieve remaining (missing) logs
         if self._energy_counters.log_addresses_missing is None:
             return False
+
         if len(self._energy_counters.log_addresses_missing) > 0:
             if self._retrieve_energy_logs_task is not None:
                 if not self._retrieve_energy_logs_task.done():
                     await self._retrieve_energy_logs_task
+
             self._retrieve_energy_logs_task = create_task(
                 self.get_missing_energy_logs()
             )
             return False
+
         return True
 
     async def _energy_log_records_save_to_cache(self) -> None:

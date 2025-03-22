@@ -210,8 +210,7 @@ class MotionConfig:
 class EnergyStatistics:
     """Energy statistics collection."""
 
-    log_interval_consumption: int | None = None
-    log_interval_production: int | None = None
+    log_interval: int | None = None
     hour_consumption: float | None = None
     hour_consumption_reset: datetime | None = None
     day_consumption: float | None = None

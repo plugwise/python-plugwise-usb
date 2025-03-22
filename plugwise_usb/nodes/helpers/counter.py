@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime  #, timedelta
 from enum import Enum, auto
 import logging
 from typing import Final
@@ -30,8 +30,8 @@ ENERGY_COUNTERS: Final = (
     EnergyType.PRODUCTION_HOUR,
     EnergyType.CONSUMPTION_DAY,
     EnergyType.PRODUCTION_DAY,
-    EnergyType.CONSUMPTION_WEEK,
-    EnergyType.PRODUCTION_WEEK,
+    # EnergyType.CONSUMPTION_WEEK,
+    # EnergyType.PRODUCTION_WEEK,
 )
 ENERGY_HOUR_COUNTERS: Final = (
     EnergyType.CONSUMPTION_HOUR,
@@ -49,12 +49,12 @@ ENERGY_WEEK_COUNTERS: Final = (
 ENERGY_CONSUMPTION_COUNTERS: Final = (
     EnergyType.CONSUMPTION_HOUR,
     EnergyType.CONSUMPTION_DAY,
-    EnergyType.CONSUMPTION_WEEK,
+    # EnergyType.CONSUMPTION_WEEK,
 )
 ENERGY_PRODUCTION_COUNTERS: Final = (
     EnergyType.PRODUCTION_HOUR,
     EnergyType.PRODUCTION_DAY,
-    EnergyType.PRODUCTION_WEEK,
+    # EnergyType.PRODUCTION_WEEK,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -105,11 +105,8 @@ class EnergyCounters:
         self, pulses_consumed: int, pulses_produced: int, timestamp: datetime
     ) -> None:
         """Add pulse statistics."""
-        _LOGGER.debug(
-            "add_pulse_stats | consumed=%s, for %s",
-            str(pulses_consumed),
-            self._mac,
-        )
+        _LOGGER.debug("add_pulse_stats for %s with timestamp=%s", self._mac, timestamp)
+        _LOGGER.debug("consumed=%s | produced=%s", pulses_consumed, pulses_produced)
         self._pulse_collection.update_pulse_counter(
             pulses_consumed, pulses_produced, timestamp
         )
@@ -123,12 +120,12 @@ class EnergyCounters:
     @property
     def consumption_interval(self) -> int | None:
         """Measurement interval for energy consumption."""
-        return self._pulse_collection.log_interval_consumption
+        return self._pulse_collection.log_interval
 
     @property
     def production_interval(self) -> int | None:
         """Measurement interval for energy production."""
-        return self._pulse_collection.log_interval_production
+        return self._pulse_collection.log_interval
 
     @property
     def log_addresses_missing(self) -> list[int] | None:
@@ -157,11 +154,9 @@ class EnergyCounters:
         self._pulse_collection.recalculate_missing_log_addresses()
         if self._calibration is None:
             return
-        self._energy_statistics.log_interval_consumption = (
-            self._pulse_collection.log_interval_consumption
-        )
-        self._energy_statistics.log_interval_production = (
-            self._pulse_collection.log_interval_production
+
+        self._energy_statistics.log_interval = (
+            self._pulse_collection.log_interval
         )
         (
             self._energy_statistics.hour_consumption,
@@ -171,23 +166,24 @@ class EnergyCounters:
             self._energy_statistics.day_consumption,
             self._energy_statistics.day_consumption_reset,
         ) = self._counters[EnergyType.CONSUMPTION_DAY].update(self._pulse_collection)
-        (
-            self._energy_statistics.week_consumption,
-            self._energy_statistics.week_consumption_reset,
-        ) = self._counters[EnergyType.CONSUMPTION_WEEK].update(self._pulse_collection)
+        # (
+        #     self._energy_statistics.week_consumption,
+        #     self._energy_statistics.week_consumption_reset,
+        # ) = self._counters[EnergyType.CONSUMPTION_WEEK].update(self._pulse_collection)
 
-        (
-            self._energy_statistics.hour_production,
-            self._energy_statistics.hour_production_reset,
-        ) = self._counters[EnergyType.PRODUCTION_HOUR].update(self._pulse_collection)
-        (
-            self._energy_statistics.day_production,
-            self._energy_statistics.day_production_reset,
-        ) = self._counters[EnergyType.PRODUCTION_DAY].update(self._pulse_collection)
-        (
-            self._energy_statistics.week_production,
-            self._energy_statistics.week_production_reset,
-        ) = self._counters[EnergyType.PRODUCTION_WEEK].update(self._pulse_collection)
+        if self._pulse_collection.production_logging:
+            (
+                self._energy_statistics.hour_production,
+                self._energy_statistics.hour_production_reset,
+            ) = self._counters[EnergyType.PRODUCTION_HOUR].update(self._pulse_collection)
+            (
+                self._energy_statistics.day_production,
+                self._energy_statistics.day_production_reset,
+            ) = self._counters[EnergyType.PRODUCTION_DAY].update(self._pulse_collection)
+            # (
+            #     self._energy_statistics.week_production,
+            #     self._energy_statistics.week_production_reset,
+            # ) = self._counters[EnergyType.PRODUCTION_WEEK].update(self._pulse_collection)
 
     @property
     def timestamp(self) -> datetime | None:
@@ -213,18 +209,21 @@ class EnergyCounter:
         self._mac = mac
         if energy_id not in ENERGY_COUNTERS:
             raise EnergyError(f"Invalid energy id '{energy_id}' for Energy counter")
+
         self._calibration: EnergyCalibration | None = None
         self._duration = "hour"
         if energy_id in ENERGY_DAY_COUNTERS:
             self._duration = "day"
-        elif energy_id in ENERGY_WEEK_COUNTERS:
-            self._duration = "week"
+        #elif energy_id in ENERGY_WEEK_COUNTERS:
+        #    self._duration = "week"
+
         self._energy_id: EnergyType = energy_id
         self._is_consumption = True
         self._direction = "consumption"
         if self._energy_id in ENERGY_PRODUCTION_COUNTERS:
             self._direction = "production"
             self._is_consumption = False
+
         self._last_reset: datetime | None = None
         self._last_update: datetime | None = None
         self._pulses: int | None = None
@@ -259,9 +258,16 @@ class EnergyCounter:
         """Total energy (in kWh) since last reset."""
         if self._pulses is None or self._calibration is None:
             return None
+
         if self._pulses == 0:
             return 0.0
-        pulses_per_s = self._pulses / float(HOUR_IN_SECONDS)
+
+        # Handle both positive and negative pulses values
+        negative = False
+        if self._pulses < 0:
+            negative = True
+
+        pulses_per_s = abs(self._pulses) / float(HOUR_IN_SECONDS)
         corrected_pulses = HOUR_IN_SECONDS * (
             (
                 (
@@ -276,8 +282,9 @@ class EnergyCounter:
             + self._calibration.off_tot
         )
         calc_value = corrected_pulses / PULSES_PER_KW_SECOND / HOUR_IN_SECONDS
-        # Guard for minor negative miscalculations
-        calc_value = max(calc_value, 0.0)
+        if negative:
+            calc_value = -calc_value
+
         return calc_value
 
     @property
@@ -299,14 +306,14 @@ class EnergyCounter:
             last_reset = last_reset.replace(minute=0, second=0, microsecond=0)
         elif self._energy_id in ENERGY_DAY_COUNTERS:
             last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
-        elif self._energy_id in ENERGY_WEEK_COUNTERS:
-            last_reset = last_reset - timedelta(days=last_reset.weekday())
-            last_reset = last_reset.replace(
-                hour=0,
-                minute=0,
-                second=0,
-                microsecond=0,
-            )
+        # elif self._energy_id in ENERGY_WEEK_COUNTERS:
+        #     last_reset = last_reset - timedelta(days=last_reset.weekday())
+        #     last_reset = last_reset.replace(
+        #         hour=0,
+        #         minute=0,
+        #         second=0,
+        #         microsecond=0,
+        #     )
 
         pulses, last_update = pulse_collection.collected_pulses(
             last_reset, self._is_consumption
@@ -319,10 +326,11 @@ class EnergyCounter:
         )
         if pulses is None or last_update is None:
             return (None, None)
+
         self._last_update = last_update
         self._last_reset = last_reset
         self._pulses = pulses
 
         energy = self.energy
-        _LOGGER.debug("energy=%s or last_update=%s", energy, last_update)
+        _LOGGER.debug("energy=%s on last_update=%s", energy, last_update)
         return (energy, last_reset)
