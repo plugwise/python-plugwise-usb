@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 import logging
 from typing import Final
 
-from ...constants import LOGADDR_MAX, MINUTE_IN_SECONDS, WEEK_IN_HOURS
+from ...constants import LOGADDR_MAX, MINUTE_IN_SECONDS, DAY_IN_HOURS
 from ...exceptions import EnergyError
 
 _LOGGER = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ CONSUMED: Final = True
 PRODUCED: Final = False
 PRODUCERS: tuple[str] = ("000D6F00029C32C7", "0098765432101234", "dummy")
 
-MAX_LOG_HOURS = WEEK_IN_HOURS
+MAX_LOG_HOURS = DAY_IN_HOURS
 
 
 def calc_log_address(address: int, slot: int, offset: int) -> tuple[int, int]:
