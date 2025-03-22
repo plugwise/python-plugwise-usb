@@ -278,9 +278,15 @@ class PulseCollection:
         self._pulses_production = pulses_produced
 
     def _update_rollover(self) -> None:
-        """Update rollover states. Returns True if rollover is applicable."""
+        """Update rollover states.
+        
+        When the last found timestamp is outside the interval `_last_log_timestamp`
+        to `_next_log_timestamp` the pulses should not be counted as part of the 
+        ongoing collection-interval.
+        """
         if self._log_addresses_missing is not None and self._log_addresses_missing:
             return
+
         if (
             self._pulses_timestamp is None
             or self._last_log_consumption_timestamp is None
