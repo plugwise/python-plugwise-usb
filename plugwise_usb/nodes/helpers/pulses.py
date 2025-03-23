@@ -384,7 +384,11 @@ class PulseCollection:
         import_only: bool = False,
     ) -> bool:
         """Store pulse log."""
-        log_record = PulseLogRecord(timestamp, pulses, CONSUMED)
+        direction = CONSUMED
+        if self._log_production and pulses < 0:
+            direction = PRODUCED
+
+        log_record = PulseLogRecord(timestamp, pulses, direction)
         if not self._add_log_record(address, slot, log_record):
             if not self._log_exists(address, slot):
                 return False
