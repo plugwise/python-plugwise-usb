@@ -803,11 +803,12 @@ class PulseCollection:
             if self._logs[address][slot].timestamp <= from_timestamp:
                 break
 
+        _LOGGER.debug(
+           "_logs_missing | %s | missing in range=%s", self._mac, missing
+        )
+
         # return missing logs in range first
         if len(missing) > 0:
-            _LOGGER.debug(
-                "_logs_missing | %s | missing in range=%s", self._mac, missing
-            )
             return missing
 
         if first_address not in self._logs:
@@ -841,6 +842,11 @@ class PulseCollection:
         calculated_timestamp = self._logs[first_address][
             first_slot
         ].timestamp - timedelta(minutes=log_interval)
+        _LOGGER.debug(
+                "_logs_missing | %s | calculated timestamp=%s",
+                self._mac,
+                calculated_timestamp,
+        )
         while from_timestamp < calculated_timestamp:
             if (
                 address == self._first_empty_log_address
