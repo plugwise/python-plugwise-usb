@@ -751,8 +751,10 @@ class PulseCollection:
         if self._logs is None:
             self._log_addresses_missing = None
             return None
+
         if self.collected_logs < 2:
             return None
+
         last_address, last_slot = self._last_log_reference()
         if last_address is None or last_slot is None:
             _LOGGER.debug(
