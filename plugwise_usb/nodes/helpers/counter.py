@@ -173,18 +173,22 @@ class EnergyCounters:
             self._energy_statistics.week_consumption_reset,
         ) = self._counters[EnergyType.CONSUMPTION_WEEK].update(self._pulse_collection)
 
-        (
-            self._energy_statistics.hour_production,
-            self._energy_statistics.hour_production_reset,
-        ) = self._counters[EnergyType.PRODUCTION_HOUR].update(self._pulse_collection)
-        (
-            self._energy_statistics.day_production,
-            self._energy_statistics.day_production_reset,
-        ) = self._counters[EnergyType.PRODUCTION_DAY].update(self._pulse_collection)
-        (
-            self._energy_statistics.week_production,
-            self._energy_statistics.week_production_reset,
-        ) = self._counters[EnergyType.PRODUCTION_WEEK].update(self._pulse_collection)
+        if self._pulse_collection.production_logging:
+            self._energy_statistics.log_interval_production = (
+                self._pulse_collection.log_interval_production
+            )
+            (
+                self._energy_statistics.hour_production,
+                self._energy_statistics.hour_production_reset,
+            ) = self._counters[EnergyType.PRODUCTION_HOUR].update(self._pulse_collection)
+            (
+                self._energy_statistics.day_production,
+                self._energy_statistics.day_production_reset,
+            ) = self._counters[EnergyType.PRODUCTION_DAY].update(self._pulse_collection)
+            (
+                self._energy_statistics.week_production,
+                self._energy_statistics.week_production_reset,
+            ) = self._counters[EnergyType.PRODUCTION_WEEK].update(self._pulse_collection)
 
     @property
     def timestamp(self) -> datetime | None:
