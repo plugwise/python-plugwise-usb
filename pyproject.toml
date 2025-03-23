@@ -4,10 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "plugwise_usb"
-version         = "v0.40.0a55"
-license         = {file = "LICENSE"}
-description     = "Plugwise USB (Stick) module for Python 3."
-readme          = "README.md"
+version         = "v0.40.0a56"
 keywords        = ["home", "automation", "plugwise", "module", "usb"]
 classifiers     = [
     "Development Status :: 5 - Production/Stable",
