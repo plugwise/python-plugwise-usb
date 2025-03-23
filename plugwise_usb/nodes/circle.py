@@ -508,7 +508,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         for _slot in range(4, 0, -1):
             log_timestamp, log_pulses = response.log_data[_slot]
             _LOGGER.debug(
-                "Energy data from slot=%s: pulses=%s, timestamp=%s",
+                "In slot=%s: pulses=%s, timestamp=%s",
                 _slot,
                 log_pulses,
                 log_timestamp
@@ -523,9 +523,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 import_only=True,
             ):
                 energy_record_update = True
+
         self._energy_counters.update()
         if energy_record_update:
             await self.save_cache()
+
         return True
 
     async def _energy_log_records_load_from_cache(self) -> bool:
