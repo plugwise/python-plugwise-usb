@@ -260,7 +260,12 @@ class PulseCollection:
     def update_pulse_counter(
         self, pulses_consumed: int, pulses_produced: int, timestamp: datetime
     ) -> None:
-        """Update pulse counter."""
+        """Update pulse counter.
+        
+        Both consumption and production counters reset at the beginning of a new hour.
+        IDEA: should we treat this event not as a rollover but as a counter reset?
+        What should be the effect of this reset?
+        """
         self._pulses_timestamp = timestamp
         self._update_rollover()
         if not (self._rollover_consumption or self._rollover_production):
