@@ -260,8 +260,10 @@ class EnergyCounter:
         """Total energy (in kWh) since last reset."""
         if self._pulses is None or self._calibration is None:
             return None
+
         if self._pulses == 0:
             return 0.0
+
         # Handle both positive and negative pulses values
         negative = False
         if self._pulses < 0:
@@ -284,6 +286,7 @@ class EnergyCounter:
         calc_value = corrected_pulses / PULSES_PER_KW_SECOND / HOUR_IN_SECONDS
         if negative:
             calc_value = -calc_value
+
         return calc_value
 
     @property
