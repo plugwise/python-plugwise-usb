@@ -273,7 +273,7 @@ class PulseCollection:
                 self._rollover_consumption = True
             if (
                 self._pulses_production is not None
-                and self._pulses_production > pulses_produced
+                and self._pulses_production < pulses_produced
             ):
                 self._rollover_production = True
         self._pulses_consumption = pulses_consumed
