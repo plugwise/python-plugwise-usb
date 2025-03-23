@@ -496,6 +496,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             return False
 
+        _LOGGER.debug("EnergyLogs data from %s, address=%s", self._mac_in_str, address)
         await self._available_update_state(True, response.timestamp)
         energy_record_update = False
 
