@@ -207,7 +207,9 @@ class PulseCollection:
             is_consumption,
             timestamp,
         )
-        return (pulses + log_pulses, timestamp)
+
+        # Always return positive values of energy_statistics
+        return (abs(pulses + log_pulses), timestamp)
 
     def _collect_pulses_from_logs(
         self, from_timestamp: datetime, is_consumption: bool
