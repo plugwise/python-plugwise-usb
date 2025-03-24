@@ -275,12 +275,15 @@ class PulseCollection:
                 self._pulses_consumption is not None
                 and self._pulses_consumption > pulses_consumed
             ):
+                _LOGGER.debug("update_pulse_counter | rollover consumption")
                 self._rollover_consumption = True
             if (
                 self._pulses_production is not None
                 and self._pulses_production < pulses_produced
             ):
+                _LOGGER.debug("update_pulse_counter | rollover production")
                 self._rollover_production = True
+
         self._pulses_consumption = pulses_consumed
         self._pulses_production = pulses_produced
 
