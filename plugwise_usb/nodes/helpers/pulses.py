@@ -432,15 +432,19 @@ class PulseCollection:
         if self._logs is None:
             self._logs = {address: {slot: log_record}}
             return True
+
         if self._log_exists(address, slot):
             return False
+
         # Drop useless log records when we have at least 4 logs
         if self.collected_logs > 4 and log_record.timestamp < (
             datetime.now(tz=UTC) - timedelta(hours=MAX_LOG_HOURS)
         ):
             return False
+
         if self._logs.get(address) is None:
             self._logs[address] = {slot: log_record}
+
         self._logs[address][slot] = log_record
         if (
             address == self._first_empty_log_address
@@ -448,12 +452,14 @@ class PulseCollection:
         ):
             self._first_empty_log_address = None
             self._first_empty_log_slot = None
+
         if (
             address == self._last_empty_log_address
             and slot == self._last_empty_log_slot
         ):
             self._last_empty_log_address = None
             self._last_empty_log_slot = None
+
         return True
 
     def _update_log_direction(
