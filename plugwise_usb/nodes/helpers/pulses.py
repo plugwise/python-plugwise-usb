@@ -160,27 +160,27 @@ class PulseCollection:
     ) -> tuple[int | None, datetime | None]:
         """Calculate total pulses from given timestamp."""
         _LOGGER.debug(
-            "collected_pulses 1 | %s | is_cons=%s, from_timestamp=%s",
+            "collected_pulses | %s | from_timestamp=%s | is_cons=%s | _log_production=%s",
             self._mac,
-            is_consumption,
             from_timestamp,
+            is_consumption,
+            self._log_production
         )
-        _LOGGER.debug("collected_pulses 1a | _log_production=%s", self._log_production)
         if not is_consumption:
             if self._log_production is None or not self._log_production:
                 return (None, None)
 
-        if is_consumption and self._rollover_consumption:
-            _LOGGER.debug("collected_pulses 2 | %s | _rollover_consumption", self._mac)
-            return (None, None)
-        if not is_consumption and self._rollover_production:
-            _LOGGER.debug("collected_pulses 3 | %s | _rollover_production", self._mac)
-            return (None, None)
+        # if is_consumption and self._rollover_consumption:
+        #     _LOGGER.debug("collected_pulses 2 | %s | _rollover_consumption", self._mac)
+        #     return (None, None)
+        # if not is_consumption and self._rollover_production:
+        #     _LOGGER.debug("collected_pulses 3 | %s | _rollover_production", self._mac)
+        #     return (None, None)
 
         if (
             log_pulses := self._collect_pulses_from_logs(from_timestamp, is_consumption)
         ) is None:
-            _LOGGER.debug("collected_pulses 4 | %s | log_pulses:None", self._mac)
+            _LOGGER.debug("collected_pulses | %s | log_pulses:None", self._mac)
             return (None, None)
 
         pulses: int | None = None
@@ -188,20 +188,20 @@ class PulseCollection:
         if is_consumption and self._pulses_consumption is not None:
             pulses = self._pulses_consumption
             timestamp = self._pulses_timestamp
+
         if not is_consumption and self._pulses_production is not None:
             pulses = self._pulses_production
             timestamp = self._pulses_timestamp
-        # _LOGGER.debug("collected_pulses | %s | pulses=%s", self._mac, pulses)
 
         if pulses is None:
             _LOGGER.debug(
-                "collected_pulses 5 | %s | is_consumption=%s, pulses=None",
+                "collected_pulses | %s | is_consumption=%s, pulses=None",
                 self._mac,
                 is_consumption,
             )
             return (None, None)
         _LOGGER.debug(
-            "collected_pulses 6 | pulses=%s | log_pulses=%s | consumption=%s at timestamp=%s",
+            "collected_pulses | pulses=%s | log_pulses=%s | consumption=%s at timestamp=%s",
             pulses,
             log_pulses,
             is_consumption,
