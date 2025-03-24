@@ -261,7 +261,7 @@ class PulseCollection:
         self._update_rollover()
         if not (self._rollover_consumption or self._rollover_production):
             # No rollover based on time, check rollover based on counter reset
-            # Required for special cases like nodes which have been power off for several days
+            # Required for special cases like nodes which have been powered off for several days
             if (
                 self._pulses_consumption is not None
                 and self._pulses_consumption > pulses_consumed
