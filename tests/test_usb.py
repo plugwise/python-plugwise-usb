@@ -1126,7 +1126,7 @@ class TestStick:
         test_timestamp = fixed_this_hour + td(hours=1, seconds=5)
         assert tst_consumption.collected_pulses(
             test_timestamp, is_consumption=True
-        ) == (None, None)
+        ) == (45, pulse_update_3)
         tst_consumption.add_log(100, 2, (fixed_this_hour + td(hours=1)), 2222)
         assert not tst_consumption.log_rollover
         assert tst_consumption.collected_pulses(
