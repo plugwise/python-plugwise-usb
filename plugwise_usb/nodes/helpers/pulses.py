@@ -255,9 +255,7 @@ class PulseCollection:
     ) -> None:
         """Update pulse counter.
         
-        Both consumption and production counters reset at the beginning of a new hour.
-        IDEA: should we treat this event not as a rollover but as a counter reset?
-        What should be the effect of this reset?
+        Both device consumption and production counters reset after the beginning of a new hour.
         """
         self._pulses_timestamp = timestamp
         self._update_rollover()
