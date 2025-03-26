@@ -211,6 +211,7 @@ class PulseCollection:
         if self._logs is None:
             _LOGGER.debug("_collect_pulses_from_logs | %s | self._logs=None", self._mac)
             return None
+
         if is_consumption:
             if self._last_log_consumption_timestamp is None:
                 _LOGGER.debug(
@@ -240,7 +241,6 @@ class PulseCollection:
             return None
 
         log_pulses = 0
-
         for log_item in self._logs.values():
             for slot_item in log_item.values():
                 if (
@@ -248,6 +248,7 @@ class PulseCollection:
                     and slot_item.timestamp > from_timestamp
                 ):
                     log_pulses += slot_item.pulses
+
         return log_pulses
 
     def update_pulse_counter(
