@@ -83,6 +83,8 @@ class PulseCollection:
         self._first_log_production_slot: int | None = None
         self._next_log_production_timestamp: datetime | None = None
 
+        self._cons_pulsecounter_reset = False
+        self._prod_pulsecounter_reset = False
         self._rollover_consumption = False
         self._rollover_production = False
 
@@ -258,21 +260,34 @@ class PulseCollection:
         
         Both device consumption and production counters reset after the beginning of a new hour.
         """
+        self._cons_pulsecounter_reset = False
+        self._prod_pulsecounter_reset = False
         self._pulses_timestamp = timestamp
-        self._update_rollover()
-        if not (self._rollover_consumption or self._rollover_production):
             # No rollover based on time, check rollover based on counter reset
             # Required for special cases like nodes which have been powered off for several days
-            if (
-                self._pulses_consumption is not None
-                and self._pulses_consumption > pulses_consumed
-            ):
+        if (
+            self._pulses_consumption is not None
+            and self._pulses_consumption > pulses_consumed
+        ):
+            self._cons_pulsecounter_reset = True
+
+        if (
+            self._pulses_production is not None
+            and self._pulses_production < pulses_produced
+        ):
+            self._prod_pulsecounter_reset = True
+
+        if consumption_counter_reset or production_counter_reset:
+            _LOGGER.debug("update_pulse_counter | pulsecounter reset")
+            self._pulsecounter_reset = True
+
+        self._update_rollover()
+        if not (self._rollover_consumption or self._rollover_production):
+            if self._cons_pulsecounter_reset:
                 _LOGGER.debug("update_pulse_counter | rollover consumption")
                 self._rollover_consumption = True
-            if (
-                self._pulses_production is not None
-                and self._pulses_production < pulses_produced
-            ):
+
+            if self._prod_pulsecounter_reset:
                 _LOGGER.debug("update_pulse_counter | rollover production")
                 self._rollover_production = True
 
