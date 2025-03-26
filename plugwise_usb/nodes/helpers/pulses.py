@@ -90,7 +90,9 @@ class PulseCollection:
         self._logs: dict[int, dict[int, PulseLogRecord]] | None = None
         self._log_addresses_missing: list[int] | None = None
         self._log_production: bool | None = None
+        self._prev_pulses_consumption: int = 0
         self._pulses_consumption: int | None = None
+        self._prev_pulses_production: int = 0
         self._pulses_production: int | None = None
         self._pulses_timestamp: datetime | None = None
 
@@ -178,14 +180,26 @@ class PulseCollection:
             return (None, None)
 
         pulses: int | None = None
+        delta_cons_pulses: int = 0
+        delta_prod_pulses: int = 0
         timestamp: datetime | None = None
         if is_consumption and self._pulses_consumption is not None:
-            pulses = self._pulses_consumption
             timestamp = self._pulses_timestamp
+            delta_cons_pulses = self._pulses_consumption - self._prev_pulses_consumption
+            pulses = self._prev_pulses_consumption + delta_cons_pulses
+            self._prev_pulses_consumption = pulses
+            if self._pulsecounter_reset:
+                pulses = self._pulses_consumption
+                self._prev_pulses_consumption = 0
 
         if not is_consumption and self._pulses_production is not None:
-            pulses = self._pulses_production
             timestamp = self._pulses_timestamp
+            delta_prod_pulses = self._pulses_production - self._prev_pulses_production
+            pulses = self._prev_pulses_production + delta_prod_pulses
+            self._prev_pulses_production = pulses
+            if self._pulsecounter_reset:
+                pulses = self._pulses_production
+                self._prev_pulses_production = 0
 
         if pulses is None:
             _LOGGER.debug(
@@ -194,6 +208,7 @@ class PulseCollection:
                 is_consumption,
             )
             return (None, None)
+
         _LOGGER.debug(
             "collected_pulses | pulses=%s | log_pulses=%s | consumption=%s at timestamp=%s",
             pulses,
