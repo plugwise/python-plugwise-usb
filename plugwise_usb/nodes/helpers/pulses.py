@@ -83,8 +83,7 @@ class PulseCollection:
         self._first_log_production_slot: int | None = None
         self._next_log_production_timestamp: datetime | None = None
 
-        self._cons_pulsecounter_reset = False
-        self._prod_pulsecounter_reset = False
+        self._pulsecounter_reset = False
         self._rollover_consumption = False
         self._rollover_production = False
 
@@ -223,7 +222,7 @@ class PulseCollection:
                 return None
             if (
                 from_timestamp > self._last_log_consumption_timestamp
-                and self._cons_pulsecounter_reset
+                and self._pulsecounter_reset
             ):
                 return 0
         else:
@@ -235,7 +234,7 @@ class PulseCollection:
                 return None
             if (
                 from_timestamp > self._last_log_production_timestamp
-                and self._prod_pulsecounter_reset
+                and self._pulsecounter_reset
             ):
                 return 0
 
@@ -266,8 +265,8 @@ class PulseCollection:
         
         Both device consumption and production counters reset after the beginning of a new hour.
         """
-        self._cons_pulsecounter_reset = False
-        self._prod_pulsecounter_reset = False
+        cons_pulsecounter_reset = False
+        prod_pulsecounter_reset = False
         self._pulses_timestamp = timestamp
         self._update_rollover()
         if (
@@ -275,23 +274,28 @@ class PulseCollection:
             and self._pulses_consumption > pulses_consumed
         ):
             _LOGGER.debug("update_pulse_counter | consumption pulses reset")
-            self._cons_pulsecounter_reset = True
+            cons_pulsecounter_reset = True
 
         if (
             self._pulses_production is not None
             and self._pulses_production < pulses_produced
         ):
             _LOGGER.debug("update_pulse_counter | production pulses reset")
-            self._prod_pulsecounter_reset = True
+            prod_pulsecounter_reset = True
+
+        if cons_pulsecounter_reset or prod_pulsecounter_reset:
+            self._pulsecounter_reset = True
+        else:
+            self._pulsecounter_reset = False
 
         # No rollover based on time, check rollover based on counter reset
         # Required for special cases like nodes which have been powered off for several days
         if not (self._rollover_consumption or self._rollover_production):
-            if self._cons_pulsecounter_reset:
+            if cons_pulsecounter_reset:
                 _LOGGER.debug("update_pulse_counter | rollover consumption")
                 self._rollover_consumption = True
 
-            if self._prod_pulsecounter_reset:
+            if prod_pulsecounter_reset:
                 _LOGGER.debug("update_pulse_counter | rollover production")
                 self._rollover_production = True
 
