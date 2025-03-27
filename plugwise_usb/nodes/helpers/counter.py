@@ -21,8 +21,6 @@ class EnergyType(Enum):
     PRODUCTION_HOUR = auto()
     CONSUMPTION_DAY = auto()
     PRODUCTION_DAY = auto()
-    CONSUMPTION_WEEK = auto()
-    PRODUCTION_WEEK = auto()
 
 
 ENERGY_COUNTERS: Final = (
@@ -30,8 +28,6 @@ ENERGY_COUNTERS: Final = (
     EnergyType.PRODUCTION_HOUR,
     EnergyType.CONSUMPTION_DAY,
     EnergyType.PRODUCTION_DAY,
-    EnergyType.CONSUMPTION_WEEK,
-    EnergyType.PRODUCTION_WEEK,
 )
 ENERGY_HOUR_COUNTERS: Final = (
     EnergyType.CONSUMPTION_HOUR,
@@ -41,20 +37,13 @@ ENERGY_DAY_COUNTERS: Final = (
     EnergyType.CONSUMPTION_DAY,
     EnergyType.PRODUCTION_DAY,
 )
-ENERGY_WEEK_COUNTERS: Final = (
-    EnergyType.CONSUMPTION_WEEK,
-    EnergyType.PRODUCTION_WEEK,
-)
-
 ENERGY_CONSUMPTION_COUNTERS: Final = (
     EnergyType.CONSUMPTION_HOUR,
     EnergyType.CONSUMPTION_DAY,
-    EnergyType.CONSUMPTION_WEEK,
 )
 ENERGY_PRODUCTION_COUNTERS: Final = (
     EnergyType.PRODUCTION_HOUR,
     EnergyType.PRODUCTION_DAY,
-    EnergyType.PRODUCTION_WEEK,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -168,11 +157,6 @@ class EnergyCounters:
             self._energy_statistics.day_consumption,
             self._energy_statistics.day_consumption_reset,
         ) = self._counters[EnergyType.CONSUMPTION_DAY].update(self._pulse_collection)
-        (
-            self._energy_statistics.week_consumption,
-            self._energy_statistics.week_consumption_reset,
-        ) = self._counters[EnergyType.CONSUMPTION_WEEK].update(self._pulse_collection)
-
         if self._pulse_collection.production_logging:
             self._energy_statistics.log_interval_production = (
                 self._pulse_collection.log_interval_production
@@ -185,10 +169,6 @@ class EnergyCounters:
                 self._energy_statistics.day_production,
                 self._energy_statistics.day_production_reset,
             ) = self._counters[EnergyType.PRODUCTION_DAY].update(self._pulse_collection)
-            (
-                self._energy_statistics.week_production,
-                self._energy_statistics.week_production_reset,
-            ) = self._counters[EnergyType.PRODUCTION_WEEK].update(self._pulse_collection)
 
     @property
     def timestamp(self) -> datetime | None:
@@ -218,8 +198,6 @@ class EnergyCounter:
         self._duration = "hour"
         if energy_id in ENERGY_DAY_COUNTERS:
             self._duration = "day"
-        elif energy_id in ENERGY_WEEK_COUNTERS:
-            self._duration = "week"
         self._energy_id: EnergyType = energy_id
         self._is_consumption = True
         self._direction = "consumption"
@@ -308,14 +286,6 @@ class EnergyCounter:
             last_reset = last_reset.replace(minute=0, second=0, microsecond=0)
         elif self._energy_id in ENERGY_DAY_COUNTERS:
             last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
-        elif self._energy_id in ENERGY_WEEK_COUNTERS:
-            last_reset = last_reset - timedelta(days=last_reset.weekday())
-            last_reset = last_reset.replace(
-                hour=0,
-                minute=0,
-                second=0,
-                microsecond=0,
-            )
 
         pulses, last_update = pulse_collection.collected_pulses(
             last_reset, self._is_consumption
