@@ -221,7 +221,10 @@ class PulseCollection:
                     self._mac,
                 )
                 return None
-            if from_timestamp > self._last_log_consumption_timestamp:
+            if (
+                from_timestamp > self._last_log_consumption_timestamp
+                and self._cons_pulsecounter_reset
+            ):
                 return 0
         else:
             if self._last_log_production_timestamp is None:
@@ -230,7 +233,10 @@ class PulseCollection:
                     self._mac,
                 )
                 return None
-            if from_timestamp > self._last_log_production_timestamp:
+            if (
+                from_timestamp > self._last_log_production_timestamp
+                and self._prod_pulsecounter_reset
+            ):
                 return 0
 
         missing_logs = self._logs_missing(from_timestamp)
