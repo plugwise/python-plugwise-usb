@@ -269,25 +269,23 @@ class PulseCollection:
         self._cons_pulsecounter_reset = False
         self._prod_pulsecounter_reset = False
         self._pulses_timestamp = timestamp
-            # No rollover based on time, check rollover based on counter reset
-            # Required for special cases like nodes which have been powered off for several days
+        self._update_rollover()
         if (
             self._pulses_consumption is not None
             and self._pulses_consumption > pulses_consumed
         ):
+            _LOGGER.debug("update_pulse_counter | consumption pulses reset")
             self._cons_pulsecounter_reset = True
 
         if (
             self._pulses_production is not None
             and self._pulses_production < pulses_produced
         ):
+            _LOGGER.debug("update_pulse_counter | production pulses reset")
             self._prod_pulsecounter_reset = True
 
-        if consumption_counter_reset or production_counter_reset:
-            _LOGGER.debug("update_pulse_counter | pulsecounter reset")
-            self._pulsecounter_reset = True
-
-        self._update_rollover()
+        # No rollover based on time, check rollover based on counter reset
+        # Required for special cases like nodes which have been powered off for several days
         if not (self._rollover_consumption or self._rollover_production):
             if self._cons_pulsecounter_reset:
                 _LOGGER.debug("update_pulse_counter | rollover consumption")
