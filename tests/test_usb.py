@@ -915,14 +915,10 @@ class TestStick:
             hour_consumption_reset=None,
             day_consumption=None,
             day_consumption_reset=None,
-            week_consumption=None,
-            week_consumption_reset=None,
             hour_production=None,
             hour_production_reset=None,
             day_production=None,
             day_production_reset=None,
-            week_production=None,
-            week_production_reset=None,
         )
         # energy_update is not complete and should return none
         utc_now = dt.now(UTC)
@@ -936,14 +932,10 @@ class TestStick:
             hour_consumption_reset=utc_now.replace(minute=0, second=0, microsecond=0),
             day_consumption=None,
             day_consumption_reset=None,
-            week_consumption=None,
-            week_consumption_reset=None,
             hour_production=None,
             hour_production_reset=None,
             day_production=None,
             day_production_reset=None,
-            week_production=None,
-            week_production_reset=None,
         )
         await stick.disconnect()
 
