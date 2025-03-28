@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import Task, create_task, gather
+from asyncio import Task, create_task
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -449,12 +449,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
             total_addresses = 11
             log_address = self._current_log_address
             while total_addresses > 0:
-                task = create_task(self.energy_log_update(log_address))
-                await task
+                await self.energy_log_update(log_address)
                 log_address, _ = calc_log_address(log_address, 1, -4)
                 total_addresses -= 1
-
-            await gather(*task)
 
             if self._cache_enabled:
                 await self._energy_log_records_save_to_cache()
@@ -475,10 +472,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
             missing_addresses = sorted(missing_addresses, reverse=True)
             for address in missing_addresses:
-                task = create_task(self.energy_log_update(address))
-                await task
-
-            gather(*task)
+                await self.energy_log_update(address)
 
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
