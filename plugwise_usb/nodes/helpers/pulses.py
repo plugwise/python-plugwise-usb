@@ -221,12 +221,13 @@ class PulseCollection:
                     self._mac,
                 )
                 return None
+
+            timestamp = self._last_log_consumption_timestamp
             if (
-                from_timestamp > self._last_log_consumption_timestamp
+                from_timestamp > timestamp
                 and self._pulsecounter_reset
             ):
-                _LOGGER.debug("_collect_pulses_from_logs | resetting log_pulses collection")
-                timestamp = self._last_log_consumption_timestamp
+                _LOGGER.debug("_collect_pulses_from_logs | resetting log_pulses to 0")
                 return 0
         else:
             if self._last_log_production_timestamp is None:
@@ -235,12 +236,13 @@ class PulseCollection:
                     self._mac,
                 )
                 return None
+
+            timestamp = self._last_log_production_timestamp
             if (
-                from_timestamp > self._last_log_production_timestamp
+                from_timestamp > timestamp
                 and self._pulsecounter_reset
             ):
-                _LOGGER.debug("_collect_pulses_from_logs | resetting log_pulses collection")
-                timestamp = self._last_log_production_timestamp
+                _LOGGER.debug("_collect_pulses_from_logs | resetting log_pulses to 0")
                 return 0
 
         missing_logs = self._logs_missing(from_timestamp)
@@ -262,8 +264,9 @@ class PulseCollection:
                     log_pulses += slot_item.pulses
 
         _LOGGER.debug(
-            "_collect_pulses_from_logs | log_pulses=%s | from %s to %s",
+            "_collect_pulses_from_logs | log_pulses=%s | is_consumption=%s | from %s to %s",
             log_pulses,
+            is_consumption,
             from_timestamp,
             timestamp,
         )
