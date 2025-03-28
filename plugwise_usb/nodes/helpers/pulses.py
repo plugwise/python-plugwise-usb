@@ -217,13 +217,12 @@ class PulseCollection:
             return (None, None)
 
         _LOGGER.debug(
-            "collected_pulses | pulses=%s | log_pulses=%s | consumption=%s at timestamp=%s",
-            pulses,
+            "_collect_pulses_from_logs | log_pulses=%s | is_consumption=%s | from %s to %s",
             log_pulses,
             is_consumption,
+            from_timestamp,
             timestamp,
         )
-
         # Always return positive values for energy_statistics
         return (abs(pulses + log_pulses), timestamp)
 
