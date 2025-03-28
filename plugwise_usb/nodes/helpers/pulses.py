@@ -175,7 +175,7 @@ class PulseCollection:
                 return (None, None)
 
         if (
-            log_pulses, reset := self._collect_pulses_from_logs(from_timestamp, is_consumption)
+            log_pulses := self._collect_pulses_from_logs(from_timestamp, is_consumption)
         ) is None:
             _LOGGER.debug("collected_pulses | %s | log_pulses:None", self._mac)
             return (None, None)
@@ -228,7 +228,7 @@ class PulseCollection:
 
     def _collect_pulses_from_logs(
         self, from_timestamp: datetime, is_consumption: bool
-    ) -> tuple[int, bool] | None:
+    ) -> int | None:
         """Collect all pulses from logs.
         
         And return True when the from_timestamp rolls over to the next log_interval.
@@ -239,6 +239,7 @@ class PulseCollection:
 
         timestamp: datetime | None = None
         if is_consumption:
+            timestamp = self._last_log_consumption_timestamp
             if self._last_log_consumption_timestamp is None:
                 _LOGGER.debug(
                     "_collect_pulses_from_logs | %s | self._last_log_consumption_timestamp=None",
@@ -246,6 +247,7 @@ class PulseCollection:
                 )
                 return None
         else:
+            timestamp = self._last_log_production_timestamp
             if self._last_log_production_timestamp is None:
                 _LOGGER.debug(
                     "_collect_pulses_from_logs | %s | self._last_log_production_timestamp=None",
@@ -275,6 +277,13 @@ class PulseCollection:
         if from_timestamp > self._last_log_consumption_timestamp or from_timestamp > self._last_log_production_timestamp:
             self._hourly_reset = True
 
+        _LOGGER.debug(
+            "_collect_pulses_from_logs | log_pulses=%s | is_consumption=%s | from %s to %s",
+            log_pulses,
+            is_consumption,
+            from_timestamp,
+            timestamp,
+        )
         return log_pulses
 
     def update_pulse_counter(
