@@ -195,6 +195,7 @@ class PulseCollection:
             if self._pulsecounter_reset:
                 pulses = self._pulses_consumption + self._prev_pulses_consumption
                 self._prev_pulses_consumption = pulses
+                self._hourly_reset = False
 
         if not is_consumption and self._pulses_production is not None:
             timestamp = self._pulses_timestamp
@@ -207,6 +208,7 @@ class PulseCollection:
             if self._pulsecounter_reset:
                 pulses = self._prev_pulses_production + self._prev_pulses_production
                 self._prev_pulses_production = pulses
+                self._hourly_reset = False
 
         if pulses is None:
             _LOGGER.debug(
@@ -273,7 +275,6 @@ class PulseCollection:
                 ):
                     log_pulses += slot_item.pulses
 
-        self._hourly_reset = False
         if from_timestamp > self._last_log_consumption_timestamp or from_timestamp > self._last_log_production_timestamp:
             self._hourly_reset = True
 
