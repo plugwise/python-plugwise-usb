@@ -1138,20 +1138,20 @@ class TestStick:
         ) == (300, pulse_update_6)
         assert tst_consumption.collected_pulses(
             fixed_this_hour, is_consumption=True
-        ) == (45 + 2222, pulse_update_3)
+        ) == (300 + 2222, pulse_update_6)
 
         # Test log rollover by updating log first before updating pulses
         tst_consumption.add_log(100, 3, (fixed_this_hour + td(hours=2)), 3333)
         assert tst_consumption.log_rollover
         assert tst_consumption.collected_pulses(
             fixed_this_hour, is_consumption=True
-        ) == (45+ 2222 + 3333, pulse_update_3)
-        pulse_update_6 = fixed_this_hour + td(hours=2, seconds=10)
-        tst_consumption.update_pulse_counter(321, 0, pulse_update_6)
+        ) == (300 + 2222 + 3333, pulse_update_6)
+        pulse_update_7 = fixed_this_hour + td(hours=2, seconds=10)
+        tst_consumption.update_pulse_counter(321, 0, pulse_update_7)
         assert not tst_consumption.log_rollover
         assert tst_consumption.collected_pulses(
             fixed_this_hour, is_consumption=True
-        ) == (2222 + 3333 + 321, pulse_update_6)
+        ) == (2222 + 3333 + 476, pulse_update_7)  # pulses = 476 = 300 + (312 - 146)
 
     @freeze_time(dt.now())
     def test_pulse_collection_consumption_empty(
