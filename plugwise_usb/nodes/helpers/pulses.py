@@ -202,8 +202,12 @@ class PulseCollection:
                 pulses = self._pulses_consumption + self._hourly_reset_cons_pulses
                 self._pulsecounter_reset = False
             else:
-                pulses = self._prev_pulses_consumption + self._hourly_reset_cons_pulses + delta_cons_pulses
-                if self._prev_pulses_consumption == 0:
+                pulses = (
+                    self._prev_pulses_consumption
+                    + self._hourly_reset_cons_pulses
+                    + delta_cons_pulses
+                )
+                if self._prev_pulses_consumption == 0:  # handle initial situation
                     pulses = self._pulses_consumption + self._hourly_reset_cons_pulses
 
             self._prev_pulses_consumption = self._pulses_consumption
@@ -223,8 +227,12 @@ class PulseCollection:
                 pulses = self._pulses_production + self._hourly_reset_prod_pulses
                 self._pulsecounter_reset = False
             else:
-                pulses = self._prev_pulses_production + self._hourly_reset_prod_pulses + delta_prod_pulses
-                if self._prev_pulses_production == 0:
+                pulses = (
+                    self._prev_pulses_production
+                    + self._hourly_reset_prod_pulses
+                    + delta_prod_pulses
+                )
+                if self._prev_pulses_production == 0:  # handle initial situation
                     pulses = self._pulses_production + self._hourly_reset_prod_pulses
 
             self._prev_pulses_production = self._pulses_production
@@ -278,8 +286,11 @@ class PulseCollection:
 
             timestamp = self._last_log_production_timestamp
 
-        if from_timestamp > timestamp and not self._hourly_reset_passed and not self._pulsecounter_reset and (
-            self._rollover_consumption or self._rollover_production
+        if (
+            from_timestamp > timestamp
+            and not self._hourly_reset_passed
+            and not self._pulsecounter_reset
+            and (self._rollover_consumption or self._rollover_production)
         ):
             self._hourly_reset = True
 
@@ -387,12 +398,16 @@ class PulseCollection:
             self._last_log_consumption_timestamp
             < self._pulses_timestamp
             < self._next_log_consumption_timestamp
+            ) and (
+                self._rollover_consumption
+                and not (
+                    self._hourly_reset
+                    or self._hourly_reset_passed
+                    or self._pulsecounter_reset
+                )
         ):
-            if self._rollover_consumption and not (
-                self._hourly_reset or self._hourly_reset_passed or self._pulsecounter_reset
-                ):
-                _LOGGER.debug("_update_rollover | %s | reset consumption", self._mac)
-                self._rollover_consumption = False
+            _LOGGER.debug("_update_rollover | %s | reset consumption", self._mac)
+            self._rollover_consumption = False
         else:
             _LOGGER.debug("_update_rollover | %s | unexpected consumption", self._mac)
 
@@ -425,9 +440,15 @@ class PulseCollection:
             self._last_log_production_timestamp
             < self._pulses_timestamp
             < self._next_log_production_timestamp
+            ) and (
+                self._rollover_consumption
+                and not (
+                    self._hourly_reset
+                    or self._hourly_reset_passed
+                    or self._pulsecounter_reset
+                )
         ):
-            if self._rollover_production:
-                _LOGGER.debug("_update_rollover | %s | reset production", self._mac)
+            _LOGGER.debug("_update_rollover | %s | reset production", self._mac)
             self._rollover_production = False
         else:
             _LOGGER.debug("_update_rollover | %s | unexpected production", self._mac)
