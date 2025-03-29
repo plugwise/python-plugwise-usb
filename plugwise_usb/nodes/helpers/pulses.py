@@ -88,6 +88,7 @@ class PulseCollection:
         self._rollover_production = False
 
         self._hourly_reset = False
+        self._hourly_reset_passed = False
         self._logs: dict[int, dict[int, PulseLogRecord]] | None = None
         self._log_addresses_missing: list[int] | None = None
         self._log_production: bool | None = None
@@ -187,28 +188,37 @@ class PulseCollection:
         if is_consumption and self._pulses_consumption is not None:
             timestamp = self._pulses_timestamp
             delta_cons_pulses = self._pulses_consumption - self._prev_pulses_consumption
-            pulses = self._prev_pulses_consumption + delta_cons_pulses
-            self._prev_pulses_consumption = pulses
-            if self._hourly_reset:
+            if self._hourly_reset_passed:
+                pulses = delta_cons_pulses + self._prev_pulses_consumption
+            elif self._hourly_reset:
                 pulses = delta_cons_pulses
-                self._prev_pulses_consumption = 0
-            if self._pulsecounter_reset:
-                pulses = self._pulses_consumption + self._prev_pulses_consumption
-                self._prev_pulses_consumption = pulses
                 self._hourly_reset = False
+                self._hourly_reset_passed = True
+            elif self._pulsecounter_reset:
+                pulses = self._pulses_consumption + self._prev_pulses_consumption
+                self._pulsecounter_reset = False
+            else:
+                pulses = self._prev_pulses_consumption + delta_cons_pulses
+
+            self._prev_pulses_consumption = pulses
+
 
         if not is_consumption and self._pulses_production is not None:
             timestamp = self._pulses_timestamp
             delta_prod_pulses = self._pulses_production - self._prev_pulses_production
-            pulses = self._prev_pulses_production + delta_prod_pulses
-            self._prev_pulses_production = pulses
-            if self._hourly_reset:
+            if self._hourly_reset_passed:
+                pulses = delta_prod_pulses + self._prev_pulses_production
+            elif self._hourly_reset:
                 pulses = delta_prod_pulses
-                self._prev_pulses_production = 0
-            if self._pulsecounter_reset:
-                pulses = self._prev_pulses_production + self._prev_pulses_production
-                self._prev_pulses_production = pulses
                 self._hourly_reset = False
+                self._hourly_reset_passed = True
+            elif self._pulsecounter_reset:
+                pulses = self._pulses_consumption + self._prev_pulses_production
+                self._pulsecounter_reset = False
+            else:
+                pulses = delta_prod_pulses + self._prev_pulses_production
+
+            self._prev_pulses_production = pulses
 
         if pulses is None:
             _LOGGER.debug(
@@ -219,8 +229,8 @@ class PulseCollection:
             return (None, None)
 
         _LOGGER.debug(
-            "_collect_pulses_from_logs | log_pulses=%s | is_consumption=%s | from %s to %s",
-            log_pulses,
+            "_collect_pulses_from_logs | pulses=%s | is_consumption=%s | from %s to %s",
+            pulses,
             is_consumption,
             from_timestamp,
             timestamp,
@@ -241,21 +251,27 @@ class PulseCollection:
 
         timestamp: datetime | None = None
         if is_consumption:
-            timestamp = self._last_log_consumption_timestamp
             if self._last_log_consumption_timestamp is None:
                 _LOGGER.debug(
                     "_collect_pulses_from_logs | %s | self._last_log_consumption_timestamp=None",
                     self._mac,
                 )
                 return None
+            
+            timestamp = self._last_log_consumption_timestamp
+            if from_timestamp > timestamp:
+                self._hourly_reset = True   
         else:
-            timestamp = self._last_log_production_timestamp
             if self._last_log_production_timestamp is None:
                 _LOGGER.debug(
                     "_collect_pulses_from_logs | %s | self._last_log_production_timestamp=None",
                     self._mac,
                 )
                 return None
+
+            timestamp = self._last_log_production_timestamp
+            if from_timestamp > timestamp:
+                self._hourly_reset = True
 
         missing_logs = self._logs_missing(from_timestamp)
         if missing_logs is None or missing_logs:
@@ -274,9 +290,6 @@ class PulseCollection:
                     and slot_item.timestamp > from_timestamp
                 ):
                     log_pulses += slot_item.pulses
-
-        if from_timestamp > self._last_log_consumption_timestamp or from_timestamp > self._last_log_production_timestamp:
-            self._hourly_reset = True
 
         _LOGGER.debug(
             "_collect_pulses_from_logs | log_pulses=%s | is_consumption=%s | from %s to %s",
@@ -314,8 +327,7 @@ class PulseCollection:
 
         if cons_pulsecounter_reset or prod_pulsecounter_reset:
             self._pulsecounter_reset = True
-        else:
-            self._pulsecounter_reset = False
+            self._hourly_reset_passed = False
 
         # No rollover based on time, check rollover based on counter reset
         # Required for special cases like nodes which have been powered off for several days
