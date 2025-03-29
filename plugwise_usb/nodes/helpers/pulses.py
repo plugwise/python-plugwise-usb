@@ -89,6 +89,7 @@ class PulseCollection:
 
         self._hourly_reset = False
         self._hourly_reset_passed = False
+        self._hourly_reset_pulses: int = 0
         self._logs: dict[int, dict[int, PulseLogRecord]] | None = None
         self._log_addresses_missing: list[int] | None = None
         self._log_production: bool | None = None
@@ -189,9 +190,10 @@ class PulseCollection:
             timestamp = self._pulses_timestamp
             delta_cons_pulses = self._pulses_consumption - self._prev_pulses_consumption
             if self._hourly_reset_passed:
-                pulses = delta_cons_pulses + self._prev_pulses_consumption
+                pulses = delta_cons_pulses + self._hourly_reset_pulses
             elif self._hourly_reset:
                 pulses = delta_cons_pulses
+                self._hourly_reset_pulses = pulses
                 self._hourly_reset = False
                 self._hourly_reset_passed = True
             elif self._pulsecounter_reset:
@@ -200,8 +202,7 @@ class PulseCollection:
             else:
                 pulses = self._prev_pulses_consumption + delta_cons_pulses
 
-            self._prev_pulses_consumption = pulses
-
+            self._prev_pulses_consumption = self._pulses_consumption
 
         if not is_consumption and self._pulses_production is not None:
             timestamp = self._pulses_timestamp
