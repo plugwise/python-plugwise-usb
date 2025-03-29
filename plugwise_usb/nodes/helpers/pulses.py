@@ -191,13 +191,14 @@ class PulseCollection:
             delta_cons_pulses = self._pulses_consumption - self._prev_pulses_consumption
             if self._hourly_reset_passed:
                 pulses = delta_cons_pulses + self._hourly_reset_pulses
+                self._hourly_reset_pulses = pulses
             elif self._hourly_reset:
                 pulses = delta_cons_pulses
                 self._hourly_reset_pulses = pulses
                 self._hourly_reset = False
                 self._hourly_reset_passed = True
             elif self._pulsecounter_reset:
-                pulses = self._pulses_consumption + self._prev_pulses_consumption
+                pulses = self._pulses_consumption + self._hourly_reset_pulses
                 self._pulsecounter_reset = False
             else:
                 pulses = self._prev_pulses_consumption + delta_cons_pulses
@@ -270,7 +271,7 @@ class PulseCollection:
 
             timestamp = self._last_log_production_timestamp
 
-        if from_timestamp > timestamp and not self._hourly_reset_passed:
+        if from_timestamp > timestamp and not self._hourly_reset_passed and not self._pulsecounter_reset:
             self._hourly_reset = True
 
         missing_logs = self._logs_missing(from_timestamp)
