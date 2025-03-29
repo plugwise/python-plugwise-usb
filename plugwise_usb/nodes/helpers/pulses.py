@@ -379,9 +379,11 @@ class PulseCollection:
             < self._pulses_timestamp
             < self._next_log_consumption_timestamp
         ):
-            if self._rollover_consumption:
+            if self._rollover_consumption and not (
+                self._hourly_reset or self._hourly_reset_passed or self._pulsecounter_reset
+                ):
                 _LOGGER.debug("_update_rollover | %s | reset consumption", self._mac)
-            self._rollover_consumption = False
+                self._rollover_consumption = False
         else:
             _LOGGER.debug("_update_rollover | %s | unexpected consumption", self._mac)
 
