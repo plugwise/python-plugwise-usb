@@ -259,8 +259,6 @@ class PulseCollection:
                 return None
             
             timestamp = self._last_log_consumption_timestamp
-            if from_timestamp > timestamp:
-                self._hourly_reset = True   
         else:
             if self._last_log_production_timestamp is None:
                 _LOGGER.debug(
@@ -270,8 +268,9 @@ class PulseCollection:
                 return None
 
             timestamp = self._last_log_production_timestamp
-            if from_timestamp > timestamp:
-                self._hourly_reset = True
+
+        if from_timestamp > timestamp and not self._hourly_reset_passed:
+            self._hourly_reset = True
 
         missing_logs = self._logs_missing(from_timestamp)
         if missing_logs is None or missing_logs:
