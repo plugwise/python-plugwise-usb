@@ -89,7 +89,8 @@ class PulseCollection:
 
         self._hourly_reset = False
         self._hourly_reset_passed = False
-        self._hourly_reset_pulses: int = 0
+        self._hourly_reset_cons_pulses: int = 0
+        self._hourly_reset_prod_pulses: int = 0
         self._logs: dict[int, dict[int, PulseLogRecord]] | None = None
         self._log_addresses_missing: list[int] | None = None
         self._log_production: bool | None = None
@@ -190,20 +191,20 @@ class PulseCollection:
             timestamp = self._pulses_timestamp
             delta_cons_pulses = self._pulses_consumption - self._prev_pulses_consumption
             if self._hourly_reset_passed:
-                pulses = delta_cons_pulses + self._hourly_reset_pulses
-                self._hourly_reset_pulses = pulses
+                pulses = delta_cons_pulses + self._hourly_reset_cons_pulses
+                self._hourly_reset_cons_pulses = pulses
             elif self._hourly_reset:
                 pulses = delta_cons_pulses
-                self._hourly_reset_pulses = pulses
+                self._hourly_reset_cons_pulses = pulses
                 self._hourly_reset = False
                 self._hourly_reset_passed = True
             elif self._pulsecounter_reset:
-                pulses = self._pulses_consumption + self._hourly_reset_pulses
+                pulses = self._pulses_consumption + self._hourly_reset_cons_pulses
                 self._pulsecounter_reset = False
             else:
-                pulses = self._prev_pulses_consumption + self._hourly_reset_pulses + delta_cons_pulses
+                pulses = self._prev_pulses_consumption + self._hourly_reset_cons_pulses + delta_cons_pulses
                 if self._prev_pulses_consumption == 0:
-                    pulses = self._pulses_consumption + self._hourly_reset_pulses
+                    pulses = self._pulses_consumption + self._hourly_reset_cons_pulses
 
             self._prev_pulses_consumption = self._pulses_consumption
 
@@ -211,18 +212,22 @@ class PulseCollection:
             timestamp = self._pulses_timestamp
             delta_prod_pulses = self._pulses_production - self._prev_pulses_production
             if self._hourly_reset_passed:
-                pulses = delta_prod_pulses + self._prev_pulses_production
+                pulses = delta_prod_pulses + self._hourly_reset_prod_pulses
+                self._hourly_reset_prod_pulses = pulses
             elif self._hourly_reset:
                 pulses = delta_prod_pulses
+                self._hourly_reset_prod_pulses = pulses
                 self._hourly_reset = False
                 self._hourly_reset_passed = True
             elif self._pulsecounter_reset:
-                pulses = self._pulses_consumption + self._prev_pulses_production
+                pulses = self._pulses_production + self._hourly_reset_prod_pulses
                 self._pulsecounter_reset = False
             else:
-                pulses = delta_prod_pulses + self._prev_pulses_production
+                pulses = self._prev_pulses_production + self._hourly_reset_prod_pulses + delta_prod_pulses
+                if self._prev_pulses_production == 0:
+                    pulses = self._pulses_production + self._hourly_reset_prod_pulses
 
-            self._prev_pulses_production = pulses
+            self._prev_pulses_production = self._pulses_production
 
         if pulses is None:
             _LOGGER.debug(
