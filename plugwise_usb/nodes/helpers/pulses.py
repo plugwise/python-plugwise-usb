@@ -201,7 +201,9 @@ class PulseCollection:
                 pulses = self._pulses_consumption + self._hourly_reset_pulses
                 self._pulsecounter_reset = False
             else:
-                pulses = self._prev_pulses_consumption + delta_cons_pulses
+                pulses = self._prev_pulses_consumption + self._hourly_reset_pulses + delta_cons_pulses
+                if self._prev_pulses_consumption == 0:
+                    pulses = self._pulses_consumption + self._hourly_reset_pulses
 
             self._prev_pulses_consumption = self._pulses_consumption
 
@@ -271,7 +273,9 @@ class PulseCollection:
 
             timestamp = self._last_log_production_timestamp
 
-        if from_timestamp > timestamp and not self._hourly_reset_passed and not self._pulsecounter_reset:
+        if from_timestamp > timestamp and not self._hourly_reset_passed and not self._pulsecounter_reset and (
+            self._rollover_consumption or self._rollover_production
+        ):
             self._hourly_reset = True
 
         missing_logs = self._logs_missing(from_timestamp)
