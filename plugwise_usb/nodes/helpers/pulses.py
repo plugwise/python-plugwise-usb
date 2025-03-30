@@ -67,6 +67,8 @@ class PulseCollection:
         self._last_empty_log_address: int | None = None
         self._last_empty_log_slot: int | None = None
 
+        self.cons_last_hourly_reset: datetime | None = None
+        self.prod_last_hourly_reset: datetime | None = None
         self._last_log_consumption_timestamp: datetime | None = None
         self._last_log_consumption_address: int | None = None
         self._last_log_consumption_slot: int | None = None
@@ -288,6 +290,7 @@ class PulseCollection:
             and self._pulses_consumption > pulses_consumed
         ):
             _LOGGER.debug("update_pulse_counter | consumption pulses reset")
+            self.cons_last_hourly_reset = timestamp
             cons_pulsecounter_reset = True
 
         if (
@@ -295,6 +298,7 @@ class PulseCollection:
             and self._pulses_production < pulses_produced
         ):
             _LOGGER.debug("update_pulse_counter | production pulses reset")
+            self.prod_last_hourly_reset = timestamp
             prod_pulsecounter_reset = True
 
         if cons_pulsecounter_reset or prod_pulsecounter_reset:
