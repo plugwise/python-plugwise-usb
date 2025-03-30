@@ -85,7 +85,8 @@ class PulseCollection:
         self._first_log_production_slot: int | None = None
         self._next_log_production_timestamp: datetime | None = None
 
-        self._pulsecounter_reset = False
+        self._cons_pulsecounter_reset = False
+        self._prod_pulsecounter_reset = False
         self._rollover_consumption = False
         self._rollover_production = False
 
