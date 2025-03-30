@@ -107,6 +107,14 @@ class PulseCollection:
         return counter
 
     @property
+    def hourly_reset_time(self) -> datetime:
+        """Provide the device hourly pulse reset time.""" 
+        if timestamp := self.cons_last_hourly_reset is not None:
+            return timestamp
+        if timestamp := self.prod_last_hourly_reset is not None:
+            return timestamp
+
+    @property
     def logs(self) -> dict[int, dict[int, PulseLogRecord]]:
         """Return currently collected pulse logs in reversed order."""
         if self._logs is None:
