@@ -322,11 +322,11 @@ class PulseCollection:
         # No rollover based on time, check rollover based on counter reset
         # Required for special cases like nodes which have been powered off for several days
         if not (self._rollover_consumption or self._rollover_production):
-            if cons_pulsecounter_reset:
+            if self._cons_pulsecounter_reset:
                 _LOGGER.debug("update_pulse_counter | rollover consumption")
                 self._rollover_consumption = True
 
-            if prod_pulsecounter_reset:
+            if self._prod_pulsecounter_reset:
                 _LOGGER.debug("update_pulse_counter | rollover production")
                 self._rollover_production = True
 
