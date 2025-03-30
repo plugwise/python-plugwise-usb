@@ -300,6 +300,10 @@ class PulseCollection:
         ):
             _LOGGER.debug("update_pulse_counter | consumption pulses reset")
             self.cons_last_hourly_reset = timestamp
+            _LOGGER.debug(
+                "update_pulse_counter | consumption hourly_reset_time=%s",
+                self.cons_last_hourly_reset,
+            )
             cons_pulsecounter_reset = True
 
         if (
@@ -308,6 +312,10 @@ class PulseCollection:
         ):
             _LOGGER.debug("update_pulse_counter | production pulses reset")
             self.prod_last_hourly_reset = timestamp
+            _LOGGER.debug(
+                "update_pulse_counter | production hourly_reset_time=%s",
+                self.prod_last_hourly_reset,
+            )
             prod_pulsecounter_reset = True
 
         if cons_pulsecounter_reset or prod_pulsecounter_reset:
