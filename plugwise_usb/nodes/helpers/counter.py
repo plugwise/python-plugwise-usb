@@ -283,17 +283,10 @@ class EnergyCounter:
     ) -> tuple[float | None, datetime | None]:
         """Get pulse update."""
         last_reset = datetime.now(tz=LOCAL_TIMEZONE)
-        timestamp = self._pulse_collection.hourly_reset_time
         if self._energy_id in ENERGY_HOUR_COUNTERS:
-            if timestamp is not None:
-                last_reset = timestamp
-            else:
-                last_reset = last_reset.replace(minute=0, second=0, microsecond=0)
+            last_reset = last_reset.replace(minute=0, second=0, microsecond=0)
         if self._energy_id in ENERGY_DAY_COUNTERS:
-            if timestamp is not None:
-                last_reset = timestamp.replace(hour=0)
-            else:
-                last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
+            last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
 
         pulses, last_update = pulse_collection.collected_pulses(
             last_reset, self._is_consumption
