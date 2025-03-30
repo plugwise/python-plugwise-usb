@@ -182,12 +182,6 @@ class PulseCollection:
             if self._log_production is None or not self._log_production:
                 return (None, None)
 
-        if (
-            log_pulses := self._collect_pulses_from_logs(from_timestamp, is_consumption)
-        ) is None:
-            _LOGGER.debug("collected_pulses | %s | log_pulses:None", self._mac)
-            return (None, None)
-
         pulses: int | None = None
         timestamp: datetime | None = None
         if is_consumption and self._pulses_consumption is not None:
@@ -205,6 +199,13 @@ class PulseCollection:
                 is_consumption,
             )
             return (None, None)
+
+        if (
+            log_pulses := self._collect_pulses_from_logs(from_timestamp, is_consumption)
+        ) is None:
+            _LOGGER.debug("collected_pulses | %s | log_pulses:None", self._mac)
+            return (None, None)
+
         _LOGGER.debug(
             "collected_pulses | pulses=%s | log_pulses=%s | consumption=%s at timestamp=%s",
             pulses,
@@ -236,7 +237,7 @@ class PulseCollection:
             timestamp = self._last_log_consumption_timestamp
             if (
                 from_timestamp > timestamp
-                and self._pulsecounter_reset
+                and self._cons_pulsecounter_reset
             ):
                 _LOGGER.debug("_collect_pulses_from_logs | resetting log_pulses to 0")
                 return 0
@@ -251,7 +252,7 @@ class PulseCollection:
             timestamp = self._last_log_production_timestamp
             if (
                 from_timestamp > timestamp
-                and self._pulsecounter_reset
+                and self._prod_pulsecounter_reset
             ):
                 _LOGGER.debug("_collect_pulses_from_logs | resetting log_pulses to 0")
                 return 0
@@ -290,8 +291,8 @@ class PulseCollection:
         
         Both device consumption and production counters reset after the beginning of a new hour.
         """
-        cons_pulsecounter_reset = False
-        prod_pulsecounter_reset = False
+        self._cons_pulsecounter_reset = False
+        self._prod_pulsecounter_reset = False
         self._pulses_timestamp = timestamp
         self._update_rollover()
         if (
@@ -304,7 +305,7 @@ class PulseCollection:
                 "update_pulse_counter | consumption hourly_reset_time=%s",
                 self.cons_last_hourly_reset,
             )
-            cons_pulsecounter_reset = True
+            self._cons_pulsecounter_reset = True
 
         if (
             self._pulses_production is not None
@@ -316,12 +317,7 @@ class PulseCollection:
                 "update_pulse_counter | production hourly_reset_time=%s",
                 self.prod_last_hourly_reset,
             )
-            prod_pulsecounter_reset = True
-
-        if cons_pulsecounter_reset or prod_pulsecounter_reset:
-            self._pulsecounter_reset = True
-        else:
-            self._pulsecounter_reset = False
+            self._prod_pulsecounter_reset = True
 
         # No rollover based on time, check rollover based on counter reset
         # Required for special cases like nodes which have been powered off for several days
