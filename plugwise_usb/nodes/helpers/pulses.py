@@ -234,14 +234,6 @@ class PulseCollection:
                     self._mac,
                 )
                 return None
-
-            timestamp = self._last_log_consumption_timestamp
-            if (
-                from_timestamp > timestamp
-                and self._cons_pulsecounter_reset
-            ):
-                _LOGGER.debug("_collect_pulses_from_logs | resetting log_pulses to 0")
-                return 0
         else:
             if self._last_log_production_timestamp is None:
                 _LOGGER.debug(
@@ -249,14 +241,6 @@ class PulseCollection:
                     self._mac,
                 )
                 return None
-
-            timestamp = self._last_log_production_timestamp
-            if (
-                from_timestamp > timestamp
-                and self._prod_pulsecounter_reset
-            ):
-                _LOGGER.debug("_collect_pulses_from_logs | resetting log_pulses to 0")
-                return 0
 
         missing_logs = self._logs_missing(from_timestamp)
         if missing_logs is None or missing_logs:
