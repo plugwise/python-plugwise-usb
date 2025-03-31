@@ -460,6 +460,14 @@ class PulseCollection:
         self._update_rollover()
         if not import_only:
             self.recalculate_missing_log_addresses()
+
+        _LOGGER.debug(
+            "add_log | pulses=%s | address=%s | slot= %s |time:%s",
+            pulses,
+            address,
+            slot,
+            timestamp,
+        )
         return True
 
     def recalculate_missing_log_addresses(self) -> None:
