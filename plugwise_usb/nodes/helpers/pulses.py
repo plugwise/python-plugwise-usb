@@ -67,8 +67,8 @@ class PulseCollection:
         self._last_empty_log_address: int | None = None
         self._last_empty_log_slot: int | None = None
 
-        self.cons_last_hourly_reset: datetime | None = None
-        self.prod_last_hourly_reset: datetime | None = None
+        self._cons_last_hourly_reset: datetime | None = None
+        self._prod_last_hourly_reset: datetime | None = None
         self._last_log_consumption_timestamp: datetime | None = None
         self._last_log_consumption_address: int | None = None
         self._last_log_consumption_slot: int | None = None
@@ -110,9 +110,9 @@ class PulseCollection:
     @property
     def hourly_reset_time(self) -> datetime | None:
         """Provide the device hourly pulse reset time.""" 
-        if (timestamp := self.cons_last_hourly_reset) is not None:
+        if (timestamp := self._cons_last_hourly_reset) is not None:
             return timestamp
-        if (timestamp := self.prod_last_hourly_reset) is not None:
+        if (timestamp := self._prod_last_hourly_reset) is not None:
             return timestamp
         return None
 
@@ -291,10 +291,10 @@ class PulseCollection:
             and self._pulses_consumption > pulses_consumed
         ):
             _LOGGER.debug("update_pulse_counter | consumption pulses reset")
-            self.cons_last_hourly_reset = timestamp
+            self._cons_last_hourly_reset = timestamp
             _LOGGER.debug(
                 "update_pulse_counter | consumption hourly_reset_time=%s",
-                self.cons_last_hourly_reset,
+                self._cons_last_hourly_reset,
             )
             self._cons_pulsecounter_reset = True
 
@@ -765,6 +765,19 @@ class PulseCollection:
 
         log_time_stamp = self._logs[address][slot].timestamp
         is_consumption = self._logs[address][slot].is_consumption
+        if is_consumption:
+            if self._cons_last_hourly_reset is not None:
+                log_time_stamp = log_time_stamp + timedelta(
+                    minutes=self._cons_last_hourly_reset.minute,
+                    seconds=self._cons_last_hourly_reset.second,
+                    microseconds=self._cons_last_hourly_reset.microsecond,
+                )
+        elif self._prod_last_hourly_reset is not None:
+            log_time_stamp = log_time_stamp + timedelta(
+                minutes=self._prod_last_hourly_reset.minute,
+                seconds=self._prod_last_hourly_reset.second,
+                microseconds=self._prod_last_hourly_reset.microsecond,
+            )
 
         # Update log references
         self._update_first_log_reference(address, slot, log_time_stamp, is_consumption)
