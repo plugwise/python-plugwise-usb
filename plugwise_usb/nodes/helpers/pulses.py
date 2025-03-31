@@ -234,6 +234,7 @@ class PulseCollection:
                     self._mac,
                 )
                 return None
+            _LOGGER.debug("HOI _last_log_consumption_timestamp=%s", self._last_log_consumption_timestamp)
         else:
             if self._last_log_production_timestamp is None:
                 _LOGGER.debug(
@@ -241,6 +242,7 @@ class PulseCollection:
                     self._mac,
                 )
                 return None
+            _LOGGER.debug("HOI _last_log_production_timestamp=%s", self._last_log_production_timestamp)
 
         missing_logs = self._logs_missing(from_timestamp)
         if missing_logs is None or missing_logs:
