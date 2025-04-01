@@ -290,11 +290,7 @@ class PulseCollection:
             self._pulses_consumption is not None
             and self._pulses_consumption > pulses_consumed
         ):
-            _LOGGER.debug(
-                "update_pulse_counter | consumption pulses (%s > %s) reset",
-                self._pulses_consumption,
-                pulses_consumed
-            )
+            _LOGGER.debug("update_pulse_counter | consumption pulses reset")
             self._cons_last_hourly_reset = timestamp
             _LOGGER.debug(
                 "update_pulse_counter | consumption hourly_reset_time=%s",
@@ -326,7 +322,9 @@ class PulseCollection:
                 self._rollover_production = True
 
         self._pulses_consumption = pulses_consumed
+        _LOGGER.debug("update_pulse_counter | consumption pulses=%s", self._pulses_consumption)
         self._pulses_production = pulses_produced
+        _LOGGER.debug("update_pulse_counter | production pulses=%s", self._pulses_production)
 
     def _update_rollover(self) -> None:
         """Update rollover states.
