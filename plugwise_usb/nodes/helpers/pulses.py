@@ -302,10 +302,10 @@ class PulseCollection:
         ):
             self._prod_pulsecounter_reset = True
             _LOGGER.debug("update_pulse_counter | production pulses reset")
-            self.prod_last_hourly_reset = timestamp
+            self._prod_last_hourly_reset = timestamp
             _LOGGER.debug(
                 "update_pulse_counter | production hourly_reset_time=%s",
-                self.prod_last_hourly_reset,
+                self._prod_last_hourly_reset,
             )
 
         # No rollover based on time, check rollover based on counter reset
@@ -768,8 +768,7 @@ class PulseCollection:
             return
 
         log_time_stamp = self._logs[address][slot].timestamp
-        is_consumption = self._logs[address][slot].is_consumption
-        if is_consumption:
+        if (is_consumption := self._logs[address][slot].is_consumption):
             if self._cons_last_hourly_reset is not None:
                 log_time_stamp = log_time_stamp + timedelta(
                     minutes=self._cons_last_hourly_reset.minute,
