@@ -290,7 +290,11 @@ class PulseCollection:
             self._pulses_consumption is not None
             and self._pulses_consumption > pulses_consumed
         ):
-            _LOGGER.debug("update_pulse_counter | consumption pulses reset")
+            _LOGGER.debug(
+                "update_pulse_counter | consumption pulses (%s > %s) reset",
+                self._pulses_consumption,
+                pulses_consumed
+            )
             self._cons_last_hourly_reset = timestamp
             _LOGGER.debug(
                 "update_pulse_counter | consumption hourly_reset_time=%s",
@@ -453,6 +457,7 @@ class PulseCollection:
             if not self._log_exists(address, slot):
                 return False
             if address != self._last_log_address and slot != self._last_log_slot:
+                _LOGGER.debug("add_log | address-slot already exists")
                 return False
         self._update_log_direction(address, slot, timestamp)
         self._update_log_references(address, slot)
