@@ -109,7 +109,7 @@ class PulseCollection:
 
     @property
     def hourly_reset_time(self) -> datetime | None:
-        """Provide the device hourly pulse reset time.""" 
+        """Provide the device hourly pulse reset time, using in testing.""" 
         if (timestamp := self._cons_last_hourly_reset) is not None:
             return timestamp
         if (timestamp := self._prod_last_hourly_reset) is not None:
