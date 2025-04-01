@@ -286,29 +286,29 @@ class PulseCollection:
         self._prod_pulsecounter_reset = False
         self._pulses_timestamp = timestamp
         self._update_rollover()
-        if self._pulses_consumption is not None:
-            self._pulses_consumption = pulses_consumed
-            _LOGGER.debug("update_pulse_counter | consumption pulses=%s", self._pulses_consumption)
-            if self._pulses_consumption > pulses_consumed:
-                self._cons_pulsecounter_reset = True
-                _LOGGER.debug("update_pulse_counter | consumption pulses reset")
-                self._cons_last_hourly_reset = timestamp
-                _LOGGER.debug(
-                    "update_pulse_counter | consumption hourly_reset_time=%s",
-                    self._cons_last_hourly_reset,
-                )
+        if (
+            self._pulses_consumption is not None
+            and self._pulses_consumption > pulses_consumed
+        ):
+            self._cons_pulsecounter_reset = True
+            _LOGGER.debug("update_pulse_counter | consumption pulses reset")
+            self._cons_last_hourly_reset = timestamp
+            _LOGGER.debug(
+                "update_pulse_counter | consumption hourly_reset_time=%s",
+                self._cons_last_hourly_reset,
+            )
 
-        if self._pulses_production is not None:
-            self._pulses_production = pulses_produced
-            _LOGGER.debug("update_pulse_counter | production pulses=%s", self._pulses_production)
-            if self._pulses_production < pulses_produced:
-                self._prod_pulsecounter_reset = True
-                _LOGGER.debug("update_pulse_counter | production pulses reset")
-                self.prod_last_hourly_reset = timestamp
-                _LOGGER.debug(
-                    "update_pulse_counter | production hourly_reset_time=%s",
-                    self.prod_last_hourly_reset,
-                )
+        if (
+            self._pulses_production is not None
+            and self._pulses_production < pulses_produced 
+        ):
+            self._prod_pulsecounter_reset = True
+            _LOGGER.debug("update_pulse_counter | production pulses reset")
+            self.prod_last_hourly_reset = timestamp
+            _LOGGER.debug(
+                "update_pulse_counter | production hourly_reset_time=%s",
+                self.prod_last_hourly_reset,
+            )
 
         # No rollover based on time, check rollover based on counter reset
         # Required for special cases like nodes which have been powered off for several days
@@ -320,6 +320,11 @@ class PulseCollection:
             if self._prod_pulsecounter_reset:
                 _LOGGER.debug("update_pulse_counter | rollover production")
                 self._rollover_production = True
+
+        self._pulses_consumption = pulses_consumed
+        _LOGGER.debug("update_pulse_counter | consumption pulses=%s", self._pulses_consumption)
+        self._pulses_production = pulses_produced
+        _LOGGER.debug("update_pulse_counter | production pulses=%s", self._pulses_production)
 
     def _update_rollover(self) -> None:
         """Update rollover states.
