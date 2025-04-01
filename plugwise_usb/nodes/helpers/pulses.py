@@ -767,33 +767,33 @@ class PulseCollection:
         if self._logs is None:
             return
 
-        log_time_stamp = self._logs[address][slot].timestamp
-        # Sync log_time_stamp with the device pulsecounter reset-time
+        log_timestamp = self._logs[address][slot].timestamp
+        # Sync log_timestamp with the device pulsecounter reset-time
         # This syncs the daily reset of energy counters with the corresponding device pulsecounter reset
         if (is_consumption := self._logs[address][slot].is_consumption):
             if self._cons_last_hourly_reset is not None:
-                log_time_stamp = log_time_stamp + timedelta(
+                log_timestamp = log_timestamp + timedelta(
                     minutes=self._cons_last_hourly_reset.minute,
                     seconds=self._cons_last_hourly_reset.second,
                     microseconds=self._cons_last_hourly_reset.microsecond,
                 )
         elif self._prod_last_hourly_reset is not None:
-            log_time_stamp = log_time_stamp + timedelta(
+            log_timestamp = log_timestamp + timedelta(
                 minutes=self._prod_last_hourly_reset.minute,
                 seconds=self._prod_last_hourly_reset.second,
                 microseconds=self._prod_last_hourly_reset.microsecond,
             )
 
         # Update log references
-        self._update_first_log_reference(address, slot, log_time_stamp, is_consumption)
-        self._update_last_log_reference(address, slot, log_time_stamp, is_consumption)
+        self._update_first_log_reference(address, slot, log_timestamp, is_consumption)
+        self._update_last_log_reference(address, slot, log_timestamp, is_consumption)
 
         if is_consumption:
-            self._update_first_consumption_log_reference(address, slot, log_time_stamp)
-            self._update_last_consumption_log_reference(address, slot, log_time_stamp)
+            self._update_first_consumption_log_reference(address, slot, log_timestamp)
+            self._update_last_consumption_log_reference(address, slot, log_timestamp)
         elif self._log_production:
-            self._update_first_production_log_reference(address, slot, log_time_stamp)
-            self._update_last_production_log_reference(address, slot, log_time_stamp)
+            self._update_first_production_log_reference(address, slot, log_timestamp)
+            self._update_last_production_log_reference(address, slot, log_timestamp)
 
     @property
     def log_addresses_missing(self) -> list[int] | None:
