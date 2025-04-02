@@ -67,8 +67,7 @@ class PulseCollection:
         self._last_empty_log_address: int | None = None
         self._last_empty_log_slot: int | None = None
 
-        self._cons_last_hourly_reset: datetime | None = None
-        self._prod_last_hourly_reset: datetime | None = None
+        self._last_hourly_reset: datetime | None = None
         self._last_log_consumption_timestamp: datetime | None = None
         self._last_log_consumption_address: int | None = None
         self._last_log_consumption_slot: int | None = None
@@ -108,21 +107,14 @@ class PulseCollection:
         return counter
 
     @property
-    def consumption_last_hourly_reset(self) -> datetime | None:
-        """Consumption last hourly reset."""
-        return self._cons_last_hourly_reset
-
-    @property
-    def production_last_hourly_reset(self) -> datetime | None:
-        """Production last hourly reset."""
-        return self._prod_last_hourly_reset
+    def last_hourly_reset(self) -> datetime | None:
+        """Consumption and production last hourly reset."""
+        return self._last_hourly_reset
 
     @property
     def hourly_reset_time(self) -> datetime | None:
         """Provide the device hourly pulse reset time, using in testing.""" 
-        if (timestamp := self._cons_last_hourly_reset) is not None:
-            return timestamp
-        if (timestamp := self._prod_last_hourly_reset) is not None:
+        if (timestamp := self._last_hourly_reset) is not None:
             return timestamp
         return None
 
@@ -300,10 +292,10 @@ class PulseCollection:
         ):
             self._cons_pulsecounter_reset = True
             _LOGGER.debug("update_pulse_counter | consumption pulses reset")
-            self._cons_last_hourly_reset = timestamp
+            self._last_hourly_reset = timestamp
             _LOGGER.debug(
-                "update_pulse_counter | consumption hourly_reset_time=%s",
-                self._cons_last_hourly_reset,
+                "update_pulse_counter | hourly_reset_time=%s",
+                self._last_hourly_reset,
             )
 
         if (
@@ -311,12 +303,6 @@ class PulseCollection:
             and self._pulses_production < pulses_produced 
         ):
             self._prod_pulsecounter_reset = True
-            _LOGGER.debug("update_pulse_counter | production pulses reset")
-            self._prod_last_hourly_reset = timestamp
-            _LOGGER.debug(
-                "update_pulse_counter | production hourly_reset_time=%s",
-                self._prod_last_hourly_reset,
-            )
 
         # No rollover based on time, check rollover based on counter reset
         # Required for special cases like nodes which have been powered off for several days
@@ -780,18 +766,11 @@ class PulseCollection:
         log_timestamp = self._logs[address][slot].timestamp
         # Sync log_timestamp with the device pulsecounter reset-time
         # This syncs the daily reset of energy counters with the corresponding device pulsecounter reset
-        if (is_consumption := self._logs[address][slot].is_consumption):
-            if self._cons_last_hourly_reset is not None:
-                log_timestamp = log_timestamp + timedelta(
-                    minutes=self._cons_last_hourly_reset.minute,
-                    seconds=self._cons_last_hourly_reset.second,
-                    microseconds=self._cons_last_hourly_reset.microsecond,
-                )
-        elif self._prod_last_hourly_reset is not None:
+        if self._last_hourly_reset is not None:
             log_timestamp = log_timestamp + timedelta(
-                minutes=self._prod_last_hourly_reset.minute,
-                seconds=self._prod_last_hourly_reset.second,
-                microseconds=self._prod_last_hourly_reset.microsecond,
+                minutes=self._last_hourly_reset.minute,
+                seconds=self._last_hourly_reset.second,
+                microseconds=self._last_hourly_reset.microsecond,
             )
 
         # Update log references
