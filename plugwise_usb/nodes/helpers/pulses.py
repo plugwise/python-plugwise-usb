@@ -172,6 +172,23 @@ class PulseCollection:
         self, from_timestamp: datetime, is_consumption: bool
     ) -> tuple[int | None, datetime | None]:
         """Calculate total pulses from given timestamp."""
+
+        # Sync from_timestamp with the device pulsecounter reset-time
+        # This syncs the hourly/daily reset of energy counters with the corresponding device pulsecounter reset
+        if is_consumption:
+            if self._cons_last_hourly_reset is not None :
+                from_timestamp = from_timestamp + timedelta(
+                    minutes=self._cons_last_hourly_reset.minute,
+                    seconds=self._cons_last_hourly_reset.second,
+                    microseconds=self._cons_last_hourly_reset.microsecond,
+                )
+        elif self._prod_last_hourly_reset is not None:
+            from_timestamp = from_timestamp + timedelta(
+                minutes=self._prod_last_hourly_reset.minute,
+                seconds=self._prod_last_hourly_reset.second,
+                microseconds=self._prod_last_hourly_reset.microsecond,
+            )
+        
         _LOGGER.debug(
             "collected_pulses | %s | from_timestamp=%s | is_cons=%s | _log_production=%s",
             self._mac,
