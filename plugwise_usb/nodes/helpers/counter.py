@@ -297,7 +297,7 @@ class EnergyCounter:
                         microsecond=self._pulse_collection.consumption_last_hourly_reset.microseconds,
                     )
                 else:
-                    last_reset = last_reset.replace(minute=0, second=0, microsecond=0)
+                    last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
             elif self._pulse_collection.production_last_hourly_reset is not None:
                 last_reset = last_reset.replace(
                     hour=0,
