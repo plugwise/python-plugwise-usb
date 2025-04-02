@@ -764,6 +764,7 @@ class PulseCollection:
             return
 
         log_timestamp = self._logs[address][slot].timestamp
+        is_consumption = self._logs[address][slot].is_consumption
         # Sync log_timestamp with the device pulsecounter reset-time
         # This syncs the daily reset of energy counters with the corresponding device pulsecounter reset
         if self._last_hourly_reset is not None:
