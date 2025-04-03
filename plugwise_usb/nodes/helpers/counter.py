@@ -206,7 +206,6 @@ class EnergyCounter:
             self._is_consumption = False
         self._last_reset: datetime | None = None
         self._last_update: datetime | None = None
-        self._pulse_collection = PulseCollection(mac)
         self._pulses: int | None = None
 
     @property
@@ -289,12 +288,12 @@ class EnergyCounter:
         if self._energy_id in ENERGY_DAY_COUNTERS:
             # Sync the daily reset time with the device pulsecounter(s) reset time
             last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
-            if self._pulse_collection.last_hourly_reset is not None:
+            if pulse_collection.last_hourly_reset is not None:
                 last_reset = last_reset.replace(
                     hour=0,
-                    minute=self._pulse_collection.last_hourly_reset.minutes,
-                    second=self._pulse_collection.last_hourly_reset.seconds,
-                    microsecond=self._pulse_collection.last_hourly_reset.microseconds,
+                    minute=pulse_collection.last_hourly_reset.minutes,
+                    second=pulse_collection.last_hourly_reset.seconds,
+                    microsecond=pulse_collection.last_hourly_reset.microseconds,
                 )
 
         pulses, last_update = pulse_collection.collected_pulses(
