@@ -381,7 +381,7 @@ class PulseCollection:
             )
             return True
 
-        if last_log_timestamp < self._pulses_timestamp < next_log_timestamp:
+        if last_log_timestamp <= self._pulses_timestamp <= next_log_timestamp:
             _LOGGER.debug(
                 "_update_rollover | %s | reset %s rollover",
                 self._mac,
