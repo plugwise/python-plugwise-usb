@@ -291,10 +291,9 @@ class PulseCollection:
             and self._pulses_consumption > pulses_consumed
         ):
             self._cons_pulsecounter_reset = True
-            _LOGGER.debug("update_pulse_counter | consumption pulses reset")
             self._last_hourly_reset = timestamp
             _LOGGER.debug(
-                "update_pulse_counter | hourly_reset_time=%s",
+                "update_pulse_counter | consumption pulses reset | hourly_reset_time=%s",
                 self._last_hourly_reset,
             )
 
@@ -303,7 +302,10 @@ class PulseCollection:
             and self._pulses_production < pulses_produced 
         ):
             self._prod_pulsecounter_reset = True
-
+            _LOGGER.debug(
+                "update_pulse_counter | production pulses reset | hourly_reset_time=%s",
+                self._last_hourly_reset,
+            )
         # No rollover based on time, check rollover based on counter reset
         # Required for special cases like nodes which have been powered off for several days
         if not (self._rollover_consumption or self._rollover_production):
