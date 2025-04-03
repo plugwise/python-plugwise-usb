@@ -335,72 +335,59 @@ class PulseCollection:
         if self._log_addresses_missing is not None and self._log_addresses_missing:
             return
 
+        self._rollover_consumption = self._detect_rollover(
+            self._last_log_consumption_timestamp,
+            self._next_log_consumption_timestamp,
+        )
+        if self._log_production:
+            self._rollover_production = self._detect_rollover(
+                self._last_log_production_timestamp,
+                self._next_log_production_timestamp,
+                False,
+            )
+
+    def _detect_rollover(
+        self,
+        last_log_timestamp: datetime | None,
+        next_log_timestamp: datetime | None,
+        is_consumption=True,
+    ) -> bool:
+        """Helper function for _update_rollover()."""
         if (
             self._pulses_timestamp is None
-            or self._last_log_consumption_timestamp is None
-            or self._next_log_consumption_timestamp is None
+            or last_log_timestamp is None
+            or next_log_timestamp is None
         ):
             # Unable to determine rollover
             return
 
-        if self._pulses_timestamp > self._next_log_consumption_timestamp:
-            self._rollover_consumption = True
-            _LOGGER.debug(
-                "_update_rollover | %s | set consumption rollover => pulses newer",
-                self._mac,
-            )
-        elif self._pulses_timestamp < self._last_log_consumption_timestamp:
-            self._rollover_consumption = True
-            _LOGGER.debug(
-                "_update_rollover | %s | set consumption rollover => log newer",
-                self._mac,
-            )
-        elif (
-            self._last_log_consumption_timestamp
-            < self._pulses_timestamp
-            < self._next_log_consumption_timestamp
-        ):
-            if self._rollover_consumption:
-                _LOGGER.debug("_update_rollover | %s | reset consumption", self._mac)
-            self._rollover_consumption = False
-        else:
-            _LOGGER.debug("_update_rollover | %s | unexpected consumption", self._mac)
+        direction = "consumption"
+        if not is_consumption:
+            direction = "production"
 
-        if not self._log_production:
-            return
-
-        if (
-            self._last_log_production_timestamp is None
-            or self._next_log_production_timestamp is None
-        ):
-            # Unable to determine rollover
-            return
-
-        if not self._log_production:
-            return
-
-        if self._pulses_timestamp > self._next_log_production_timestamp:
-            self._rollover_production = True
+        if self._pulses_timestamp > next_log_timestamp:
             _LOGGER.debug(
-                "_update_rollover | %s | set production rollover => pulses newer",
+                "_update_rollover | %s | set %s rollover => pulses newer",
                 self._mac,
+                direction,
             )
-        elif self._pulses_timestamp < self._last_log_production_timestamp:
-            self._rollover_production = True
+            return True
+
+        if self._pulses_timestamp < last_log_timestamp:
             _LOGGER.debug(
-                "_update_rollover | %s | reset production rollover => log newer",
+                "_update_rollover | %s | set %s rollover => log newer",
                 self._mac,
+                direction,
             )
-        elif (
-            self._last_log_production_timestamp
-            < self._pulses_timestamp
-            < self._next_log_production_timestamp
-        ):
-            if self._rollover_production:
-                _LOGGER.debug("_update_rollover | %s | reset production", self._mac)
-            self._rollover_production = False
-        else:
-            _LOGGER.debug("_update_rollover | %s | unexpected production", self._mac)
+            return True
+
+        if last_log_timestamp < self._pulses_timestamp < next_log_timestamp:
+            _LOGGER.debug(
+                "_update_rollover | %s | reset %s rollover",
+                self._mac,
+                direction
+            )
+            return False
 
     def add_empty_log(self, address: int, slot: int) -> None:
         """Add empty energy log record to mark any start of beginning of energy log collection."""
