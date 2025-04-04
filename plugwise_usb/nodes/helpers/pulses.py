@@ -124,7 +124,7 @@ class PulseCollection:
         if self._logs is None:
             return {}
         sorted_log: dict[int, dict[int, PulseLogRecord]] = {}
-        skip_before = datetime.now(tz=UTC) - timedelta(hours=MAX_LOG_HOURS)
+        skip_before = datetime.now(tz=UTC) - timedelta(hours=MAX_LOG_HOURS)  # Should this timedelta be adapted?
         sorted_addresses = sorted(self._logs.keys(), reverse=True)
         for address in sorted_addresses:
             sorted_slots = sorted(self._logs[address].keys(), reverse=True)
@@ -462,7 +462,7 @@ class PulseCollection:
     def recalculate_missing_log_addresses(self) -> None:
         """Recalculate missing log addresses."""
         self._log_addresses_missing = self._logs_missing(
-            datetime.now(tz=UTC) - timedelta(hours=MAX_LOG_HOURS)
+            datetime.now(tz=UTC) - timedelta(hours=MAX_LOG_HOURS)  # idem
         )
 
     def _add_log_record(
@@ -481,7 +481,7 @@ class PulseCollection:
 
         # Drop useless log records when we have at least 4 logs
         if self.collected_logs > 4 and log_record.timestamp < (
-            datetime.now(tz=UTC) - timedelta(hours=MAX_LOG_HOURS)
+            datetime.now(tz=UTC) - timedelta(hours=MAX_LOG_HOURS)  # idem
         ):
             return False
 
