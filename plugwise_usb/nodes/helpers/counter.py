@@ -146,9 +146,6 @@ class EnergyCounters:
         self._energy_statistics.log_interval_consumption = (
             self._pulse_collection.log_interval_consumption
         )
-        self._energy_statistics.log_interval_production = (
-            self._pulse_collection.log_interval_production
-        )
         (
             self._energy_statistics.hour_consumption,
             self._energy_statistics.hour_consumption_reset,
