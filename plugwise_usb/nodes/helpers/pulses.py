@@ -335,11 +335,13 @@ class PulseCollection:
             return
 
         self._rollover_consumption = self._detect_rollover(
+            self._rollover_consumption,
             self._last_log_consumption_timestamp,
             self._next_log_consumption_timestamp,
         )
         if self._log_production:
             self._rollover_production = self._detect_rollover(
+                self._rollover_production,
                 self._last_log_production_timestamp,
                 self._next_log_production_timestamp,
                 False,
@@ -347,46 +349,46 @@ class PulseCollection:
 
     def _detect_rollover(
         self,
+        rollover: bool,
         last_log_timestamp: datetime | None,
         next_log_timestamp: datetime | None,
         is_consumption=True,
     ) -> bool:
         """Helper function for _update_rollover()."""
+
         if (
-            self._pulses_timestamp is None
-            or last_log_timestamp is None
-            or next_log_timestamp is None
+            self._pulses_timestamp is not None
+            and last_log_timestamp is not None
+            and next_log_timestamp is not None
         ):
-            # Unable to determine rollover
-            return
+            direction = "consumption"
+            if not is_consumption:
+                direction = "production"
 
-        direction = "consumption"
-        if not is_consumption:
-            direction = "production"
+            if self._pulses_timestamp > next_log_timestamp:
+                _LOGGER.debug(
+                    "_update_rollover | %s | set %s rollover => pulses newer",
+                    self._mac,
+                    direction,
+                )
+                return True
 
-        if self._pulses_timestamp > next_log_timestamp:
-            _LOGGER.debug(
-                "_update_rollover | %s | set %s rollover => pulses newer",
-                self._mac,
-                direction,
-            )
-            return True
+            if self._pulses_timestamp < last_log_timestamp:
+                _LOGGER.debug(
+                    "_update_rollover | %s | set %s rollover => log newer",
+                    self._mac,
+                    direction,
+                )
+                return True
 
-        if self._pulses_timestamp < last_log_timestamp:
-            _LOGGER.debug(
-                "_update_rollover | %s | set %s rollover => log newer",
-                self._mac,
-                direction,
-            )
-            return True
-
-        if last_log_timestamp <= self._pulses_timestamp <= next_log_timestamp:
-            _LOGGER.debug(
-                "_update_rollover | %s | reset %s rollover",
-                self._mac,
-                direction
-            )
-            return False
+            if last_log_timestamp <= self._pulses_timestamp <= next_log_timestamp:
+                if rollover:
+                    _LOGGER.debug(
+                        "_update_rollover | %s | reset %s rollover",
+                        self._mac,
+                        direction
+                    )
+                return False
 
     def add_empty_log(self, address: int, slot: int) -> None:
         """Add empty energy log record to mark any start of beginning of energy log collection."""
