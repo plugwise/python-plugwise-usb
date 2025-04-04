@@ -285,12 +285,12 @@ class EnergyCounter:
         if self._energy_id in ENERGY_DAY_COUNTERS:
             # Sync the daily reset time with the device pulsecounter(s) reset time
             last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
-            if pulse_collection.last_hourly_reset is not None:
+            if pulse_collection.hourly_reset_time is not None:
                 last_reset = last_reset.replace(
                     hour=0,
-                    minute=pulse_collection.last_hourly_reset.minute,
-                    second=pulse_collection.last_hourly_reset.second,
-                    microsecond=pulse_collection.last_hourly_reset.microsecond,
+                    minute=pulse_collection.hourly_reset_time.minute,
+                    second=pulse_collection.hourly_reset_time.second,
+                    microsecond=pulse_collection.hourly_reset_time.microsecond,
                 )
 
         pulses, last_update = pulse_collection.collected_pulses(
