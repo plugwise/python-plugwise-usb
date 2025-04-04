@@ -283,15 +283,9 @@ class EnergyCounter:
             # No syncing needed for the hour-counters, they reset when the device pulsecounter(s) reset
             last_reset = last_reset.replace(minute=0, second=0, microsecond=0)
         if self._energy_id in ENERGY_DAY_COUNTERS:
-            # Sync the daily reset time with the device pulsecounter(s) reset time
-            last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
-            if pulse_collection.hourly_reset_time is not None:
-                last_reset = last_reset.replace(
-                    hour=0,
-                    minute=pulse_collection.hourly_reset_time.minute,
-                    second=pulse_collection.hourly_reset_time.second,
-                    microsecond=pulse_collection.hourly_reset_time.microsecond,
-                )
+            # Postpone the daily reset time change until the device pulsecounter(s) reset
+            if pulse_collection.pulse_counter_reset:
+                last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
 
         pulses, last_update = pulse_collection.collected_pulses(
             last_reset, self._is_consumption
