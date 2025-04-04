@@ -306,7 +306,7 @@ class PulseCollection:
                 "update_pulse_counter | production pulses reset | hourly_reset_time=%s",
                 self._last_hourly_reset,
             )
-        # No rollover based on time, check rollover based on counter reset
+        # No rollover based on time, set rollover based on counter reset
         # Required for special cases like nodes which have been powered off for several days
         if not (self._rollover_consumption or self._rollover_production):
             if self._cons_pulsecounter_reset:
