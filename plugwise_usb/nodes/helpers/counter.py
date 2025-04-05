@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum, auto
 import logging
 from typing import Final
@@ -280,12 +280,14 @@ class EnergyCounter:
         """Get pulse update."""
         last_reset = datetime.now(tz=LOCAL_TIMEZONE)
         if self._energy_id in ENERGY_HOUR_COUNTERS:
-            # No syncing needed for the hour-counters, they reset when the device pulsecounter(s) reset
             last_reset = last_reset.replace(minute=0, second=0, microsecond=0)
         if self._energy_id in ENERGY_DAY_COUNTERS:
-            # Postpone the daily last_reset time-change until a device pulsecounter resets
-            if pulse_collection.pulse_counter_reset:
-                last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
+            last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Postpone the last_reset time-changes at day-end until a device pulsecounter resets
+            if last_reset.hour == 0 and not pulse_collection.pulse_counter_reset:
+                last_reset = (last_reset - timedelta(days=1)).replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
 
         pulses, last_update = pulse_collection.collected_pulses(
             last_reset, self._is_consumption
