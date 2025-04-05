@@ -189,6 +189,7 @@ class EnergyCounter:
     ) -> None:
         """Initialize energy counter based on energy id."""
         self._mac = mac
+        self._midnight_reset_passed = False
         if energy_id not in ENERGY_COUNTERS:
             raise EnergyError(f"Invalid energy id '{energy_id}' for Energy counter")
         self._calibration: EnergyCalibration | None = None
@@ -279,15 +280,22 @@ class EnergyCounter:
     ) -> tuple[float | None, datetime | None]:
         """Get pulse update."""
         last_reset = datetime.now(tz=LOCAL_TIMEZONE)
+        if self._midnight_reset_passed and last_reset.hour == 1:
+            self._midnight_reset_passed = False
+
         if self._energy_id in ENERGY_HOUR_COUNTERS:
             last_reset = last_reset.replace(minute=0, second=0, microsecond=0)
         if self._energy_id in ENERGY_DAY_COUNTERS:
             last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
             # Postpone the last_reset time-changes at day-end until a device pulsecounter resets
-            if last_reset.hour == 0 and not pulse_collection.pulse_counter_reset:
+            if last_reset.hour == 0 and (
+                not pulse_collection.pulse_counter_reset
+                and not self._midnight_reset_passed
+            ):
                 last_reset = (last_reset - timedelta(days=1)).replace(
                     hour=0, minute=0, second=0, microsecond=0
                 )
+                self._midnight_reset_passed = True
 
         pulses, last_update = pulse_collection.collected_pulses(
             last_reset, self._is_consumption
@@ -307,3 +315,4 @@ class EnergyCounter:
         energy = self.energy
         _LOGGER.debug("energy=%s on last_update=%s", energy, last_update)
         return (energy, last_reset)
+
