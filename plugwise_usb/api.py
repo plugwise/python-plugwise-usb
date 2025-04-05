@@ -216,14 +216,10 @@ class EnergyStatistics:
     hour_consumption_reset: datetime | None = None
     day_consumption: float | None = None
     day_consumption_reset: datetime | None = None
-    week_consumption: float | None = None
-    week_consumption_reset: datetime | None = None
     hour_production: float | None = None
     hour_production_reset: datetime | None = None
     day_production: float | None = None
     day_production_reset: datetime | None = None
-    week_production: float | None = None
-    week_production_reset: datetime | None = None
 
 
 class PlugwiseNode(Protocol):
