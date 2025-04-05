@@ -257,7 +257,7 @@ class PulseCollection:
             return None
 
         log_pulses = 0
-        for log_item in self._logs.values():
+        for log_item in self.logs.values():
             for slot_item in log_item.values():
                 if (
                     slot_item.is_consumption == is_consumption
