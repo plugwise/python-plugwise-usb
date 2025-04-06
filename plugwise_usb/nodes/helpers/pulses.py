@@ -468,7 +468,7 @@ class PulseCollection:
             return False
 
         # Drop useless log records when we have at least 4 logs
-        if self.collected_logs > 4 and log_record.timestamp < (
+        if self.collected_logs > 4 and log_record.timestamp <= (
             datetime.now(tz=UTC) - timedelta(hours=MAX_LOG_HOURS)
         ):
             return False
