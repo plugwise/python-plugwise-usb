@@ -939,7 +939,7 @@ class TestStick:
         )
         await stick.disconnect()
 
-    @freeze_time("2025-04-04 00:00:00", tz_offset=0)
+    @freeze_time("2025-04-04 00:00:00")
     def test_pulse_collection_consumption(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -948,7 +948,7 @@ class TestStick:
 
         # fixed_timestamp_utc = dt.now(UTC)
         # fixed_this_hour = fixed_timestamp_utc.replace(minute=0, second=0, microsecond=0)
-        fixed_this_hour = dt.now()
+        fixed_this_hour = dt.now(UTC)
 
         # Test consumption logs
         tst_consumption = pw_energy_pulses.PulseCollection(mac="0098765432101234")
