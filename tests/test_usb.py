@@ -1116,8 +1116,13 @@ class TestStick:
         pulse_update_3 = fixed_this_hour + td(hours=0, minutes=0, seconds=30)
         tst_consumption.update_pulse_counter(2500, 0, pulse_update_3)
         assert not tst_consumption.log_rollover
+        # Collected pulses last hour:
         assert tst_consumption.collected_pulses(
-            test_timestamp, is_consumption=True
+            fixed_this_hour, is_consumption=True
+        ) == (2500, pulse_update_3)
+        # Collected pulses last day:
+        assert tst_consumption.collected_pulses(
+            fixed_this_hour - td(hours=24), is_consumption=True
         ) == (2500 + 1111 + 1000 + 750, pulse_update_3)
         pulse_update_4 = fixed_this_hour + td(hours=1, minutes=1, seconds=3)
         tst_consumption.update_pulse_counter(45, 0, pulse_update_4)
