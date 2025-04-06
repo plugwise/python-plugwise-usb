@@ -939,7 +939,7 @@ class TestStick:
         )
         await stick.disconnect()
 
-    @freeze_time("2025-04-04 00:00:00")
+    @freeze_time("2025-04-03 23:00:00")
     def test_pulse_collection_consumption(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
