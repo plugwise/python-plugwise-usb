@@ -301,6 +301,7 @@ class PulseCollection:
             and self._pulses_production < pulses_produced 
         ):
             self._prod_pulsecounter_reset = True
+            self._last_hourly_reset = timestamp
             _LOGGER.debug(
                 "update_pulse_counter | production pulses reset | hourly_reset_time=%s",
                 self._last_hourly_reset,
