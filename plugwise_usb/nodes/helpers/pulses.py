@@ -165,6 +165,7 @@ class PulseCollection:
         """Return timestamp of last update."""
         return self._pulses_timestamp
 
+    @property
     def pulse_counter_reset(self) -> bool:
         """Return a pulse_counter reset."""
         return self._cons_pulsecounter_reset or self._prod_pulsecounter_reset
