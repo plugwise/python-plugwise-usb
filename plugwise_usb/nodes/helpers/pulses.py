@@ -107,13 +107,6 @@ class PulseCollection:
         return counter
 
     @property
-    def hourly_reset_time(self) -> datetime | None:
-        """Provide the device hourly pulse reset time.""" 
-        if (timestamp := self._last_hourly_reset) is not None:
-            return timestamp
-        return None
-
-    @property
     def logs(self) -> dict[int, dict[int, PulseLogRecord]]:
         """Return currently collected pulse logs in reversed order."""
         if self._logs is None:
@@ -291,22 +284,15 @@ class PulseCollection:
             and self._pulses_consumption > pulses_consumed
         ):
             self._cons_pulsecounter_reset = True
-            self._last_hourly_reset = timestamp
-            _LOGGER.debug(
-                "update_pulse_counter | consumption pulses reset | hourly_reset_time=%s",
-                self._last_hourly_reset,
-            )
+            _LOGGER.debug("update_pulse_counter | consumption pulses reset")
 
         if (
             self._pulses_production is not None
             and self._pulses_production < pulses_produced 
         ):
             self._prod_pulsecounter_reset = True
-            self._last_hourly_reset = timestamp
-            _LOGGER.debug(
-                "update_pulse_counter | production pulses reset | hourly_reset_time=%s",
-                self._last_hourly_reset,
-            )
+            _LOGGER.debug("update_pulse_counter | production pulses reset")
+
         # No rollover based on time, set rollover based on counter reset
         # Required for special cases like nodes which have been powered off for several days
         if not (self._rollover_consumption or self._rollover_production):
