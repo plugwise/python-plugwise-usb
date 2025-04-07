@@ -288,6 +288,12 @@ class EnergyCounter:
         if self._energy_id in ENERGY_DAY_COUNTERS:
             last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
             # Postpone the last_reset time-changes at day-end until a device pulsecounter resets
+            _LOGGER.debug("energycounter_update | last reset hour=%s", last_reset.hour)
+            _LOGGER.debug(
+                "energycounter_update | pulse_counter_reset=%s, midnight_reset_passed=%s",
+                pulse_collection.pulse_counter_reset,
+                self._midnight_reset_passed,
+            )
             if last_reset.hour == 0 and (
                 not pulse_collection.pulse_counter_reset
                 and not self._midnight_reset_passed
