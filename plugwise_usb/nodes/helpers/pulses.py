@@ -67,7 +67,6 @@ class PulseCollection:
         self._last_empty_log_address: int | None = None
         self._last_empty_log_slot: int | None = None
 
-        self._last_hourly_reset: datetime | None = None
         self._last_log_consumption_timestamp: datetime | None = None
         self._last_log_consumption_address: int | None = None
         self._last_log_consumption_slot: int | None = None
@@ -844,7 +843,7 @@ class PulseCollection:
         # return missing logs in range first
         if len(missing) > 0:
             _LOGGER.debug(
-            "_logs_missing | %s | missing in range=%s", self._mac, missing
+                "_logs_missing | %s | missing in range=%s", self._mac, missing
             )
             return missing
 
@@ -931,7 +930,7 @@ class PulseCollection:
             if self._log_interval_consumption == 0:
                 pass
 
-        if not self._log_production:  #False
+        if not self._log_production:
             expected_timestamp = (
                 self._logs[address][slot].timestamp - calc_interval_cons
             )
@@ -989,7 +988,7 @@ class PulseCollection:
             # Use consumption interval
             calc_interval_cons = timedelta(minutes=self._log_interval_consumption)
 
-        if not self._log_production:  # False
+        if not self._log_production:
             expected_timestamp = (
                 self._logs[address][slot].timestamp + calc_interval_cons
             )
