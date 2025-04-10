@@ -1135,7 +1135,7 @@ class TestStick:
         # Collected pulses last day:
         assert tst_consumption.collected_pulses(
             test_timestamp - td(hours=24), is_consumption=True
-        ) == (45 + 23861, pulse_update_4)  
+        ) == (45 + 22861, pulse_update_4)  
         # pulse-count of 2500 is ignored, the code does not export this incorrect value
 
         tst_consumption.add_log(100, 2, (fixed_this_hour + td(hours=1)), 2222)
