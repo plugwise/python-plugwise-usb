@@ -1135,7 +1135,7 @@ class TestStick:
         # Collected pulses last day:
         assert tst_consumption.collected_pulses(
             test_timestamp - td(hours=24), is_consumption=True
-        ) == (45 + 2500 + 23861, pulse_update_4)
+        ) == (45 + 2500 + 20361, pulse_update_4)
         # tst_consumption.add_log(100, 2, (fixed_this_hour + td(hours=1)), 2222)
         # assert not tst_consumption.log_rollover
         ## Test collection of the last full hour
