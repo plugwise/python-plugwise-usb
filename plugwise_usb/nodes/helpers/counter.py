@@ -299,11 +299,11 @@ class EnergyCounter:
                     hour=0, minute=0, second=0, microsecond=0
                 )
             else:
-                last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
                 if last_reset.hour == 0 and pulse_collection.pulse_counter_reset:
                     self._midnight_reset_passed = True
                 if last_reset.hour == 1 and self._midnight_reset_passed:
                     self._midnight_reset_passed = False
+                last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
 
         pulses, last_update = pulse_collection.collected_pulses(
             last_reset, self._is_consumption
