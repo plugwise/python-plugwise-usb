@@ -945,9 +945,6 @@ class TestStick:
     ) -> None:
         """Testing pulse collection class."""
         monkeypatch.setattr(pw_energy_pulses, "MAX_LOG_HOURS", 24)
-
-        # fixed_timestamp_utc = dt.now(UTC)
-        # fixed_this_hour = fixed_timestamp_utc.replace(minute=0, second=0, microsecond=0)
         fixed_this_hour = dt.now(UTC)
 
         # Test consumption logs
@@ -1086,7 +1083,6 @@ class TestStick:
 
         assert not tst_consumption.log_rollover
         # add missing logs
-        test_timestamp = fixed_this_hour - td(hours=3)
         tst_consumption.add_log(99, 2, (fixed_this_hour - td(hours=3)), 1000)
         tst_consumption.add_log(99, 1, (fixed_this_hour - td(hours=4)), 1000)
         tst_consumption.add_log(98, 4, (fixed_this_hour - td(hours=5)), 1000)
