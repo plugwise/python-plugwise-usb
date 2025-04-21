@@ -318,7 +318,12 @@ class StickNetwork:
         ):
             if load:
                 return await self._load_node(self._controller.mac_coordinator)
+            if self.accept_join_request:
+                await self.allow_join_requests(True)
+            else:
+                await self.allow_join_requests(False)
             return True
+
         return False
 
     # endregion
