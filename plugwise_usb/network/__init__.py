@@ -321,8 +321,10 @@ class StickNetwork:
                 return await self._load_node(self._controller.mac_coordinator)
             if self.accept_join_request and not self._old_acc_join_req:
                 await self.allow_join_requests(True)
+                self._old_acc_join_req = True
             if not self.accept_join_request and self._old_acc_join_req:
                 await self.allow_join_requests(False)
+                self._old_acc_join_req = False
             return True
 
         return False
