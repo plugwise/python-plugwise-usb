@@ -319,12 +319,6 @@ class StickNetwork:
         ):
             if load:
                 return await self._load_node(self._controller.mac_coordinator)
-            if self.accept_join_request and not self._old_acc_join_req:
-                await self.allow_join_requests(True)
-                self._old_acc_join_req = True
-            if not self.accept_join_request and self._old_acc_join_req:
-                await self.allow_join_requests(False)
-                self._old_acc_join_req = False
             return True
 
         return False
@@ -493,9 +487,18 @@ class StickNetwork:
         await self.discover_network_coordinator(load=load)
         if not self._is_running:
             await self.start()
+
         await self._discover_registered_nodes()
         if load:
             return await self._load_discovered_nodes()
+
+        if self.accept_join_request and not self._old_acc_join_req:
+            await self.allow_join_requests(True)
+            self._old_acc_join_req = True
+        if not self.accept_join_request and self._old_acc_join_req:
+            await self.allow_join_requests(False)
+            self._old_acc_join_req = False
+
         return True
 
     async def stop(self) -> None:
