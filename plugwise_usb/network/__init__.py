@@ -40,6 +40,7 @@ class StickNetwork:
 
     accept_join_request = False
     _event_subscriptions: dict[StickEvent, int] = {}
+    _old_acc_join_req = False
 
     def __init__(
         self,
@@ -318,9 +319,9 @@ class StickNetwork:
         ):
             if load:
                 return await self._load_node(self._controller.mac_coordinator)
-            if self.accept_join_request:
+            if self.accept_join_request and not self._old_acc_join_req:
                 await self.allow_join_requests(True)
-            else:
+            if not self.accept_join_request and self._old_acc_join_req:
                 await self.allow_join_requests(False)
             return True
 
