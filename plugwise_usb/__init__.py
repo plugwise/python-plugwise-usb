@@ -206,7 +206,7 @@ class Stick:
             )
 
         self._network.accept_join_request = state
-        create_task(self._network.allow_join_requests(state))
+        task = create_task(self._network.allow_join_requests(state))
 
     async def clear_cache(self) -> None:
         """Clear current cache."""
