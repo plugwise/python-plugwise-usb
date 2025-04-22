@@ -6,7 +6,7 @@ in the LICENSE file.
 
 from __future__ import annotations
 
-from asyncio import get_running_loop
+from asyncio import create_task, get_running_loop
 from collections.abc import Callable, Coroutine
 from functools import wraps
 import logging
@@ -206,7 +206,7 @@ class Stick:
             )
 
         self._network.accept_join_request = state
-        self._network.allow_join_requests(state)
+        create_task(self._network.allow_join_requests(state))
 
     async def clear_cache(self) -> None:
         """Clear current cache."""
