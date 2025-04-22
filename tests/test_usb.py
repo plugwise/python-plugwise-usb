@@ -469,7 +469,7 @@ class TestStick:
         assert stick.accept_join_request is None
         # test failing of join requests without active discovery
         with pytest.raises(pw_exceptions.StickError):
-            stick.accept_join_request = True
+            await setattr(stick.accept_join_request, "attrib", True)
         unsub_connect()
         await stick.disconnect()
         assert not stick.network_state
@@ -572,7 +572,7 @@ class TestStick:
         await stick.connect()
         await stick.initialize()
         await stick.discover_nodes(load=False)
-        stick.accept_join_request = True
+        await setattr(stick.accept_join_request, "attrib", True)
         self.test_node_awake = asyncio.Future()
         unsub_awake = stick.subscribe_to_node_events(
             node_event_callback=self.node_awake,
