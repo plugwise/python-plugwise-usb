@@ -14,9 +14,7 @@ classifiers     = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Home Automation",
 ]
 authors = [
@@ -29,7 +27,7 @@ maintainers = [
         { name = "CoMPaTech" },
         { name = "dirixmjm" }
 ]
-requires-python = ">=3.10.0"
+requires-python = ">=3.13.0"
 dependencies    = [
         "aiohttp",
         "async_timeout",
@@ -56,7 +54,7 @@ include-package-data = true
 include = ["plugwise*"]
 
 [tool.black]
-target-version = ["py312"]
+target-version = ["py313"]
 exclude = 'generated'
 
 [tool.isort]
@@ -193,7 +191,7 @@ norecursedirs = [
 ]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.13"
 show_error_codes = true
 follow_imports = "silent"
 ignore_missing_imports = true
