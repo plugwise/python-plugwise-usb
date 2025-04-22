@@ -511,7 +511,6 @@ class StickNetwork:
     async def allow_join_requests(self, state: bool) -> None:
         """Enable or disable Plugwise network."""
         request = CirclePlusAllowJoiningRequest(self._controller.send, state)
-        response = await request.send()
         if (response := await request.send()) is None:
             raise NodeError("No response to get notifications for join request.")
 
