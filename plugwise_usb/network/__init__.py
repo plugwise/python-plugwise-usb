@@ -40,7 +40,6 @@ class StickNetwork:
 
     accept_join_request = False
     _event_subscriptions: dict[StickEvent, int] = {}
-    _old_acc_join_req = False
 
     def __init__(
         self,
