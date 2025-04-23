@@ -251,7 +251,7 @@ class StickNetwork:
             await self._notify_node_event_subscribers(NodeEvent.JOIN, mac)
             return True
         
-        _LOGGER.debug("Joining of available Node (%s) failed", mac)
+        _LOGGER.debug("Joining of available Node %s failed", mac)
         return False
 
     async def node_rejoin_message(self, response: PlugwiseResponse) -> bool:
