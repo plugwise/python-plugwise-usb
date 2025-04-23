@@ -247,8 +247,12 @@ class StickNetwork:
                 f"Invalid response message type ({response.__class__.__name__}) received, expected NodeJoinAvailableResponse"
             )
         mac = response.mac_decoded
-        await self._notify_node_event_subscribers(NodeEvent.JOIN, mac)
-        return True
+        if self.register_node(mac):
+            await self._notify_node_event_subscribers(NodeEvent.JOIN, mac)
+            return True
+        
+        _LOGGER.debug("Failed to register available Node with mac=%s", mac)
+        return False
 
     async def node_rejoin_message(self, response: PlugwiseResponse) -> bool:
         """Handle NodeRejoinResponse messages."""
