@@ -170,6 +170,7 @@ overgeneral-exceptions = [
 ]
 
 [tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "session"
 asyncio_mode = "strict"
 markers = [
     # mark a test as a asynchronous io test.
