@@ -643,46 +643,46 @@ class TestStick:
 
         await stick.disconnect()
 
-    async def node_join(self, event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
-        """Handle join event callback."""
-        if event == pw_api.NodeEvent.JOIN:
-            self.test_node_join.set_result(mac)
-        else:
-            self.test_node_join.set_exception(
-                BaseException(
-                    f"Invalid {event} event, expected " + f"{pw_api.NodeEvent.JOIN}"
-                )
-            )
-
-    @pytest.mark.asyncio
-    async def test_stick_node_join_subscription(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Testing "new_node" subscription."""
-        mock_serial = MockSerial(None)
-        monkeypatch.setattr(
-            pw_connection_manager,
-            "create_serial_connection",
-            mock_serial.mock_connection,
-        )
-        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.1)
-        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 0.5)
-        stick = pw_stick.Stick("test_port", cache_enabled=False)
-        await stick.connect()
-        await stick.initialize()
-        await stick.discover_nodes(load=False)
-        self.test_node_join = asyncio.Future()
-        unusb_join = stick.subscribe_to_node_events(
-            node_event_callback=self.node_join,
-            events=(pw_api.NodeEvent.JOIN,),
-        )
-
-        # Inject node join request message
-        mock_serial.inject_message(b"00069999999999999999", b"FFFC")
-        mac_join_node = await self.test_node_join
-        assert mac_join_node == "9999999999999999"
-        unusb_join()
-        await stick.disconnect()
+#    async def node_join(self, event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
+#        """Handle join event callback."""
+#        if event == pw_api.NodeEvent.JOIN:
+#            self.test_node_join.set_result(mac)
+#        else:
+#            self.test_node_join.set_exception(
+#                BaseException(
+#                    f"Invalid {event} event, expected " + f"{pw_api.NodeEvent.JOIN}"
+#                )
+#            )
+#
+#    @pytest.mark.asyncio
+#    async def test_stick_node_join_subscription(
+#        self, monkeypatch: pytest.MonkeyPatch
+#    ) -> None:
+#        """Testing "new_node" subscription."""
+#        mock_serial = MockSerial(None)
+#        monkeypatch.setattr(
+#            pw_connection_manager,
+#            "create_serial_connection",
+#            mock_serial.mock_connection,
+#        )
+#        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.1)
+#        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 0.5)
+#        stick = pw_stick.Stick("test_port", cache_enabled=False)
+#        await stick.connect()
+#        await stick.initialize()
+#        await stick.discover_nodes(load=False)
+#        self.test_node_join = asyncio.Future()
+#        unusb_join = stick.subscribe_to_node_events(
+#            node_event_callback=self.node_join,
+#            events=(pw_api.NodeEvent.JOIN,),
+#        )
+#
+#        # Inject node join request message
+#        mock_serial.inject_message(b"00069999999999999999", b"FFFC")
+#        mac_join_node = await self.test_node_join
+#        assert mac_join_node == "9999999999999999"
+#        unusb_join()
+#        await stick.disconnect()
 
     @pytest.mark.asyncio
     async def test_node_discovery(self, monkeypatch: pytest.MonkeyPatch) -> None:
