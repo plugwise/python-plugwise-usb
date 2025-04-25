@@ -409,13 +409,13 @@ class CirclePlusConnectRequest(PlugwiseRequest):
         return MESSAGE_HEADER + msg + checksum + MESSAGE_FOOTER
 
 
-class PlugwiseRequestWithNodeAckResponse(PlugwiseRequest):
+class PlugwiseRequestWithStickResponse(PlugwiseRequest):
     """Base class of a plugwise request with a NodeAckResponse."""
 
-    async def send(self, suppress_node_errors: bool = False) -> NodeAckResponse | None:
+    async def send(self, suppress_node_errors: bool = False) -> StickResponse | None:
         """Send request."""
         result = await self._send_request(suppress_node_errors)
-        if isinstance(result, NodeAckResponse):
+        if isinstance(result, StickResponse):
             return result
         if result is None:
             return None
@@ -424,7 +424,7 @@ class PlugwiseRequestWithNodeAckResponse(PlugwiseRequest):
         )
 
 
-class NodeAddRequest(PlugwiseRequestWithNodeAckResponse):
+class NodeAddRequest(PlugwiseRequestWithStickResponse):
     """Add node to the Plugwise Network and add it to memory of Circle+ node.
 
     Supported protocols : 1.0, 2.0
@@ -432,7 +432,7 @@ class NodeAddRequest(PlugwiseRequestWithNodeAckResponse):
     """
 
     _identifier = b"0007"
-    _reply_identifier = b"0005"
+    _reply_identifier = b"0000"  #"0005"
 
     def __init__(
         self,
