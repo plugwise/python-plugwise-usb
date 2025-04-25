@@ -1039,20 +1039,23 @@ class PlugwiseCircle(PlugwiseBaseNode):
             negative = True
             pulses_per_s = abs(pulses_per_s)
 
-        corrected_pulses = seconds * (
-            (
+        corrected_pulses = max(
+            0, 
+            seconds * (
                 (
-                    ((pulses_per_s + self._calibration.off_noise) ** 2)
-                    * self._calibration.gain_b
+                    (
+                        ((pulses_per_s + self._calibration.off_noise) ** 2)
+                        * self._calibration.gain_b
+                    )
+                    + (
+                        (pulses_per_s + self._calibration.off_noise)
+                        * self._calibration.gain_a
+                    )
                 )
-                + (
-                    (pulses_per_s + self._calibration.off_noise)
-                    * self._calibration.gain_a
-                )
+                + self._calibration.off_tot
             )
-            + self._calibration.off_tot
         )
-        if negative:
+        if negative and corrected_pulses != 0:
             corrected_pulses = -corrected_pulses
 
         return corrected_pulses / PULSES_PER_KW_SECOND / seconds * (1000)
