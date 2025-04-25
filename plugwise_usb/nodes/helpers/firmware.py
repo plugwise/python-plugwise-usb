@@ -46,7 +46,7 @@ CIRCLE_FIRMWARE_SUPPORT: Final = {
     # Proto release
     datetime(2015, 6, 16, 21, 9, 10, tzinfo=UTC): SupportedVersions(min=2.0, max=2.6),
     datetime(2015, 6, 18, 14, 0, 54, tzinfo=UTC): SupportedVersions(min=2.0, max=2.6),
-    datetime(2015, 9, 18, 8, 53, 15, tzinfo=UTC): SupportedVersions(min=2.0, max=2.6),
+    datetime(2015, 9, 18, 8, 53, 15, tzinfo=UTC): SupportedVersions(min=2.0, max=2.5),
     # New Flash Update
     datetime(2017, 7, 11, 16, 6, 59, tzinfo=UTC): SupportedVersions(min=2.0, max=2.6),
 }
