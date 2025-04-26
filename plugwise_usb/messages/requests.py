@@ -428,11 +428,10 @@ class NodeAddRequest(PlugwiseRequestWithStickResponse):
     """Add node to the Plugwise Network and add it to memory of Circle+ node.
 
     Supported protocols : 1.0, 2.0
-    Response message    : TODO check if response is NodeAckResponse
+    Response message    : (@bouwew) b"0000" - StickResponse is returned
     """
 
     _identifier = b"0007"
-    _reply_identifier = b"0000"  #"0005"
 
     def __init__(
         self,
@@ -468,7 +467,6 @@ class CirclePlusAllowJoiningRequest(PlugwiseRequest):
     """
 
     _identifier = b"0008"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -757,7 +755,6 @@ class CircleClockSetRequest(PlugwiseRequest):
     """
 
     _identifier = b"0016"
-    _reply_identifier = b"0000"
 
     # pylint: disable=too-many-arguments
     def __init__(
@@ -812,7 +809,6 @@ class CircleRelaySwitchRequest(PlugwiseRequest):
     """
 
     _identifier = b"0017"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -978,7 +974,6 @@ class CirclePlusRealTimeClockSetRequest(PlugwiseRequest):
     """
 
     _identifier = b"0028"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -1068,7 +1063,6 @@ class CircleActivateScheduleRequest(PlugwiseRequest):
     """
 
     _identifier = b"0040"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -1091,7 +1085,6 @@ class NodeAddToGroupRequest(PlugwiseRequest):
     """
 
     _identifier = b"0045"
-    _reply_identifier = b"0000"
 
     # pylint: disable=too-many-arguments
     def __init__(
@@ -1128,7 +1121,6 @@ class NodeRemoveFromGroupRequest(PlugwiseRequest):
     """
 
     _identifier = b"0046"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -1149,7 +1141,6 @@ class NodeBroadcastGroupSwitchRequest(PlugwiseRequest):
     """
 
     _identifier = b"0047"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -1209,7 +1200,6 @@ class CircleHandlesOffRequest(PlugwiseRequest):
     """
 
     _identifier = b"004D"
-    _reply_identifier = b"0000"
 
 
 class CircleHandlesOnRequest(PlugwiseRequest):
@@ -1219,7 +1209,6 @@ class CircleHandlesOnRequest(PlugwiseRequest):
     """
 
     _identifier = b"004E"
-    _reply_identifier = b"0000"
 
 
 class NodeSleepConfigRequest(PlugwiseRequest):
@@ -1240,7 +1229,6 @@ class NodeSleepConfigRequest(PlugwiseRequest):
     """
 
     _identifier = b"0050"
-    _reply_identifier = b"0000"
 
     # pylint: disable=too-many-arguments
     def __init__(
@@ -1298,7 +1286,6 @@ class NodeSelfRemoveRequest(PlugwiseRequest):
     """
 
     _identifier = b"0051"
-    _reply_identifier = b"0000"
 
 
 class CircleMeasureIntervalRequest(PlugwiseRequest):
@@ -1310,7 +1297,6 @@ class CircleMeasureIntervalRequest(PlugwiseRequest):
     """
 
     _identifier = b"0057"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -1332,7 +1318,6 @@ class NodeClearGroupMacRequest(PlugwiseRequest):
     """
 
     _identifier = b"0058"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -1352,7 +1337,6 @@ class CircleSetScheduleValueRequest(PlugwiseRequest):
     """
 
     _identifier = b"0059"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
