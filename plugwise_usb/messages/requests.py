@@ -424,7 +424,7 @@ class PlugwiseRequestWithStickResponse(PlugwiseRequest):
         )
 
 
-class NodeAddRequest(PlugwiseRequestWithStickResponse):
+class NodeAddRequest(PlugwiseRequest):
     """Add node to the Plugwise Network and add it to memory of Circle+ node.
 
     Supported protocols : 1.0, 2.0
