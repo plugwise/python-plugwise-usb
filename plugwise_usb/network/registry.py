@@ -270,7 +270,6 @@ class StickNetworkRegister:
             raise NodeError(f"No existing registration '{mac}' found to unregister")
 
         request = NodeRemoveRequest(self._send_to_controller, self._mac_nc, mac)
-        response = await request.send()
         if (response := await request.send()) is None:
             raise NodeError(
                 f"The Zigbee network coordinator '{self._mac_nc!r}'"
