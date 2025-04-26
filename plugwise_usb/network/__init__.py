@@ -516,11 +516,10 @@ class StickNetwork:
         _LOGGER.debug("Send AllowJoiningRequest to Circle+ with state=%s", state)
         request = CirclePlusAllowJoiningRequest(self._controller.send, state)
         if (response := await request.send()) is None:
-            raise NodeError("No response for AllowJoiningRequest request.")
+            raise NodeError("No response for CirclePlusAllowJoiningRequest.")
 
-        if (
-            response.response_type != NodeResponseType.JOIN_ACCEPTED  # state = True
-            or response.response_type != NodeResponseType.CIRCLE_PLUS  # state = False
+        if response.response_type not in (
+            NodeResponseType.JOIN_ACCEPTED, NodeResponseType.CIRCLE_PLUS
         ):
             raise MessageError(
                 f"Unknown NodeResponseType '{response.response_type.name}' received"
