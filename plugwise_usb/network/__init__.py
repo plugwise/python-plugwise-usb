@@ -513,16 +513,18 @@ class StickNetwork:
 
     async def allow_join_requests(self, state: bool) -> None:
         """Enable or disable Plugwise network."""
+        _LOGGER.debug("Send AllowJoiningRequest to Circle+ with state=%s", state)
         request = CirclePlusAllowJoiningRequest(self._controller.send, state)
         if (response := await request.send()) is None:
-            raise NodeError("No response to get notifications for join request.")
+            raise NodeError("No response for AllowJoiningRequest request.")
 
-        if response.response_type != NodeResponseType.JOIN_ACCEPTED:
+        if (
+            response.response_type != NodeResponseType.JOIN_ACCEPTED
+            or response.response_type != StickResponse,
+        ):
             raise MessageError(
                 f"Unknown NodeResponseType '{response.response_type.name}' received"
             )
-
-        _LOGGER.debug("Send AllowJoiningRequest to Circle+ with state=%s", state)
 
     def subscribe_to_node_events(
         self,
