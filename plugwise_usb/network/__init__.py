@@ -27,7 +27,6 @@ from ..messages.responses import (
     NodeRejoinResponse,
     NodeResponseType,
     PlugwiseResponse,
-    StickResponseType,
 )
 from ..nodes import get_plugwise_node
 from .registry import StickNetworkRegister
@@ -520,8 +519,8 @@ class StickNetwork:
             raise NodeError("No response for AllowJoiningRequest request.")
 
         if (
-            response.response_type != NodeResponseType.JOIN_ACCEPTED
-            or response.response_type != StickResponseType
+            response.response_type != NodeResponseType.JOIN_ACCEPTED  # state = True
+            or response.response_type != NodeResponseType.CIRCLE_PLUS  # state = False
         ):
             raise MessageError(
                 f"Unknown NodeResponseType '{response.response_type.name}' received"

@@ -56,6 +56,7 @@ class StickResponseType(bytes, Enum):
 class NodeResponseType(bytes, Enum):
     """Response types of a 'NodeResponse' reply message."""
 
+    CIRCLE_PLUS = b"00DD"
     CLOCK_ACCEPTED = b"00D7"
     JOIN_ACCEPTED = b"00D9"
     RELAY_SWITCHED_OFF = b"00DE"
@@ -69,7 +70,6 @@ class NodeResponseType(bytes, Enum):
     SED_CONFIG_FAILED = b"00F7"
     POWER_LOG_INTERVAL_ACCEPTED = b"00F8"
     POWER_CALIBRATION_ACCEPTED = b"00DA"
-    CIRCLE_PLUS = b"00DD"
 
 
 class NodeAckResponseType(bytes, Enum):
