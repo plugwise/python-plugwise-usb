@@ -14,7 +14,6 @@ from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
 from ..constants import UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
-from ..helpers.util import validate_mac
 from ..messages.requests import CirclePlusAllowJoiningRequest, NodePingRequest
 from ..messages.responses import (
     NODE_AWAKE_RESPONSE_ID,
@@ -149,8 +148,6 @@ class StickNetwork:
 
     async def register_node(self, mac: str) -> bool:
         """Register node to Plugwise network."""
-        if not validate_mac(mac):
-            raise NodeError(f"MAC '{mac}' invalid")
         address = await self._register.register_node(mac)
         return await self._discover_node(address, mac, None)
 

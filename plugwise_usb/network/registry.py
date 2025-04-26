@@ -246,7 +246,7 @@ class StickNetworkRegister:
     async def register_node(self, mac: str) -> int:
         """Register node to Plugwise network and return network address."""
         if not validate_mac(mac):
-            raise NodeError(f"Invalid mac '{mac}' to register")
+            raise NodeError(f"MAC '{mac}' invalid")
 
         request = NodeAddRequest(self._send_to_controller, bytes(mac, UTF8), True)
         response = await request.send()
@@ -259,7 +259,7 @@ class StickNetworkRegister:
     async def unregister_node(self, mac: str) -> None:
         """Unregister node from current Plugwise network."""
         if not validate_mac(mac):
-            raise NodeError(f"Invalid mac '{mac}' to unregister")
+            raise NodeError(f"MAC '{mac}' invalid")
 
         mac_registered = False
         for registration in self._registry.values():

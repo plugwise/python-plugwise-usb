@@ -410,7 +410,7 @@ class CirclePlusConnectRequest(PlugwiseRequest):
 
 
 class PlugwiseRequestWithStickResponse(PlugwiseRequest):
-    """Base class of a plugwise request with a NodeAckResponse."""
+    """Base class of a plugwise request resulting in a StickResponse."""
 
     async def send(self, suppress_node_errors: bool = False) -> StickResponse | None:
         """Send request."""
