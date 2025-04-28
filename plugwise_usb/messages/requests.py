@@ -409,26 +409,11 @@ class CirclePlusConnectRequest(PlugwiseRequest):
         return MESSAGE_HEADER + msg + checksum + MESSAGE_FOOTER
 
 
-class PlugwiseRequestWithStickResponse(PlugwiseRequest):
-    """Base class of a plugwise request resulting in a StickResponse."""
-
-    async def send(self, suppress_node_errors: bool = False) -> StickResponse | None:
-        """Send request."""
-        result = await self._send_request(suppress_node_errors)
-        if isinstance(result, StickResponse):
-            return result
-        if result is None:
-            return None
-        raise MessageError(
-            f"Invalid response message. Received {result.__class__.__name__}, expected NodeAckResponse"
-        )
-
-
 class NodeAddRequest(PlugwiseRequest):
     """Add node to the Plugwise Network and add it to memory of Circle+ node.
 
     Supported protocols : 1.0, 2.0
-    Response message    : (@bouwew) b"0000" - StickResponse is returned
+    Response message    : (@bouwew) no Response
     """
 
     _identifier = b"0007"
@@ -440,9 +425,16 @@ class NodeAddRequest(PlugwiseRequest):
         accept: bool,
     ) -> None:
         """Initialize NodeAddRequest message object."""
-        super().__init__(None, mac)
+        super().__init__(send_fn, mac)
         accept_value = 1 if accept else 0
         self._args.append(Int(accept_value, length=2))
+
+    async def send(self, suppress_node_errors: bool = False) -> None:
+        """Send request."""
+        if (result := await self._send_request(suppress_node_errors)) is not None:
+            raise MessageError(
+                f"Invalid response message. Received {result.__class__.__name__}, expected no Response"
+        )
 
     # This message has an exceptional format (MAC at end of message)
     # and therefore a need to override the serialize method
