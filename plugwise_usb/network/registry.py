@@ -17,7 +17,7 @@ from ..messages.requests import (
     NodeRemoveRequest,
     PlugwiseRequest,
 )
-from ..messages.responses import PlugwiseResponse, StickResponseType
+from ..messages.responses import PlugwiseResponse  #, StickResponseType
 from .cache import NetworkRegistrationCache
 
 _LOGGER = logging.getLogger(__name__)
@@ -248,10 +248,10 @@ class StickNetworkRegister:
         if not validate_mac(mac):
             raise NodeError(f"MAC '{mac}' invalid")
 
-        request = NodeAddRequest(self._send_to_controller, bytes(mac, UTF8), True)
-        response = await request.send()
-        if response is None or response.ack_id != StickResponseType.ACCEPT:
-            raise NodeError(f"Failed to register node {mac}")
+        _ = NodeAddRequest(self._send_to_controller, bytes(mac, UTF8), True)
+        # response = await request.send()
+        # if response is None or response.ack_id != StickResponseType.ACCEPT:
+        #     raise NodeError(f"Failed to register node {mac}")
         self.update_network_registration(self._first_free_address, mac, None)
         self._first_free_address += 1
         return self._first_free_address - 1
