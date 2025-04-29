@@ -252,7 +252,8 @@ class MockStickController:
     async def send(
         self,
         request: pw_requests.PlugwiseRequest,  # type: ignore[name-defined]
-        suppress_node_errors: bool = True,
+        suppress_node_errors=True,
+        no_response_expected=False,
     ) -> pw_responses.PlugwiseResponse | None:  # type: ignore[name-defined]
         """Submit request to queue and return response."""
         return self.send_response

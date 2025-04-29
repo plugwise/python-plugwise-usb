@@ -304,12 +304,14 @@ class PlugwiseRequest(PlugwiseMessage):
             )
 
     async def _send_request(
-        self, suppress_node_errors=False
+        self, suppress_node_errors=False, no_response_expected=False
     ) -> PlugwiseResponse | None:
         """Send request."""
         if self._send_fn is None:
             return None
-        return await self._send_fn(self, suppress_node_errors)
+        return await self._send_fn(
+            self, suppress_node_errors, no_response_expected
+        )
 
     @property
     def max_retries(self) -> int:
@@ -428,7 +430,7 @@ class NodeAddRequest(PlugwiseRequest):
     async def send(self) -> None:
         """Send request."""
         if (
-            result := await self._send_request()
+            result := await self._send_request(no_response_expected=True)
         ) is not None:
             raise MessageError(
                 f"Invalid response message. Received {result.__class__.__name__}, expected no Response"
