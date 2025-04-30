@@ -233,13 +233,12 @@ class StickController:
         self,
         request: PlugwiseRequest,
         suppress_node_errors=True,
-        no_response_expected=False,
     ) -> PlugwiseResponse | None:
         """Submit request to queue and return response."""
         if not suppress_node_errors:
-            return await self._queue.submit(request, no_response_expected)
+            return await self._queue.submit(request)
         try:
-            return await self._queue.submit(request, no_response_expected)
+            return await self._queue.submit(request)
         except (NodeError, StickError):
             return None
 

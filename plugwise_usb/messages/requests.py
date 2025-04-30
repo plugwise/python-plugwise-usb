@@ -68,6 +68,7 @@ class PlugwiseRequest(PlugwiseMessage):
         send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]]
         | None,
         mac: bytes | None,
+        node_response=True,
     ) -> None:
         """Initialize request message."""
         super().__init__()
@@ -104,8 +105,12 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_stick_response: Callable[[], None] | None = None
         self._unsubscribe_node_response: Callable[[], None] | None = None
         self._response_timeout: TimerHandle | None = None
-        self._response_future: Future[PlugwiseResponse] = self._loop.create_future()
+        self._response_future: Future[PlugwiseResponse] | None = None
+        if node_response:
+            self._response_future = self._loop.create_future()
         self._waiting_for_response = False
+
+        self.node_response_expected: bool = node_response
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
@@ -171,12 +176,13 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_stick_response = await stick_subscription_fn(
             self._process_stick_response, self._seq_id, None
         )
-        self._unsubscribe_node_response = await node_subscription_fn(
-            self.process_node_response,
-            self._mac,
-            (self._reply_identifier,),
-            self._seq_id,
-        )
+        if self.node_response_expected:
+            self._unsubscribe_node_response = await node_subscription_fn(
+                self.process_node_response,
+                self._mac,
+                (self._reply_identifier,),
+                self._seq_id,
+            )
 
     def _unsubscribe_from_stick(self) -> None:
         """Unsubscribe from StickResponse messages."""
@@ -221,7 +227,8 @@ class PlugwiseRequest(PlugwiseMessage):
             )
         self._seq_id = None
         self._unsubscribe_from_stick()
-        self._unsubscribe_from_node()
+        if self.node_response_expected:
+            self._unsubscribe_from_node()
         if stick_timeout:
             self._response_future.set_exception(
                 StickTimeout(f"USB-stick responded with time out to {self}")
@@ -237,7 +244,8 @@ class PlugwiseRequest(PlugwiseMessage):
         """Assign error for this request."""
         self.stop_response_timeout()
         self._unsubscribe_from_stick()
-        self._unsubscribe_from_node()
+        if self.node_response_expected:
+            self._unsubscribe_from_node()
         if self._response_future.done():
             return
         self._waiting_for_response = False
@@ -266,7 +274,8 @@ class PlugwiseRequest(PlugwiseMessage):
         self._response = copy(response)
         self.stop_response_timeout()
         self._unsubscribe_from_stick()
-        self._unsubscribe_from_node()
+        if self.node_response_expected:
+            self._unsubscribe_from_node()
         if self._send_counter > 1:
             _LOGGER.debug(
                 "Received %s after %s retries as reply to %s",
@@ -303,15 +312,11 @@ class PlugwiseRequest(PlugwiseMessage):
                 self,
             )
 
-    async def _send_request(
-        self, suppress_node_errors=False, no_response_expected=False
-    ) -> PlugwiseResponse | None:
+    async def _send_request(self, suppress_node_errors=False) -> PlugwiseResponse | None:
         """Send request."""
         if self._send_fn is None:
             return None
-        return await self._send_fn(
-            self, suppress_node_errors, no_response_expected
-        )
+        return await self._send_fn(self, suppress_node_errors)
 
     @property
     def max_retries(self) -> int:
@@ -423,14 +428,14 @@ class NodeAddRequest(PlugwiseRequest):
         accept: bool,
     ) -> None:
         """Initialize NodeAddRequest message object."""
-        super().__init__(send_fn, mac)
+        super().__init__(send_fn, mac, node_response=False)
         accept_value = 1 if accept else 0
         self._args.append(Int(accept_value, length=2))
 
     async def send(self) -> None:
         """Send request."""
         if (
-            result := await self._send_request(no_response_expected=True)
+            result := await self._send_request()
         ) is not None:
             raise MessageError(
                 f"Invalid response message. Received {result.__class__.__name__}, expected no Response"

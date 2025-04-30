@@ -74,9 +74,7 @@ class StickQueue:
         self._stick = None
         _LOGGER.debug("queue stopped")
 
-    async def submit(
-        self, request: PlugwiseRequest, no_response_expected: bool
-    ) -> PlugwiseResponse | None:
+    async def submit(self, request: PlugwiseRequest) -> PlugwiseResponse | None:
         """Add request to queue and return the response of node. Raises an error when something fails."""
         if request.waiting_for_response:
             raise MessageError(
@@ -92,7 +90,7 @@ class StickQueue:
                 )
             await self._add_request_to_queue(request)
             try:
-                if no_response_expected:
+                if not request.node_response_expected:
                     return None
                 response: PlugwiseResponse = await request.response_future()
                 return response
