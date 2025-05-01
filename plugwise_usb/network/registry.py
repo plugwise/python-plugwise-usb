@@ -17,7 +17,7 @@ from ..messages.requests import (
     NodeRemoveRequest,
     PlugwiseRequest,
 )
-from ..messages.responses import PlugwiseResponse  #, StickResponseType
+from ..messages.responses import PlugwiseResponse
 from .cache import NetworkRegistrationCache
 
 _LOGGER = logging.getLogger(__name__)
