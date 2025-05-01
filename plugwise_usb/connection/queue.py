@@ -75,48 +75,52 @@ class StickQueue:
         _LOGGER.debug("queue stopped")
 
     async def submit(self, request: PlugwiseRequest) -> PlugwiseResponse | None:
-        """Add request to queue and return the response of node. Raises an error when something fails."""
+        """Add request to queue and return the received node-response when applicable.
+        
+        Raises an error when something fails.
+        """
         if request.waiting_for_response:
             raise MessageError(
                 f"Cannot send message {request} which is currently waiting for response."
             )
 
-        while request.resend and not request.waiting_for_response:
+        while request.resend:
             _LOGGER.debug("submit | start (%s) %s", request.retries_left, request)
             if not self._running or self._stick is None:
                 raise StickError(
                     f"Cannot send message {request.__class__.__name__} for"
                     + f"{request.mac_decoded} because queue manager is stopped"
                 )
+
             await self._add_request_to_queue(request)
             try:
                 if not request.node_response_expected:
                     return None
                 response: PlugwiseResponse = await request.response_future()
                 return response
-            except (NodeTimeout, StickTimeout) as e:
+            except (NodeTimeout, StickTimeout) as exc:
                 if isinstance(request, NodePingRequest):
                     # For ping requests it is expected to receive timeouts, so lower log level
                     _LOGGER.debug(
-                        "%s, cancel because timeout is expected for NodePingRequests", e
+                        "%s, cancel because timeout is expected for NodePingRequests", exc
                     )
                 elif request.resend:
-                    _LOGGER.debug("%s, retrying", e)
+                    _LOGGER.debug("%s, retrying", exc)
                 else:
-                    _LOGGER.warning("%s, cancel request", e)  # type: ignore[unreachable]
-            except StickError as exception:
-                _LOGGER.error(exception)
+                    _LOGGER.warning("%s, cancel request", exc)  # type: ignore[unreachable]
+            except StickError as exc:
+                _LOGGER.error(exc)
                 self._stick.correct_received_messages(1)
                 raise StickError(
                     f"No response received for {request.__class__.__name__} "
                     + f"to {request.mac_decoded}"
-                ) from exception
-            except BaseException as exception:
+                ) from exc
+            except BaseException as exc:
                 self._stick.correct_received_messages(1)
                 raise StickError(
                     f"No response received for {request.__class__.__name__} "
                     + f"to {request.mac_decoded}"
-                ) from exception
+                ) from exc
 
         return None
 
