@@ -14,7 +14,6 @@ from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
 from ..constants import UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
-from ..helpers.util import validate_mac
 from ..messages.requests import CirclePlusAllowJoiningRequest, NodePingRequest
 from ..messages.responses import (
     NODE_AWAKE_RESPONSE_ID,
@@ -149,8 +148,6 @@ class StickNetwork:
 
     async def register_node(self, mac: str) -> bool:
         """Register node to Plugwise network."""
-        if not validate_mac(mac):
-            raise NodeError(f"Invalid mac '{mac}' to register")
         address = await self._register.register_node(mac)
         return await self._discover_node(address, mac, None)
 
@@ -261,7 +258,6 @@ class StickNetwork:
                 f"Invalid response message type ({response.__class__.__name__}) received, expected NodeRejoinResponse"
             )
         mac = response.mac_decoded
-        address = self._register.network_address(mac)
         if (address := self._register.network_address(mac)) is not None:
             if self._nodes.get(mac) is None:
                 if self._discover_sed_tasks.get(mac) is None:
@@ -513,11 +509,14 @@ class StickNetwork:
 
     async def allow_join_requests(self, state: bool) -> None:
         """Enable or disable Plugwise network."""
+        _LOGGER.debug("Send AllowJoiningRequest to Circle+ with state=%s", state)
         request = CirclePlusAllowJoiningRequest(self._controller.send, state)
         if (response := await request.send()) is None:
-            raise NodeError("No response to get notifications for join request.")
+            raise NodeError("No response for CirclePlusAllowJoiningRequest.")
 
-        if response.response_type != NodeResponseType.JOIN_ACCEPTED:
+        if response.response_type not in (
+            NodeResponseType.JOIN_ACCEPTED, NodeResponseType.CIRCLE_PLUS
+        ):
             raise MessageError(
                 f"Unknown NodeResponseType '{response.response_type.name}' received"
             )
@@ -553,3 +552,4 @@ class StickNetwork:
                 callback_list.append(callback(event, mac))
         if len(callback_list) > 0:
             await gather(*callback_list)
+
