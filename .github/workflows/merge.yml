@@ -23,10 +23,10 @@ jobs:
     if: github.event.pull_request.merged == true
     steps:
       - name: Check out committed code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
-        uses: actions/setup-python@v5.5.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Install pypa/build
