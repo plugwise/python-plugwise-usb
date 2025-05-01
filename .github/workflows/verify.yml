@@ -22,15 +22,15 @@ jobs:
     name: Prepare
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4.2.2
+        uses: actions/checkout@4
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
-        uses: actions/setup-python@v5.5.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Restore base Python ${{ env.DEFAULT_PYTHON }} virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v4
         with:
           path: venv
           key: >-
@@ -52,7 +52,7 @@ jobs:
           pip install -r requirements_test.txt -r requirements_commit.txt
       - name: Restore pre-commit environment from cache
         id: cache-precommit
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v4
         with:
           path: ${{ env.PRE_COMMIT_HOME }}
           key: |
@@ -71,17 +71,17 @@ jobs:
     needs: prepare
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4.2.2
+        uses: actions/checkout@4
         with:
           persist-credentials: false
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
-        uses: actions/setup-python@v5.5.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Restore base Python ${{ env.DEFAULT_PYTHON }} virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v4
         with:
           path: venv
           key: >-
@@ -124,15 +124,15 @@ jobs:
       - dependencies_check
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4.2.2
+        uses: actions/checkout@4
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
-        uses: actions/setup-python@v5.5.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Restore base Python ${{ env.DEFAULT_PYTHON }} virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v4
         with:
           path: venv
           key: >-
@@ -147,7 +147,7 @@ jobs:
           exit 1
       - name: Restore pre-commit environment from cache
         id: cache-precommit
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v4
         with:
           path: ${{ env.PRE_COMMIT_HOME }}
           key: |
@@ -175,15 +175,15 @@ jobs:
         python-version: ["3.13"]
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4.2.2
+        uses: actions/checkout@4
       - name: Set up Python ${{ matrix.python-version }}
         id: python
-        uses: actions/setup-python@v5.5.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Restore full Python ${{ matrix.python-version }} virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v4
         with:
           path: venv
           key: >-
@@ -215,15 +215,15 @@ jobs:
 
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4.2.2
+        uses: actions/checkout@4
       - name: Set up Python ${{ matrix.python-version }}
         id: python
-        uses: actions/setup-python@v5.5.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Restore full Python ${{ matrix.python-version }} virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v4
         with:
           path: venv
           key: >-
@@ -240,7 +240,7 @@ jobs:
           . venv/bin/activate
           pytest --log-level info tests/*.py --cov='.'
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ matrix.python-version }}
           path: .coverage
@@ -253,17 +253,17 @@ jobs:
     needs: pytest
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4.2.2
+        uses: actions/checkout@4
         with:
           persist-credentials: false
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
-        uses: actions/setup-python@v5.5.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Restore base Python ${{ env.DEFAULT_PYTHON }} virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v4
         with:
           path: venv
           key: >-
@@ -293,7 +293,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4.2.2
+        uses: actions/checkout@4
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master
 
@@ -303,7 +303,7 @@ jobs:
     name: Dependency
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4.2.2
+        uses: actions/checkout@4
       - name: Run dependency checker
         run: scripts/dependencies_check.sh debug
 
@@ -313,15 +313,15 @@ jobs:
     needs: pytest
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4.2.2
+        uses: actions/checkout@4
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
-        uses: actions/setup-python@v5.5.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Restore base Python ${{ env.DEFAULT_PYTHON }} virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v4
         with:
           path: venv
           key: >-
@@ -335,7 +335,7 @@ jobs:
           echo "Failed to restore Python virtual environment from cache"
           exit 1
       - name: Download all coverage artifacts
-        uses: actions/download-artifact@v4.2.1
+        uses: actions/download-artifact@v4
       - name: Combine coverage results
         run: |
           . venv/bin/activate
@@ -348,7 +348,7 @@ jobs:
           echo "***"
           coverage xml
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5.4.2
+        uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -358,15 +358,15 @@ jobs:
     needs: [coverage, mypy]
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4.2.2
+        uses: actions/checkout@4
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
-        uses: actions/setup-python@v5.5.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Restore base Python ${{ env.DEFAULT_PYTHON }} virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v4
         with:
           path: venv
           key: >-
@@ -401,15 +401,15 @@ jobs:
     needs: coverage
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4.2.2
+        uses: actions/checkout@4
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
-        uses: actions/setup-python@v5.5.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
       - name: Restore base Python ${{ env.DEFAULT_PYTHON }} virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v4
         with:
           path: venv
           key: >-
