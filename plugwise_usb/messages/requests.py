@@ -68,6 +68,7 @@ class PlugwiseRequest(PlugwiseMessage):
         send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]]
         | None,
         mac: bytes | None,
+        node_response=True,
     ) -> None:
         """Initialize request message."""
         super().__init__()
@@ -104,8 +105,12 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_stick_response: Callable[[], None] | None = None
         self._unsubscribe_node_response: Callable[[], None] | None = None
         self._response_timeout: TimerHandle | None = None
-        self._response_future: Future[PlugwiseResponse] = self._loop.create_future()
+        self._response_future: Future[PlugwiseResponse] | None = None
+        if node_response:
+            self._response_future = self._loop.create_future()
         self._waiting_for_response = False
+
+        self.node_response_expected: bool = node_response
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
@@ -171,12 +176,13 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_stick_response = await stick_subscription_fn(
             self._process_stick_response, self._seq_id, None
         )
-        self._unsubscribe_node_response = await node_subscription_fn(
-            self.process_node_response,
-            self._mac,
-            (self._reply_identifier,),
-            self._seq_id,
-        )
+        if self.node_response_expected:
+            self._unsubscribe_node_response = await node_subscription_fn(
+                self.process_node_response,
+                self._mac,
+                (self._reply_identifier,),
+                self._seq_id,
+            )
 
     def _unsubscribe_from_stick(self) -> None:
         """Unsubscribe from StickResponse messages."""
@@ -221,7 +227,8 @@ class PlugwiseRequest(PlugwiseMessage):
             )
         self._seq_id = None
         self._unsubscribe_from_stick()
-        self._unsubscribe_from_node()
+        if self.node_response_expected:
+            self._unsubscribe_from_node()
         if stick_timeout:
             self._response_future.set_exception(
                 StickTimeout(f"USB-stick responded with time out to {self}")
@@ -237,7 +244,8 @@ class PlugwiseRequest(PlugwiseMessage):
         """Assign error for this request."""
         self.stop_response_timeout()
         self._unsubscribe_from_stick()
-        self._unsubscribe_from_node()
+        if self.node_response_expected:
+            self._unsubscribe_from_node()
         if self._response_future.done():
             return
         self._waiting_for_response = False
@@ -266,7 +274,8 @@ class PlugwiseRequest(PlugwiseMessage):
         self._response = copy(response)
         self.stop_response_timeout()
         self._unsubscribe_from_stick()
-        self._unsubscribe_from_node()
+        if self.node_response_expected:
+            self._unsubscribe_from_node()
         if self._send_counter > 1:
             _LOGGER.debug(
                 "Received %s after %s retries as reply to %s",
@@ -303,9 +312,7 @@ class PlugwiseRequest(PlugwiseMessage):
                 self,
             )
 
-    async def _send_request(
-        self, suppress_node_errors: bool = False
-    ) -> PlugwiseResponse | None:
+    async def _send_request(self, suppress_node_errors=False) -> PlugwiseResponse | None:
         """Send request."""
         if self._send_fn is None:
             return None
@@ -355,11 +362,9 @@ class StickNetworkInfoRequest(PlugwiseRequest):
     _identifier = b"0001"
     _reply_identifier = b"0002"
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> StickNetworkInfoResponse | None:
+    async def send(self) -> StickNetworkInfoResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, StickNetworkInfoResponse):
             return result
         if result is None:
@@ -379,11 +384,9 @@ class CirclePlusConnectRequest(PlugwiseRequest):
     _identifier = b"0004"
     _reply_identifier = b"0005"
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> CirclePlusConnectResponse | None:
+    async def send(self) -> CirclePlusConnectResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, CirclePlusConnectResponse):
             return result
         if result is None:
@@ -409,30 +412,14 @@ class CirclePlusConnectRequest(PlugwiseRequest):
         return MESSAGE_HEADER + msg + checksum + MESSAGE_FOOTER
 
 
-class PlugwiseRequestWithStickResponse(PlugwiseRequest):
-    """Base class of a plugwise request with a NodeAckResponse."""
-
-    async def send(self, suppress_node_errors: bool = False) -> StickResponse | None:
-        """Send request."""
-        result = await self._send_request(suppress_node_errors)
-        if isinstance(result, StickResponse):
-            return result
-        if result is None:
-            return None
-        raise MessageError(
-            f"Invalid response message. Received {result.__class__.__name__}, expected NodeAckResponse"
-        )
-
-
-class NodeAddRequest(PlugwiseRequestWithStickResponse):
+class NodeAddRequest(PlugwiseRequest):
     """Add node to the Plugwise Network and add it to memory of Circle+ node.
 
     Supported protocols : 1.0, 2.0
-    Response message    : TODO check if response is NodeAckResponse
+    Response message    : (@bouwew) no Response
     """
 
     _identifier = b"0007"
-    _reply_identifier = b"0000"  #"0005"
 
     def __init__(
         self,
@@ -441,9 +428,18 @@ class NodeAddRequest(PlugwiseRequestWithStickResponse):
         accept: bool,
     ) -> None:
         """Initialize NodeAddRequest message object."""
-        super().__init__(send_fn, mac)
+        super().__init__(send_fn, mac, node_response=False)
         accept_value = 1 if accept else 0
         self._args.append(Int(accept_value, length=2))
+
+    async def send(self) -> None:
+        """Send request."""
+        if (
+            result := await self._send_request()
+        ) is not None:
+            raise MessageError(
+                f"Invalid response message. Received {result.__class__.__name__}, expected no Response"
+        )
 
     # This message has an exceptional format (MAC at end of message)
     # and therefore a need to override the serialize method
@@ -468,7 +464,6 @@ class CirclePlusAllowJoiningRequest(PlugwiseRequest):
     """
 
     _identifier = b"0008"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -480,9 +475,9 @@ class CirclePlusAllowJoiningRequest(PlugwiseRequest):
         val = 1 if enable else 0
         self._args.append(Int(val, length=2))
 
-    async def send(self, suppress_node_errors: bool = False) -> NodeResponse | None:
+    async def send(self) -> NodeResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, NodeResponse):
             return result
         if result is None:
@@ -516,11 +511,9 @@ class NodeResetRequest(PlugwiseRequest):
             Int(timeout, length=2),
         ]
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> NodeSpecificResponse | None:
+    async def send(self) -> NodeSpecificResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, NodeSpecificResponse):
             return result
         if result is None:
@@ -548,13 +541,11 @@ class StickInitRequest(PlugwiseRequest):
         super().__init__(send_fn, None)
         self._max_retries = 1
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> StickInitResponse | None:
+    async def send(self) -> StickInitResponse | None:
         """Send request."""
         if self._send_fn is None:
             raise MessageError("Send function missing")
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, StickInitResponse):
             return result
         if result is None:
@@ -574,11 +565,9 @@ class NodeImagePrepareRequest(PlugwiseRequest):
     _identifier = b"000B"
     _reply_identifier = b"0003"
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> NodeSpecificResponse | None:
+    async def send(self) -> NodeSpecificResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, NodeSpecificResponse):
             return result
         if result is None:
@@ -598,11 +587,9 @@ class NodeImageValidateRequest(PlugwiseRequest):
     _identifier = b"000C"
     _reply_identifier = b"0010"
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> NodeImageValidationResponse | None:
+    async def send(self) -> NodeImageValidationResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, NodeImageValidationResponse):
             return result
         if result is None:
@@ -633,9 +620,9 @@ class NodePingRequest(PlugwiseRequest):
         self._reply_identifier = b"000E"
         self._max_retries = retries
 
-    async def send(self, suppress_node_errors: bool = False) -> NodePingResponse | None:
+    async def send(self) -> NodePingResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, NodePingResponse):
             return result
         if result is None:
@@ -679,11 +666,9 @@ class CirclePowerUsageRequest(PlugwiseRequest):
     _identifier = b"0012"
     _reply_identifier = b"0013"
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> CirclePowerUsageResponse | None:
+    async def send(self) -> CirclePowerUsageResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, CirclePowerUsageResponse):
             return result
         if result is None:
@@ -733,11 +718,9 @@ class CircleLogDataRequest(PlugwiseRequest):
         to_abs = DateTime(end.year, end.month, month_minutes_end)
         self._args += [from_abs, to_abs]
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> CircleLogDataResponse | None:
+    async def send(self) -> CircleLogDataResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, CircleLogDataResponse):
             return result
         if result is None:
@@ -757,7 +740,6 @@ class CircleClockSetRequest(PlugwiseRequest):
     """
 
     _identifier = b"0016"
-    _reply_identifier = b"0000"
 
     # pylint: disable=too-many-arguments
     def __init__(
@@ -792,9 +774,9 @@ class CircleClockSetRequest(PlugwiseRequest):
         else:
             self._args += [this_date, String("FFFFFFFF", 8), this_time, day_of_week]
 
-    async def send(self, suppress_node_errors: bool = False) -> NodeResponse | None:
+    async def send(self) -> NodeResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, NodeResponse):
             return result
         if result is None:
@@ -812,7 +794,6 @@ class CircleRelaySwitchRequest(PlugwiseRequest):
     """
 
     _identifier = b"0017"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -826,9 +807,9 @@ class CircleRelaySwitchRequest(PlugwiseRequest):
         val = 1 if on else 0
         self._args.append(Int(val, length=2))
 
-    async def send(self, suppress_node_errors: bool = False) -> NodeResponse | None:
+    async def send(self) -> NodeResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, NodeResponse):
             return result
         if result is None:
@@ -866,11 +847,9 @@ class CirclePlusScanRequest(PlugwiseRequest):
         """Convert request into writable str."""
         return f"{super().__repr__()[:-1]}, network_address={self.network_address})"
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> CirclePlusScanResponse | None:
+    async def send(self) -> CirclePlusScanResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, CirclePlusScanResponse):
             return result
         if result is None:
@@ -900,11 +879,9 @@ class NodeRemoveRequest(PlugwiseRequest):
         super().__init__(send_fn, mac_circle_plus)
         self._args.append(String(mac_to_unjoined, length=16))
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> NodeRemoveResponse | None:
+    async def send(self) -> NodeRemoveResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, NodeRemoveResponse):
             return result
         if result is None:
@@ -934,9 +911,9 @@ class NodeInfoRequest(PlugwiseRequest):
         super().__init__(send_fn, mac)
         self._max_retries = retries
 
-    async def send(self, suppress_node_errors: bool = False) -> NodeInfoResponse | None:
+    async def send(self) -> NodeInfoResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, NodeInfoResponse):
             return result
         if result is None:
@@ -956,11 +933,9 @@ class EnergyCalibrationRequest(PlugwiseRequest):
     _identifier = b"0026"
     _reply_identifier = b"0027"
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> EnergyCalibrationResponse | None:
+    async def send(self) -> EnergyCalibrationResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, EnergyCalibrationResponse):
             return result
         if result is None:
@@ -978,7 +953,6 @@ class CirclePlusRealTimeClockSetRequest(PlugwiseRequest):
     """
 
     _identifier = b"0028"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -994,9 +968,9 @@ class CirclePlusRealTimeClockSetRequest(PlugwiseRequest):
         this_date = RealClockDate(dt.day, dt.month, dt.year)
         self._args += [this_time, day_of_week, this_date]
 
-    async def send(self, suppress_node_errors: bool = False) -> NodeResponse | None:
+    async def send(self) -> NodeResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, NodeResponse):
             return result
         if result is None:
@@ -1016,11 +990,9 @@ class CirclePlusRealTimeClockGetRequest(PlugwiseRequest):
     _identifier = b"0029"
     _reply_identifier = b"003A"
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> CirclePlusRealTimeClockResponse | None:
+    async def send(self) -> CirclePlusRealTimeClockResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, CirclePlusRealTimeClockResponse):
             return result
         if result is None:
@@ -1046,11 +1018,9 @@ class CircleClockGetRequest(PlugwiseRequest):
     _identifier = b"003E"
     _reply_identifier = b"003F"
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> CircleClockResponse | None:
+    async def send(self) -> CircleClockResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, CircleClockResponse):
             return result
         if result is None:
@@ -1068,7 +1038,6 @@ class CircleActivateScheduleRequest(PlugwiseRequest):
     """
 
     _identifier = b"0040"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -1091,7 +1060,6 @@ class NodeAddToGroupRequest(PlugwiseRequest):
     """
 
     _identifier = b"0045"
-    _reply_identifier = b"0000"
 
     # pylint: disable=too-many-arguments
     def __init__(
@@ -1109,9 +1077,9 @@ class NodeAddToGroupRequest(PlugwiseRequest):
         port_mask_val = String(port_mask, length=16)
         self._args += [group_mac_val, task_id_val, port_mask_val]
 
-    async def send(self, suppress_node_errors: bool = False) -> NodeResponse | None:
+    async def send(self) -> NodeResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, NodeResponse):
             return result
         if result is None:
@@ -1128,7 +1096,6 @@ class NodeRemoveFromGroupRequest(PlugwiseRequest):
     """
 
     _identifier = b"0046"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -1149,7 +1116,6 @@ class NodeBroadcastGroupSwitchRequest(PlugwiseRequest):
     """
 
     _identifier = b"0047"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -1188,11 +1154,9 @@ class CircleEnergyLogsRequest(PlugwiseRequest):
         """Convert request into writable str."""
         return f"{super().__repr__()[:-1]}, log_address={self._log_address})"
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> CircleEnergyLogsResponse | None:
+    async def send(self) -> CircleEnergyLogsResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, CircleEnergyLogsResponse):
             return result
         if result is None:
@@ -1209,7 +1173,6 @@ class CircleHandlesOffRequest(PlugwiseRequest):
     """
 
     _identifier = b"004D"
-    _reply_identifier = b"0000"
 
 
 class CircleHandlesOnRequest(PlugwiseRequest):
@@ -1219,7 +1182,6 @@ class CircleHandlesOnRequest(PlugwiseRequest):
     """
 
     _identifier = b"004E"
-    _reply_identifier = b"0000"
 
 
 class NodeSleepConfigRequest(PlugwiseRequest):
@@ -1240,7 +1202,6 @@ class NodeSleepConfigRequest(PlugwiseRequest):
     """
 
     _identifier = b"0050"
-    _reply_identifier = b"0000"
 
     # pylint: disable=too-many-arguments
     def __init__(
@@ -1269,9 +1230,9 @@ class NodeSleepConfigRequest(PlugwiseRequest):
             self.clock_interval_val,
         ]
 
-    async def send(self, suppress_node_errors: bool = False) -> NodeResponse | None:
+    async def send(self) -> NodeResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         _LOGGER.warning("NodeSleepConfigRequest result: %s", result)
         if isinstance(result, NodeResponse):
             return result
@@ -1298,7 +1259,6 @@ class NodeSelfRemoveRequest(PlugwiseRequest):
     """
 
     _identifier = b"0051"
-    _reply_identifier = b"0000"
 
 
 class CircleMeasureIntervalRequest(PlugwiseRequest):
@@ -1310,7 +1270,6 @@ class CircleMeasureIntervalRequest(PlugwiseRequest):
     """
 
     _identifier = b"0057"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -1332,7 +1291,6 @@ class NodeClearGroupMacRequest(PlugwiseRequest):
     """
 
     _identifier = b"0058"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -1352,7 +1310,6 @@ class CircleSetScheduleValueRequest(PlugwiseRequest):
     """
 
     _identifier = b"0059"
-    _reply_identifier = b"0000"
 
     def __init__(
         self,
@@ -1384,11 +1341,9 @@ class NodeFeaturesRequest(PlugwiseRequest):
         super().__init__(send_fn, mac)
         self._args.append(SInt(val, length=4))
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> NodeFeaturesResponse | None:
+    async def send(self) -> NodeFeaturesResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, NodeFeaturesResponse):
             return result
         if result is None:
@@ -1436,9 +1391,9 @@ class ScanConfigureRequest(PlugwiseRequest):
             reset_timer_value,
         ]
 
-    async def send(self, suppress_node_errors: bool = False) -> NodeAckResponse | None:
+    async def send(self) -> NodeAckResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, NodeAckResponse):
             return result
         if result is None:
@@ -1457,9 +1412,9 @@ class ScanLightCalibrateRequest(PlugwiseRequest):
     _identifier = b"0102"
     _reply_identifier = b"0100"
 
-    async def send(self, suppress_node_errors: bool = False) -> NodeAckResponse | None:
+    async def send(self) -> NodeAckResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, NodeAckResponse):
             return result
         if result is None:
@@ -1490,9 +1445,9 @@ class SenseReportIntervalRequest(PlugwiseRequest):
         super().__init__(send_fn, mac)
         self._args.append(Int(interval, length=2))
 
-    async def send(self, suppress_node_errors: bool = False) -> NodeAckResponse | None:
+    async def send(self) -> NodeAckResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, NodeAckResponse):
             return result
         if result is None:
@@ -1526,11 +1481,9 @@ class CircleRelayInitStateRequest(PlugwiseRequest):
         self.relay = Int(1 if relay_state else 0, length=2)
         self._args += [self.set_or_get, self.relay]
 
-    async def send(
-        self, suppress_node_errors: bool = False
-    ) -> CircleRelayInitStateResponse | None:
+    async def send(self) -> CircleRelayInitStateResponse | None:
         """Send request."""
-        result = await self._send_request(suppress_node_errors)
+        result = await self._send_request()
         if isinstance(result, CircleRelayInitStateResponse):
             return result
         if result is None:
