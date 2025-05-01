@@ -90,6 +90,8 @@ class StickQueue:
                 )
             await self._add_request_to_queue(request)
             try:
+                if not request.node_response_expected:
+                    return None
                 response: PlugwiseResponse = await request.response_future()
                 return response
             except (NodeTimeout, StickTimeout) as e:
