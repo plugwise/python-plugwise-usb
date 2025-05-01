@@ -17,7 +17,7 @@ from ..messages.requests import (
     NodeRemoveRequest,
     PlugwiseRequest,
 )
-from ..messages.responses import NodeResponseType, PlugwiseResponse
+from ..messages.responses import PlugwiseResponse  #, StickResponseType
 from .cache import NetworkRegistrationCache
 
 _LOGGER = logging.getLogger(__name__)
@@ -246,12 +246,12 @@ class StickNetworkRegister:
     async def register_node(self, mac: str) -> int:
         """Register node to Plugwise network and return network address."""
         if not validate_mac(mac):
-            raise NodeError(f"Invalid mac '{mac}' to register")
+            raise NodeError(f"MAC '{mac}' invalid")
 
         request = NodeAddRequest(self._send_to_controller, bytes(mac, UTF8), True)
-        response = await request.send()
-        if response is None or response.ack_id != NodeResponseType.JOIN_ACCEPTED:
-            raise NodeError(f"Failed to register node {mac}")
+        await request.send()
+        # if response is None or response.ack_id != StickResponseType.ACCEPT:
+        #     raise NodeError(f"Failed to register node {mac}")
         self.update_network_registration(self._first_free_address, mac, None)
         self._first_free_address += 1
         return self._first_free_address - 1
@@ -259,7 +259,7 @@ class StickNetworkRegister:
     async def unregister_node(self, mac: str) -> None:
         """Unregister node from current Plugwise network."""
         if not validate_mac(mac):
-            raise NodeError(f"Invalid mac '{mac}' to unregister")
+            raise NodeError(f"MAC '{mac}' invalid")
 
         mac_registered = False
         for registration in self._registry.values():
@@ -270,7 +270,6 @@ class StickNetworkRegister:
             raise NodeError(f"No existing registration '{mac}' found to unregister")
 
         request = NodeRemoveRequest(self._send_to_controller, self._mac_nc, mac)
-        response = await request.send()
         if (response := await request.send()) is None:
             raise NodeError(
                 f"The Zigbee network coordinator '{self._mac_nc!r}'"
