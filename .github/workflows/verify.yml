@@ -22,7 +22,7 @@ jobs:
     name: Prepare
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
         uses: actions/setup-python@v5
@@ -71,7 +71,7 @@ jobs:
     needs: prepare
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
@@ -124,7 +124,7 @@ jobs:
       - dependencies_check
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
         uses: actions/setup-python@v5
@@ -175,7 +175,7 @@ jobs:
         python-version: ["3.13"]
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
         id: python
         uses: actions/setup-python@v5
@@ -215,7 +215,7 @@ jobs:
 
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
         id: python
         uses: actions/setup-python@v5
@@ -253,7 +253,7 @@ jobs:
     needs: pytest
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
@@ -293,7 +293,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master
 
@@ -303,7 +303,7 @@ jobs:
     name: Dependency
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
       - name: Run dependency checker
         run: scripts/dependencies_check.sh debug
 
@@ -313,7 +313,7 @@ jobs:
     needs: pytest
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
         uses: actions/setup-python@v5
@@ -358,7 +358,7 @@ jobs:
     needs: [coverage, mypy]
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
         uses: actions/setup-python@v5
@@ -401,7 +401,7 @@ jobs:
     needs: coverage
     steps:
       - name: Check out committed code
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
       - name: Set up Python ${{ env.DEFAULT_PYTHON }}
         id: python
         uses: actions/setup-python@v5
