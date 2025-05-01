@@ -9,7 +9,7 @@ import logging
 
 from ..api import NodeType
 from ..constants import UTF8
-from ..exceptions import CacheError, NodeError
+from ..exceptions import CacheError, MessageError, NodeError
 from ..helpers.util import validate_mac
 from ..messages.requests import (
     CirclePlusScanRequest,
@@ -249,9 +249,11 @@ class StickNetworkRegister:
             raise NodeError(f"MAC '{mac}' invalid")
 
         request = NodeAddRequest(self._send_to_controller, bytes(mac, UTF8), True)
-        await request.send()
-        # if response is None or response.ack_id != StickResponseType.ACCEPT:
-        #     raise NodeError(f"Failed to register node {mac}")
+        try:
+            await request.send()
+        except MessageError as exc:
+            raise MessageError(f"Failed to register Node with {mac}") from exc
+
         self.update_network_registration(self._first_free_address, mac, None)
         self._first_free_address += 1
         return self._first_free_address - 1
