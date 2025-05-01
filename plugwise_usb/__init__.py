@@ -365,3 +365,4 @@ class Stick:
         if self._network is not None:
             await self._network.stop()
         await self._controller.disconnect_from_stick()
+
