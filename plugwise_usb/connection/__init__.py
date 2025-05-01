@@ -214,7 +214,7 @@ class StickController:
                 self.send, bytes(mac, UTF8), retries=1
             )
             try:
-                ping_response = await ping_request.send(suppress_node_errors=True)
+                ping_response = await ping_request.send()
             except StickError:
                 return (None, None)
             if ping_response is None:
@@ -230,7 +230,9 @@ class StickController:
         return (info_response, ping_response)
 
     async def send(
-        self, request: PlugwiseRequest, suppress_node_errors: bool = True
+        self,
+        request: PlugwiseRequest,
+        suppress_node_errors=True,
     ) -> PlugwiseResponse | None:
         """Submit request to queue and return response."""
         if not suppress_node_errors:
