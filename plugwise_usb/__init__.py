@@ -190,8 +190,7 @@ class Stick:
             return None
         return self._network.accept_join_request
 
-    @accept_join_request.setter
-    def accept_join_request(self, state: bool) -> None:
+    async def set_accept_join_request(self, state: bool) -> None:
         """Configure join request setting."""
         if not self._controller.is_connected:
             raise StickError(
@@ -205,8 +204,9 @@ class Stick:
                 + "without node discovery be activated. Call discover() first."
             )
 
-        self._network.accept_join_request = state
-        _ = create_task(self._network.allow_join_requests(state))
+        if self._network.accept_join_request != state:
+            self._network.accept_join_request = state
+            await self._network.allow_join_requests(state)
 
     async def clear_cache(self) -> None:
         """Clear current cache."""
