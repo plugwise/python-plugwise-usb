@@ -64,6 +64,12 @@ RESPONSE_MESSAGES = {
         + b"4E0843A9"  # fw_ver
         + b"01",  # node_type (Circle+)
     ),
+    b"\x05\x05\x03\x030008014068\r\n":(
+        " reply to CirclePlusAllowJoiningRequest",
+        b"000000C1",  # Success ack
+        b"000000D9"  # JOIN_ACCEPTED
+        + b"0098765432101234",  # mac
+    ),
     b"\x05\x05\x03\x03000D0098765432101234C208\r\n": (
         "ping reply for 0098765432101234",
         b"000000C1",  # Success ack
