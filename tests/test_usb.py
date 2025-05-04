@@ -642,17 +642,17 @@ class TestStick:
 
         await stick.disconnect()
 
-#    async def node_join(self, event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
-#        """Handle join event callback."""
-#        if event == pw_api.NodeEvent.JOIN:
-#            self.test_node_join.set_result(mac)
-#        else:
-#            self.test_node_join.set_exception(
-#                BaseException(
-#                    f"Invalid {event} event, expected " + f"{pw_api.NodeEvent.JOIN}"
-#                )
-#            )
-#
+    async def node_join(self, event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
+        """Handle join event callback."""
+        if event == pw_api.NodeEvent.JOIN:
+            self.test_node_join.set_result(mac)
+        else:
+            self.test_node_join.set_exception(
+                BaseException(
+                    f"Invalid {event} event, expected " + f"{pw_api.NodeEvent.JOIN}"
+                )
+            )
+
 #    @pytest.mark.asyncio
 #    async def test_stick_node_join_subscription(
 #        self, monkeypatch: pytest.MonkeyPatch
