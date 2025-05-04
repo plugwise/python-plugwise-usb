@@ -43,7 +43,7 @@ include-package-data = true
 "plugwise" = ["py.typed"]
 
 [tool.setuptools.packages.find]
-include = ["plugwise*"]
+include = ["plugwise_usb*"]
 
 [tool.black]
 target-version = ["py313"]
@@ -208,7 +208,7 @@ warn_unreachable = true
 exclude = []
 
 [tool.coverage.run]
-source = [ "plugwise" ]
+source = [ "plugwise_usb" ]
 omit= [
     "*/venv/*",
 ]
