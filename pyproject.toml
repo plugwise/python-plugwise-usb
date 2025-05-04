@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools~=80.0", "wheel~=0.45.0"]
+requires = ["setuptools~=80.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -37,7 +37,6 @@ dependencies    = [
 "Bug Reports" = "https://github.com/plugwise/python-plugwise-usb/issues"
 
 [tool.setuptools]
-platforms = ["any"]
 include-package-data = true
 
 [tool.setuptools.package-data]
@@ -212,7 +211,6 @@ exclude = []
 source = [ "plugwise" ]
 omit= [
     "*/venv/*",
-    "setup.py",
 ]
 
 [tool.ruff]
