@@ -572,7 +572,6 @@ class TestStick:
         await stick.connect()
         await stick.initialize()
         await stick.discover_nodes(load=False)
-        await stick.set_accept_join_request(True)
         self.test_node_awake = asyncio.Future()
         unsub_awake = stick.subscribe_to_node_events(
             node_event_callback=self.node_awake,
@@ -671,6 +670,7 @@ class TestStick:
 #        await stick.connect()
 #        await stick.initialize()
 #        await stick.discover_nodes(load=False)
+#        await stick.set_accept_join_request(True)
 #        self.test_node_join = asyncio.Future()
 #        unusb_join = stick.subscribe_to_node_events(
 #            node_event_callback=self.node_join,
