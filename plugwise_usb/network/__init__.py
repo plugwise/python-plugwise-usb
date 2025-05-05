@@ -148,8 +148,10 @@ class StickNetwork:
 
     async def register_node(self, mac: str) -> bool:
         """Register node to Plugwise network."""
-        address = await self._register.register_node(mac)
-        return await self._discover_node(address, mac, None)
+        if (address := await self._register.register_node(mac)):
+            return await self._discover_node(address, mac, None)
+        
+        return False
 
     async def clear_cache(self) -> None:
         """Clear register cache."""
