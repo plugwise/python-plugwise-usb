@@ -670,7 +670,7 @@ class TestStick:
         await stick.connect()
         await stick.initialize()
         await stick.discover_nodes(load=False)
-        await stick.set_accept_join_request(False)
+        await stick.set_accept_join_request(True)
         self.test_node_join = asyncio.Future()
         unusb_join = stick.subscribe_to_node_events(
             node_event_callback=self.node_join,
@@ -679,9 +679,9 @@ class TestStick:
 
         # Inject node join request message
         mock_serial.inject_message(b"00069999999999999999", b"FFFC")
-        #mac_join_node = await self.test_node_join
-        #assert mac_join_node == "9999999999999999"
-        #unusb_join()
+        mac_join_node = await self.test_node_join
+        assert mac_join_node == "9999999999999999"
+        unusb_join()
         await stick.disconnect()
 
     @pytest.mark.asyncio
