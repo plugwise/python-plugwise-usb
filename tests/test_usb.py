@@ -670,7 +670,7 @@ class TestStick:
         await stick.connect()
         await stick.initialize()
         await stick.discover_nodes(load=False)
-        await stick.set_accept_join_request(True)
+        await stick.set_accept_join_request(False)
         self.test_node_join = asyncio.Future()
         unusb_join = stick.subscribe_to_node_events(
             node_event_callback=self.node_join,
