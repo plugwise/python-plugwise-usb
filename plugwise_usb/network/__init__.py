@@ -149,6 +149,7 @@ class StickNetwork:
     async def register_node(self, mac: str) -> bool:
         """Register node to Plugwise network."""
         if (address := await self._register.register_node(mac)):
+            _LOGGER.debug("HOI address=%s", address)
             return await self._discover_node(address, mac, None)
         
         return False
