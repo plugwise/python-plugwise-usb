@@ -679,9 +679,9 @@ class TestStick:
 
         # Inject node join request message
         mock_serial.inject_message(b"00069999999999999999", b"FFFC")
-        # mac_join_node = await self.test_node_join
-        # assert mac_join_node == "9999999999999999"
-        # unusb_join()
+        #mac_join_node = await self.test_node_join
+        #assert mac_join_node == "9999999999999999"
+        #unusb_join()
         await stick.disconnect()
 
     @pytest.mark.asyncio
