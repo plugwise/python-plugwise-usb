@@ -6,7 +6,7 @@ in the LICENSE file.
 
 from __future__ import annotations
 
-from asyncio import create_task, get_running_loop
+from asyncio import get_running_loop
 from collections.abc import Callable, Coroutine
 from functools import wraps
 import logging
