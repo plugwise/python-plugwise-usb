@@ -177,10 +177,9 @@ class StickNetwork:
             (NODE_AWAKE_RESPONSE_ID,),
             None,
         )
-        if self.accept_join_request:
-            self._unsubscribe_node_join = await self._controller.subscribe_to_messages(
-                self.node_join_available_message, None, (NODE_JOIN_ID,), None
-            )
+        self._unsubscribe_node_join = await self._controller.subscribe_to_messages(
+            self.node_join_available_message, None, (NODE_JOIN_ID,), None
+        )
         self._unsubscribe_node_rejoin = await self._controller.subscribe_to_messages(
             self.node_rejoin_message, None, (NODE_REJOIN_ID,), None
         )
@@ -245,7 +244,7 @@ class StickNetwork:
                 f"Invalid response message type ({response.__class__.__name__}) received, expected NodeJoinAvailableResponse"
             )
         mac = response.mac_decoded
-        if await self.register_node(mac):
+        if self.accept_join_request:
             await self._notify_node_event_subscribers(NodeEvent.JOIN, mac)
             return True
         
