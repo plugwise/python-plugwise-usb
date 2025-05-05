@@ -177,9 +177,10 @@ class StickNetwork:
             (NODE_AWAKE_RESPONSE_ID,),
             None,
         )
-        self._unsubscribe_node_join = await self._controller.subscribe_to_messages(
-            self.node_join_available_message, None, (NODE_JOIN_ID,), None
-        )
+        if self.accept_join_request:
+            self._unsubscribe_node_join = await self._controller.subscribe_to_messages(
+                self.node_join_available_message, None, (NODE_JOIN_ID,), None
+            )
         self._unsubscribe_node_rejoin = await self._controller.subscribe_to_messages(
             self.node_rejoin_message, None, (NODE_REJOIN_ID,), None
         )
