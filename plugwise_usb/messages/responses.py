@@ -1018,6 +1018,8 @@ def get_message_object(  # noqa: C901
         return NodeSwitchGroupResponse()
     if identifier == b"0060":
         return NodeFeaturesResponse()
+    if identifier == NODE_REJOIN_ID:
+        return NodeRejoinResponse()
     if identifier == b"0100":
         return NodeAckResponse()
     if identifier == SENSE_REPORT_ID:
