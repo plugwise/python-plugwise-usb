@@ -680,10 +680,10 @@ class TestStick:
             events=(pw_api.NodeEvent.JOIN,),
         )
 
-        #mac_join_node = await self.test_node_join
-        #assert mac_join_node == "9999999999999999"
-        #unusb_join()
-        #await stick.disconnect()
+        mac_join_node = await self.test_node_join
+        assert mac_join_node == "9999999999999999"
+        unusb_join()
+        await stick.disconnect()
 
     @pytest.mark.asyncio
     async def test_node_discovery(self, monkeypatch: pytest.MonkeyPatch) -> None:
