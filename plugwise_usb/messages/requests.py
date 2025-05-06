@@ -428,7 +428,7 @@ class NodeAddRequest(PlugwiseRequest):
         accept: bool,
     ) -> None:
         """Initialize NodeAddRequest message object."""
-        super().__init__(send_fn, mac, node_response=False)
+        super().__init__(send_fn, mac)
         accept_value = 1 if accept else 0
         self._args.append(Int(accept_value, length=2))
 
