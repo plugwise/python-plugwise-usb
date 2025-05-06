@@ -246,7 +246,7 @@ class StickNetwork:
                 f"Invalid response message type ({response.__class__.__name__}) received, expected NodeJoinAvailableResponse"
             )
         mac = response.mac_decoded
-        if self.accept_join_request and await self.register_node(mac):
+        if self.accept_join_request:
             await self._notify_node_event_subscribers(NodeEvent.JOIN, mac)
             return True
         
