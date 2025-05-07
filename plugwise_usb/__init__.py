@@ -14,7 +14,7 @@ from typing import Any, TypeVar, cast
 
 from .api import NodeEvent, PlugwiseNode, StickEvent
 from .connection import StickController
-from .exceptions import NodeError, StickError, SubscriptionError
+from .exceptions import MessageError, NodeError, StickError, SubscriptionError
 from .network import StickNetwork
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
