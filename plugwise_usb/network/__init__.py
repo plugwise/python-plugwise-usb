@@ -148,8 +148,11 @@ class StickNetwork:
 
     async def register_node(self, mac: str) -> bool:
         """Register node to Plugwise network."""
-        if (address := await self._register.register_node(mac)):
-            return await self._discover_node(address, mac, None)
+        try:
+            if (address := await self._register.register_node(mac)):
+                return await self._discover_node(address, mac, None)
+        except (MessageError, NodeError) as exc:
+            raise NodeError(f"{exc}") from exc
         
         return False
 
@@ -163,7 +166,7 @@ class StickNetwork:
             await self._register.unregister_node(mac)
             await self._nodes[mac].unload()
             self._nodes.pop(mac)
-        except KeyError as exc:
+        except (KeyError, NodeError) as exc:
             raise MessageError("Mac not registered, already deleted?") from exc
 
     # region - Handle stick connect/disconnect events

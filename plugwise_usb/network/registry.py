@@ -276,12 +276,12 @@ class StickNetworkRegister:
         request = NodeRemoveRequest(self._send_to_controller, self._mac_nc, mac)
         if (response := await request.send()) is None:
             raise NodeError(
-                f"The Zigbee network coordinator '{self._mac_nc!r}'"
+                f"The Zigbee network coordinator '{self._mac_nc}'"
                 + f" did not respond to unregister node '{mac}'"
             )
         if response.status.value != 1:
             raise NodeError(
-                f"The Zigbee network coordinator '{self._mac_nc!r}'"
+                f"The Zigbee network coordinator '{self._mac_nc}'"
                 + f" failed to unregister node '{mac}'"
             )
         if (address := self.network_address(mac)) is not None:
