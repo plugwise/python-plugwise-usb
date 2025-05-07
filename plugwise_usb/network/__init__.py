@@ -164,7 +164,7 @@ class StickNetwork:
             await self._nodes[mac].unload()
             self._nodes.pop(mac)
         except KeyError as exc:
-            raise MessageError("Mac not registered, already deleted?")
+            raise MessageError("Mac not registered, already deleted?") from exc
 
     # region - Handle stick connect/disconnect events
     def _subscribe_to_protocol_events(self) -> None:

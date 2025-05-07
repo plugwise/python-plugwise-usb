@@ -14,7 +14,7 @@ from typing import Any, TypeVar, cast
 
 from .api import NodeEvent, PlugwiseNode, StickEvent
 from .connection import StickController
-from .exceptions import StickError, SubscriptionError
+from .exceptions import NodeError, StickError, SubscriptionError
 from .network import StickNetwork
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
@@ -350,7 +350,10 @@ class Stick:
         """Add node to plugwise network."""
         if self._network is None:
             return False
-        return await self._network.register_node(mac)
+        try:
+            return await self._network.register_node(mac)
+        except NodeError as exc:
+            raise NodeError(f"Unable to add Node ({mac}): {exc}") from exc
 
     @raise_not_connected
     @raise_not_initialized
@@ -358,7 +361,10 @@ class Stick:
         """Remove node to plugwise network."""
         if self._network is None:
             return
-        await self._network.unregister_node(mac)
+        try:
+            await self._network.unregister_node(mac)
+        except MessageError as exc:
+            raise NodeError(f"Unable to remove Node ({mac}): {exc}") from exc
 
     async def disconnect(self) -> None:
         """Disconnect from USB-Stick."""
