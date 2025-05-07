@@ -59,6 +59,7 @@ class NodeResponseType(bytes, Enum):
     CIRCLE_PLUS = b"00DD"
     CLOCK_ACCEPTED = b"00D7"
     JOIN_ACCEPTED = b"00D9"
+    REJOINING = b"0061"
     RELAY_SWITCHED_OFF = b"00DE"
     RELAY_SWITCHED_ON = b"00D8"
     RELAY_SWITCH_FAILED = b"00E2"
