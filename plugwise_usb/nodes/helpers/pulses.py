@@ -818,9 +818,10 @@ class PulseCollection:
             last_address,
         )
 
+        # When higher addresses contain outdated data
         if last_address < first_address:
-            _LOGGER.debug(
-                "_logs_missing | %s | first_address > last_address, ignoring",
+            _LOGGER.warning(
+                "The Circle %s does not overwrite old logged data, please reset the Circle's energy-logs via Source",
                 self._mac,
             )
             return
