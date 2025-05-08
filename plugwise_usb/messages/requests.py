@@ -33,6 +33,7 @@ from ..messages.responses import (
     NodeFeaturesResponse,
     NodeImageValidationResponse,
     NodeInfoResponse,
+    NodeJoinAckResponse,
     NodePingResponse,
     NodeRemoveResponse,
     NodeResponse,
@@ -68,7 +69,6 @@ class PlugwiseRequest(PlugwiseMessage):
         send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]]
         | None,
         mac: bytes | None,
-        node_response=True,
     ) -> None:
         """Initialize request message."""
         super().__init__()
@@ -105,12 +105,9 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_stick_response: Callable[[], None] | None = None
         self._unsubscribe_node_response: Callable[[], None] | None = None
         self._response_timeout: TimerHandle | None = None
-        self._response_future: Future[PlugwiseResponse] | None = None
-        if node_response:
-            self._response_future = self._loop.create_future()
+        self._response_future: Future[PlugwiseResponse] = self._loop.create_future()
         self._waiting_for_response = False
 
-        self.node_response_expected: bool = node_response
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
@@ -176,13 +173,12 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_stick_response = await stick_subscription_fn(
             self._process_stick_response, self._seq_id, None
         )
-        if self.node_response_expected:
-            self._unsubscribe_node_response = await node_subscription_fn(
-                self.process_node_response,
-                self._mac,
-                (self._reply_identifier,),
-                self._seq_id,
-            )
+        self._unsubscribe_node_response = await node_subscription_fn(
+            self.process_node_response,
+            self._mac,
+            (self._reply_identifier,),
+            self._seq_id,
+        )
 
     def _unsubscribe_from_stick(self) -> None:
         """Unsubscribe from StickResponse messages."""
@@ -227,8 +223,7 @@ class PlugwiseRequest(PlugwiseMessage):
             )
         self._seq_id = None
         self._unsubscribe_from_stick()
-        if self.node_response_expected:
-            self._unsubscribe_from_node()
+        self._unsubscribe_from_node()
         if stick_timeout:
             self._response_future.set_exception(
                 StickTimeout(f"USB-stick responded with time out to {self}")
@@ -244,8 +239,7 @@ class PlugwiseRequest(PlugwiseMessage):
         """Assign error for this request."""
         self.stop_response_timeout()
         self._unsubscribe_from_stick()
-        if self.node_response_expected:
-            self._unsubscribe_from_node()
+        self._unsubscribe_from_node()
         if self._response_future.done():
             return
         self._waiting_for_response = False
@@ -274,8 +268,7 @@ class PlugwiseRequest(PlugwiseMessage):
         self._response = copy(response)
         self.stop_response_timeout()
         self._unsubscribe_from_stick()
-        if self.node_response_expected:
-            self._unsubscribe_from_node()
+        self._unsubscribe_from_node()
         if self._send_counter > 1:
             _LOGGER.debug(
                 "Received %s after %s retries as reply to %s",
@@ -416,7 +409,7 @@ class NodeAddRequest(PlugwiseRequest):
     """Add node to the Plugwise Network and add it to memory of Circle+ node.
 
     Supported protocols : 1.0, 2.0
-    Response message    : (@bouwew) no Response
+    Response message    : NodeJoinAckResponse, b"0061"
     """
 
     _identifier = b"0007"
@@ -432,13 +425,16 @@ class NodeAddRequest(PlugwiseRequest):
         accept_value = 1 if accept else 0
         self._args.append(Int(accept_value, length=2))
 
-    async def send(self) -> None:
+    async def send(self) -> NodeJoinAckResponse | None:
         """Send request."""
-        if (
-            result := await self._send_request()
-        ) is not None:
-            raise MessageError(
-                f"Invalid response message. Received {result.__class__.__name__}, expected no Response"
+        if (result := await self._send_request()) is None:
+            return None
+
+        if isinstance(result, NodeJoinAckResponse):
+            return result
+
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeJoinAckResponse"
         )
 
     # This message has an exceptional format (MAC at end of message)
