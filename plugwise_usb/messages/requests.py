@@ -33,8 +33,8 @@ from ..messages.responses import (
     NodeFeaturesResponse,
     NodeImageValidationResponse,
     NodeInfoResponse,
-    NodeJoinAckResponse,
     NodePingResponse,
+    NodeRejoinResponse,
     NodeRemoveResponse,
     NodeResponse,
     NodeSpecificResponse,
@@ -409,7 +409,7 @@ class NodeAddRequest(PlugwiseRequest):
     """Add node to the Plugwise Network and add it to memory of Circle+ node.
 
     Supported protocols : 1.0, 2.0
-    Response message    : NodeJoinAckResponse, b"0061"
+    Response message    : NodeRejoinResponse, b"0061" (@bouwew)
     """
 
     _identifier = b"0007"
@@ -425,16 +425,16 @@ class NodeAddRequest(PlugwiseRequest):
         accept_value = 1 if accept else 0
         self._args.append(Int(accept_value, length=2))
 
-    async def send(self) -> NodeJoinAckResponse | None:
+    async def send(self) -> NodeRejoinResponse | None:
         """Send request."""
         if (result := await self._send_request()) is None:
             return None
 
-        if isinstance(result, NodeJoinAckResponse):
+        if isinstance(result, NodeRejoinResponse):
             return result
 
         raise MessageError(
-            f"Invalid response message. Received {result.__class__.__name__}, expected NodeJoinAckResponse"
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeRejoinResponse"
         )
 
     # This message has an exceptional format (MAC at end of message)
