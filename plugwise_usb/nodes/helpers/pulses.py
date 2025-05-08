@@ -818,6 +818,13 @@ class PulseCollection:
             last_address,
         )
 
+        if last_address < first_address:
+            _LOGGER.debug(
+                "_logs_missing | %s | first_address > last_address, ignoring",
+                self._mac,
+            )
+            return
+
         if (
             last_address == first_address
             and last_slot == first_slot
