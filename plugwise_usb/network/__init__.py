@@ -149,7 +149,7 @@ class StickNetwork:
     async def register_node(self, mac: str) -> bool:
         """Register node to Plugwise network."""
         if not self.accept_join_request:
-            return
+            return False
 
         try:
             if (address := await self._register.register_node(mac)):
