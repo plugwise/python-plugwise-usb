@@ -511,5 +511,4 @@ class StickReceiver(Protocol):
             name=f"Postpone subscription task for {node_response.seq_id!r} retry {node_response.retries}",
         )
 
-
 # endregion

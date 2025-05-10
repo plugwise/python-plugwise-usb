@@ -31,7 +31,11 @@ MESSAGE_HEADER: Final = b"\x05\x05\x03\x03"
 
 # Max timeout in seconds
 STICK_TIME_OUT: Final = 11  # Stick responds with timeout messages within 10s.
-NODE_TIME_OUT: Final = 15  # In bigger networks a response from a node could take up a while, so lets use 15 seconds.
+# In bigger networks a response from a node could take up a while
+NODE_TIME_OUT: Final = 45  
+# A delayed response being received after 30 secs so lets use 45 seconds.
+# @bouwew: NodeJoinAckResponse to a NodeAddRequest
+
 MAX_RETRIES: Final = 3
 SUPPRESS_INITIALIZATION_WARNINGS: Final = 10  # Minutes to suppress (expected) communication warning messages after initialization
 
