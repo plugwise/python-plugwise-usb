@@ -256,7 +256,7 @@ class StickNetwork:
             )
 
         mac = response.mac_decoded
-        _LOGGER.debug(f"node_join_available_message | adding available Node {mac}")
+        _LOGGER.debug("node_join_available_message | adding available Node %s", mac)
         try:
             await self.register_node(mac)
         except NodeError as exc:
