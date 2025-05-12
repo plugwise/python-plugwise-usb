@@ -251,8 +251,9 @@ class StickNetworkRegister:
         request = NodeAddRequest(self._send_to_controller, bytes(mac, UTF8), True)
         try:
             response = await request.send()
-            if response is None or response.response_type != NodeResponseType.REJOINING:
-                raise NodeError(f"Failed to register node {mac}, no or wrong response")
+            if response is None:
+                raise NodeError(f"Failed to register node {mac}, no response received")
+            _LOGGER.debug("register_node | response ack_id: %s", response.ack_id)
         except MessageError as exc:
             raise MessageError(f"Failed to register Node with {mac}") from exc
 

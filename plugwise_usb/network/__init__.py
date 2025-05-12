@@ -152,12 +152,10 @@ class StickNetwork:
             return False
 
         try:
-            if (address := await self._register.register_node(mac)):
-                return await self._discover_node(address, mac, None)
+            address = await self._register.register_node(mac)
+            return await self._discover_node(address, mac, None)
         except (MessageError, NodeError) as exc:
             raise NodeError(f"{exc}") from exc
-        
-        return False
 
     async def clear_cache(self) -> None:
         """Clear register cache."""
