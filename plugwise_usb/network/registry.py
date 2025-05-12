@@ -17,7 +17,7 @@ from ..messages.requests import (
     NodeRemoveRequest,
     PlugwiseRequest,
 )
-from ..messages.responses import NodeResponseType, PlugwiseResponse
+from ..messages.responses import PlugwiseResponse
 from .cache import NetworkRegistrationCache
 
 _LOGGER = logging.getLogger(__name__)
@@ -250,8 +250,7 @@ class StickNetworkRegister:
 
         request = NodeAddRequest(self._send_to_controller, bytes(mac, UTF8), True)
         try:
-            response = await request.send()
-            if response is None:
+            if (response := await request.send()) is None:
                 raise NodeError(f"Failed to register node {mac}, no response received")
             _LOGGER.debug("register_node | response ack_id: %s", response.ack_id)
         except MessageError as exc:
