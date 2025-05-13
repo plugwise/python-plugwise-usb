@@ -284,7 +284,7 @@ class StickNetwork:
                     _LOGGER.debug("duplicate awake discovery for %s", mac)
                 return True
         else:
-            raise NodeError("Unknown network address for node {mac}")
+            raise NodeError(f"Unknown network address for node {mac}")
         return True
 
     def _unsubscribe_to_protocol_events(self) -> None:
