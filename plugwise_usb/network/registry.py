@@ -263,6 +263,15 @@ class StickNetworkRegister:
         self._first_free_address += 1
         return self._first_free_address - 1
 
+    async def register_rejoined_node(self, mac: str) -> int:
+        """Re-register rejoined node to Plugwise network and return network address."""
+        if not validate_mac(mac):
+            raise NodeError(f"MAC '{mac}' invalid")
+
+        self.update_network_registration(self._first_free_address, mac, None)
+        self._first_free_address += 1
+        return self._first_free_address - 1
+
     async def unregister_node(self, mac: str) -> None:
         """Unregister node from current Plugwise network."""
         if not validate_mac(mac):
