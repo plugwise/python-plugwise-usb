@@ -270,22 +270,22 @@ class StickNetwork:
                 f"Invalid response message type ({response.__class__.__name__}) received, expected NodeRejoinResponse"
             )
         mac = response.mac_decoded
-        if (address := self._register.network_address(mac)) is not None:
-            if self._nodes.get(mac) is None:
-                if self._discover_sed_tasks.get(mac) is None:
-                    self._discover_sed_tasks[mac] = create_task(
-                        self._discover_battery_powered_node(address, mac)
-                    )
-                elif self._discover_sed_tasks[mac].done():
-                    self._discover_sed_tasks[mac] = create_task(
-                        self._discover_battery_powered_node(address, mac)
-                    )
-                else:
-                    _LOGGER.debug("duplicate awake discovery for %s", mac)
-                return True
-        else:
-            raise NodeError(f"Unknown network address for node {mac}")
-        return True
+        if (address := self._register.network_address(mac)) is None:
+            if (address := self.register_rejoined_node(mac)) is None:
+                raise NodeError(f"Failed to obtain address for node {mac}")
+
+        if self._nodes.get(mac) is None:
+            if self._discover_sed_tasks.get(mac) is None:
+                self._discover_sed_tasks[mac] = create_task(
+                    self._discover_battery_powered_node(address, mac)
+                )
+            elif self._discover_sed_tasks[mac].done():
+                self._discover_sed_tasks[mac] = create_task(
+                    self._discover_battery_powered_node(address, mac)
+                )
+            else:
+                _LOGGER.debug("duplicate awake discovery for %s", mac)
+            return True
 
     def _unsubscribe_to_protocol_events(self) -> None:
         """Unsubscribe to events from protocol."""
