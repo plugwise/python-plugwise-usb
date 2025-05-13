@@ -152,7 +152,7 @@ class StickNetworkRegister:
 
     def network_address(self, mac: str) -> int | None:
         """Return the network registration address for given mac."""
-        _LOGGER.debug("Finding registration address of %", mac)
+        _LOGGER.debug("Finding registration address of %s", mac)
         for address, registration in self._registry.items():
             registered_mac, _ = registration
             _LOGGER.debug("address: %s | mac: %s", address, registered_mac)
