@@ -166,10 +166,11 @@ class StickNetwork:
         """Unregister node from current Plugwise network."""
         try:
             await self._register.unregister_node(mac)
-            await self._nodes[mac].unload()
-            self._nodes.pop(mac)
         except (KeyError, NodeError) as exc:
             raise MessageError("Mac not registered, already deleted?") from exc
+
+        await self._nodes[mac].unload()
+        self._nodes.pop(mac)
 
     # region - Handle stick connect/disconnect events
     def _subscribe_to_protocol_events(self) -> None:
