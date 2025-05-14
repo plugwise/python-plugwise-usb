@@ -273,7 +273,7 @@ class StickNetwork:
             )
         mac = response.mac_decoded
         if (address := self._register.network_address(mac)) is None:
-            if (address := self._register.register_rejoined_node(mac)) is None:
+            if (address := self._register.update_node_registration(mac)) is None:
                 raise NodeError(f"Failed to obtain address for node {mac}")
 
         if self._nodes.get(mac) is None:
