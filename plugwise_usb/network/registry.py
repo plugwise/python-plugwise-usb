@@ -259,15 +259,10 @@ class StickNetworkRegister:
         except MessageError as exc:
             raise MessageError(f"Failed to register Node with {mac}") from exc
 
-        self.update_network_registration(self._first_free_address, mac, None)
-        self._first_free_address += 1
-        return self._first_free_address - 1
+        return self.update_node_registration(mac)
 
-    async def register_rejoined_node(self, mac: str) -> int:
-        """Re-register rejoined node to Plugwise network and return network address."""
-        if not validate_mac(mac):
-            raise NodeError(f"MAC '{mac}' invalid")
-
+    async def update_node_registration(self, mac: str) -> int:
+        """Register (re)joined node to Plugwise network and return network address."""
         self.update_network_registration(self._first_free_address, mac, None)
         self._first_free_address += 1
         return self._first_free_address - 1
