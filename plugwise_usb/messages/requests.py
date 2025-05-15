@@ -108,6 +108,8 @@ class PlugwiseRequest(PlugwiseMessage):
         self._response_future: Future[PlugwiseResponse] = self._loop.create_future()
         self._waiting_for_response = False
 
+        self.no_stick_response = False
+
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
@@ -425,6 +427,8 @@ class NodeAddRequest(PlugwiseRequest):
         super().__init__(send_fn, mac)
         accept_value = 1 if accept else 0
         self._args.append(Int(accept_value, length=2))
+
+        self.no_stick_response = True
 
     async def send(self) -> NodeRejoinResponse | None:
         """Send request."""
