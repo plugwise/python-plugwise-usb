@@ -87,6 +87,7 @@ class StickSender:
             self._stick_response.cancel()
             self._stick_lock.release()
             self._processed_msgs += 1
+            return
 
         # Wait for USB stick to accept request
         try:
