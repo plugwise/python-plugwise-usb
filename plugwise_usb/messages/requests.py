@@ -434,7 +434,7 @@ class NodeAddRequest(PlugwiseRequest):
         """Send request."""
         result = await self._send_request()
         if isinstance(result, NodeRejoinResponse):
-        return result
+            return result
         
         if result is None:
             return None
