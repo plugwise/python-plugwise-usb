@@ -83,6 +83,11 @@ class StickSender:
         self._transport.write(serialized_data)
         request.start_response_timeout()
 
+        if request.no_stick_response:
+            self._stick_response.cancel()
+            self._stick_lock.release()
+            self._processed_msgs += 1
+
         # Wait for USB stick to accept request
         try:
             async with timeout(STICK_TIME_OUT):
