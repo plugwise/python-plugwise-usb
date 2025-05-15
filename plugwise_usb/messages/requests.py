@@ -429,16 +429,15 @@ class NodeAddRequest(PlugwiseRequest):
     async def send(self) -> NodeRejoinResponse | None:
         """Send request."""
         result = await self._send_request()
-        _LOGGER.debug("NodeAddReq response: %s", result.__class__.__name__)
+        if isinstance(result, NodeRejoinResponse):
+        return result
+        
         if result is None:
             return None
 
-        #if isinstance(result, NodeRejoinResponse):
-        return result
-
-        # raise MessageError(
-        #     f"Invalid response message. Received {result.__class__.__name__}, expected NodeRejoinResponse"
-        #)
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeRejoinResponse"
+        )
 
     # This message has an exceptional format (MAC at end of message)
     # and therefore a need to override the serialize method
