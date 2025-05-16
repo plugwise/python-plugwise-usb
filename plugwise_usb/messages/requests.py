@@ -34,7 +34,6 @@ from ..messages.responses import (
     NodeImageValidationResponse,
     NodeInfoResponse,
     NodePingResponse,
-    NodeRejoinResponse,
     NodeRemoveResponse,
     NodeResponse,
     NodeSpecificResponse,
