@@ -9,7 +9,7 @@ import logging
 
 from ..api import NodeType
 from ..constants import UTF8
-from ..exceptions import CacheError, MessageError, NodeError
+from ..exceptions import CacheError, NodeError
 from ..helpers.util import validate_mac
 from ..messages.requests import (
     CirclePlusScanRequest,
