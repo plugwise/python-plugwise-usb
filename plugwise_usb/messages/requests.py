@@ -428,6 +428,7 @@ class NodeAddRequest(PlugwiseRequest):
         accept_value = 1 if accept else 0
         self._args.append(Int(accept_value, length=2))
 
+        self.max_retries = 6
         self.no_stick_response = True
 
     async def send(self) -> NodeRejoinResponse | None:
