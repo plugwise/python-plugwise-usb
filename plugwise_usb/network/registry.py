@@ -253,6 +253,7 @@ class StickNetworkRegister:
         request = NodeAddRequest(self._send_to_controller, bytes(mac, UTF8), True)
         try:
             response = await request.send()
+            # pylint: disable-next=consider-using-assignment-expr
             if response is None:
                 raise NodeError(f"Failed to register node {mac}, no response received")
         except MessageError as exc:
