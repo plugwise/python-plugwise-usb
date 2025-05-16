@@ -245,21 +245,13 @@ class StickNetworkRegister:
         await self._network_cache.save_cache()
         _LOGGER.debug("save_registry_to_cache finished")
 
-    async def register_node(self, mac: str) -> int:
+    async def register_node(self, mac: str) -> None:
         """Register node to Plugwise network and return network address."""
         if not validate_mac(mac):
             raise NodeError(f"MAC '{mac}' invalid")
 
         request = NodeAddRequest(self._send_to_controller, bytes(mac, UTF8), True)
-        try:
-            response = await request.send()
-            # pylint: disable-next=consider-using-assignment-expr
-            if response is None:
-                raise NodeError(f"Failed to register node {mac}, no response received")
-        except MessageError as exc:
-            raise MessageError(f"Failed to register Node ({mac}) due to {exc}") from exc
-
-        return self.update_node_registration(mac)
+        await request.send()
 
     async def update_node_registration(self, mac: str) -> int:
         """Register (re)joined node to Plugwise network and return network address."""

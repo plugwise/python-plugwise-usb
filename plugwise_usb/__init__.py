@@ -350,10 +350,12 @@ class Stick:
         """Add node to plugwise network."""
         if self._network is None:
             return False
+
         try:
-            return await self._network.register_node(mac)
+            await self._network.register_node(mac)
         except NodeError as exc:
             raise NodeError(f"Unable to add Node ({mac}): {exc}") from exc
+        return True
 
     @raise_not_connected
     @raise_not_initialized

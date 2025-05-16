@@ -410,6 +410,8 @@ class CirclePlusConnectRequest(PlugwiseRequest):
 class NodeAddRequest(PlugwiseRequest):
     """Add node to the Plugwise Network and add it to memory of Circle+ node.
 
+    The Stick does not respond with ACCEPT to this request (@bouwew)
+
     Supported protocols : 1.0, 2.0
     Response message    : NodeRejoinResponse, b"0061" (@bouwew)
     """
@@ -428,21 +430,12 @@ class NodeAddRequest(PlugwiseRequest):
         accept_value = 1 if accept else 0
         self._args.append(Int(accept_value, length=2))
 
-        self.max_retries = 6
+        self.max_retries = 1  # No retrying, will delay the NodeRejoinResponse
         self.no_stick_response = True
 
-    async def send(self) -> NodeRejoinResponse | None:
+    async def send(self) -> None:
         """Send request."""
-        result = await self._send_request()
-        if isinstance(result, NodeRejoinResponse):
-            return result
-        
-        if result is None:
-            return None
-
-        raise MessageError(
-            f"Invalid response message. Received {result.__class__.__name__}, expected NodeRejoinResponse"
-        )
+        await self._send_request()
 
     # This message has an exceptional format (MAC at end of message)
     # and therefore a need to override the serialize method
