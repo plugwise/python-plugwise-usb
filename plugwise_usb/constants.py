@@ -30,9 +30,9 @@ MESSAGE_FOOTER: Final = b"\x0d\x0a"
 MESSAGE_HEADER: Final = b"\x05\x05\x03\x03"
 
 # Max timeout in seconds
-STICK_TIME_OUT: Final = 45  # Stick responds with timeout messages within 10s.
+STICK_TIME_OUT: Final = 11  # Stick responds with timeout messages within 10s.
 # In bigger networks a response from a node could take up a while
-NODE_TIME_OUT: Final = 60
+NODE_TIME_OUT: Final = 45
 # A delayed response being received after 30 secs so lets use 45 seconds.
 # @bouwew: NodeJoinAckResponse to a NodeAddRequest
 
