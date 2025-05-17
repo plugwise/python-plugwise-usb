@@ -352,10 +352,9 @@ class Stick:
             return False
 
         try:
-            await self._network.register_node(mac)
+            return await self._network.register_node(mac)
         except NodeError as exc:
             raise NodeError(f"Unable to add Node ({mac}): {exc}") from exc
-        return True
 
     @raise_not_connected
     @raise_not_initialized
