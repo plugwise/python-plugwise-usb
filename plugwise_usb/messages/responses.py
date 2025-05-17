@@ -117,7 +117,7 @@ class PlugwiseResponse(PlugwiseMessage):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id={self._seq_id!r}, retries={self._retries})"
+        return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id={self._seq_id}, retries={self._retries})"
 
     @property
     def retries(self) -> int:
@@ -161,7 +161,7 @@ class PlugwiseResponse(PlugwiseMessage):
         if (check := self.calculate_checksum(response[:-4])) != response[-4:]:
             raise MessageError(
                 f"Invalid checksum for {self.__class__.__name__}, "
-                + f"expected {check!r} got "
+                + f"expected {check} got "
                 + str(response[-4:]),
             )
         response = response[:-4]
@@ -170,8 +170,8 @@ class PlugwiseResponse(PlugwiseMessage):
         if self._identifier != response[:4]:
             raise MessageError(
                 "Invalid message identifier received "
-                + f"expected {self._identifier!r} "
-                + f"got {response[:4]!r}"
+                + f"expected {self._identifier} "
+                + f"got {response[:4]}"
             )
         self._seq_id = response[4:8]
         response = response[8:]
@@ -229,8 +229,8 @@ class StickResponse(PlugwiseResponse):
     def __repr__(self) -> str:
         """Convert request into writable str."""
         if self.ack_id is None:
-            return f"StickResponse (seq_id={self._seq_id!r}, retries={self._retries}, ack=UNKNOWN)"
-        return f"StickResponse (seq_id={self._seq_id!r}, retries={self._retries}, ack={StickResponseType(self.ack_id).name})"
+            return f"StickResponse (seq_id={self._seq_id}, retries={self._retries}, ack=UNKNOWN)"
+        return f"StickResponse (seq_id={self._seq_id}, retries={self._retries}, ack={StickResponseType(self.ack_id).name})"
 
     @property
     def response_type(self) -> StickResponseType:
@@ -1026,4 +1026,4 @@ def get_message_object(  # noqa: C901
         return SenseReportResponse()
     if identifier == b"0139":
         return CircleRelayInitStateResponse()
-    raise MessageError(f"Unknown message for identifier {identifier!r}")
+    raise MessageError(f"Unknown message for identifier {identifier}")

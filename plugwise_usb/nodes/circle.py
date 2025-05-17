@@ -659,7 +659,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             return True
 
         raise NodeError(
-            f"Unexpected NodeResponseType {response.ack_id!r} received "
+            f"Unexpected NodeResponseType {response.ack_id} received "
             + "in response to CircleRelaySwitchRequest for node {self.mac}"
         )
 

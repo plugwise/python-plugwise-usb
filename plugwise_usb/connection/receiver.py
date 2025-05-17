@@ -510,7 +510,7 @@ class StickReceiver(Protocol):
         node_response.retries += 1
         self._delayed_processing_tasks[node_response.seq_id] = self._loop.create_task(
             self._put_message_in_queue(node_response, 0.1 * node_response.retries),
-            name=f"Postpone subscription task for {node_response.seq_id!r} retry {node_response.retries}",
+            name=f"Postpone subscription task for {node_response.seq_id} retry {node_response.retries}",
         )
 
 # endregion
