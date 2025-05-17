@@ -82,13 +82,6 @@ class StickSender:
         _LOGGER.debug("write_request_to_port | Write %s to port as %s", request, serialized_data)
         self._transport.write(serialized_data)
         request.start_response_timeout()
-
-        if request.no_stick_response:
-            self._stick_response.cancel()
-            self._stick_lock.release()
-            self._processed_msgs += 1
-            return
-
         # Wait for USB stick to accept request
         try:
             async with timeout(STICK_TIME_OUT):
