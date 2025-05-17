@@ -14,7 +14,7 @@ from typing import Any, TypeVar, cast
 
 from .api import NodeEvent, PlugwiseNode, StickEvent
 from .connection import StickController
-from .exceptions import StickError, SubscriptionError
+from .exceptions import MessageError, NodeError, StickError, SubscriptionError
 from .network import StickNetwork
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
@@ -190,20 +190,23 @@ class Stick:
             return None
         return self._network.accept_join_request
 
-    @accept_join_request.setter
-    def accept_join_request(self, state: bool) -> None:
+    async def set_accept_join_request(self, state: bool) -> None:
         """Configure join request setting."""
         if not self._controller.is_connected:
             raise StickError(
                 "Cannot accept joining node"
                 + " without an active USB-Stick connection."
             )
+
         if self._network is None or not self._network.is_running:
             raise StickError(
                 "Cannot accept joining node"
                 + "without node discovery be activated. Call discover() first."
             )
-        self._network.accept_join_request = state
+
+        if self._network.accept_join_request != state:
+            self._network.accept_join_request = state
+            await self._network.allow_join_requests(state)
 
     async def clear_cache(self) -> None:
         """Clear current cache."""
@@ -347,7 +350,11 @@ class Stick:
         """Add node to plugwise network."""
         if self._network is None:
             return False
-        return await self._network.register_node(mac)
+
+        try:
+            return await self._network.register_node(mac)
+        except NodeError as exc:
+            raise NodeError(f"Unable to add Node ({mac}): {exc}") from exc
 
     @raise_not_connected
     @raise_not_initialized
@@ -355,7 +362,10 @@ class Stick:
         """Remove node to plugwise network."""
         if self._network is None:
             return
-        await self._network.unregister_node(mac)
+        try:
+            await self._network.unregister_node(mac)
+        except MessageError as exc:
+            raise NodeError(f"Unable to remove Node ({mac}): {exc}") from exc
 
     async def disconnect(self) -> None:
         """Disconnect from USB-Stick."""

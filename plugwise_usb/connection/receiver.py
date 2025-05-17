@@ -271,6 +271,7 @@ class StickReceiver(Protocol):
         _LOGGER.debug("Add response to queue: %s", response)
         await self._message_queue.put(response)
         if self._message_worker_task is None or self._message_worker_task.done():
+            _LOGGER.debug("Queue: start new worker-task")
             self._message_worker_task = self._loop.create_task(
                 self._message_queue_worker(),
                 name="Plugwise message receiver queue worker",
@@ -281,6 +282,7 @@ class StickReceiver(Protocol):
         _LOGGER.debug("Message queue worker started")
         while self.is_connected:
             response: PlugwiseResponse = await self._message_queue.get()
+            _LOGGER.debug("Priority: %s", response.priority)
             if response.priority == Priority.CANCEL:
                 self._message_queue.task_done()
                 return
@@ -508,8 +510,7 @@ class StickReceiver(Protocol):
         node_response.retries += 1
         self._delayed_processing_tasks[node_response.seq_id] = self._loop.create_task(
             self._put_message_in_queue(node_response, 0.1 * node_response.retries),
-            name=f"Postpone subscription task for {node_response.seq_id!r} retry {node_response.retries}",
+            name=f"Postpone subscription task for {node_response.seq_id} retry {node_response.retries}",
         )
-
 
 # endregion
