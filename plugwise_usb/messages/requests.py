@@ -114,7 +114,7 @@ class PlugwiseRequest(PlugwiseMessage):
         """Convert request into writable str."""
         if self._seq_id is None:
             return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id=UNKNOWN, attempt={self._send_counter})"
-        return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id={self._seq_id!r}, attempt={self._send_counter})"
+        return f"{self.__class__.__name__} (mac={self.mac_decoded}, seq_id={self._seq_id}, attempt={self._send_counter})"
 
     def response_future(self) -> Future[PlugwiseResponse]:
         """Return awaitable future with response message."""
@@ -142,7 +142,7 @@ class PlugwiseRequest(PlugwiseMessage):
                 "Unable to change seq_id into %s for request %s", seq_id, self
             )
             raise MessageError(
-                f"Unable to set seq_id to {seq_id!r}. Already set to {self._seq_id!r}"
+                f"Unable to set seq_id to {seq_id}. Already set to {self._seq_id}"
             )
         self._seq_id = seq_id
 
