@@ -257,12 +257,15 @@ class StickNetwork:
         mac = response.mac_decoded
         _LOGGER.debug("node_join_available_message | adding available Node %s", mac)
         try:
-            await self.register_node(mac)
+            result = await self.register_node(mac)
         except NodeError as exc:
             raise NodeError(f"Unable to add Node ({mac}): {exc}") from exc
 
-        await self._notify_node_event_subscribers(NodeEvent.JOIN, mac)
-        return True
+        if result:
+            await self._notify_node_event_subscribers(NodeEvent.JOIN, mac)
+            return True
+        
+        return False
 
     async def node_rejoin_message(self, response: PlugwiseResponse) -> bool:
         """Handle NodeRejoinResponse messages."""
@@ -287,6 +290,8 @@ class StickNetwork:
             else:
                 _LOGGER.debug("duplicate awake discovery for %s", mac)
             return True
+        
+        return False
 
     def _unsubscribe_to_protocol_events(self) -> None:
         """Unsubscribe to events from protocol."""
