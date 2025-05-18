@@ -269,7 +269,7 @@ class StickReceiver(Protocol):
         if delay > 0.0:
             await sleep(delay)
         _LOGGER.debug("Add response to queue: %s", response)
-        self._message_queue.put_nowait(response)
+        await self._message_queue.put(response)
         if self._message_worker_task is None or self._message_worker_task.done():
             _LOGGER.debug("Queue: start new worker-task")
             self._message_worker_task = self._loop.create_task(
