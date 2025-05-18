@@ -75,7 +75,7 @@ class StickSender:
         self._stick_response = self._loop.create_future()
 
         request.add_send_attempt()
-        _LOGGER.info("Send %s", request)
+        _LOGGER.info("Sending %s", request)
 
         # Write message to serial port buffer
         serialized_data = request.serialize()
