@@ -262,7 +262,7 @@ class StickNetwork:
             raise NodeError(f"Unable to add Node ({mac}): {exc}") from exc
 
         if result:
-            await self._notify_node_event_subscribers(NodeEvent.JOIN, mac)
+            await self._notify_node_event_subscribers(NodeEvent.JOIN, mac)  # This one never shows up
             return True
         
         return False
