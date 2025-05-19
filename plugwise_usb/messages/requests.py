@@ -414,6 +414,7 @@ class NodeAddRequest(PlugwiseRequest):
     """
 
     _identifier = b"0007"
+    _reply_identifier = None
 
     def __init__(
         self,
