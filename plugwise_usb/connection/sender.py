@@ -116,17 +116,11 @@ class StickSender:
                     )
                 else:
                     request.seq_id = response.seq_id
-                    if request.no_response:
-                        await request.subscribe_to_response(
-                            self._receiver.subscribe_to_stick_responses,
-                            None,
-                        )
-                    else:                   
-                        await request.subscribe_to_response(
-                            self._receiver.subscribe_to_stick_responses,
-                            self._receiver.subscribe_to_node_responses,
-                        )
-                        _LOGGER.debug("write_request_to_port | request has subscribed : %s", request)
+                    await request.subscribe_to_response(
+                        self._receiver.subscribe_to_stick_responses,
+                        self._receiver.subscribe_to_node_responses,
+                    )
+                    _LOGGER.debug("write_request_to_port | request has subscribed : %s", request)
             elif response.response_type == StickResponseType.TIMEOUT:
                 _LOGGER.warning(
                     "USB-Stick directly responded with communication timeout for %s",
