@@ -108,6 +108,8 @@ class PlugwiseRequest(PlugwiseMessage):
         self._response_future: Future[PlugwiseResponse] = self._loop.create_future()
         self._waiting_for_response = False
 
+        self.no_response = False
+
     def __repr__(self) -> str:
         """Convert request into writable str."""
         if self._seq_id is None:
@@ -408,11 +410,11 @@ class NodeAddRequest(PlugwiseRequest):
     """Add node to the Plugwise Network and add it to memory of Circle+ node.
 
     Supported protocols : 1.0, 2.0
-    Response message    : NodeRejoinResponse, b"0061" (@bouwew)
+    Response message    : None
+    There will be a delayed NodeRejoinResponse, b"0061", picked up by a separate subscription.
     """
 
     _identifier = b"0007"
-    _reply_identifier = b"0061"
 
     def __init__(
         self,
@@ -426,19 +428,11 @@ class NodeAddRequest(PlugwiseRequest):
         self._args.append(Int(accept_value, length=2))
 
         self.max_retries = 1  # No retrying, will delay the NodeRejoinResponse
+        self.no_response = True
 
-    async def send(self) -> NodeRejoinResponse | None:
+    async def send(self) -> None:
         """Send request."""
-        result = await self._send_request()
-        if isinstance(result, NodeRejoinResponse):
-            return result
-        
-        if result is None:
-            return None
-
-        raise MessageError(
-            f"Invalid response message. Received {result.__class__.__name__}, expected NodeRejoinResponse"
-        )
+        await self._send_request()
 
     # This message has an exceptional format (MAC at end of message)
     # and therefore a need to override the serialize method
