@@ -13,7 +13,6 @@ from ..exceptions import CacheError, NodeError
 from ..helpers.util import validate_mac
 from ..messages.requests import (
     CirclePlusScanRequest,
-    MessageError,
     NodeAddRequest,
     NodeRemoveRequest,
     PlugwiseRequest,
@@ -252,13 +251,7 @@ class StickNetworkRegister:
             raise NodeError(f"MAC '{mac}' invalid")
 
         request = NodeAddRequest(self._send_to_controller, bytes(mac, UTF8), True)
-        try:
-            response = await request.send()
-            # pylint: disable-next=consider-using-assignment-expr
-            if response is None:
-                raise NodeError(f"Failed to register node {mac}, no response received")
-        except MessageError as exc:
-            raise MessageError(f"Failed to register Node ({mac}) due to {exc}") from exc
+        await request.send()
 
     async def update_node_registration(self, mac: str) -> int:
         """Register (re)joined node to Plugwise network and return network address."""
