@@ -81,7 +81,10 @@ class StickSender:
         serialized_data = request.serialize()
         _LOGGER.debug("write_request_to_port | Write %s to port as %s", request, serialized_data)
         self._transport.write(serialized_data)
-        request.start_response_timeout()
+        # Don't timeout when no response expected
+        if not request.no_response:
+            request.start_response_timeout()
+
         # Wait for USB stick to accept request
         try:
             async with timeout(STICK_TIME_OUT):
@@ -113,11 +116,17 @@ class StickSender:
                     )
                 else:
                     request.seq_id = response.seq_id
-                    await request.subscribe_to_response(
-                        self._receiver.subscribe_to_stick_responses,
-                        self._receiver.subscribe_to_node_responses,
-                    )
-                    _LOGGER.debug("write_request_to_port | request has subscribed : %s", request)
+                    if request.no_response:
+                        await request.subscribe_to_response(
+                            self._receiver.subscribe_to_stick_responses,
+                            None,
+                        )
+                    else:                   
+                        await request.subscribe_to_response(
+                            self._receiver.subscribe_to_stick_responses,
+                            self._receiver.subscribe_to_node_responses,
+                        )
+                        _LOGGER.debug("write_request_to_port | request has subscribed : %s", request)
             elif response.response_type == StickResponseType.TIMEOUT:
                 _LOGGER.warning(
                     "USB-Stick directly responded with communication timeout for %s",
