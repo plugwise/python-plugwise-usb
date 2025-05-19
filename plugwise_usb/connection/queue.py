@@ -93,6 +93,9 @@ class StickQueue:
                 )
 
             await self._add_request_to_queue(request)
+            if request.no_response:
+                return None
+
             try:
                 response: PlugwiseResponse = await request.response_future()
                 return response
