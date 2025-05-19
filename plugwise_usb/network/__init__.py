@@ -153,7 +153,7 @@ class StickNetwork:
 
         try:
             await self._register.register_node(mac)
-        except (MessageError, NodeError) as exc:
+        except NodeError as exc:
             raise NodeError(f"{exc}") from exc
         return True
 
