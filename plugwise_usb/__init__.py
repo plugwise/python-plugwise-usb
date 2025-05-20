@@ -204,9 +204,12 @@ class Stick:
                 + "without node discovery be activated. Call discover() first."
             )
 
-        if self._network.accept_join_request != state:
-            self._network.accept_join_request = state
+        # Observation: joining is only temporarily possible after a HA (re)start or
+        # Integration reload, force the setting when used otherwise
+        try:
             await self._network.allow_join_requests(state)
+        except (MessageError, NodeError) as exc:
+            raise NodeError(f"Failed setting accept joining: {exc}")
 
     async def clear_cache(self) -> None:
         """Clear current cache."""
