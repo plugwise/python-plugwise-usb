@@ -209,7 +209,7 @@ class Stick:
         try:
             await self._network.allow_join_requests(state)
         except (MessageError, NodeError) as exc:
-            raise NodeError(f"Failed setting accept joining: {exc}")
+            raise NodeError(f"Failed setting accept joining: {exc}") from exc
 
     async def clear_cache(self) -> None:
         """Clear current cache."""
