@@ -535,6 +535,7 @@ class StickNetwork:
             )
 
         _LOGGER.debug("Sent AllowJoiningRequest to Circle+ with state=%s", state)
+        self.accept_join_request = state
 
     def subscribe_to_node_events(
         self,
