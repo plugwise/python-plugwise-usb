@@ -70,13 +70,6 @@ RESPONSE_MESSAGES = {
         b"000000D9"  # JOIN_ACCEPTED
         + b"0098765432101234",  # mac
     ),
-    b"\x05\x05\x03\x030007019999999999999999\r\n":(
-        "Reply to NodeAddRequest",
-        b"000000C1",  # Success ack
-        b"0061"  # NODE_REJOIN_ID
-        + b"FFFD"  # REJOIN_RESPONSE_SEQ_ID
-        + b"9999999999999999",  # mac
-    ),
     b"\x05\x05\x03\x03000D0098765432101234C208\r\n": (
         "ping reply for 0098765432101234",
         b"000000C1",  # Success ack
