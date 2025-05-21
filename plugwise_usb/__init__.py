@@ -190,7 +190,7 @@ class Stick:
             return None
         return self._network.accept_join_request
 
-    async def set_accept_join_request(self, state: bool) -> None:
+    async def set_accept_join_request(self, state: bool) -> bool:
         """Configure join request setting."""
         if not self._controller.is_connected:
             raise StickError(
@@ -210,6 +210,7 @@ class Stick:
             await self._network.allow_join_requests(state)
         except (MessageError, NodeError) as exc:
             raise NodeError(f"Failed setting accept joining: {exc}") from exc
+        return True
 
     async def clear_cache(self) -> None:
         """Clear current cache."""
