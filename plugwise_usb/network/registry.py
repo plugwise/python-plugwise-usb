@@ -223,6 +223,12 @@ class StickNetworkRegister:
                 await self._full_scan_finished()
                 self._full_scan_finished = None
 
+    def update_node_registration(self, mac: str) -> int:
+        """Register (re)joined node to Plugwise network and return network address."""
+        self.update_network_registration(self._first_free_address, mac, None)
+        self._first_free_address += 1
+        return self._first_free_address - 1
+
     def _stop_registration_task(self) -> None:
         """Stop the background registration task."""
         if self._registration_task is None:
@@ -252,12 +258,6 @@ class StickNetworkRegister:
 
         request = NodeAddRequest(self._send_to_controller, bytes(mac, UTF8), True)
         await request.send()
-
-    async def update_node_registration(self, mac: str) -> int:
-        """Register (re)joined node to Plugwise network and return network address."""
-        self.update_network_registration(self._first_free_address, mac, None)
-        self._first_free_address += 1
-        return self._first_free_address - 1
 
     async def unregister_node(self, mac: str) -> None:
         """Unregister node from current Plugwise network."""
