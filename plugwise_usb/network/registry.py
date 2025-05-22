@@ -9,7 +9,7 @@ import logging
 
 from ..api import NodeType
 from ..constants import UTF8
-from ..exceptions import CacheError, NodeError
+from ..exceptions import CacheError, NodeError, StickError
 from ..helpers.util import validate_mac
 from ..messages.requests import (
     CirclePlusScanRequest,
@@ -257,7 +257,10 @@ class StickNetworkRegister:
             raise NodeError(f"MAC '{mac}' invalid")
 
         request = NodeAddRequest(self._send_to_controller, bytes(mac, UTF8), True)
-        await request.send()
+        try:
+            await request.send()
+        except StickError as exc:
+            raise NodeError("{exc}") from exc
 
     async def unregister_node(self, mac: str) -> None:
         """Unregister node from current Plugwise network."""
