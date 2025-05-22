@@ -426,8 +426,6 @@ class NodeAddRequest(PlugwiseRequest):
         super().__init__(send_fn, mac)
         accept_value = 1 if accept else 0
         self._args.append(Int(accept_value, length=2))
-
-        self.max_retries = 1  # No retrying, will delay the NodeRejoinResponse
         self.no_response = True
 
     async def send(self) -> None:
