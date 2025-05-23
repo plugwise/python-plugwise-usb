@@ -453,23 +453,23 @@ class NodeSED(PlugwiseBaseNode):
             self.name,
         )
         self._sed_config_task_scheduled = False
-        change_required = True
-        if self._new_battery_config.awake_duration is not None:
+        change_required = False
+        if (
+            self._new_battery_config.awake_duration is not None
+            or self._new_battery_config.clock_interval is not None
+            or self._new_battery_config.clock_sync is not None
+            or self._new_battery_config.maintenance_interval is not None
+            or self._new_battery_config.sleep_duration is not None
+        ):
             change_required = True
-        if self._new_battery_config.clock_interval is not None:
-            change_required = True
-        if self._new_battery_config.clock_sync is not None:
-            change_required = True
-        if self._new_battery_config.maintenance_interval is not None:
-            change_required = True
-        if self._new_battery_config.sleep_duration is not None:
-            change_required = True
+
         if not change_required:
             _LOGGER.debug(
                 "_configure_sed_task | Device %s | no change",
                 self.name,
             )
             return True
+
         _LOGGER.debug(
             "_configure_sed_task | Device %s | request change",
             self.name,
