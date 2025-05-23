@@ -9,7 +9,7 @@ import logging
 
 from ..api import NodeType
 from ..constants import UTF8
-from ..exceptions import CacheError, NodeError
+from ..exceptions import CacheError, NodeError, StickError
 from ..helpers.util import validate_mac
 from ..messages.requests import (
     CirclePlusScanRequest,
@@ -17,7 +17,7 @@ from ..messages.requests import (
     NodeRemoveRequest,
     PlugwiseRequest,
 )
-from ..messages.responses import NodeResponseType, PlugwiseResponse
+from ..messages.responses import PlugwiseResponse
 from .cache import NetworkRegistrationCache
 
 _LOGGER = logging.getLogger(__name__)
@@ -152,8 +152,10 @@ class StickNetworkRegister:
 
     def network_address(self, mac: str) -> int | None:
         """Return the network registration address for given mac."""
+        _LOGGER.debug("Address registrations:")
         for address, registration in self._registry.items():
             registered_mac, _ = registration
+            _LOGGER.debug("address: %s | mac: %s", address, registered_mac)
             if mac == registered_mac:
                 return address
         return None
@@ -221,6 +223,12 @@ class StickNetworkRegister:
                 await self._full_scan_finished()
                 self._full_scan_finished = None
 
+    def update_node_registration(self, mac: str) -> int:
+        """Register (re)joined node to Plugwise network and return network address."""
+        self.update_network_registration(self._first_free_address, mac, None)
+        self._first_free_address += 1
+        return self._first_free_address - 1
+
     def _stop_registration_task(self) -> None:
         """Stop the background registration task."""
         if self._registration_task is None:
@@ -243,23 +251,21 @@ class StickNetworkRegister:
         await self._network_cache.save_cache()
         _LOGGER.debug("save_registry_to_cache finished")
 
-    async def register_node(self, mac: str) -> int:
+    async def register_node(self, mac: str) -> None:
         """Register node to Plugwise network and return network address."""
         if not validate_mac(mac):
-            raise NodeError(f"Invalid mac '{mac}' to register")
+            raise NodeError(f"MAC '{mac}' invalid")
 
         request = NodeAddRequest(self._send_to_controller, bytes(mac, UTF8), True)
-        response = await request.send()
-        if response is None or response.ack_id != NodeResponseType.JOIN_ACCEPTED:
-            raise NodeError(f"Failed to register node {mac}")
-        self.update_network_registration(self._first_free_address, mac, None)
-        self._first_free_address += 1
-        return self._first_free_address - 1
+        try:
+            await request.send()
+        except StickError as exc:
+            raise NodeError("{exc}") from exc
 
     async def unregister_node(self, mac: str) -> None:
         """Unregister node from current Plugwise network."""
         if not validate_mac(mac):
-            raise NodeError(f"Invalid mac '{mac}' to unregister")
+            raise NodeError(f"MAC '{mac}' invalid")
 
         mac_registered = False
         for registration in self._registry.values():
@@ -270,7 +276,6 @@ class StickNetworkRegister:
             raise NodeError(f"No existing registration '{mac}' found to unregister")
 
         request = NodeRemoveRequest(self._send_to_controller, self._mac_nc, mac)
-        response = await request.send()
         if (response := await request.send()) is None:
             raise NodeError(
                 f"The Zigbee network coordinator '{self._mac_nc!r}'"

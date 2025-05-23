@@ -14,16 +14,13 @@ from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
 from ..constants import UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
-from ..helpers.util import validate_mac
 from ..messages.requests import CirclePlusAllowJoiningRequest, NodePingRequest
 from ..messages.responses import (
     NODE_AWAKE_RESPONSE_ID,
     NODE_JOIN_ID,
     NODE_REJOIN_ID,
     NodeAwakeResponse,
-    NodeInfoResponse,
     NodeJoinAvailableResponse,
-    NodePingResponse,
     NodeRejoinResponse,
     NodeResponseType,
     PlugwiseResponse,
@@ -149,10 +146,14 @@ class StickNetwork:
 
     async def register_node(self, mac: str) -> bool:
         """Register node to Plugwise network."""
-        if not validate_mac(mac):
-            raise NodeError(f"Invalid mac '{mac}' to register")
-        address = await self._register.register_node(mac)
-        return await self._discover_node(address, mac, None)
+        if not self.accept_join_request:
+            return False
+
+        try:
+            await self._register.register_node(mac)
+        except NodeError as exc:
+            raise NodeError(f"{exc}") from exc
+        return True
 
     async def clear_cache(self) -> None:
         """Clear register cache."""
@@ -160,7 +161,11 @@ class StickNetwork:
 
     async def unregister_node(self, mac: str) -> None:
         """Unregister node from current Plugwise network."""
-        await self._register.unregister_node(mac)
+        try:
+            await self._register.unregister_node(mac)
+        except (KeyError, NodeError) as exc:
+            raise MessageError("Mac not registered, already deleted?") from exc
+
         await self._nodes[mac].unload()
         self._nodes.pop(mac)
 
@@ -246,9 +251,17 @@ class StickNetwork:
             raise MessageError(
                 f"Invalid response message type ({response.__class__.__name__}) received, expected NodeJoinAvailableResponse"
             )
+
         mac = response.mac_decoded
-        await self._notify_node_event_subscribers(NodeEvent.JOIN, mac)
-        return True
+        _LOGGER.debug("node_join_available_message | sending NodeAddRequest for %s", mac)
+        try:
+            result = await self.register_node(mac)
+        except NodeError as exc:
+            raise NodeError(f"Unable to add Node ({mac}): {exc}") from exc
+        if result:
+            return True
+        
+        return False
 
     async def node_rejoin_message(self, response: PlugwiseResponse) -> bool:
         """Handle NodeRejoinResponse messages."""
@@ -257,23 +270,24 @@ class StickNetwork:
                 f"Invalid response message type ({response.__class__.__name__}) received, expected NodeRejoinResponse"
             )
         mac = response.mac_decoded
-        address = self._register.network_address(mac)
-        if (address := self._register.network_address(mac)) is not None:
-            if self._nodes.get(mac) is None:
-                if self._discover_sed_tasks.get(mac) is None:
-                    self._discover_sed_tasks[mac] = create_task(
-                        self._discover_battery_powered_node(address, mac)
-                    )
-                elif self._discover_sed_tasks[mac].done():
-                    self._discover_sed_tasks[mac] = create_task(
-                        self._discover_battery_powered_node(address, mac)
-                    )
-                else:
-                    _LOGGER.debug("duplicate awake discovery for %s", mac)
-                return True
-        else:
-            raise NodeError("Unknown network address for node {mac}")
-        return True
+        if (address := self._register.network_address(mac)) is None:
+            if (address := self._register.update_node_registration(mac)) is None:
+                raise NodeError(f"Failed to obtain address for node {mac}")
+
+        if self._nodes.get(mac) is None:
+            if self._discover_sed_tasks.get(mac) is None:
+                self._discover_sed_tasks[mac] = create_task(
+                    self._discover_battery_powered_node(address, mac)
+                )
+            elif self._discover_sed_tasks[mac].done():
+                self._discover_sed_tasks[mac] = create_task(
+                    self._discover_battery_powered_node(address, mac)
+                )
+            else:
+                _LOGGER.debug("duplicate awake discovery for %s", mac)
+            return True
+        
+        return False
 
     def _unsubscribe_to_protocol_events(self) -> None:
         """Unsubscribe to events from protocol."""
@@ -319,6 +333,7 @@ class StickNetwork:
             if load:
                 return await self._load_node(self._controller.mac_coordinator)
             return True
+
         return False
 
     # endregion
@@ -485,9 +500,11 @@ class StickNetwork:
         await self.discover_network_coordinator(load=load)
         if not self._is_running:
             await self.start()
+
         await self._discover_registered_nodes()
         if load:
             return await self._load_discovered_nodes()
+
         return True
 
     async def stop(self) -> None:
@@ -507,13 +524,18 @@ class StickNetwork:
     async def allow_join_requests(self, state: bool) -> None:
         """Enable or disable Plugwise network."""
         request = CirclePlusAllowJoiningRequest(self._controller.send, state)
-        response = await request.send()
         if (response := await request.send()) is None:
-            raise NodeError("No response to get notifications for join request.")
-        if response.response_type != NodeResponseType.JOIN_ACCEPTED:
+            raise NodeError("No response for CirclePlusAllowJoiningRequest.")
+
+        if response.response_type not in (
+            NodeResponseType.JOIN_ACCEPTED, NodeResponseType.CIRCLE_PLUS
+        ):
             raise MessageError(
                 f"Unknown NodeResponseType '{response.response_type.name}' received"
             )
+
+        _LOGGER.debug("Sent AllowJoiningRequest to Circle+ with state=%s", state)
+        self.accept_join_request = state
 
     def subscribe_to_node_events(
         self,
@@ -544,3 +566,4 @@ class StickNetwork:
                 callback_list.append(callback(event, mac))
         if len(callback_list) > 0:
             await gather(*callback_list)
+

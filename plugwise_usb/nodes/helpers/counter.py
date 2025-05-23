@@ -316,4 +316,3 @@ class EnergyCounter:
         energy = self.energy
         _LOGGER.debug("energy=%s on last_update=%s", energy, last_update)
         return (energy, last_reset)
-

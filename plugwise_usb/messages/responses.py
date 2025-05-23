@@ -56,8 +56,9 @@ class StickResponseType(bytes, Enum):
 class NodeResponseType(bytes, Enum):
     """Response types of a 'NodeResponse' reply message."""
 
+    CIRCLE_PLUS = b"00DD"  # type for CirclePlusAllowJoiningRequest with state false
     CLOCK_ACCEPTED = b"00D7"
-    JOIN_ACCEPTED = b"00D9"
+    JOIN_ACCEPTED = b"00D9"  # type for CirclePlusAllowJoiningRequest with state true
     RELAY_SWITCHED_OFF = b"00DE"
     RELAY_SWITCHED_ON = b"00D8"
     RELAY_SWITCH_FAILED = b"00E2"
@@ -69,7 +70,6 @@ class NodeResponseType(bytes, Enum):
     SED_CONFIG_FAILED = b"00F7"
     POWER_LOG_INTERVAL_ACCEPTED = b"00F8"
     POWER_CALIBRATION_ACCEPTED = b"00DA"
-    CIRCLE_PLUS = b"00DD"
 
 
 class NodeAckResponseType(bytes, Enum):
@@ -1018,6 +1018,8 @@ def get_message_object(  # noqa: C901
         return NodeSwitchGroupResponse()
     if identifier == b"0060":
         return NodeFeaturesResponse()
+    if identifier == NODE_REJOIN_ID:
+        return NodeRejoinResponse()
     if identifier == b"0100":
         return NodeAckResponse()
     if identifier == SENSE_REPORT_ID:

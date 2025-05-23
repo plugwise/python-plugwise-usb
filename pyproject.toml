@@ -1,15 +1,15 @@
 [build-system]
-requires = ["setuptools~=80.0", "wheel~=0.45.0"]
+requires = ["setuptools==80.3.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name            = "plugwise_usb"
-version         = "v0.40.0b1"
+version         = "v0.40.0a141"
+license         = "MIT"
 keywords        = ["home", "automation", "plugwise", "module", "usb"]
 classifiers     = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.13",
     "Topic :: Home Automation",
@@ -37,14 +37,13 @@ dependencies    = [
 "Bug Reports" = "https://github.com/plugwise/python-plugwise-usb/issues"
 
 [tool.setuptools]
-platforms = ["any"]
 include-package-data = true
 
 [tool.setuptools.package-data]
 "plugwise" = ["py.typed"]
 
 [tool.setuptools.packages.find]
-include = ["plugwise*"]
+include = ["plugwise_usb*"]
 
 [tool.black]
 target-version = ["py313"]
@@ -170,6 +169,7 @@ overgeneral-exceptions = [
 ]
 
 [tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "session"
 asyncio_mode = "strict"
 markers = [
     # mark a test as a asynchronous io test.
@@ -208,10 +208,9 @@ warn_unreachable = true
 exclude = []
 
 [tool.coverage.run]
-source = [ "plugwise" ]
+source = [ "plugwise_usb" ]
 omit= [
     "*/venv/*",
-    "setup.py",
 ]
 
 [tool.ruff]

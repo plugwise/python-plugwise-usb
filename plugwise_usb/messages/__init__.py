@@ -11,7 +11,7 @@ from ..exceptions import MessageError
 from ..helpers.util import crc_fun
 
 
-class Priority(int, Enum):
+class Priority(Enum):
     """Message priority levels for USB-stick message requests."""
 
     CANCEL = 0
