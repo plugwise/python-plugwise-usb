@@ -271,7 +271,7 @@ class PulseCollection:
         self, pulses_consumed: int, pulses_produced: int, timestamp: datetime
     ) -> None:
         """Update pulse counter.
-        
+
         Both device consumption and production counters reset after the beginning of a new hour.
         """
         self._cons_pulsecounter_reset = False
@@ -287,7 +287,7 @@ class PulseCollection:
 
         if (
             self._pulses_production is not None
-            and self._pulses_production < pulses_produced 
+            and self._pulses_production < pulses_produced
         ):
             self._prod_pulsecounter_reset = True
             _LOGGER.debug("update_pulse_counter | production pulses reset")
@@ -313,9 +313,9 @@ class PulseCollection:
 
     def _update_rollover(self) -> None:
         """Update rollover states.
-        
+
         When the last found timestamp is outside the interval `_last_log_timestamp`
-        to `_next_log_timestamp` the pulses should not be counted as part of the 
+        to `_next_log_timestamp` the pulses should not be counted as part of the
         ongoing collection-interval.
         """
         if self._log_addresses_missing is not None and self._log_addresses_missing:
@@ -341,7 +341,7 @@ class PulseCollection:
         next_log_timestamp: datetime | None,
         is_consumption=True,
     ) -> bool:
-        """Helper function for _update_rollover()."""
+        """Detect rollover based on timestamp comparisons."""
 
         if (
             self._pulses_timestamp is not None
