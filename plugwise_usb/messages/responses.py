@@ -590,25 +590,17 @@ class NodeInfoResponse(PlugwiseResponse):
         """Initialize NodeInfoResponse message object."""
         super().__init__(b"0024")
 
+        self.datetime = DateTime()
         self._logaddress_pointer = LogAddr(0, length=8)
-        if protocol_version == "1.0":
-            # FIXME: Define "absoluteHour" variable
-            self.datetime = DateTime()
+        if protocol_version in ("1.0", "2.0"):
+            # FIXME 1.0: Define "absoluteHour" variable
             self._relay_state = Int(0, length=2)
             self._params += [
                 self.datetime,
                 self._logaddress_pointer,
                 self._relay_state,
             ]
-        elif protocol_version == "2.0":
-            self.datetime = DateTime()
-            self._relay_state = Int(0, length=2)
-            self._params += [
-                self.datetime,
-                self._logaddress_pointer,
-                self._relay_state,
-            ]
-        elif protocol_version == "2.3":
+        if protocol_version == "2.3":
             # FIXME: Define "State_mask" variable
             self.state_mask = Int(0, length=2)
             self._params += [
