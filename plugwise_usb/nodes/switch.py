@@ -40,7 +40,7 @@ class PlugwiseSwitch(NodeSED):
         super().__init__(mac, address, controller, loaded_callback)
         self._switch_subscription: Callable[[], None] | None = None
         self._switch_state: bool | None = None
-        self._switch: bool | None = None
+        self._switch: bool = False
 
     async def load(self) -> bool:
         """Load and activate Switch node features."""
@@ -107,7 +107,7 @@ class PlugwiseSwitch(NodeSED):
     async def _switch_state_update(
         self, switch_state: bool, timestamp: datetime
     ) -> None:
-        """Process motion state update."""
+        """Process switch state update."""
         _LOGGER.debug(
             "_switch_state_update for %s: %s -> %s",
             self.name,
@@ -115,18 +115,13 @@ class PlugwiseSwitch(NodeSED):
             switch_state,
         )
         state_update = False
-        # Switch on
-        if switch_state:
-            self._set_cache(CACHE_SWITCH_STATE, "True")
-            if self._switch_state is None or not self._switch:
-                self._switch_state = True
-                state_update = True
-        else:
-            # Switch off
-            self._set_cache(CACHE_SWITCH_STATE, "False")
-            if self._switch is None or self._switch:
-                self._switch_state = False
-                state_update = True
+        # Update cache
+        self._set_cache(CACHE_SWITCH_STATE, str(switch_state))
+        # Check for a state change
+        if self._switch_state != switch_state:
+            self._switch_state = switch_state
+            state_update = True
+
         self._set_cache(CACHE_SWITCH_TIMESTAMP, timestamp)
         if state_update:
             self._switch = switch_state
