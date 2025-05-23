@@ -337,14 +337,14 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         for feature in node_features:
             if (
                 required_version := FEATURE_SUPPORTED_AT_FIRMWARE.get(feature)
-            ) is not None:
-                if (
-                    self._node_protocols.min
-                    <= required_version
-                    <= self._node_protocols.max
-                    and feature not in self._features
-                ):
-                    self._features += (feature,)
+            ) is not None and (
+                self._node_protocols.min
+                <= required_version
+                <= self._node_protocols.max
+                and feature not in self._features
+            ):
+                self._features += (feature,)
+
         self._node_info.features = self._features
 
     async def reconnect(self) -> None:

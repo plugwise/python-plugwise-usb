@@ -156,9 +156,8 @@ class StickController:
             if not self._queue.is_running:
                 self._queue.start(self._manager)
                 await self.initialize_stick()
-        elif event == StickEvent.DISCONNECTED:
-            if self._queue.is_running:
-                await self._queue.stop()
+        elif event == StickEvent.DISCONNECTED and self._queue.is_running:
+            await self._queue.stop()
 
     async def initialize_stick(self) -> None:
         """Initialize connection to the USB-stick."""
