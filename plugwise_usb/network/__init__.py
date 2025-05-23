@@ -278,11 +278,8 @@ class StickNetwork:
                 raise NodeError(f"Failed to obtain address for node {mac}")
 
         if self._nodes.get(mac) is None:
-            if self._discover_sed_tasks.get(mac) is None:
-                self._discover_sed_tasks[mac] = create_task(
-                    self._discover_battery_powered_node(address, mac)
-                )
-            elif self._discover_sed_tasks[mac].done():
+            task = self._discover_sed_tasks.get(mac)
+            if task is None or task.done():
                 self._discover_sed_tasks[mac] = create_task(
                     self._discover_battery_powered_node(address, mac)
                 )
