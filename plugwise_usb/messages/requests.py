@@ -285,8 +285,10 @@ class PlugwiseRequest(PlugwiseMessage):
         """Process incoming stick response."""
         if self._response_future.done():
             return
+
         if self._seq_id is None or self._seq_id != stick_response.seq_id:
             return
+
         if stick_response.ack_id == StickResponseType.TIMEOUT:
             self._response_timeout_expired(stick_timeout=True)
         elif stick_response.ack_id == StickResponseType.FAILED:
@@ -296,7 +298,7 @@ class PlugwiseRequest(PlugwiseMessage):
                 NodeError(f"Stick failed request {self._seq_id}")
             )
         elif stick_response.ack_id == StickResponseType.ACCEPT:
-            pass
+            pass  # Nothing to do for ACCEPT
         else:
             _LOGGER.debug(
                 "Unknown StickResponseType %s at %s for request %s",
