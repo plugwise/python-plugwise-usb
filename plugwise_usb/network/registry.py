@@ -145,7 +145,6 @@ class StickNetworkRegister:
                 return await self.retrieve_network_registration(address, retry=False)
             return None
         address = response.network_address
-        mac_of_node = response.registered_mac
         if (mac_of_node := response.registered_mac) == "FFFFFFFFFFFFFFFF":
             mac_of_node = ""
         return (address, mac_of_node)
