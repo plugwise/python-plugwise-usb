@@ -38,7 +38,7 @@ from ..messages.requests import (
     EnergyCalibrationRequest,
     NodeInfoRequest,
 )
-from ..messages.responses import NodeInfoResponse, NodeResponse, NodeResponseType
+from ..messages.responses import NodeInfoResponse, NodeResponseType
 from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.counter import EnergyCounters
 from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
