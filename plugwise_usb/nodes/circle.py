@@ -532,7 +532,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
     async def _energy_log_records_load_from_cache(self) -> bool:
         """Load energy_log_record from cache."""
-        cache_data = self._get_cache(CACHE_ENERGY_COLLECTION)
         if (cache_data := self._get_cache(CACHE_ENERGY_COLLECTION)) is None:
             _LOGGER.warning(
                 "Failed to restore energy log records from cache for node %s", self.name
@@ -733,7 +732,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
             datetime.now(tz=UTC),
             self._node_protocols.max,
         )
-        node_response: NodeResponse | None = await set_clock_request.send()
         if (node_response := await set_clock_request.send()) is None:
             _LOGGER.warning(
                 "Failed to (re)set the internal clock of %s",

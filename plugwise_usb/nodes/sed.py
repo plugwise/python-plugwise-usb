@@ -686,7 +686,6 @@ class NodeSED(PlugwiseBaseNode):
             maintenance_interval,
             sleep_duration,
         )
-        response = await request.send()
         if (response := await request.send()) is None:
             self._new_battery_config = BatteryConfig()
             _LOGGER.warning(
