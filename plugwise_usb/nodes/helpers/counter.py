@@ -82,9 +82,8 @@ class EnergyCounters:
         """Add pulse log."""
         if self._pulse_collection.add_log(
             address, slot, timestamp, pulses, import_only
-        ):
-            if not import_only:
-                self.update()
+        ) and not import_only:
+            self.update()
 
     def get_pulse_logs(self) -> dict[int, dict[int, PulseLogRecord]]:
         """Return currently collected pulse logs."""

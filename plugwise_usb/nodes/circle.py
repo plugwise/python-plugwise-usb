@@ -1087,15 +1087,14 @@ class PlugwiseCircle(PlugwiseBaseNode):
     async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
         """Update latest state for given feature."""
         states: dict[NodeFeature, Any] = {}
-        if not self._available:
-            if not await self.is_online():
-                _LOGGER.debug(
-                    "Node %s did not respond, unable to update state", self._mac_in_str
-                )
-                for feature in features:
-                    states[feature] = None
-                states[NodeFeature.AVAILABLE] = self.available_state
-                return states
+        if not self._available and not await self.is_online():
+            _LOGGER.debug(
+                "Node %s did not respond, unable to update state", self._mac_in_str
+            )
+            for feature in features:
+                states[feature] = None
+            states[NodeFeature.AVAILABLE] = self.available_state
+            return states
 
         for feature in features:
             if feature not in self._features:
