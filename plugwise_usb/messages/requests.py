@@ -283,29 +283,34 @@ class PlugwiseRequest(PlugwiseMessage):
 
     async def _process_stick_response(self, stick_response: StickResponse) -> None:
         """Process incoming stick response."""
-        if self._response_future.done():
+        if (
+            self._response_future.done()
+            or self._seq_id is None
+            or self._seq_id != stick_response.seq_id
+        ):
             return
 
-        if self._seq_id is None or self._seq_id != stick_response.seq_id:
+        if stick_response.ack_id == StickResponseType.ACCEPT:
             return
 
         if stick_response.ack_id == StickResponseType.TIMEOUT:
             self._response_timeout_expired(stick_timeout=True)
-        elif stick_response.ack_id == StickResponseType.FAILED:
+            return
+
+        if stick_response.ack_id == StickResponseType.FAILED:
             self._unsubscribe_from_node()
             self._seq_id = None
             self._response_future.set_exception(
                 NodeError(f"Stick failed request {self._seq_id}")
             )
-        elif stick_response.ack_id == StickResponseType.ACCEPT:
-            pass  # Nothing to do for ACCEPT
-        else:
-            _LOGGER.debug(
-                "Unknown StickResponseType %s at %s for request %s",
-                str(stick_response.ack_id),
-                stick_response,
-                self,
-            )
+            return
+
+        _LOGGER.debug(
+            "Unknown StickResponseType %s at %s for request %s",
+            str(stick_response.ack_id),
+            stick_response,
+            self,
+        )
 
     async def _send_request(self, suppress_node_errors=False) -> PlugwiseResponse | None:
         """Send request."""
