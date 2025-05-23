@@ -208,30 +208,34 @@ class StickNetwork:
             await gather(*[node.disconnect() for node in self._nodes.values()])
             self._is_running = False
 
-    async def node_awake_message(self, response: PlugwiseResponse) -> bool:
+    async def node_awake_message(self, response: PlugwiseResponse) -> None:
         """Handle NodeAwakeResponse message."""
         if not isinstance(response, NodeAwakeResponse):
             raise MessageError(
                 f"Invalid response message type ({response.__class__.__name__}) received, expected NodeAwakeResponse"
             )
+
         mac = response.mac_decoded
         if self._awake_discovery.get(mac) is None:
             self._awake_discovery[mac] = response.timestamp - timedelta(seconds=15)
+
         if mac in self._nodes:
             if self._awake_discovery[mac] < (
                 response.timestamp - timedelta(seconds=10)
             ):
                 await self._notify_node_event_subscribers(NodeEvent.AWAKE, mac)
             self._awake_discovery[mac] = response.timestamp
-            return True
+            return
+
         if (address := self._register.network_address(mac)) is None:
             if self._register.scan_completed:
-                return True
+                return
+
             _LOGGER.debug(
                 "Skip node awake message for %s because network registry address is unknown",
                 mac,
             )
-            return True
+            return
 
         if self._nodes.get(mac) is None:
             if (
@@ -243,7 +247,6 @@ class StickNetwork:
                 )
             else:
                 _LOGGER.debug("duplicate maintenance awake discovery for %s", mac)
-        return True
 
     async def node_join_available_message(self, response: PlugwiseResponse) -> bool:
         """Handle NodeJoinAvailableResponse messages."""
