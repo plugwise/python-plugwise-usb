@@ -144,12 +144,14 @@ class NodeSED(PlugwiseBaseNode):
         """Initialize SED node."""
         if self._initialized:
             return True
+
         self._awake_subscription = await self._message_subscribe(
             self._awake_response,
             self._mac_in_bytes,
             (NODE_AWAKE_RESPONSE_ID,),
         )
-        return await super().initialize()
+        await super().initialize()
+        return True
 
     def _load_defaults(self) -> None:
         """Load default configuration settings."""

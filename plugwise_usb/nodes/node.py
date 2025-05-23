@@ -398,15 +398,15 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             return False
         return True
 
-    async def initialize(self) -> bool:
+    async def initialize(self) -> None:
         """Initialize node configuration."""
         if self._initialized:
-            return True
+            return
+
         self._initialization_delay_expired = datetime.now(tz=UTC) + timedelta(
             minutes=SUPPRESS_INITIALIZATION_WARNINGS
         )
         self._initialized = True
-        return True
 
     async def _available_update_state(
         self, available: bool, timestamp: datetime | None = None
