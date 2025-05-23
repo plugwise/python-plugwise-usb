@@ -67,12 +67,14 @@ class PlugwiseSwitch(NodeSED):
         """Initialize Switch node."""
         if self._initialized:
             return True
+
         self._switch_subscription = await self._message_subscribe(
             self._switch_group,
             self._mac_in_bytes,
             (NODE_SWITCH_GROUP_ID,),
         )
-        return await super().initialize()
+        await super().initialize()
+        return True
 
     async def unload(self) -> None:
         """Unload node."""

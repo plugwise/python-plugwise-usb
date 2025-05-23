@@ -849,12 +849,14 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             self._initialized = False
             return False
+
         if not self._calibration and not await self.calibration_update():
             _LOGGER.debug(
                 "Failed to initialized node %s, no calibration", self._mac_in_str
             )
             self._initialized = False
             return False
+
         if (
             self.skip_update(self._node_info, 30)
             and await self.node_info_update() is None
@@ -869,7 +871,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 )
                 self._initialized = False
                 return False
-        return await super().initialize()
+
+        await super().initialize()
+        return True
 
     async def node_info_update(
         self, node_info: NodeInfoResponse | None = None
