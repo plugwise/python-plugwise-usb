@@ -822,14 +822,14 @@ class PlugwiseCircle(PlugwiseBaseNode):
         # Relay
         if await self._relay_load_from_cache():
             _LOGGER.debug(
-                "Node %s failed to load relay state from cache",
+                "Node %s successfully loaded relay state from cache",
                 self._mac_in_str,
             )
         # Relay init config if feature is enabled
         if NodeFeature.RELAY_INIT in self._features:
             if await self._relay_init_load_from_cache():
                 _LOGGER.debug(
-                    "Node %s failed to load relay_init state from cache",
+                    "Node %s successfully loaded relay_init state from cache",
                     self._mac_in_str,
                 )
         return True
