@@ -500,6 +500,7 @@ class NodeSED(PlugwiseBaseNode):
             raise MessageError(
                 f"Invalid response message type ({response.__class__.__name__}) received, expected NodeAwakeResponse"
             )
+
         _LOGGER.debug("Device %s is awake for %s", self.name, response.awake_type)
         self._set_cache(CACHE_AWAKE_TIMESTAMP, response.timestamp)
         await self._available_update_state(True, response.timestamp)
@@ -507,7 +508,6 @@ class NodeSED(PlugwiseBaseNode):
         # Pre populate the last awake timestamp
         if self._last_awake.get(response.awake_type) is None:
             self._last_awake[response.awake_type] = response.timestamp
-
         # Skip awake messages when they are shortly after each other
         elif (
             self._last_awake[response.awake_type] + timedelta(seconds=AWAKE_RETRY)
