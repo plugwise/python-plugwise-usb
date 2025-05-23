@@ -202,7 +202,7 @@ class PlugwiseRequest(PlugwiseMessage):
 
     def stop_response_timeout(self) -> None:
         """Stop timeout for node response."""
-        self._waiting_for_response = True
+        self._waiting_for_response = False
         if self._response_timeout is not None:
             self._response_timeout.cancel()
 
@@ -1231,13 +1231,13 @@ class NodeSleepConfigRequest(PlugwiseRequest):
     async def send(self) -> NodeResponse | None:
         """Send request."""
         result = await self._send_request()
-        _LOGGER.warning("NodeSleepConfigRequest result: %s", result)
+        _LOGGER.debug("NodeSleepConfigRequest result: %s", result)
         if isinstance(result, NodeResponse):
             return result
         if result is None:
             return None
         raise MessageError(
-            f"Invalid response message. Received {result.__class__.__name__}, expected NodeAckResponse"
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeResponse"
         )
 
     def __repr__(self) -> str:

@@ -824,7 +824,7 @@ class PulseCollection:
                 "The Circle %s does not overwrite old logged data, please reset the Circle's energy-logs via Source",
                 self._mac,
             )
-            return
+            return None
 
         if (
             last_address == first_address

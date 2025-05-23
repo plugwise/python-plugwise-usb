@@ -128,8 +128,10 @@ class StickNetworkRegister:
                 "Unable to restore network registry because cache is not initialized"
             )
             return
+
         if self._cache_restored:
             return
+
         for address, registration in self._network_cache.registrations.items():
             mac, node_type = registration
             if self._registry.get(address) is None:
@@ -259,12 +261,12 @@ class StickNetworkRegister:
         try:
             await request.send()
         except StickError as exc:
-            raise NodeError("{exc}") from exc
+            raise NodeError(f"{exc}") from exc
 
     async def unregister_node(self, mac: str) -> None:
         """Unregister node from current Plugwise network."""
         if not validate_mac(mac):
-            raise NodeError(f"MAC '{mac}' invalid")
+            raise NodeError(f"MAC {mac} invalid")
 
         mac_registered = False
         for registration in self._registry.values():
