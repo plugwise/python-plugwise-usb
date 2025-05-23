@@ -935,8 +935,6 @@ class PulseCollection:
         ):
             # Use consumption interval
             calc_interval_cons = timedelta(minutes=self._log_interval_consumption)
-            if self._log_interval_consumption == 0:
-                pass
 
         if not self._log_production:
             expected_timestamp = (

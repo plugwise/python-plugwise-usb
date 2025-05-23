@@ -110,12 +110,14 @@ class PlugwiseScan(NodeSED):
         """Initialize Scan node."""
         if self._initialized:
             return True
+
         self._unsubscribe_switch_group = await self._message_subscribe(
             self._switch_group,
             self._mac_in_bytes,
             (NODE_SWITCH_GROUP_ID,),
         )
-        return await super().initialize()
+        await super().initialize()
+        return True
 
     async def unload(self) -> None:
         """Unload node."""
@@ -164,14 +166,12 @@ class PlugwiseScan(NodeSED):
     def _motion_from_cache(self) -> bool:
         """Load motion state from cache."""
         if (cached_motion_state := self._get_cache(CACHE_MOTION_STATE)) is not None:
-            if cached_motion_state == "True":
-                if (
-                    motion_timestamp := self._motion_timestamp_from_cache()
-                ) is not None:
-                    if (
-                        datetime.now(tz=UTC) - motion_timestamp
-                    ).seconds < self._reset_timer_from_cache() * 60:
-                        return True
+            if (
+                cached_motion_state == "True"
+                and (motion_timestamp := self._motion_timestamp_from_cache()) is not None
+                and (datetime.now(tz=UTC) - motion_timestamp).seconds < self._reset_timer_from_cache() * 60
+            ):
+                return True
             return False
         return SCAN_DEFAULT_MOTION_STATE
 

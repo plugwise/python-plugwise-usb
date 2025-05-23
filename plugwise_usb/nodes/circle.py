@@ -38,7 +38,7 @@ from ..messages.requests import (
     EnergyCalibrationRequest,
     NodeInfoRequest,
 )
-from ..messages.responses import NodeInfoResponse, NodeResponse, NodeResponseType
+from ..messages.responses import NodeInfoResponse, NodeResponseType
 from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.counter import EnergyCounters
 from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
@@ -532,7 +532,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
     async def _energy_log_records_load_from_cache(self) -> bool:
         """Load energy_log_record from cache."""
-        cache_data = self._get_cache(CACHE_ENERGY_COLLECTION)
         if (cache_data := self._get_cache(CACHE_ENERGY_COLLECTION)) is None:
             _LOGGER.warning(
                 "Failed to restore energy log records from cache for node %s", self.name
@@ -733,7 +732,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
             datetime.now(tz=UTC),
             self._node_protocols.max,
         )
-        node_response: NodeResponse | None = await set_clock_request.send()
         if (node_response := await set_clock_request.send()) is None:
             _LOGGER.warning(
                 "Failed to (re)set the internal clock of %s",
@@ -849,12 +847,14 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             self._initialized = False
             return False
+
         if not self._calibration and not await self.calibration_update():
             _LOGGER.debug(
                 "Failed to initialized node %s, no calibration", self._mac_in_str
             )
             self._initialized = False
             return False
+
         if (
             self.skip_update(self._node_info, 30)
             and await self.node_info_update() is None
@@ -869,7 +869,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 )
                 self._initialized = False
                 return False
-        return await super().initialize()
+
+        await super().initialize()
+        return True
 
     async def node_info_update(
         self, node_info: NodeInfoResponse | None = None
@@ -1083,15 +1085,14 @@ class PlugwiseCircle(PlugwiseBaseNode):
     async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
         """Update latest state for given feature."""
         states: dict[NodeFeature, Any] = {}
-        if not self._available:
-            if not await self.is_online():
-                _LOGGER.debug(
-                    "Node %s did not respond, unable to update state", self._mac_in_str
-                )
-                for feature in features:
-                    states[feature] = None
-                states[NodeFeature.AVAILABLE] = self.available_state
-                return states
+        if not self._available and not await self.is_online():
+            _LOGGER.debug(
+                "Node %s did not respond, unable to update state", self._mac_in_str
+            )
+            for feature in features:
+                states[feature] = None
+            states[NodeFeature.AVAILABLE] = self.available_state
+            return states
 
         for feature in features:
             if feature not in self._features:

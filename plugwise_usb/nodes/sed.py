@@ -144,12 +144,14 @@ class NodeSED(PlugwiseBaseNode):
         """Initialize SED node."""
         if self._initialized:
             return True
+
         self._awake_subscription = await self._message_subscribe(
             self._awake_response,
             self._mac_in_bytes,
             (NODE_AWAKE_RESPONSE_ID,),
         )
-        return await super().initialize()
+        await super().initialize()
+        return True
 
     def _load_defaults(self) -> None:
         """Load default configuration settings."""
@@ -498,6 +500,7 @@ class NodeSED(PlugwiseBaseNode):
             raise MessageError(
                 f"Invalid response message type ({response.__class__.__name__}) received, expected NodeAwakeResponse"
             )
+
         _LOGGER.debug("Device %s is awake for %s", self.name, response.awake_type)
         self._set_cache(CACHE_AWAKE_TIMESTAMP, response.timestamp)
         await self._available_update_state(True, response.timestamp)
@@ -505,7 +508,6 @@ class NodeSED(PlugwiseBaseNode):
         # Pre populate the last awake timestamp
         if self._last_awake.get(response.awake_type) is None:
             self._last_awake[response.awake_type] = response.timestamp
-
         # Skip awake messages when they are shortly after each other
         elif (
             self._last_awake[response.awake_type] + timedelta(seconds=AWAKE_RETRY)
@@ -684,7 +686,6 @@ class NodeSED(PlugwiseBaseNode):
             maintenance_interval,
             sleep_duration,
         )
-        response = await request.send()
         if (response := await request.send()) is None:
             self._new_battery_config = BatteryConfig()
             _LOGGER.warning(

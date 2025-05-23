@@ -337,14 +337,14 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         for feature in node_features:
             if (
                 required_version := FEATURE_SUPPORTED_AT_FIRMWARE.get(feature)
-            ) is not None:
-                if (
-                    self._node_protocols.min
-                    <= required_version
-                    <= self._node_protocols.max
-                    and feature not in self._features
-                ):
-                    self._features += (feature,)
+            ) is not None and (
+                self._node_protocols.min
+                <= required_version
+                <= self._node_protocols.max
+                and feature not in self._features
+            ):
+                self._features += (feature,)
+
         self._node_info.features = self._features
 
     async def reconnect(self) -> None:
@@ -398,15 +398,15 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             return False
         return True
 
-    async def initialize(self) -> bool:
+    async def initialize(self) -> None:
         """Initialize node configuration."""
         if self._initialized:
-            return True
+            return
+
         self._initialization_delay_expired = datetime.now(tz=UTC) + timedelta(
             minutes=SUPPRESS_INITIALIZATION_WARNINGS
         )
         self._initialized = True
-        return True
 
     async def _available_update_state(
         self, available: bool, timestamp: datetime | None = None

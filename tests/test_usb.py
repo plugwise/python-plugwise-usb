@@ -2630,6 +2630,12 @@ class TestStick:
                 pw_api.NodeFeature.SWITCH,
             )
         )
+        assert state[pw_api.NodeFeature.AVAILABLE].state
+        assert state[pw_api.NodeFeature.BATTERY].maintenance_interval == 60
+        assert state[pw_api.NodeFeature.BATTERY].awake_duration == 10
+        assert not state[pw_api.NodeFeature.BATTERY].clock_sync
+        assert state[pw_api.NodeFeature.BATTERY].clock_interval == 25200
+        assert state[pw_api.NodeFeature.BATTERY].sleep_duration == 60
         # endregion
 
         # test disable cache
