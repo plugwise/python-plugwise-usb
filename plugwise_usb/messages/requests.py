@@ -1287,11 +1287,11 @@ class NodeClearGroupMacRequest(PlugwiseRequest):
         self,
         send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
         mac: bytes,
-        taskId: int,
+        task_id: int,
     ) -> None:
         """Initialize NodeClearGroupMacRequest message object."""
         super().__init__(send_fn, mac)
-        self._args.append(Int(taskId, length=2))
+        self._args.append(Int(task_id, length=2))
 
 
 class CircleSetScheduleValueRequest(PlugwiseRequest):
