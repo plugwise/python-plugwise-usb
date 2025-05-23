@@ -263,7 +263,7 @@ class StickNetwork:
             raise NodeError(f"Unable to add Node ({mac}): {exc}") from exc
         if result:
             return True
-        
+
         return False
 
     async def node_rejoin_message(self, response: PlugwiseResponse) -> bool:
@@ -286,7 +286,7 @@ class StickNetwork:
             else:
                 _LOGGER.debug("duplicate awake discovery for %s", mac)
             return True
-        
+
         return False
 
     def _unsubscribe_to_protocol_events(self) -> None:
@@ -299,7 +299,7 @@ class StickNetwork:
             self._unsubscribe_stick_event = None
 
     # endregion
-        
+
     # region - Coordinator
     async def discover_network_coordinator(self, load: bool = False) -> bool:
         """Discover the Zigbee network coordinator (Circle+/Stealth+)."""
