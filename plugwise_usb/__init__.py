@@ -199,7 +199,7 @@ class Stick:
         if self._network is None or not self._network.is_running:
             raise StickError(
                 "Cannot accept joining node"
-                + "without node discovery be activated. Call discover() first."
+                + " without node discovery be activated. Call discover() first."
             )
 
         # Observation: joining is only temporarily possible after a HA (re)start or
