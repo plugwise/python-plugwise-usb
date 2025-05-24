@@ -1008,9 +1008,10 @@ class PulseCollection:
             address, slot = calc_log_address(address, slot, 1)
             while expected_timestamp < target:
                 address, slot = calc_log_address(address, slot, 1)
-                expected_timestamp += timedelta(hours=1)
+                expected_timestamp += calc_interval_cons
                 if address not in addresses:
                     addresses.append(address)
+
             return addresses
 
         # Production logging active
