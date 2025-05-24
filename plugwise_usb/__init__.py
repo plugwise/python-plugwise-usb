@@ -277,13 +277,15 @@ class Stick:
                 "Close existing connection before (re)connect."
             )
 
+        if port is not None:
+            self._port = port
+
         if self._port is None:
             raise StickError(
                 "Unable to connect. " +
                 "Path to USB-Stick is not defined, set port property first"
             )
         
-        self._port = port
         await self._controller.connect_to_stick(
             self._port,
         )
