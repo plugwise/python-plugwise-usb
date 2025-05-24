@@ -10,7 +10,7 @@ from asyncio import get_running_loop
 from collections.abc import Callable, Coroutine
 from functools import wraps
 import logging
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, cast, Final
 
 from .api import NodeEvent, PlugwiseNode, StickEvent
 from .connection import StickController
@@ -19,7 +19,7 @@ from .network import StickNetwork
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
-
+NOT_INITIALIZED_STICK_ERROR: Final[StickError] = StickError("Cannot load nodes when network is not initialized")
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -319,9 +319,7 @@ class Stick:
     async def load_nodes(self) -> bool:
         """Load all discovered nodes."""
         if self._network is None:
-            raise StickError(
-                "Cannot load nodes when network is not initialized"
-            )
+            raise NOT_INITIALIZED_STICK_ERROR
         if not self._network.is_running:
             raise StickError(
                 "Cannot load nodes when network is not started"
@@ -333,9 +331,7 @@ class Stick:
     async def discover_coordinator(self, load: bool = False) -> None:
         """Discover the network coordinator."""
         if self._network is None:
-            raise StickError(
-                "Cannot load nodes when network is not initialized"
-            )
+            raise NOT_INITIALIZED_STICK_ERROR
         await self._network.discover_network_coordinator(load=load)
 
     @raise_not_connected
@@ -343,9 +339,7 @@ class Stick:
     async def discover_nodes(self, load: bool = False) -> None:
         """Discover all nodes."""
         if self._network is None:
-            raise StickError(
-                "Cannot load nodes when network is not initialized"
-            )
+            raise NOT_INITIALIZED_STICK_ERROR
         await self._network.discover_nodes(load=load)
 
     @raise_not_connected

@@ -3,12 +3,13 @@
 import binascii
 from datetime import UTC, date, datetime, time, timedelta
 import struct
-from typing import Any
+from typing import Any, Final
 
 from ..constants import LOGADDR_OFFSET, PLUGWISE_EPOCH, UTF8
 from ..exceptions import MessageError
 from ..helpers.util import int_to_uint
 
+DESERIALIZE_ERROR: Final[MessageError] = MessageError("Unable to return value. Deserialize data first")
 
 class BaseType:
     """Generic single instance property."""
@@ -72,7 +73,7 @@ class Bytes(BaseType):
     def value(self) -> bytes:
         """Return bytes value."""
         if self._value is None:
-            raise MessageError("Unable to return value. Deserialize data first")
+            raise DESERIALIZE_ERROR
         return self._value
 
 
@@ -92,7 +93,7 @@ class String(BaseType):
     def value(self) -> str:
         """Return converted int value."""
         if self._value is None:
-            raise MessageError("Unable to return value. Deserialize data first")
+            raise DESERIALIZE_ERROR
         return self._value
 
 
@@ -121,7 +122,7 @@ class Int(BaseType):
     def value(self) -> int:
         """Return converted int value."""
         if self._value is None:
-            raise MessageError("Unable to return value. Deserialize data first")
+            raise DESERIALIZE_ERROR
         return self._value
 
 
@@ -155,7 +156,7 @@ class SInt(BaseType):
     def value(self) -> int:
         """Return converted datetime value."""
         if self._value is None:
-            raise MessageError("Unable to return value. Deserialize data first")
+            raise DESERIALIZE_ERROR
         return self._value
 
 
@@ -183,7 +184,7 @@ class UnixTimestamp(BaseType):
     def value(self) -> datetime:
         """Return converted datetime value."""
         if self._value is None:
-            raise MessageError("Unable to return value. Deserialize data first")
+            raise DESERIALIZE_ERROR
         return self._value
 
 
@@ -203,7 +204,7 @@ class Year2k(Int):
     def value(self) -> int:
         """Return converted int value."""
         if self._value is None:
-            raise MessageError("Unable to return value. Deserialize data first")
+            raise DESERIALIZE_ERROR
         return self._value
 
 
@@ -240,14 +241,14 @@ class DateTime(CompositeType):
     def value_set(self) -> bool:
         """True when datetime is converted."""
         if not self._deserialized:
-            raise MessageError("Unable to return value. Deserialize data first")
+            raise DESERIALIZE_ERROR
         return self._value is not None
 
     @property
     def value(self) -> datetime:
         """Return converted datetime value."""
         if self._value is None:
-            raise MessageError("Unable to return value. Deserialize data first")
+            raise DESERIALIZE_ERROR
         return self._value
 
 
@@ -272,7 +273,7 @@ class Time(CompositeType):
     def value(self) -> time:
         """Return converted time value."""
         if self._value is None:
-            raise MessageError("Unable to return value. Deserialize data first")
+            raise DESERIALIZE_ERROR
         return self._value
 
 
@@ -297,7 +298,7 @@ class IntDec(BaseType):
     def value(self) -> str:
         """Return converted string value."""
         if self._value is None:
-            raise MessageError("Unable to return value. Deserialize data first")
+            raise DESERIALIZE_ERROR
         return self._value
 
 
@@ -326,7 +327,7 @@ class RealClockTime(CompositeType):
     def value(self) -> time:
         """Return converted time value."""
         if self._value is None:
-            raise MessageError("Unable to return value. Deserialize data first")
+            raise DESERIALIZE_ERROR
         return self._value
 
 
@@ -355,7 +356,7 @@ class RealClockDate(CompositeType):
     def value(self) -> date:
         """Return converted date value."""
         if self._value is None:
-            raise MessageError("Unable to return value. Deserialize data first")
+            raise DESERIALIZE_ERROR
         return self._value
 
 
@@ -376,7 +377,7 @@ class Float(BaseType):
     def value(self) -> float:
         """Return converted float value."""
         if self._value is None:
-            raise MessageError("Unable to return value. Deserialize data first")
+            raise DESERIALIZE_ERROR
         return self._value
 
 
@@ -399,5 +400,5 @@ class LogAddr(Int):
     def value(self) -> int:
         """Return converted time value."""
         if self._value is None:
-            raise MessageError("Unable to return value. Deserialize data first")
+            raise DESERIALIZE_ERROR
         return self._value
