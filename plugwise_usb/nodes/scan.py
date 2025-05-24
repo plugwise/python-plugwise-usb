@@ -174,7 +174,7 @@ class PlugwiseScan(NodeSED):
             if (
                 cached_motion_state == "True"
                 and (motion_timestamp := self._motion_timestamp_from_cache()) is not None
-                and (datetime.now(tz=UTC) - motion_timestamp).total_seconds < self._reset_timer_from_cache() * 60
+                and int((datetime.now(tz=UTC) - motion_timestamp).total_seconds()) < self._reset_timer_from_cache() * 60
             ):
                 return True
             return False
@@ -383,7 +383,7 @@ class PlugwiseScan(NodeSED):
             self._set_cache(CACHE_MOTION_STATE, "False")
             if self._motion_state.state is None or self._motion_state.state:
                 if self._reset_timer_motion_on is not None:
-                    reset_timer = (timestamp - self._reset_timer_motion_on).total_seconds
+                    reset_timer = int((timestamp - self._reset_timer_motion_on).total_seconds())
                     if self._motion_config.reset_timer is None:
                         self._motion_config = replace(
                             self._motion_config,

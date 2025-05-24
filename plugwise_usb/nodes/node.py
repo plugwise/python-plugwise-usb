@@ -416,7 +416,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             if (
                 self._last_seen is not None
                 and timestamp is not None
-                and (timestamp - self._last_seen).total_seconds > 5
+                and int((timestamp - self._last_seen).total_seconds()) > 5
 
             ):
                 self._last_seen = timestamp
