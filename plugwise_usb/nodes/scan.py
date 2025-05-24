@@ -469,12 +469,12 @@ class PlugwiseScan(NodeSED):
         daylight_mode: bool,
     ) -> bool:
         """Configure Scan device settings. Returns True if successful."""
-        # Default to medium:
-        sensitivity_value = SENSITIVITY_MEDIUM_VALUE
         sensitivity_map = {
             MotionSensitivity.HIGH: SENSITIVITY_HIGH_VALUE,
+            MotionSensitivity.MEDIUM: SENSITIVITY_MEDIUM_VALUE,
             MotionSensitivity.OFF: SENSITIVITY_OFF_VALUE,
         }
+        # Default to medium
         sensitivity_value = sensitivity_map.get(sensitivity_level, SENSITIVITY_MEDIUM_VALUE)
         request = ScanConfigureRequest(
             self._send,
@@ -490,17 +490,20 @@ class PlugwiseScan(NodeSED):
                 self._new_daylight_mode = None
                 _LOGGER.warning("Failed to configure scan settings for %s", self.name)
                 return False
+
             if response.node_ack_type == NodeAckResponseType.SCAN_CONFIG_ACCEPTED:
                 await self._scan_configure_update(
                     motion_reset_timer, sensitivity_level, daylight_mode
                 )
                 return True
+
             _LOGGER.warning(
                 "Unexpected response ack type %s for %s",
                 response.node_ack_type,
                 self.name,
             )
             return False
+
         self._new_reset_timer = None
         self._new_sensitivity_level = None
         self._new_daylight_mode = None
