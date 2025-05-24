@@ -176,10 +176,8 @@ class Stick:
             raise StickError(
                 "Unable to change port while connected. Disconnect first"
             )
-        if self._port is None:
-            self._port = port
-        if port != self._port:
-            self._port = port
+
+        self._port = port
 
     @property
     def accept_join_request(self) -> bool | None:
@@ -278,14 +276,14 @@ class Stick:
                 f"Already connected to {self._port}, " +
                 "Close existing connection before (re)connect."
             )
-        if port is not None:
-            self._port = port
 
         if self._port is None:
             raise StickError(
                 "Unable to connect. " +
                 "Path to USB-Stick is not defined, set port property first"
             )
+        
+        self._port = port
         await self._controller.connect_to_stick(
             self._port,
         )
