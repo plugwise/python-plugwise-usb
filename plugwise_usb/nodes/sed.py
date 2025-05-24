@@ -236,11 +236,10 @@ class NodeSED(PlugwiseBaseNode):
             raise ValueError(
                 f"Invalid awake duration ({seconds}). It must be between 1 and 255 seconds."
             )
+
         if self._battery_config.awake_duration == seconds:
-            self._new_battery_config = replace(
-                self._new_battery_config, awake_duration=seconds
-            )
-            return False
+             return False
+ 
         self._new_battery_config = replace(
             self._new_battery_config, awake_duration=seconds
         )
@@ -251,6 +250,7 @@ class NodeSED(PlugwiseBaseNode):
                 "set_awake_duration | Device %s | config scheduled",
                 self.name,
             )
+
         return True
 
     @raise_not_loaded
@@ -266,11 +266,10 @@ class NodeSED(PlugwiseBaseNode):
             raise ValueError(
                 f"Invalid clock interval ({minutes}). It must be between 1 and 65535 minutes."
             )
+
         if self.battery_config.clock_interval == minutes:
-            self._new_battery_config = replace(
-                self._new_battery_config, clock_interval=minutes
-            )
             return False
+
         self._new_battery_config = replace(
             self._new_battery_config, clock_interval=minutes
         )
@@ -281,6 +280,7 @@ class NodeSED(PlugwiseBaseNode):
                 "set_clock_interval | Device %s | config scheduled",
                 self.name,
             )
+
         return True
 
     @raise_not_loaded
@@ -293,10 +293,8 @@ class NodeSED(PlugwiseBaseNode):
             sync,
         )
         if self._battery_config.clock_sync == sync:
-            self._new_battery_config = replace(
-                self._new_battery_config, clock_sync=sync
-            )
             return False
+
         self._new_battery_config = replace(self._new_battery_config, clock_sync=sync)
         if not self._sed_config_task_scheduled:
             await self.schedule_task_when_awake(self._configure_sed_task())
@@ -305,6 +303,7 @@ class NodeSED(PlugwiseBaseNode):
                 "set_clock_sync | Device %s | config scheduled",
                 self.name,
             )
+
         return True
 
     @raise_not_loaded
@@ -320,11 +319,10 @@ class NodeSED(PlugwiseBaseNode):
             raise ValueError(
                 f"Invalid maintenance interval ({minutes}). It must be between 1 and 1440 minutes."
             )
+
         if self.battery_config.maintenance_interval == minutes:
-            self._new_battery_config = replace(
-                self._new_battery_config, maintenance_interval=minutes
-            )
             return False
+
         self._new_battery_config = replace(
             self._new_battery_config, maintenance_interval=minutes
         )
@@ -335,6 +333,7 @@ class NodeSED(PlugwiseBaseNode):
                 "set_maintenance_interval | Device %s | config scheduled",
                 self.name,
             )
+
         return True
 
     @raise_not_loaded
@@ -353,11 +352,10 @@ class NodeSED(PlugwiseBaseNode):
             raise ValueError(
                 f"Invalid sleep duration ({minutes}). It must be between 1 and 65535 minutes."
             )
+
         if self._battery_config.sleep_duration == minutes:
-            self._new_battery_config = replace(
-                self._new_battery_config, sleep_duration=minutes
-            )
             return False
+
         self._new_battery_config = replace(
             self._new_battery_config, sleep_duration=minutes
         )
@@ -368,6 +366,7 @@ class NodeSED(PlugwiseBaseNode):
                 "set_sleep_duration | Device %s | config scheduled",
                 self.name,
             )
+
         return True
 
     # endregion
@@ -639,25 +638,24 @@ class NodeSED(PlugwiseBaseNode):
         """Send all tasks in queue."""
         if len(self._send_task_queue) == 0:
             return
-        await self._send_task_lock.acquire()
-        task_result = await gather(*self._send_task_queue)
-        if not all(task_result):
-            _LOGGER.warning(
-                "Executed %s tasks (result=%s) for %s",
-                len(self._send_task_queue),
-                task_result,
-                self.name,
-            )
-        self._send_task_queue = []
-        self._send_task_lock.release()
+
+        async with self._send_task_lock:
+            task_result = await gather(*self._send_task_queue)
+            if not all(task_result):
+                _LOGGER.warning(
+                    "Executed %s tasks (result=%s) for %s",
+                    len(self._send_task_queue),
+                    task_result,
+                    self.name,
+                )
+            self._send_task_queue = []
 
     async def schedule_task_when_awake(
         self, task_fn: Coroutine[Any, Any, bool]
     ) -> None:
         """Add task to queue to be executed when node is awake."""
-        await self._send_task_lock.acquire()
-        self._send_task_queue.append(task_fn)
-        self._send_task_lock.release()
+        async with self._send_task_lock:
+            self._send_task_queue.append(task_fn)
 
     async def sed_configure(  # pylint: disable=too-many-arguments
         self,
