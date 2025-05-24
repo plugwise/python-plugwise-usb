@@ -40,7 +40,6 @@ class PlugwiseSwitch(NodeSED):
         super().__init__(mac, address, controller, loaded_callback)
         self._switch_subscription: Callable[[], None] | None = None
         self._switch_state: bool | None = None
-        self._switch: bool = False
 
     async def load(self) -> bool:
         """Load and activate Switch node features."""
@@ -124,7 +123,6 @@ class PlugwiseSwitch(NodeSED):
 
         self._set_cache(CACHE_SWITCH_TIMESTAMP, timestamp)
         if state_update:
-            self._switch = switch_state
             await gather(
                 *[
                     self.publish_feature_update_to_subscribers(
