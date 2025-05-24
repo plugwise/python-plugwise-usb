@@ -905,18 +905,22 @@ class PulseCollection:
         """Duration for last known logs."""
         if self._logs is None:
             raise EnergyError("Unable to return last known duration without any logs")
+
         if len(self._logs) < 2:
             return timedelta(hours=1)
+
         address, slot = self._last_log_reference()
         if address is None or slot is None:
             raise EnergyError("Unable to return last known duration without any logs")
+
         last_known_timestamp = self._logs[address][slot].timestamp
         address, slot = calc_log_address(address, slot, -1)
         while (
             self._log_exists(address, slot)
-            or self._logs[address][slot].timestamp == last_known_timestamp
+            and self._logs[address][slot].timestamp == last_known_timestamp
         ):
             address, slot = calc_log_address(address, slot, -1)
+
         return self._logs[address][slot].timestamp - last_known_timestamp
 
     def _missing_addresses_before(
