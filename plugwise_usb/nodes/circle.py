@@ -1,882 +1,1130 @@
-"""Plugwise Circle node object."""
-from datetime import datetime, timedelta
-import logging
+"""Plugwise Circle node class."""
 
-from ..constants import (
-    FEATURE_ENERGY_CONSUMPTION_TODAY,
-    FEATURE_PING,
-    FEATURE_POWER_CONSUMPTION_CURRENT_HOUR,
-    FEATURE_POWER_CONSUMPTION_PREVIOUS_HOUR,
-    FEATURE_POWER_CONSUMPTION_TODAY,
-    FEATURE_POWER_CONSUMPTION_YESTERDAY,
-    FEATURE_POWER_PRODUCTION_CURRENT_HOUR,
-    FEATURE_POWER_USE,
-    FEATURE_POWER_USE_LAST_8_SEC,
-    FEATURE_RELAY,
-    FEATURE_RSSI_IN,
-    FEATURE_RSSI_OUT,
-    MAX_TIME_DRIFT,
-    MESSAGE_TIME_OUT,
-    PRIORITY_HIGH,
-    PRIORITY_LOW,
-    PULSES_PER_KW_SECOND,
-    RELAY_SWITCHED_OFF,
-    RELAY_SWITCHED_ON,
+from __future__ import annotations
+
+from asyncio import Task, create_task
+from collections.abc import Awaitable, Callable
+from dataclasses import replace
+from datetime import UTC, datetime
+from functools import wraps
+import logging
+from typing import Any, TypeVar, cast
+
+from ..api import (
+    EnergyStatistics,
+    NodeEvent,
+    NodeFeature,
+    NodeInfo,
+    NodeType,
+    PowerStatistics,
+    RelayConfig,
+    RelayState,
 )
+from ..connection import StickController
+from ..constants import (
+    MAX_TIME_DRIFT,
+    MINIMAL_POWER_UPDATE,
+    PULSES_PER_KW_SECOND,
+    SECOND_IN_NANOSECONDS,
+)
+from ..exceptions import FeatureError, NodeError
 from ..messages.requests import (
-    CircleCalibrationRequest,
     CircleClockGetRequest,
     CircleClockSetRequest,
-    CircleEnergyCountersRequest,
+    CircleEnergyLogsRequest,
     CirclePowerUsageRequest,
-    CircleSwitchRelayRequest,
+    CircleRelayInitStateRequest,
+    CircleRelaySwitchRequest,
+    EnergyCalibrationRequest,
+    NodeInfoRequest,
 )
-from ..messages.responses import (
-    CircleCalibrationResponse,
-    CircleClockResponse,
-    CircleEnergyCountersResponse,
-    CirclePowerUsageResponse,
-    NodeAckLargeResponse,
-)
-from ..nodes import PlugwiseNode
+from ..messages.responses import NodeInfoResponse, NodeResponseType
+from .helpers import EnergyCalibration, raise_not_loaded
+from .helpers.counter import EnergyCounters
+from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
+from .helpers.pulses import PulseLogRecord, calc_log_address
+from .node import PlugwiseBaseNode
 
+CACHE_CURRENT_LOG_ADDRESS = "current_log_address"
+CACHE_CALIBRATION_GAIN_A = "calibration_gain_a"
+CACHE_CALIBRATION_GAIN_B = "calibration_gain_b"
+CACHE_CALIBRATION_NOISE = "calibration_noise"
+CACHE_CALIBRATION_TOT = "calibration_tot"
+CACHE_ENERGY_COLLECTION = "energy_collection"
+CACHE_RELAY = "relay"
+CACHE_RELAY_INIT = "relay_init"
+
+FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 _LOGGER = logging.getLogger(__name__)
 
 
-class PlugwiseCircle(PlugwiseNode):
-    """provides interface to the Plugwise Circle nodes and base class for Circle+ nodes"""
+def raise_calibration_missing(func: FuncT) -> FuncT:
+    """Validate energy calibration settings are available."""
 
-    def __init__(self, mac, address, message_sender):
-        super().__init__(mac, address, message_sender)
-        self._features = (
-            FEATURE_ENERGY_CONSUMPTION_TODAY["id"],
-            FEATURE_PING["id"],
-            FEATURE_POWER_USE["id"],
-            FEATURE_POWER_USE_LAST_8_SEC["id"],
-            FEATURE_POWER_CONSUMPTION_CURRENT_HOUR["id"],
-            FEATURE_POWER_CONSUMPTION_PREVIOUS_HOUR["id"],
-            FEATURE_POWER_CONSUMPTION_TODAY["id"],
-            FEATURE_POWER_CONSUMPTION_YESTERDAY["id"],
-            FEATURE_POWER_PRODUCTION_CURRENT_HOUR["id"],
-            # FEATURE_POWER_PRODUCTION_PREVIOUS_HOUR["id"],
-            FEATURE_RSSI_IN["id"],
-            FEATURE_RSSI_OUT["id"],
-            FEATURE_RELAY["id"],
-        )
-        self._last_collected_address = None
-        self._last_collected_address_slot = 0
-        self._last_collected_address_timestamp = datetime(2000, 1, 1)
-        self._energy_consumption_today_reset = datetime.now().replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
-        self._energy_memory = {}
-        self._energy_history = {}
-        self._energy_history_failed_address = []
-        self._energy_last_collected_timestamp = datetime(2000, 1, 1)
-        self._energy_last_collected_count = 0
-        self._energy_ratelimit_collection_timestamp = datetime.utcnow()
-        self._energy_last_rollover_timestamp = datetime.utcnow()
-        self._energy_pulses_midnight_rollover = datetime.utcnow()
-        self._energy_last_local_hour = datetime.now().hour
-        self._energy_last_populated_slot = 0
-        self._energy_pulses_current_hour = None
-        self._energy_pulses_prev_hour = None
-        self._energy_pulses_today_hourly = None
-        self._energy_pulses_today_now = None
-        self._energy_pulses_yesterday = None
-        self._new_relay_state = False
-        self._new_relay_stamp = datetime.now() - timedelta(seconds=MESSAGE_TIME_OUT)
-        self._pulses_1s = None
-        self._pulses_8s = None
-        self._pulses_produced_1h = None
-        self.calibration = False
-        self._gain_a = None
-        self._gain_b = None
-        self._off_noise = None
-        self._off_tot = None
-        self._measures_power = True
-        self._last_log_collected = False
-        self.timezone_delta = datetime.now().replace(
-            minute=0, second=0, microsecond=0
-        ) - datetime.utcnow().replace(minute=0, second=0, microsecond=0)
-        self._clock_offset = None
-        self._last_clock_sync_day = datetime.now().day
-        self.get_clock(self.sync_clock)
-        self._request_calibration()
+    @wraps(func)
+    def decorated(*args: Any, **kwargs: Any) -> Any:
+        if args[0].calibrated is None:
+            raise NodeError("Energy calibration settings are missing")
+        return func(*args, **kwargs)
+
+    return cast(FuncT, decorated)
+
+
+class PlugwiseCircle(PlugwiseBaseNode):
+    """Plugwise Circle node."""
+
+    def __init__(
+        self,
+        mac: str,
+        address: int,
+        controller: StickController,
+        loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
+    ):
+        """Initialize base class for Sleeping End Device."""
+        super().__init__(mac, address, controller, loaded_callback)
+
+        # Relay
+        self._relay_state: RelayState = RelayState()
+        self._relay_config: RelayConfig = RelayConfig()
+
+        # Power
+        self._power: PowerStatistics = PowerStatistics()
+        self._calibration: EnergyCalibration | None = None
+
+        # Energy
+        self._energy_counters = EnergyCounters(mac)
+        self._retrieve_energy_logs_task: None | Task[None] = None
+        self._last_energy_log_requested: bool = False
+
+        self._group_member: list[int] = []
+
+    # region Properties
 
     @property
-    def current_power_usage(self):
-        """Returns power usage during the last second in Watts
-        Based on last received power usage information
-        """
-        if self._pulses_1s is not None:
-            return self.pulses_to_kws(self._pulses_1s) * 1000
-        return None
+    def calibrated(self) -> bool:
+        """State of calibration."""
+        if self._calibration is not None:
+            return True
+        return False
 
     @property
-    def current_power_usage_8_sec(self):
-        """Returns power usage during the last 8 second in Watts
-        Based on last received power usage information
-        """
-        if self._pulses_8s is not None:
-            return self.pulses_to_kws(self._pulses_8s, 8) * 1000
-        return None
+    def energy(self) -> EnergyStatistics:
+        """Energy statistics."""
+        return self._energy_counters.energy_statistics
 
     @property
-    def energy_consumption_today(self) -> float:
-        """Returns total energy consumption since midnight in kWh"""
-        if self._energy_pulses_today_now is not None:
-            return self.pulses_to_kws(self._energy_pulses_today_now, 3600)
-        return None
+    @raise_not_loaded
+    def energy_consumption_interval(self) -> int | None:
+        """Interval (minutes) energy consumption counters are locally logged at Circle devices."""
+        if NodeFeature.ENERGY not in self._features:
+            raise NodeError(f"Energy log interval is not supported for node {self.mac}")
+        return self._energy_counters.consumption_interval
 
     @property
-    def energy_consumption_today_last_reset(self):
-        """Last reset of total energy consumption today"""
-        return self._energy_consumption_today_reset
+    def energy_production_interval(self) -> int | None:
+        """Interval (minutes) energy production counters are locally logged at Circle devices."""
+        if NodeFeature.ENERGY not in self._features:
+            raise NodeError(f"Energy log interval is not supported for node {self.mac}")
+        return self._energy_counters.production_interval
 
     @property
-    def power_consumption_current_hour(self):
-        """Returns the power usage during this running hour in kWh
-        Based on last received power usage information
-        """
-        if self._energy_pulses_current_hour is not None:
-            return self.pulses_to_kws(self._energy_pulses_current_hour, 3600)
-        return None
+    @raise_not_loaded
+    def power(self) -> PowerStatistics:
+        """Power statistics."""
+        return self._power
 
     @property
-    def power_consumption_previous_hour(self):
-        """Returns power consumption during the previous hour in kWh"""
-        if self._energy_pulses_prev_hour is not None:
-            return self.pulses_to_kws(self._energy_pulses_prev_hour, 3600)
-        return None
+    @raise_not_loaded
+    def relay(self) -> bool:
+        """Current value of relay."""
+        return bool(self._relay_state.state)
 
     @property
-    def power_consumption_today(self):
-        """Total power consumption during today in kWh"""
-        if self._energy_pulses_today_hourly is not None:
-            return self.pulses_to_kws(self._energy_pulses_today_hourly, 3600)
-        return None
+    @raise_not_loaded
+    def relay_config(self) -> RelayConfig:
+        """Configuration state of relay."""
+        if NodeFeature.RELAY_INIT not in self._features:
+            raise FeatureError(
+                f"Configuration of relay is not supported for device {self.name}"
+            )
+        return self._relay_config
 
     @property
-    def power_consumption_yesterday(self):
-        """Total power consumption of yesterday in kWh"""
-        if self._energy_pulses_yesterday is not None:
-            return self.pulses_to_kws(self._energy_pulses_yesterday, 3600)
-        return None
-
-    @property
-    def power_production_current_hour(self):
-        """Returns the power production during this running hour in kWh
-        Based on last received power usage information
-        """
-        if self._pulses_produced_1h is not None:
-            return self.pulses_to_kws(self._pulses_produced_1h, 3600)
-        return None
-
-    @property
-    def relay_state(self) -> bool:
-        """Return last known relay state or the new switch state by anticipating
-        the acknowledge for new state is getting in before message timeout.
-        """
-        if self._new_relay_stamp + timedelta(seconds=MESSAGE_TIME_OUT) > datetime.now():
-            return self._new_relay_state
+    @raise_not_loaded
+    def relay_state(self) -> RelayState:
+        """State of relay."""
         return self._relay_state
 
-    @relay_state.setter
-    def relay_state(self, state):
-        """Request the relay to switch state."""
-        self._request_switch(state)
-        self._new_relay_state = state
-        self._new_relay_stamp = datetime.now()
-        if state != self._relay_state:
-            self.do_callback(FEATURE_RELAY["id"])
+    @raise_not_loaded
+    async def relay_off(self) -> None:
+        """Switch relay off."""
+        await self.set_relay(False)
 
-    def _request_calibration(self, callback=None):
-        """Request calibration info"""
-        self.message_sender(
-            CircleCalibrationRequest(self._mac),
-            callback,
-            0,
-            PRIORITY_HIGH,
+    @raise_not_loaded
+    async def relay_on(self) -> None:
+        """Switch relay on."""
+        await self.set_relay(True)
+
+    @raise_not_loaded
+    async def relay_init_off(self) -> None:
+        """Switch relay off."""
+        await self._relay_init_set(False)
+
+    @raise_not_loaded
+    async def relay_init_on(self) -> None:
+        """Switch relay on."""
+        await self._relay_init_set(True)
+
+    # endregion
+
+    async def calibration_update(self) -> bool:
+        """Retrieve and update calibration settings. Returns True if successful."""
+        _LOGGER.debug(
+            "Start updating energy calibration for %s",
+            self._mac_in_str,
         )
-
-    def _request_switch(self, state, callback=None):
-        """Request to switch relay state and request state info"""
-        self.message_sender(
-            CircleSwitchRelayRequest(self._mac, state),
-            callback,
-            0,
-            PRIORITY_HIGH,
+        request = EnergyCalibrationRequest(self._send, self._mac_in_bytes)
+        if (calibration_response := await request.send()) is None:
+            _LOGGER.warning(
+                "Retrieving energy calibration information for %s failed",
+                self.name,
+            )
+            await self._available_update_state(False)
+            return False
+        await self._available_update_state(True, calibration_response.timestamp)
+        await self._calibration_update_state(
+            calibration_response.gain_a,
+            calibration_response.gain_b,
+            calibration_response.off_noise,
+            calibration_response.off_tot,
         )
+        _LOGGER.debug(
+            "Updating energy calibration for %s succeeded",
+            self._mac_in_str,
+        )
+        return True
 
-    def request_power_update(self, callback=None):
-        """Request power usage and update energy counters"""
-        if self._available:
-            self.message_sender(
-                CirclePowerUsageRequest(self._mac),
-                callback,
-            )
-            _timestamp_utcnow = datetime.utcnow()
-            # Request new energy counters if last one is more than one hour ago
-            if self._energy_last_collected_timestamp < _timestamp_utcnow.replace(
-                minute=0, second=0, microsecond=0
-            ):
-                _LOGGER.info(
-                    "Queue _last_log_address for %s at %s last_collected %s",
-                    str(self.mac),
-                    str(self._last_log_address),
-                    self._energy_last_collected_timestamp,
-                )
-                self._request_info(self.push_last_log_address)
+    async def _calibration_load_from_cache(self) -> bool:
+        """Load calibration settings from cache."""
+        cal_gain_a: float | None = None
+        cal_gain_b: float | None = None
+        cal_noise: float | None = None
+        cal_tot: float | None = None
+        if (gain_a := self._get_cache(CACHE_CALIBRATION_GAIN_A)) is not None:
+            cal_gain_a = float(gain_a)
+        if (gain_b := self._get_cache(CACHE_CALIBRATION_GAIN_B)) is not None:
+            cal_gain_b = float(gain_b)
+        if (noise := self._get_cache(CACHE_CALIBRATION_NOISE)) is not None:
+            cal_noise = float(noise)
+        if (tot := self._get_cache(CACHE_CALIBRATION_TOT)) is not None:
+            cal_tot = float(tot)
 
-            if len(self._energy_history_failed_address) > 0:
-                _mem_address = self._energy_history_failed_address.pop(0)
-                if self._energy_memory.get(_mem_address, 0) < 4:
-                    _LOGGER.info(
-                        "Collect EnergyCounters for %s at %s",
-                        str(self.mac),
-                        str(_mem_address),
-                    )
-                    self.request_energy_counters(_mem_address)
-                    self._energy_ratelimit_collection_timestamp = _timestamp_utcnow
-                else:
-                    _LOGGER.info(
-                        "Drop known request_energy_counters for %s at %s and clock sync",
-                        str(self.mac),
-                        str(_mem_address),
-                    )
-                    self.get_clock(self.sync_clock)
-            if datetime.now().day != self._last_clock_sync_day:
-                self._last_clock_sync_day = datetime.now().day
-                self.get_clock(self.sync_clock)
-
-    def push_last_log_address(self):
-        if self._energy_history_failed_address.count(self._last_log_address) == 0:
-            self._energy_history_failed_address.append(self._last_log_address)
-
-    def message_for_circle(self, message):
-        """Process received message"""
-        if isinstance(message, CirclePowerUsageResponse):
-            if self.calibration:
-                self._response_power_usage(message)
-                _LOGGER.debug(
-                    "Power update for %s, last update %s",
-                    str(self.mac),
-                    str(self._last_update),
-                )
-            else:
-                _LOGGER.info(
-                    "Received power update for %s before calibration information is known",
-                    str(self.mac),
-                )
-                self._request_calibration(self.request_power_update)
-        elif isinstance(message, NodeAckLargeResponse):
-            self._node_ack_response(message)
-        elif isinstance(message, CircleCalibrationResponse):
-            self._response_calibration(message)
-        elif isinstance(message, CircleEnergyCountersResponse):
-            if self.calibration:
-                self._response_energy_counters(message)
-            else:
-                _LOGGER.debug(
-                    "Received power buffer log for %s before calibration information is known",
-                    str(self.mac),
-                )
-                self._request_calibration(self.request_energy_counters)
-        elif isinstance(message, CircleClockResponse):
-            self._response_clock(message)
-        else:
-            self.message_for_circle_plus(message)
-
-    def message_for_circle_plus(self, message):
-        """Pass messages to PlugwiseCirclePlus class"""
-
-    def _node_ack_response(self, message):
-        """Process switch response message"""
-        if message.ack_id == RELAY_SWITCHED_ON:
-            if not self._relay_state:
-                _LOGGER.debug(
-                    "Switch relay on for %s",
-                    str(self.mac),
-                )
-                self._relay_state = True
-                self.do_callback(FEATURE_RELAY["id"])
-        elif message.ack_id == RELAY_SWITCHED_OFF:
-            if self._relay_state:
-                _LOGGER.debug(
-                    "Switch relay off for %s",
-                    str(self.mac),
-                )
-                self._relay_state = False
-                self.do_callback(FEATURE_RELAY["id"])
-        else:
+        # Restore calibration
+        result = await self._calibration_update_state(
+            cal_gain_a,
+            cal_gain_b,
+            cal_noise,
+            cal_tot,
+        )
+        if result:
             _LOGGER.debug(
-                "Unmanaged _node_ack_response %s received for %s",
-                str(message.ack_id),
-                str(self.mac),
+                "Restore calibration settings from cache for %s was successful",
+                self._mac_in_str,
             )
+            return True
+        _LOGGER.info(
+            "Failed to restore calibration settings from cache for %s", self.name
+        )
+        return False
 
-    def _response_power_usage(self, message: CirclePowerUsageResponse):
-        # Sometimes the circle returns -1 for some of the pulse counters
-        # likely this means the circle measures very little power and is suffering from
-        # rounding errors. Zero these out. However, negative pulse values are valid
-        # for power producing appliances, like solar panels, so don't complain too loudly.
+    async def _calibration_update_state(
+        self,
+        gain_a: float | None,
+        gain_b: float | None,
+        off_noise: float | None,
+        off_tot: float | None,
+    ) -> bool:
+        """Process new energy calibration settings. Returns True if successful."""
+        if gain_a is None or gain_b is None or off_noise is None or off_tot is None:
+            return False
+        self._calibration = EnergyCalibration(
+            gain_a=gain_a, gain_b=gain_b, off_noise=off_noise, off_tot=off_tot
+        )
+        # Forward calibration config to energy collection
+        self._energy_counters.calibration = self._calibration
 
-        # Power consumption last second
-        if message.pulse_1s.value == -1:
-            message.pulse_1s.value = 0
+        if self._cache_enabled:
+            self._set_cache(CACHE_CALIBRATION_GAIN_A, gain_a)
+            self._set_cache(CACHE_CALIBRATION_GAIN_B, gain_b)
+            self._set_cache(CACHE_CALIBRATION_NOISE, off_noise)
+            self._set_cache(CACHE_CALIBRATION_TOT, off_tot)
+            await self.save_cache()
+        return True
+
+    @raise_calibration_missing
+    async def power_update(self) -> PowerStatistics | None:
+        """Update the current power usage statistics.
+
+        Return power usage or None if retrieval failed
+        """
+        # Debounce power
+        if self.skip_update(self._power, MINIMAL_POWER_UPDATE):
+            return self._power
+
+        request = CirclePowerUsageRequest(self._send, self._mac_in_bytes)
+        response = await request.send()
+        if response is None or response.timestamp is None:
             _LOGGER.debug(
-                "1 sec power pulse counter for node %s has value of -1, corrected to 0",
-                str(self.mac),
+                "No response for async_power_update() for %s", self._mac_in_str
             )
-        self._pulses_1s = message.pulse_1s.value
-        if message.pulse_1s.value != 0:
-            if message.nanosecond_offset.value != 0:
-                pulses_1s = (
-                    message.pulse_1s.value
-                    * (1000000000 + message.nanosecond_offset.value)
-                ) / 1000000000
-            else:
-                pulses_1s = message.pulse_1s.value
-            self._pulses_1s = pulses_1s
-        else:
-            self._pulses_1s = 0
-        self.do_callback(FEATURE_POWER_USE["id"])
-        # Power consumption last 8 seconds
-        if message.pulse_8s.value == -1:
-            message.pulse_8s.value = 0
-            _LOGGER.debug(
-                "8 sec power pulse counter for node %s has value of -1, corrected to 0",
-                str(self.mac),
-            )
-        if message.pulse_8s.value != 0:
-            if message.nanosecond_offset.value != 0:
-                pulses_8s = (
-                    message.pulse_8s.value
-                    * (1000000000 + message.nanosecond_offset.value)
-                ) / 1000000000
-            else:
-                pulses_8s = message.pulse_8s.value
-            self._pulses_8s = pulses_8s
-        else:
-            self._pulses_8s = 0
-        self.do_callback(FEATURE_POWER_USE_LAST_8_SEC["id"])
-        # Power consumption current hour
-        if message.pulse_hour_consumed.value == -1:
-            _LOGGER.debug(
-                "1 hour consumption power pulse counter for node %s has value of -1, drop value",
-                str(self.mac),
-            )
-        else:
-            self._update_energy_current_hour(message.pulse_hour_consumed.value)
-
-        # Power produced current hour
-        if message.pulse_hour_produced.value == -1:
-            message.pulse_hour_produced.value = 0
-            _LOGGER.debug(
-                "1 hour power production pulse counter for node %s has value of -1, corrected to 0",
-                str(self.mac),
-            )
-        if self._pulses_produced_1h != message.pulse_hour_produced.value:
-            self._pulses_produced_1h = message.pulse_hour_produced.value
-            self.do_callback(FEATURE_POWER_PRODUCTION_CURRENT_HOUR["id"])
-
-    def _response_calibration(self, message: CircleCalibrationResponse):
-        """Store calibration properties"""
-        for calibration in ("gain_a", "gain_b", "off_noise", "off_tot"):
-            val = getattr(message, calibration).value
-            setattr(self, "_" + calibration, val)
-        self.calibration = True
-
-    def pulses_to_kws(self, pulses, seconds=1):
-        """Converts the amount of pulses to kWs using the calaboration offsets"""
-        if pulses is None:
+            await self._available_update_state(False)
             return None
-        if pulses == 0 or not self.calibration:
-            return 0.0
-        pulses_per_s = pulses / float(seconds)
-        corrected_pulses = seconds * (
-            (
-                (((pulses_per_s + self._off_noise) ** 2) * self._gain_b)
-                + ((pulses_per_s + self._off_noise) * self._gain_a)
-            )
-            + self._off_tot
+        await self._available_update_state(True, response.timestamp)
+
+        # Update power stats
+        self._power.last_second = self._calc_watts(
+            response.pulse_1s, 1, response.offset
         )
-        calc_value = corrected_pulses / PULSES_PER_KW_SECOND / seconds
-        # Fix minor miscalculations
-        if -0.001 < calc_value < 0.001:
-            calc_value = 0.0
-        return calc_value
+        self._power.last_8_seconds = self._calc_watts(
+            response.pulse_8s, 8, response.offset
+        )
+        self._power.timestamp = response.timestamp
+        await self.publish_feature_update_to_subscribers(NodeFeature.POWER, self._power)
 
-    def _collect_energy_pulses(self, start_utc: datetime, end_utc: datetime):
-        """Return energy pulses of given hours"""
+        # Forward pulse interval counters to pulse Collection
+        self._energy_counters.add_pulse_stats(
+            response.consumed_counter,
+            response.produced_counter,
+            response.timestamp,
+        )
+        await self.publish_feature_update_to_subscribers(
+            NodeFeature.ENERGY, self._energy_counters.energy_statistics
+        )
+        return self._power
 
-        if start_utc == end_utc:
-            hours = 0
-        else:
-            hours = int((end_utc - start_utc).seconds / 3600)
-        _energy_pulses = 0
-        for hour in range(0, hours + 1):
-            _log_timestamp = start_utc + timedelta(hours=hour)
-            if self._energy_history.get(_log_timestamp) is not None:
-                _energy_pulses += self._energy_history[_log_timestamp]
-                _LOGGER.debug(
-                    "_collect_energy_pulses for %s | %s : %s, total = %s",
-                    str(self.mac),
-                    str(_log_timestamp),
-                    str(self._energy_history[_log_timestamp]),
-                    str(_energy_pulses),
-                )
-            else:
-                _mem_address = self._energy_timestamp_memory_address(_log_timestamp)
-                if _mem_address is not None and _mem_address >= 0:
+    @raise_not_loaded
+    @raise_calibration_missing
+    async def energy_update(self) -> EnergyStatistics | None:
+        """Return updated energy usage statistics."""
+        if self._current_log_address is None:
+            _LOGGER.debug(
+                "Unable to update energy logs for node %s because last_log_address is unknown.",
+                self._mac_in_str,
+            )
+            if await self.node_info_update() is None:
+                if (
+                    self._initialization_delay_expired is not None
+                    and datetime.now(tz=UTC) < self._initialization_delay_expired
+                ):
                     _LOGGER.info(
-                        "_collect_energy_pulses for %s at %s | %s not found",
-                        str(self.mac),
-                        str(_log_timestamp),
-                        str(_mem_address),
+                        "Unable to return energy statistics for %s during initialization, because it is not responding",
+                        self.name,
                     )
-                    if self._energy_history_failed_address.count(_mem_address) == 0:
-                        self._energy_history_failed_address.append(_mem_address)
                 else:
-                    _LOGGER.info(
-                        "_collect_energy_pulses ignoring negative _mem_address %s",
-                        str(_mem_address),
+                    _LOGGER.warning(
+                        "Unable to return energy statistics for %s, because it is not responding",
+                        self.name,
                     )
+                return None
+        # request node info update every 30 minutes.
+        elif not self.skip_update(self._node_info, 1800):
+            if await self.node_info_update() is None:
+                if (
+                    self._initialization_delay_expired is not None
+                    and datetime.now(tz=UTC) < self._initialization_delay_expired
+                ):
+                    _LOGGER.info(
+                        "Unable to return energy statistics for %s during initialization, because it is not responding",
+                        self.name,
+                    )
+                else:
+                    _LOGGER.warning(
+                        "Unable to return energy statistics for %s, because it is not responding",
+                        self.name,
+                    )
+                return None
 
-        # Validate all history values where present
-        if len(self._energy_history_failed_address) == 0:
-            return _energy_pulses
+        # Always request last energy log records at initial startup
+        if not self._last_energy_log_requested:
+            self._last_energy_log_requested = await self.energy_log_update(
+                self._current_log_address
+            )
+
+        if self._energy_counters.log_rollover:
+            if await self.node_info_update() is None:
+                _LOGGER.debug(
+                    "async_energy_update | %s | Log rollover | node_info_update failed",
+                    self._mac_in_str,
+                )
+                return None
+
+            if not await self.energy_log_update(self._current_log_address):
+                _LOGGER.debug(
+                    "async_energy_update | %s | Log rollover | energy_log_update failed",
+                    self._mac_in_str,
+                )
+                return None
+
+            if (
+                self._energy_counters.log_rollover
+                and self._current_log_address is not None
+            ):
+                # Retry with previous log address as Circle node pointer to self._current_log_address
+                # could be rolled over while the last log is at previous address/slot
+                _prev_log_address, _ = calc_log_address(
+                    self._current_log_address, 1, -4
+                )
+                if not await self.energy_log_update(_prev_log_address):
+                    _LOGGER.debug(
+                        "async_energy_update | %s | Log rollover | energy_log_update %s failed",
+                        self._mac_in_str,
+                        _prev_log_address,
+                    )
+                    return None
+
+        if (
+            missing_addresses := self._energy_counters.log_addresses_missing
+        ) is not None:
+            if len(missing_addresses) == 0:
+                await self.power_update()
+                _LOGGER.debug(
+                    "async_energy_update for %s | no missing log records",
+                    self._mac_in_str,
+                )
+                return self._energy_counters.energy_statistics
+            if len(missing_addresses) == 1:
+                if await self.energy_log_update(missing_addresses[0]):
+                    await self.power_update()
+                    _LOGGER.debug(
+                        "async_energy_update for %s | single energy log is missing | %s",
+                        self._mac_in_str,
+                        missing_addresses,
+                    )
+                    return self._energy_counters.energy_statistics
+
+        # Create task to request remaining missing logs
+        if (
+            self._retrieve_energy_logs_task is None
+            or self._retrieve_energy_logs_task.done()
+        ):
+            _LOGGER.debug(
+                "Create task to update energy logs for node %s",
+                self._mac_in_str,
+            )
+            self._retrieve_energy_logs_task = create_task(
+                self.get_missing_energy_logs()
+            )
+        else:
+            _LOGGER.debug(
+                "Skip creating task to update energy logs for node %s",
+                self._mac_in_str,
+            )
+        if (
+            self._initialization_delay_expired is not None
+            and datetime.now(tz=UTC) < self._initialization_delay_expired
+        ):
+            _LOGGER.info(
+                "Unable to return energy statistics for %s during initialization, collecting required data...",
+                self.name,
+            )
+        else:
+            _LOGGER.warning(
+                "Unable to return energy statistics for %s, collecting required data...",
+                self.name,
+            )
         return None
 
-    def _update_energy_current_hour(self, _pulses_cur_hour):
-        """Update energy consumption (pulses) of current hour"""
-        _LOGGER.info(
-            "_update_energy_current_hour for %s | counter = %s, update= %s",
-            str(self.mac),
-            str(self._energy_pulses_current_hour),
-            str(_pulses_cur_hour),
-        )
-        if self._energy_pulses_current_hour is None:
-            self._energy_pulses_current_hour = _pulses_cur_hour
-            self.do_callback(FEATURE_POWER_CONSUMPTION_CURRENT_HOUR["id"])
-        else:
-            if self._energy_pulses_current_hour != _pulses_cur_hour:
-                self._energy_pulses_current_hour = _pulses_cur_hour
-                self.do_callback(FEATURE_POWER_CONSUMPTION_CURRENT_HOUR["id"])
+    async def get_missing_energy_logs(self) -> None:
+        """Task to retrieve missing energy logs."""
 
-        if self._last_collected_address_timestamp > datetime(2000, 1, 1):
-            # Update today after lastlog has been retrieved
-            self._update_energy_today_now()
+        self._energy_counters.update()
+        if self._current_log_address is None:
+            return None
 
-    def _update_energy_today_now(self):
-        """Update energy consumption (pulses) of today up to now"""
-
-        _pulses_today_now = None
-
-        # Regular update
-        if (
-            self._energy_pulses_today_hourly is not None
-            and self._energy_pulses_current_hour is not None
-        ):
-            _pulses_today_now = (
-                self._energy_pulses_today_hourly + self._energy_pulses_current_hour
-            )
-
-        _utc_hour_timestamp = datetime.utcnow().replace(
-            minute=0, second=0, microsecond=0
-        )
-        _local_hour = datetime.now().hour
-        _utc_midnight_timestamp = _utc_hour_timestamp - timedelta(hours=_local_hour)
-        _local_midnight_timestamp = datetime.now().replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
-
-        if _pulses_today_now is None:
-            if self._energy_pulses_today_hourly is None:
-                self._update_energy_today_hourly(
-                    _utc_midnight_timestamp + timedelta(hours=1),
-                    _utc_hour_timestamp,
-                )
-        elif (
-            self._energy_pulses_today_now is not None
-            and self._energy_pulses_today_now > _pulses_today_now
-            and self._energy_pulses_midnight_rollover < _local_midnight_timestamp
-        ):
-            _LOGGER.info(
-                "_update_energy_today_now for %s midnight rollover started old=%s, new=%s",
-                str(self.mac),
-                str(self._energy_pulses_today_now),
-                str(_pulses_today_now),
-            )
-            self._energy_pulses_today_now = 0
-            self._energy_pulses_midnight_rollover = _local_midnight_timestamp
-            self._update_energy_today_hourly(
-                _utc_midnight_timestamp + timedelta(hours=1),
-                _utc_hour_timestamp,
-            )
-            self.do_callback(FEATURE_ENERGY_CONSUMPTION_TODAY["id"])
-        elif (
-            self._energy_pulses_today_now is not None
-            and self._energy_pulses_today_now > _pulses_today_now
-            and int(
-                (self._energy_pulses_today_now - _pulses_today_now)
-                / (self._energy_pulses_today_now + 1)
-                * 100
-            )
-            > 1
-        ):
-            _LOGGER.info(
-                "_update_energy_today_now for %s hour rollover started old=%s, new=%s",
-                str(self.mac),
-                str(self._energy_pulses_today_now),
-                str(_pulses_today_now),
-            )
-            self._update_energy_today_hourly(
-                _utc_midnight_timestamp + timedelta(hours=1),
-                _utc_hour_timestamp,
-            )
-        else:
-            _LOGGER.info(
-                "_update_energy_today_now for %s | counter = %s, update= %s (%s + %s)",
-                str(self.mac),
-                str(self._energy_pulses_today_now),
-                str(_pulses_today_now),
-                str(self._energy_pulses_today_hourly),
-                str(self._energy_pulses_current_hour),
-            )
-            if self._energy_pulses_today_now is None:
-                self._energy_pulses_today_now = _pulses_today_now
-                if self._energy_pulses_today_now is not None:
-                    self.do_callback(FEATURE_ENERGY_CONSUMPTION_TODAY["id"])
-            else:
-                if self._energy_pulses_today_now != _pulses_today_now:
-                    self._energy_pulses_today_now = _pulses_today_now
-                    self.do_callback(FEATURE_ENERGY_CONSUMPTION_TODAY["id"])
-
-    def _update_energy_previous_hour(self, prev_hour: datetime):
-        """Update energy consumption (pulses) of previous hour"""
-        _pulses_prev_hour = self._collect_energy_pulses(prev_hour, prev_hour)
-        _LOGGER.info(
-            "_update_energy_previous_hour for %s | counter = %s, update= %s, timestamp %s",
-            str(self.mac),
-            str(self._energy_pulses_yesterday),
-            str(_pulses_prev_hour),
-            str(prev_hour),
-        )
-        if self._energy_pulses_prev_hour is None:
-            self._energy_pulses_prev_hour = _pulses_prev_hour
-            if self._energy_pulses_prev_hour is not None:
-                self.do_callback(FEATURE_POWER_CONSUMPTION_PREVIOUS_HOUR["id"])
-        else:
-            if self._energy_pulses_prev_hour != _pulses_prev_hour:
-                self._energy_pulses_prev_hour = _pulses_prev_hour
-                self.do_callback(FEATURE_POWER_CONSUMPTION_PREVIOUS_HOUR["id"])
-
-    def _update_energy_yesterday(
-        self, start_yesterday: datetime, end_yesterday: datetime
-    ):
-        """Update energy consumption (pulses) of yesterday"""
-        _pulses_yesterday = self._collect_energy_pulses(start_yesterday, end_yesterday)
-        _LOGGER.debug(
-            "_update_energy_yesterday for %s | counter = %s, update= %s, range %s to %s",
-            str(self.mac),
-            str(self._energy_pulses_yesterday),
-            str(_pulses_yesterday),
-            str(start_yesterday),
-            str(end_yesterday),
-        )
-        if self._energy_pulses_yesterday is None:
-            self._energy_pulses_yesterday = _pulses_yesterday
-            if self._energy_pulses_yesterday is not None:
-                self.do_callback(FEATURE_POWER_CONSUMPTION_YESTERDAY["id"])
-        else:
-            if self._energy_pulses_yesterday != _pulses_yesterday:
-                self._energy_pulses_yesterday = _pulses_yesterday
-                self.do_callback(FEATURE_POWER_CONSUMPTION_YESTERDAY["id"])
-
-    def _update_energy_today_hourly(self, start_today: datetime, end_today: datetime):
-        """Update energy consumption (pulses) of today up to last hour"""
-        if start_today > end_today:
-            _pulses_today_hourly = 0
-        else:
-            _pulses_today_hourly = self._collect_energy_pulses(start_today, end_today)
-        _LOGGER.info(
-            "_update_energy_today_hourly for %s | counter = %s, update= %s, range %s to %s",
-            str(self.mac),
-            str(self._energy_pulses_today_hourly),
-            str(_pulses_today_hourly),
-            str(start_today),
-            str(end_today),
-        )
-        if self._energy_pulses_today_hourly is None:
-            self._energy_pulses_today_hourly = _pulses_today_hourly
-            if self._energy_pulses_today_hourly is not None:
-                self.do_callback(FEATURE_POWER_CONSUMPTION_TODAY["id"])
-        else:
-            if self._energy_pulses_today_hourly != _pulses_today_hourly:
-                self._energy_pulses_today_hourly = _pulses_today_hourly
-                self.do_callback(FEATURE_POWER_CONSUMPTION_TODAY["id"])
-
-    def request_energy_counters(self, log_address=None, callback=None):
-        """Request power log of specified address"""
-        _LOGGER.debug(
-            "request_energy_counters for %s of address %s",
-            str(self.mac),
-            str(log_address),
-        )
-        if not self._available:
+        if self._energy_counters.log_addresses_missing is None:
             _LOGGER.debug(
-                "Skip request_energy_counters for % is unavailable",
-                str(self.mac),
+                "Start with initial energy request for the last 10 log addresses for node %s.",
+                self._mac_in_str,
             )
+            total_addresses = 11
+            log_address = self._current_log_address
+            while total_addresses > 0:
+                await self.energy_log_update(log_address)
+                log_address, _ = calc_log_address(log_address, 1, -4)
+                total_addresses -= 1
+
+            if self._cache_enabled:
+                await self._energy_log_records_save_to_cache()
+
             return
-        if log_address is None:
-            log_address = self._last_log_address
-        if log_address is not None:
-            # Energy history already collected
-            if (
-                log_address == self._last_log_address
-                and self._energy_last_populated_slot == 4
-            ):
-                # Rollover of energy counter slot, get new memory address first
-                self._energy_last_populated_slot = 0
-                self._request_info(self.request_energy_counters)
-            else:
-                # Request new energy counters
-                if self._energy_memory.get(log_address, 0) < 4:
-                    self.message_sender(
-                        CircleEnergyCountersRequest(self._mac, log_address),
-                        None,
-                        0,
-                        PRIORITY_LOW,
-                    )
-                else:
-                    _LOGGER.info(
-                        "Drop known request_energy_counters for %s of address %s",
-                        str(self.mac),
-                        str(log_address),
-                    )
-        else:
-            self._request_info(self.request_energy_counters)
 
-    def _response_energy_counters(self, message: CircleEnergyCountersResponse):
-        """Save historical energy information in local counters
-        Each response message contains 4 log counters (slots)
-        of the energy pulses collected during the previous hour of given timestamp
-        """
-        if message.logaddr.value == (self._last_log_address):
-            self._energy_last_populated_slot = 0
-
-        # Collect energy history pulses from received log address
-        # Store pulse in self._energy_history using the timestamp in UTC as index
-        _utc_hour_timestamp = datetime.utcnow().replace(
-            minute=0, second=0, microsecond=0
-        )
-        _local_midnight_timestamp = datetime.now().replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
-        _local_hour = datetime.now().hour
-        _utc_midnight_timestamp = _utc_hour_timestamp - timedelta(hours=_local_hour)
-        _midnight_rollover = False
-        _history_rollover = False
-        for _slot in range(1, 5):
-            if (
-                _log_timestamp := getattr(message, "logdate%d" % (_slot,)).value
-            ) is None:
-                break
-            # Register collected history memory
-            if _slot > self._energy_memory.get(message.logaddr.value, 0):
-                self._energy_memory[message.logaddr.value] = _slot
-
-            self._energy_history[_log_timestamp] = getattr(
-                message, "pulses%d" % (_slot,)
-            ).value
-
-            _LOGGER.info(
-                "push _energy_memory for %s address %s slot %s stamp %s",
-                str(self.mac),
-                str(message.logaddr.value),
-                str(_slot),
-                str(_log_timestamp),
+        _LOGGER.debug("Task created to get missing logs of %s", self._mac_in_str)
+        if (
+            missing_addresses := self._energy_counters.log_addresses_missing
+        ) is not None:
+            _LOGGER.debug(
+                "Task Request %s missing energy logs for node %s | %s",
+                str(len(missing_addresses)),
+                self._mac_in_str,
+                str(missing_addresses),
             )
 
-            # Store last populated _slot
-            if message.logaddr.value == (self._last_log_address):
-                self._energy_last_populated_slot = _slot
+            missing_addresses = sorted(missing_addresses, reverse=True)
+            tasks = [
+                create_task(self.energy_log_update(address))
+                for address in missing_addresses
+            ]
+            for task in tasks:
+                await task
 
-            # Store most recent timestamp of collected pulses
-            self._energy_last_collected_timestamp = max(
-                self._energy_last_collected_timestamp, _log_timestamp
-            )
+        if self._cache_enabled:
+            await self._energy_log_records_save_to_cache()
 
-            # Keep track of the most recent timestamp, _last_log_address might be corrupted
-            if _log_timestamp > self._last_collected_address_timestamp:
-                self._last_collected_address = message.logaddr.value
-                self._last_collected_address_slot = _slot
-                self._last_collected_address_timestamp = _log_timestamp
-
-            # Trigger history rollover
-            _LOGGER.info(
-                "history_rollover %s %s %s",
-                str(_log_timestamp),
-                str(_utc_hour_timestamp),
-                str(self._energy_last_rollover_timestamp),
-            )
-            if (
-                _log_timestamp == _utc_hour_timestamp
-                and self._energy_last_rollover_timestamp < _utc_hour_timestamp
-            ):
-                self._energy_last_rollover_timestamp = _utc_hour_timestamp
-                _history_rollover = True
-                _LOGGER.info(
-                    "_response_energy_counters for %s | history rollover, reset date to %s",
-                    str(self.mac),
-                    str(_utc_hour_timestamp),
-                )
-
-            # Trigger midnight rollover
-            if (
-                _log_timestamp == _utc_midnight_timestamp
-                and self._energy_consumption_today_reset < _local_midnight_timestamp
-            ):
-                _LOGGER.info(
-                    "_response_energy_counters for %s | midnight rollover, reset date to %s",
-                    str(self.mac),
-                    str(_local_midnight_timestamp),
-                )
-                self._energy_consumption_today_reset = _local_midnight_timestamp
-                _midnight_rollover = True
-        if self._energy_last_collected_timestamp == datetime.utcnow().replace(
-            minute=0, second=0, microsecond=0
-        ):
-            self._update_energy_previous_hour(_utc_hour_timestamp)
-            self._update_energy_today_hourly(
-                _utc_midnight_timestamp + timedelta(hours=1),
-                _utc_hour_timestamp,
-            )
-            self._update_energy_yesterday(
-                _utc_midnight_timestamp - timedelta(hours=23),
-                _utc_midnight_timestamp,
-            )
-        else:
-            _LOGGER.info(
-                "CircleEnergyCounter failed for %s at %s|%s count %s",
-                str(self.mac),
-                str(message.logaddr.value),
-                str(self._last_log_address),
-                str(self._energy_last_collected_count),
-            )
-            self._energy_last_collected_count += 1
-
-            if (
-                message.logaddr.value == self._last_log_address
-                and self._energy_last_collected_count > 3
-            ):
-                if (
-                    self._energy_history_failed_address.count(
-                        self._last_log_address - 1
-                    )
-                    == 0
-                ):
-                    self._energy_history_failed_address.append(
-                        self._last_log_address - 1
-                    )
-                _LOGGER.info("Resetting CircleEnergyCounter due to logaddress offset")
-
-        # Cleanup energy history for more than 48 hours
-        _48_hours_ago = datetime.utcnow().replace(
-            minute=0, second=0, microsecond=0
-        ) - timedelta(hours=48)
-        for log_timestamp in list(self._energy_history.keys()):
-            if log_timestamp < _48_hours_ago:
-                del self._energy_history[log_timestamp]
-
-    def _response_clock(self, message: CircleClockResponse):
-        log_date = datetime(
-            datetime.now().year,
-            datetime.now().month,
-            datetime.now().day,
-            message.time.value.hour,
-            message.time.value.minute,
-            message.time.value.second,
-        )
-        clock_offset = message.timestamp.replace(microsecond=0) - (
-            log_date + self.timezone_delta
-        )
-        if clock_offset.days == -1:
-            self._clock_offset = clock_offset.seconds - 86400
-        else:
-            self._clock_offset = clock_offset.seconds
+    async def energy_log_update(self, address: int | None) -> bool:
+        """Request energy log statistics from node. Returns true if successful."""
+        if address is None:
+            return False
         _LOGGER.debug(
-            "Clock of node %s has drifted %s sec",
-            str(self.mac),
-            str(self._clock_offset),
+            "Request of energy log at address %s for node %s",
+            str(address),
+            self.name,
         )
+        request = CircleEnergyLogsRequest(self._send, self._mac_in_bytes, address)
+        if (response := await request.send()) is None:
+            _LOGGER.debug(
+                "Retrieving of energy log at address %s for node %s failed",
+                str(address),
+                self._mac_in_str,
+            )
+            return False
 
-    def get_clock(self, callback=None):
-        """Get current datetime of internal clock of Circle."""
-        self.message_sender(
-            CircleClockGetRequest(self._mac),
-            callback,
-            0,
-            PRIORITY_LOW,
+        _LOGGER.debug("EnergyLogs data from %s, address=%s", self._mac_in_str, address)
+        await self._available_update_state(True, response.timestamp)
+        energy_record_update = False
+
+        # Forward historical energy log information to energy counters
+        # Each response message contains 4 log counters (slots) of the
+        # energy pulses collected during the previous hour of given timestamp
+        for _slot in range(4, 0, -1):
+            log_timestamp, log_pulses = response.log_data[_slot]
+            _LOGGER.debug(
+                "In slot=%s: pulses=%s, timestamp=%s",
+                _slot,
+                log_pulses,
+                log_timestamp
+            )
+            if log_timestamp is None or log_pulses is None:
+                self._energy_counters.add_empty_log(response.log_address, _slot)
+            elif await self._energy_log_record_update_state(
+                response.log_address,
+                _slot,
+                log_timestamp.replace(tzinfo=UTC),
+                log_pulses,
+                import_only=True,
+            ):
+                energy_record_update = True
+
+        self._energy_counters.update()
+        if energy_record_update:
+            await self.save_cache()
+
+        return True
+
+    async def _energy_log_records_load_from_cache(self) -> bool:
+        """Load energy_log_record from cache."""
+        if (cache_data := self._get_cache(CACHE_ENERGY_COLLECTION)) is None:
+            _LOGGER.warning(
+                "Failed to restore energy log records from cache for node %s", self.name
+            )
+            return False
+        restored_logs: dict[int, list[int]] = {}
+        log_data = cache_data.split("|")
+        for log_record in log_data:
+            log_fields = log_record.split(":")
+            if len(log_fields) == 4:
+                timestamp_energy_log = log_fields[2].split("-")
+                if len(timestamp_energy_log) == 6:
+                    address = int(log_fields[0])
+                    slot = int(log_fields[1])
+                    self._energy_counters.add_pulse_log(
+                        address=address,
+                        slot=slot,
+                        timestamp=datetime(
+                            year=int(timestamp_energy_log[0]),
+                            month=int(timestamp_energy_log[1]),
+                            day=int(timestamp_energy_log[2]),
+                            hour=int(timestamp_energy_log[3]),
+                            minute=int(timestamp_energy_log[4]),
+                            second=int(timestamp_energy_log[5]),
+                            tzinfo=UTC,
+                        ),
+                        pulses=int(log_fields[3]),
+                        import_only=True,
+                    )
+                    if restored_logs.get(address) is None:
+                        restored_logs[address] = []
+                    restored_logs[address].append(slot)
+
+        self._energy_counters.update()
+
+        # Create task to retrieve remaining (missing) logs
+        if self._energy_counters.log_addresses_missing is None:
+            return False
+        if len(self._energy_counters.log_addresses_missing) > 0:
+            if self._retrieve_energy_logs_task is not None:
+                if not self._retrieve_energy_logs_task.done():
+                    await self._retrieve_energy_logs_task
+            self._retrieve_energy_logs_task = create_task(
+                self.get_missing_energy_logs()
+            )
+            return False
+        return True
+
+    async def _energy_log_records_save_to_cache(self) -> None:
+        """Save currently collected energy logs to cached file."""
+        if not self._cache_enabled:
+            return
+        logs: dict[int, dict[int, PulseLogRecord]] = (
+            self._energy_counters.get_pulse_logs()
         )
+        cached_logs = ""
+        for address in sorted(logs.keys(), reverse=True):
+            for slot in sorted(logs[address].keys(), reverse=True):
+                log = logs[address][slot]
+                if cached_logs != "":
+                    cached_logs += "|"
+                cached_logs += f"{address}:{slot}:{log.timestamp.year}"
+                cached_logs += f"-{log.timestamp.month}-{log.timestamp.day}"
+                cached_logs += f"-{log.timestamp.hour}-{log.timestamp.minute}"
+                cached_logs += f"-{log.timestamp.second}:{log.pulses}"
+        self._set_cache(CACHE_ENERGY_COLLECTION, cached_logs)
 
-    def set_clock(self, callback=None):
-        """Set internal clock of Circle."""
-        self.message_sender(
-            CircleClockSetRequest(self._mac, datetime.utcnow()),
-            callback,
+    async def _energy_log_record_update_state(
+        self,
+        address: int,
+        slot: int,
+        timestamp: datetime,
+        pulses: int,
+        import_only: bool = False,
+    ) -> bool:
+        """Process new energy log record. Returns true if record is new or changed."""
+        self._energy_counters.add_pulse_log(
+            address, slot, timestamp, pulses, import_only=import_only
         )
-
-    def sync_clock(self, max_drift=0):
-        """Resync clock of node if time has drifted more than MAX_TIME_DRIFT"""
-        if self._clock_offset is not None:
-            if max_drift == 0:
-                max_drift = MAX_TIME_DRIFT
-            if (self._clock_offset > max_drift) or (self._clock_offset < -(max_drift)):
-                _LOGGER.info(
-                    "Reset clock of node %s because time has drifted %s sec",
-                    str(self.mac),
-                    str(self._clock_offset),
+        if not self._cache_enabled:
+            return False
+        log_cache_record = f"{address}:{slot}:{timestamp.year}"
+        log_cache_record += f"-{timestamp.month}-{timestamp.day}"
+        log_cache_record += f"-{timestamp.hour}-{timestamp.minute}"
+        log_cache_record += f"-{timestamp.second}:{pulses}"
+        if (cached_logs := self._get_cache(CACHE_ENERGY_COLLECTION)) is not None:
+            if log_cache_record not in cached_logs:
+                _LOGGER.debug(
+                    "Add logrecord (%s, %s) to log cache of %s",
+                    str(address),
+                    str(slot),
+                    self._mac_in_str,
                 )
-                self.set_clock()
-
-    def _energy_timestamp_memory_address(self, utc_timestamp: datetime):
-        """Return memory address for given energy counter timestamp"""
-        if self._last_collected_address is None:
-            return None
-        # Should already be hour timestamp, but just to be sure.
-        _utc_now_timestamp = self._last_collected_address_timestamp.replace(
-            minute=0, second=0, microsecond=0
+                self._set_cache(
+                    CACHE_ENERGY_COLLECTION, cached_logs + "|" + log_cache_record
+                )
+                return True
+            return False
+        _LOGGER.debug(
+            "No existing energy collection log cached for %s", self._mac_in_str
         )
-        if utc_timestamp > _utc_now_timestamp:
-            return None
+        self._set_cache(CACHE_ENERGY_COLLECTION, log_cache_record)
+        return True
 
-        _seconds_offset = (_utc_now_timestamp - utc_timestamp).total_seconds()
-        _hours_offset = _seconds_offset / 3600
+    @raise_not_loaded
+    async def set_relay(self, state: bool) -> bool:
+        """Change the state of the relay."""
+        if NodeFeature.RELAY not in self._features:
+            raise FeatureError(
+                f"Changing state of relay is not supported for node {self.mac}"
+            )
+        _LOGGER.debug("set_relay() start")
+        request = CircleRelaySwitchRequest(self._send, self._mac_in_bytes, state)
+        response = await request.send()
 
-        if (_slot := self._last_collected_address_slot) == 0:
-            _slot = 4
-        _address = self._last_collected_address
-        _sslot = _slot
+        if response is None or response.ack_id == NodeResponseType.RELAY_SWITCH_FAILED:
+            raise NodeError(f"Request to switch relay for {self.name} failed")
 
-        # last known
-        _hours = 1
-        while _hours <= _hours_offset:
-            _slot -= 1
-            if _slot == 0:
-                _address -= 1
-                _slot = 4
-            _hours += 1
+        if response.ack_id == NodeResponseType.RELAY_SWITCHED_OFF:
+            await self._relay_update_state(state=False, timestamp=response.timestamp)
+            return False
+        if response.ack_id == NodeResponseType.RELAY_SWITCHED_ON:
+            await self._relay_update_state(state=True, timestamp=response.timestamp)
+            return True
+
+        raise NodeError(
+            f"Unexpected NodeResponseType {response.ack_id!r} received "
+            + "in response to CircleRelaySwitchRequest for node {self.mac}"
+        )
+
+    async def _relay_load_from_cache(self) -> bool:
+        """Load relay state from cache."""
+        if (cached_relay_data := self._get_cache(CACHE_RELAY)) is not None:
+            _LOGGER.debug("Restore relay state cache for node %s", self._mac_in_str)
+            relay_state = False
+            if cached_relay_data == "True":
+                relay_state = True
+            await self._relay_update_state(relay_state)
+            return True
+        _LOGGER.debug(
+            "Failed to restore relay state from cache for node %s, try to request node info...",
+            self._mac_in_str,
+        )
+        if await self.node_info_update() is None:
+            return False
+        return True
+
+    async def _relay_update_state(
+        self, state: bool, timestamp: datetime | None = None
+    ) -> None:
+        """Process relay state update."""
+        state_update = False
+        if state:
+            self._set_cache(CACHE_RELAY, "True")
+            if self._relay_state.state is None or not self._relay_state.state:
+                state_update = True
+        if not state:
+            self._set_cache(CACHE_RELAY, "False")
+            if self._relay_state.state is None or self._relay_state.state:
+                state_update = True
+        self._relay_state = replace(self._relay_state, state=state, timestamp=timestamp)
+        if state_update:
+            await self.publish_feature_update_to_subscribers(
+                NodeFeature.RELAY, self._relay_state
+            )
+            await self.save_cache()
+
+    async def clock_synchronize(self) -> bool:
+        """Synchronize clock. Returns true if successful."""
+        get_clock_request = CircleClockGetRequest(self._send, self._mac_in_bytes)
+        clock_response = await get_clock_request.send()
+        if clock_response is None or clock_response.timestamp is None:
+            return False
+        _dt_of_circle = datetime.now(tz=UTC).replace(
+            hour=clock_response.time.hour.value,
+            minute=clock_response.time.minute.value,
+            second=clock_response.time.second.value,
+            microsecond=0,
+            tzinfo=UTC,
+        )
+        clock_offset = clock_response.timestamp.replace(microsecond=0) - _dt_of_circle
+        if (clock_offset.seconds < MAX_TIME_DRIFT) or (
+            clock_offset.seconds > -(MAX_TIME_DRIFT)
+        ):
+            return True
         _LOGGER.info(
-            "Calculated address %s at %s from %s at %s with %s|%s",
-            _address,
-            utc_timestamp,
-            self._last_log_address,
-            _utc_now_timestamp,
-            _sslot,
-            _hours_offset,
+            "Reset clock of node %s because time has drifted %s sec",
+            self._mac_in_str,
+            str(clock_offset.seconds),
         )
-        return _address
+        if self._node_protocols is None:
+            raise NodeError(
+                "Unable to synchronize clock en when protocol version is unknown"
+            )
+        set_clock_request = CircleClockSetRequest(
+            self._send,
+            self._mac_in_bytes,
+            datetime.now(tz=UTC),
+            self._node_protocols.max,
+        )
+        if (node_response := await set_clock_request.send()) is None:
+            _LOGGER.warning(
+                "Failed to (re)set the internal clock of %s",
+                self.name,
+            )
+            return False
+        if node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED:
+            return True
+        return False
+
+    async def load(self) -> bool:
+        """Load and activate Circle node features."""
+        if self._loaded:
+            return True
+        if self._cache_enabled:
+            _LOGGER.debug("Load Circle node %s from cache", self._mac_in_str)
+            if await self._load_from_cache():
+                self._loaded = True
+                self._setup_protocol(
+                    CIRCLE_FIRMWARE_SUPPORT,
+                    (
+                        NodeFeature.RELAY,
+                        NodeFeature.RELAY_INIT,
+                        NodeFeature.ENERGY,
+                        NodeFeature.POWER,
+                    ),
+                )
+                if await self.initialize():
+                    await self._loaded_callback(NodeEvent.LOADED, self.mac)
+                    return True
+            _LOGGER.debug(
+                "Load Circle node %s from cache failed",
+                self._mac_in_str,
+            )
+        else:
+            _LOGGER.debug("Load Circle node %s", self._mac_in_str)
+
+        # Check if node is online
+        if not self._available and not await self.is_online():
+            _LOGGER.debug(
+                "Failed to load Circle node %s because it is not online",
+                self._mac_in_str,
+            )
+            return False
+
+        # Get node info
+        if (
+            self.skip_update(self._node_info, 30)
+            and await self.node_info_update() is None
+        ):
+            _LOGGER.debug(
+                "Failed to load Circle node %s because it is not responding to information request",
+                self._mac_in_str,
+            )
+            return False
+        self._loaded = True
+        self._setup_protocol(
+            CIRCLE_FIRMWARE_SUPPORT,
+            (
+                NodeFeature.RELAY,
+                NodeFeature.RELAY_INIT,
+                NodeFeature.ENERGY,
+                NodeFeature.POWER,
+            ),
+        )
+        if not await self.initialize():
+            return False
+        await self._loaded_callback(NodeEvent.LOADED, self.mac)
+        return True
+
+    async def _load_from_cache(self) -> bool:
+        """Load states from previous cached information. Returns True if successful."""
+        if not await super()._load_from_cache():
+            return False
+
+        # Calibration settings
+        if not await self._calibration_load_from_cache():
+            _LOGGER.debug(
+                "Node %s failed to load calibration from cache", self._mac_in_str
+            )
+            return False
+        # Energy collection
+        if await self._energy_log_records_load_from_cache():
+            _LOGGER.warning(
+                "Node %s failed to load energy_log_records from cache",
+                self._mac_in_str,
+            )
+        # Relay
+        if await self._relay_load_from_cache():
+            _LOGGER.debug(
+                "Node %s successfully loaded relay state from cache",
+                self._mac_in_str,
+            )
+        # Relay init config if feature is enabled
+        if NodeFeature.RELAY_INIT in self._features:
+            if await self._relay_init_load_from_cache():
+                _LOGGER.debug(
+                    "Node %s successfully loaded relay_init state from cache",
+                    self._mac_in_str,
+                )
+        return True
+
+    @raise_not_loaded
+    async def initialize(self) -> bool:
+        """Initialize node."""
+        if self._initialized:
+            _LOGGER.debug("Already initialized node %s", self._mac_in_str)
+            return True
+
+        if not await self.clock_synchronize():
+            _LOGGER.debug(
+                "Failed to initialized node %s, failed clock sync", self._mac_in_str
+            )
+            self._initialized = False
+            return False
+
+        if not self._calibration and not await self.calibration_update():
+            _LOGGER.debug(
+                "Failed to initialized node %s, no calibration", self._mac_in_str
+            )
+            self._initialized = False
+            return False
+
+        if (
+            self.skip_update(self._node_info, 30)
+            and await self.node_info_update() is None
+        ):
+            _LOGGER.debug("Failed to retrieve node info for %s", self._mac_in_str)
+        if NodeFeature.RELAY_INIT in self._features:
+            if (state := await self._relay_init_get()) is not None:
+                self._relay_config = replace(self._relay_config, init_state=state)
+            else:
+                _LOGGER.debug(
+                    "Failed to initialized node %s, relay init", self._mac_in_str
+                )
+                self._initialized = False
+                return False
+
+        await super().initialize()
+        return True
+
+    async def node_info_update(
+        self, node_info: NodeInfoResponse | None = None
+    ) -> NodeInfo | None:
+        """Update Node (hardware) information."""
+        if node_info is None:
+            if self.skip_update(self._node_info, 30):
+                return self._node_info
+            node_request = NodeInfoRequest(self._send, self._mac_in_bytes)
+            node_info = await node_request.send()
+        if node_info is None:
+            return None
+        await super().node_info_update(node_info)
+        await self._relay_update_state(
+            node_info.relay_state, timestamp=node_info.timestamp
+        )
+        if self._current_log_address is not None and (
+            self._current_log_address > node_info.current_logaddress_pointer
+            or self._current_log_address == 1
+        ):
+            # Rollover of log address
+            _LOGGER.debug(
+                "Rollover log address from %s into %s for node %s",
+                self._current_log_address,
+                node_info.current_logaddress_pointer,
+                self._mac_in_str,
+            )
+        if self._current_log_address != node_info.current_logaddress_pointer:
+            self._current_log_address = node_info.current_logaddress_pointer
+            self._set_cache(
+                CACHE_CURRENT_LOG_ADDRESS, node_info.current_logaddress_pointer
+            )
+            await self.save_cache()
+        return self._node_info
+
+    async def _node_info_load_from_cache(self) -> bool:
+        """Load node info settings from cache."""
+        result = await super()._node_info_load_from_cache()
+        if (
+            current_log_address := self._get_cache(CACHE_CURRENT_LOG_ADDRESS)
+        ) is not None:
+            self._current_log_address = int(current_log_address)
+            return result
+        return False
+
+    # pylint: disable=too-many-arguments
+    async def update_node_details(
+        self,
+        firmware: datetime | None,
+        hardware: str | None,
+        node_type: NodeType | None,
+        timestamp: datetime | None,
+        relay_state: bool | None,
+        logaddress_pointer: int | None,
+    ) -> bool:
+        """Process new node info and return true if all fields are updated."""
+        if relay_state is not None:
+            self._relay_state = replace(
+                self._relay_state, state=relay_state, timestamp=timestamp
+            )
+        if logaddress_pointer is not None:
+            self._current_log_address = logaddress_pointer
+        return await super().update_node_details(
+            firmware,
+            hardware,
+            node_type,
+            timestamp,
+            relay_state,
+            logaddress_pointer,
+        )
+
+    async def unload(self) -> None:
+        """Deactivate and unload node features."""
+        self._loaded = False
+        if (
+            self._retrieve_energy_logs_task is not None
+            and not self._retrieve_energy_logs_task.done()
+        ):
+            self._retrieve_energy_logs_task.cancel()
+            await self._retrieve_energy_logs_task
+        if self._cache_enabled:
+            await self._energy_log_records_save_to_cache()
+        await super().unload()
+
+    @raise_not_loaded
+    async def set_relay_init(self, state: bool) -> bool:
+        """Change the initial power-on state of the relay."""
+        if NodeFeature.RELAY_INIT not in self._features:
+            raise FeatureError(
+                f"Configuration of initial power-up relay state is not supported for node {self.mac}"
+            )
+        await self._relay_init_set(state)
+        if self._relay_config.init_state is None:
+            raise NodeError("Failed to configure relay init setting")
+        return self._relay_config.init_state
+
+    async def _relay_init_get(self) -> bool | None:
+        """Get current configuration of the power-up state of the relay. Returns None if retrieval failed."""
+        if NodeFeature.RELAY_INIT not in self._features:
+            raise NodeError(
+                "Retrieval of initial state of relay is not "
+                + f"supported for device {self.name}"
+            )
+        request = CircleRelayInitStateRequest(
+            self._send, self._mac_in_bytes, False, False
+        )
+        if (response := await request.send()) is not None:
+            await self._relay_init_update_state(response.relay.value == 1)
+            return self._relay_config.init_state
+        return None
+
+    async def _relay_init_set(self, state: bool) -> bool | None:
+        """Configure relay init state."""
+        if NodeFeature.RELAY_INIT not in self._features:
+            raise NodeError(
+                "Configuring of initial state of relay is not"
+                + f"supported for device {self.name}"
+            )
+        request = CircleRelayInitStateRequest(
+            self._send, self._mac_in_bytes, True, state
+        )
+        if (response := await request.send()) is not None:
+            await self._relay_init_update_state(response.relay.value == 1)
+            return self._relay_config.init_state
+        return None
+
+    async def _relay_init_load_from_cache(self) -> bool:
+        """Load relay init state from cache. Returns True if retrieval was successful."""
+        if (cached_relay_data := self._get_cache(CACHE_RELAY_INIT)) is not None:
+            relay_init_state = False
+            if cached_relay_data == "True":
+                relay_init_state = True
+            await self._relay_init_update_state(relay_init_state)
+            return True
+        return False
+
+    async def _relay_init_update_state(self, state: bool) -> None:
+        """Process relay init state update."""
+        state_update = False
+        if state:
+            self._set_cache(CACHE_RELAY_INIT, "True")
+            if (
+                self._relay_config.init_state is None
+                or not self._relay_config.init_state
+            ):
+                state_update = True
+        if not state:
+            self._set_cache(CACHE_RELAY_INIT, "False")
+            if self._relay_config.init_state is None or self._relay_config.init_state:
+                state_update = True
+        if state_update:
+            self._relay_config = replace(self._relay_config, init_state=state)
+            await self.publish_feature_update_to_subscribers(
+                NodeFeature.RELAY_INIT, self._relay_config
+            )
+            await self.save_cache()
+
+    @raise_calibration_missing
+    def _calc_watts(self, pulses: int, seconds: int, nano_offset: int) -> float | None:
+        """Calculate watts based on energy usages."""
+        if self._calibration is None:
+            return None
+
+        pulses_per_s = self._correct_power_pulses(pulses, nano_offset) / float(seconds)
+        negative = False
+        if pulses_per_s < 0:
+            negative = True
+            pulses_per_s = abs(pulses_per_s)
+
+        corrected_pulses = seconds * (
+            (
+                (
+                    ((pulses_per_s + self._calibration.off_noise) ** 2)
+                    * self._calibration.gain_b
+                )
+                + (
+                    (pulses_per_s + self._calibration.off_noise)
+                    * self._calibration.gain_a
+                )
+            )
+            + self._calibration.off_tot
+        )
+        if negative:
+            corrected_pulses = -corrected_pulses
+
+        return corrected_pulses / PULSES_PER_KW_SECOND / seconds * (1000)
+
+    def _correct_power_pulses(self, pulses: int, offset: int) -> float:
+        """Correct pulses based on given measurement time offset (ns)."""
+
+        # Sometimes the circle returns -1 for some of the pulse counters
+        # likely this means the circle measures very little power and is
+        # suffering from rounding errors. Zero these out. However, negative
+        # pulse values are valid for power producing appliances, like
+        # solar panels, so don't complain too loudly.
+        if pulses == -1:
+            _LOGGER.debug(
+                "Power pulse counter for node %s of value of -1, corrected to 0",
+                self._mac_in_str,
+            )
+            return 0.0
+        if pulses != 0:
+            if offset != 0:
+                return (
+                    pulses * (SECOND_IN_NANOSECONDS + offset)
+                ) / SECOND_IN_NANOSECONDS
+            return pulses
+        return 0.0
+
+    @raise_not_loaded
+    async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
+        """Update latest state for given feature."""
+        states: dict[NodeFeature, Any] = {}
+        if not self._available and not await self.is_online():
+            _LOGGER.debug(
+                "Node %s did not respond, unable to update state", self._mac_in_str
+            )
+            for feature in features:
+                states[feature] = None
+            states[NodeFeature.AVAILABLE] = self.available_state
+            return states
+
+        for feature in features:
+            if feature not in self._features:
+                raise NodeError(
+                    f"Update of feature '{feature}' is not supported for {self.name}"
+                )
+            if feature == NodeFeature.ENERGY:
+                states[feature] = await self.energy_update()
+                _LOGGER.debug(
+                    "async_get_state %s - energy: %s",
+                    self._mac_in_str,
+                    states[feature],
+                )
+            elif feature == NodeFeature.RELAY:
+                states[feature] = self._relay_state
+                _LOGGER.debug(
+                    "async_get_state %s - relay: %s",
+                    self._mac_in_str,
+                    states[feature],
+                )
+            elif feature == NodeFeature.RELAY_INIT:
+                states[feature] = self._relay_config
+            elif feature == NodeFeature.POWER:
+                states[feature] = await self.power_update()
+                _LOGGER.debug(
+                    "async_get_state %s - power: %s",
+                    self._mac_in_str,
+                    states[feature],
+                )
+            else:
+                state_result = await super().get_state((feature,))
+                states[feature] = state_result[feature]
+        if NodeFeature.AVAILABLE not in states:
+            states[NodeFeature.AVAILABLE] = self.available_state
+        return states

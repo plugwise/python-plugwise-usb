@@ -3,13 +3,11 @@
 
 # Specific files
 setup.cfg @plugwise/plugwise-usb
-setup.py @plugwise/plugwise-usb
 pyproject.toml @plugwise/plugwise-usb
 requirements*.txt @plugwise/plugwise-usb
 
 # Main code
-/plugwise/ @plugwise/plugwise-usb
-/userdata/ @plugwise/plugwise-usb
+/plugwise_usb/ @plugwise/plugwise-usb
 
 # Tests and development support
 /tests/ @plugwise/plugwise-usb
