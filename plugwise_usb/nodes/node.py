@@ -416,7 +416,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             if (
                 self._last_seen is not None
                 and timestamp is not None
-                and (timestamp - self._last_seen).seconds > 5
+                and int((timestamp - self._last_seen).total_seconds()) > 5
 
             ):
                 self._last_seen = timestamp
@@ -618,15 +618,22 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         if (timestamp_str := self._get_cache(setting)) is not None:
             data = timestamp_str.split("-")
             if len(data) == 6:
-                return datetime(
-                    year=int(data[0]),
-                    month=int(data[1]),
-                    day=int(data[2]),
-                    hour=int(data[3]),
-                    minute=int(data[4]),
-                    second=int(data[5]),
-                    tzinfo=UTC,
-                )
+                try:
+                    return datetime(
+                        year=int(data[0]),
+                        month=int(data[1]),
+                        day=int(data[2]),
+                        hour=int(data[3]),
+                        minute=int(data[4]),
+                        second=int(data[5]),
+                        tzinfo=UTC,
+                    )
+                except ValueError:
+                    _LOGGER.warning(
+                        "Invalid datetime format in cache for setting %s: %s",
+                        setting,
+                        timestamp_str,
+                    )
         return None
 
     def _set_cache(self, setting: str, value: Any) -> None:

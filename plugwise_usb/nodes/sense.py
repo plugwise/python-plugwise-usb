@@ -52,9 +52,10 @@ class PlugwiseSense(NodeSED):
         """Load and activate Sense node features."""
         if self._loaded:
             return True
+
         self._node_info.is_battery_powered = True
         if self._cache_enabled:
-            _LOGGER.debug("Load Sense node %s from cache", self._node_info.mac)
+            _LOGGER.debug("Loading Sense node %s from cache", self._node_info.mac)
             if await self._load_from_cache():
                 self._loaded = True
                 self._setup_protocol(
@@ -64,7 +65,8 @@ class PlugwiseSense(NodeSED):
                 if await self.initialize():
                     await self._loaded_callback(NodeEvent.LOADED, self.mac)
                     return True
-        _LOGGER.debug("Load of Sense node %s failed", self._node_info.mac)
+
+        _LOGGER.debug("Loading of Sense node %s failed", self._node_info.mac)
         return False
 
     @raise_not_loaded
@@ -94,6 +96,7 @@ class PlugwiseSense(NodeSED):
             raise MessageError(
                 f"Invalid response message type ({response.__class__.__name__}) received, expected SenseReportResponse"
             )
+        report_received = False
         await self._available_update_state(True, response.timestamp)
         if response.temperature.value != 65535:
             self._temperature = int(
@@ -103,6 +106,8 @@ class PlugwiseSense(NodeSED):
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.TEMPERATURE, self._temperature
             )
+            report_received = True
+
         if response.humidity.value != 65535:
             self._humidity = int(
                 SENSE_HUMIDITY_MULTIPLIER * (response.humidity.value / 65536)
@@ -111,8 +116,9 @@ class PlugwiseSense(NodeSED):
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.HUMIDITY, self._humidity
             )
-            return True
-        return False
+            report_received = True
+    
+        return report_received
 
     @raise_not_loaded
     async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
