@@ -921,6 +921,9 @@ class PulseCollection:
         ):
             address, slot = calc_log_address(address, slot, -1)
 
+        if self._logs[address][slot].timestamp == last_known_timestamp:
+            return timedelta(hours=1)
+
         return self._logs[address][slot].timestamp - last_known_timestamp
 
     def _missing_addresses_before(
