@@ -1,10 +1,35 @@
 # Changelog
 
-## Ongoing
+## v0.40.0
 
-- Ensure CI process remains operational
-- Bumped pip to now prepend uv for using quicker dependency resolving and installing
-- As for latest HA Core USB team should rework to python 3.12 (not still 3.10)
+- Make auto-joining work: (@bouwew)
+  - Correct setting of accept_join_request which enables the auto-joining (only temporarily!)
+  - Change NodeAddRequest to not expect a response, the NodeRejoinResponse is often delayed past the NODE_TIMEOUT
+  - Use the already present response-subscription to capture the NodeRejoinResponse and initialize to joining of a Node
+- Improve async task-handling, this should stress the CPU less (@bouwew)
+- Limit cache-size to 24hrs instead of to 1 week (@bouwew, @ArnoutD)
+- Implement support for devices with production enabled (@bouwew)
+- Collect Stick NodeInfo for use in HA (@bouwew)
+- Several bugfixes (@ArnoutD)
+- Github improvements/fixes, python 3.13 (@CoMPaTech, @bouwew)
+- Async fixes - implement queue-based message processing (@ArnoutD - #141)
+
+## v0.40.0 (a22)
+
+- Correcting messageflow to HA (@ArnoutD)
+
+## v0.40.0 (a4)
+
+Full rewrite of library into async version (@brefra).
+Main list of changes:
+
+- Full async and typed
+- Improved protocol handling
+- Support for local caching of collected data to improve startup and device detection
+- Improved handling of edge cases especially for energy data collection
+- Based on detected firmware version enable the supported features
+- API details about supported data is combined into api.py
+- Added tests
 
 ## v0.31.4(a0)
 
@@ -12,7 +37,7 @@
 
 ## v0.31.3
 
-- Bugfix midnight rollover for cicrles without power usage registered during first hour(s)
+- Bugfix midnight rollover for circles without power usage registered during first hour(s)
 
 ## v0.31.2
 
