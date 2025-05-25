@@ -3,20 +3,20 @@
 ## v0.40.0
 
 - Make auto-joining work: (@bouwew)
-  - Correct setting of accept_join_request which enables the auto-joining temporarily
+  - Correct setting of accept_join_request which enables the auto-joining (only temporarily!)
   - Change NodeAddRequest to not expect a response, the NodeRejoinResponse is often delayed past the NODE_TIMEOUT
-  - Use the already present response-subscription to capture the NodeJoinAvailableResponse and initialize to joining of a Node
+  - Use the already present response-subscription to capture the NodeRejoinResponse and initialize to joining of a Node
 - Improve async task-handling, this should stress the CPU less (@bouwew)
 - Limit cache-size to 24hrs instead of to 1 week (@bouwew, @ArnoutD)
 - Implement support for devices with production enabled (@bouwew)
 - Collect Stick NodeInfo for use in HA (@bouwew)
 - Several bugfixes (@ArnoutD)
-- Github improvements/fixes (@CoMPaTech)
-- Async fixes (@ArnoutD - #141)
+- Github improvements/fixes, python 3.13 (@CoMPaTech, @bouwew)
+- Async fixes - implement queue-based message processing (@ArnoutD - #141)
 
 ## v0.40.0 (a22)
 
-- Correcting messageflow to HA
+- Correcting messageflow to HA (@ArnoutD)
 
 ## v0.40.0 (a4)
 
