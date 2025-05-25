@@ -22,6 +22,7 @@
 
 Full rewrite of library into async version (@brefra).
 Main list of changes:
+
 - Full async and typed
 - Improved protocol handling
 - Support for local caching of collected data to improve startup and device detection
