@@ -541,7 +541,9 @@ class StickNetwork:
         _LOGGER.debug("Sent AllowJoiningRequest to Circle+ with state=%s", state)
         self.accept_join_request = state
 
-    async def set_measure_interval(self, consumption: int, production: int) -> None:
+    async def set_measure_interval(
+        self, mac: str, consumption: int, production: int
+    ) -> None:
         """Set the measure intervals for both consumption and production.
         
         Default: consumption = 60, production = 0.
@@ -549,7 +551,7 @@ class StickNetwork:
         """
         _LOGGER.debug("set_measure_interval | cons=%s, prod=%s", consumption, production)
         request = CircleMeasureIntervalRequest(
-            self._controller.send, consumption, production
+            self._controller.send, mac, consumption, production
         )
         if (response := await request.send()) is None:
             raise NodeError("No response for CircleMeasureIntervalRequest.")
