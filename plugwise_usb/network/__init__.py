@@ -548,7 +548,9 @@ class StickNetwork:
         For measuring in both directions set both to 60.
         """
         _LOGGER.debug("set_measure_interval | cons=%s, prod=%s", consumption, production)
-        request = CircleMeasureIntervalRequest(self, consumption, production)
+        request = CircleMeasureIntervalRequest(
+            self._controller.send, consumption, production
+        )
         if (response := await request.send()) is None:
             raise NodeError("No response for CircleMeasureIntervalRequest.")
 
