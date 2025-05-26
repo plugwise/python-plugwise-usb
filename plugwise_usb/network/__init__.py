@@ -551,7 +551,7 @@ class StickNetwork:
         """
         _LOGGER.debug("set_measure_interval | cons=%s, prod=%s", consumption, production)
         request = CircleMeasureIntervalRequest(
-            self._controller.send, mac, consumption, production
+            self._controller.send, bytes(mac, UTF8), consumption, production
         )
         response = await request.send()
         _LOGGER.debug("set_measure_interval | cons=%s", response)
