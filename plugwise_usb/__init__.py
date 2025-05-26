@@ -210,11 +210,13 @@ class Stick:
             raise NodeError(f"Failed setting accept joining: {exc}") from exc
         return True
 
-    async def set_measure_interval(self, mac: str, cons: int, prod: int) -> bool:
+    async def set_measure_interval(
+        self, mac: str, cons_interval: int, prod_interval: int
+    ) -> bool:
         """Configure the measurement interval settings."""
         try:
-            await self._network.set_measure_interval(mac, cons, prod)
-        except NodeError as exc:
+            await self._network.set_measure_interval(mac, cons_interval, prod_interval)
+        except (MessageError, NodeError) as exc:
             raise NodeError(f"{exc}")
         return True
 
