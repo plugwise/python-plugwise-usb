@@ -1264,7 +1264,7 @@ class CircleMeasureIntervalRequest(PlugwiseRequest):
 
     FIXME: Make sure production interval is a multiply of consumption !!
 
-    Response message: Ack message with ???  TODO:
+    Response message: NodeResponse with ack-type POWER_LOG_INTERVAL_ACCEPTED 
     """
 
     _identifier = b"0057"
@@ -1280,6 +1280,17 @@ class CircleMeasureIntervalRequest(PlugwiseRequest):
         super().__init__(send_fn, mac)
         self._args.append(Int(consumption, length=4))
         self._args.append(Int(production, length=4))
+
+    async def send(self) -> NodeResponse | None:
+        """Send request."""
+        result = await self._send_request()
+        if isinstance(result, NodeResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeResponse"
+        )
 
 
 class NodeClearGroupMacRequest(PlugwiseRequest):
