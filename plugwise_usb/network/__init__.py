@@ -553,7 +553,9 @@ class StickNetwork:
         request = CircleMeasureIntervalRequest(
             self._controller.send, mac, consumption, production
         )
-        if (response := await request.send()) is None:
+        response = await request.send()
+        _LOGGER.debug("set_measure_interval | cons=%s", response)
+        if response is None:
             raise NodeError("No response for CircleMeasureIntervalRequest.")
 
     def subscribe_to_node_events(
