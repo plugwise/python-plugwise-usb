@@ -14,7 +14,11 @@ from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
 from ..constants import UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
-from ..messages.requests import CirclePlusAllowJoiningRequest, NodePingRequest
+from ..messages.requests import (
+    CirclePlusAllowJoiningRequest,
+    CircleMeasureIntervalRequest,
+    NodePingRequest,
+)
 from ..messages.responses import (
     NODE_AWAKE_RESPONSE_ID,
     NODE_JOIN_ID,
@@ -536,6 +540,17 @@ class StickNetwork:
 
         _LOGGER.debug("Sent AllowJoiningRequest to Circle+ with state=%s", state)
         self.accept_join_request = state
+
+    async def set_measure_interval(self, consumption: int, production: int) -> None:
+        """Set the measure intervals for both consumption and production.
+        
+        Default: consumption = 60, production = 0.
+        For measuring in both directions set both to 60.
+        """
+        _LOGGER.debug("set_measure_interval | cons=%s, prod=%s", consumption, production)
+        request = CircleMeasureIntervalRequest(self, consumption, production)
+        if (response := await request.send()) is None:
+            raise NodeError("No response for CircleMeasureIntervalRequest.")
 
     def subscribe_to_node_events(
         self,
