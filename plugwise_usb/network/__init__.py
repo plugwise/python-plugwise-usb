@@ -553,10 +553,13 @@ class StickNetwork:
         request = CircleMeasureIntervalRequest(
             self._controller.send, bytes(mac, UTF8), consumption, production
         )
-        response = await request.send()
-        _LOGGER.debug("set_measure_interval | cons=%s", response)
-        if response is None:
+        if (response := await request.send()) is None:
             raise NodeError("No response for CircleMeasureIntervalRequest.")
+
+        if response.response_type != NodeResponseType.POWER_LOG_INTERVAL_ACCEPTED:
+            raise MessageError(
+                f"Unknown NodeResponseType '{response.response_type.name}' received"
+            )
 
     def subscribe_to_node_events(
         self,
