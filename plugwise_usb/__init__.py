@@ -211,7 +211,7 @@ class Stick:
         return True
 
     async def set_measure_interval(self, mac: str, cons: int, prod: int) -> bool:
-            """Configure the measurement interval settings."""
+        """Configure the measurement interval settings."""
         try:
             await self._network.set_measure_interval(mac, cons, prod)
         except NodeError as exc:
