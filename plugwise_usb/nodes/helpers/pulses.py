@@ -504,7 +504,6 @@ class PulseCollection:
         if self._logs is None:
             return
 
-
         prev_address, prev_slot = calc_log_address(address, slot, -1)
         if self._log_exists(prev_address, prev_slot):
             timestamp_2 = self._logs[prev_address][prev_slot].timestamp
@@ -525,6 +524,8 @@ class PulseCollection:
             prev_prev_address, prev_prev_slot = calc_log_address(address, slot, -2)
             if self._log_exists(prev_prev_address, prev_prev_slot):
                 timestamp_3 = self._logs[prev_prev_address][prev_prev_slot].timestamp
+                # _log_production is True when 2 out of 3 consecutive slots have
+                # the same timestamp, otherwise it is False
                 self._log_production = (
                     timestamp_2 == timestamp and timestamp_3 != timestamp
                 ) or (timestamp_2 == timestamp_3 and timestamp_2 != timestamp)
@@ -538,7 +539,6 @@ class PulseCollection:
                 if self._logs[next_address][next_slot].is_consumption:
                     self._logs[next_address][next_slot].is_consumption = False
                     self._reset_log_references()
-                self._log_production = True
             elif self._log_production:
                 self._logs[address][slot].is_consumption = False
                 self._logs[next_address][next_slot].is_consumption = True
