@@ -504,10 +504,11 @@ class PulseCollection:
         if self._logs is None:
             return
 
+
         prev_address, prev_slot = calc_log_address(address, slot, -1)
         if self._log_exists(prev_address, prev_slot):
             timestamp_2 = self._logs[prev_address][prev_slot].timestamp
-            if timestamp_2  == timestamp:
+            if timestamp_2 == timestamp:
                 # Given log is the second log with same timestamp,
                 # mark direction as production
                 self._logs[address][slot].is_consumption = False
@@ -521,12 +522,12 @@ class PulseCollection:
             elif self._log_production is None:
                 self._log_production = False
 
-        prev_prev_address, prev_prev_slot = calc_log_address(address, slot, -2)
-        if self._log_exists(prev_prev_address, prev_prev_slot):
-            timestamp_3 = self._logs[prev_prev_address][prev_prev_slot].timestamp
-            self._log_production = (
-                timestamp_2 == timestamp and timestamp_3 != timestamp
-            ) or (timestamp_2 == timestamp_3 and timestamp_2 != timestamp)
+            prev_prev_address, prev_prev_slot = calc_log_address(address, slot, -2)
+            if self._log_exists(prev_prev_address, prev_prev_slot):
+                timestamp_3 = self._logs[prev_prev_address][prev_prev_slot].timestamp
+                self._log_production = (
+                    timestamp_2 == timestamp and timestamp_3 != timestamp
+                ) or (timestamp_2 == timestamp_3 and timestamp_2 != timestamp)
 
         next_address, next_slot = calc_log_address(address, slot, 1)
         if self._log_exists(next_address, next_slot):
