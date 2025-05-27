@@ -504,9 +504,21 @@ class PulseCollection:
         if self._logs is None:
             return
 
+        _LOGGER.debug(
+            "_update_log_direction | address=%s | slot=%s | timestamp=%s",
+            address,
+            slot,
+            timestamp,
+        )
         prev_address, prev_slot = calc_log_address(address, slot, -1)
         if self._log_exists(prev_address, prev_slot):
             timestamp_2 = self._logs[prev_address][prev_slot].timestamp
+            _LOGGER.debug(
+                "_update_log_direction | pr_address=%s | pr_slot=%s | timestamp=%s",
+                prev_address,
+                prev_slot,
+                timestamp_2,
+            )
             if timestamp_2 == timestamp:
                 # Given log is the second log with same timestamp,
                 # mark direction as production
@@ -524,6 +536,12 @@ class PulseCollection:
             prev_prev_address, prev_prev_slot = calc_log_address(address, slot, -2)
             if self._log_exists(prev_prev_address, prev_prev_slot):
                 timestamp_3 = self._logs[prev_prev_address][prev_prev_slot].timestamp
+                _LOGGER.debug(
+                    "_update_log_direction | pr2_address=%s | pr2_slot=%s | timestamp=%s",
+                    prev_prev_address,
+                    prev_prev_slot,
+                    timestamp_3,
+                )
                 # _log_production is True when 2 out of 3 consecutive slots have
                 # the same timestamp, otherwise it is False
                 self._log_production = (
@@ -532,7 +550,14 @@ class PulseCollection:
 
         next_address, next_slot = calc_log_address(address, slot, 1)
         if self._log_exists(next_address, next_slot):
-            if self._logs[next_address][next_slot].timestamp == timestamp:
+            next_timestamp = self._logs[next_address][next_slot].timestamp
+            _LOGGER.debug(
+                "_update_log_direction | nxt_address=%s | nxt_slot=%s | timestamp=%s",
+                next_address,
+                next_slot,
+                next_timestamp,
+            )
+            if next_timestamp == timestamp:
                 # Given log is the first log with same timestamp,
                 # mark direction as production of next log
                 self._logs[address][slot].is_consumption = True
