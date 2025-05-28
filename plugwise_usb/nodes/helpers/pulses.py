@@ -439,11 +439,12 @@ class PulseCollection:
             self.recalculate_missing_log_addresses()
 
         _LOGGER.debug(
-            "add_log | pulses=%s | address=%s | slot= %s |time:%s",
+            "add_log | pulses=%s | address=%s | slot=%s | time=%s, direction=%s",
             pulses,
             address,
             slot,
             timestamp,
+            direction,
         )
         return True
 
