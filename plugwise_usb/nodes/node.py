@@ -510,7 +510,14 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                 hardware, model_info = version_to_model(hardware)
                 model_info = model_info.split(" ")
                 self._node_info.model = model_info[0]
-                _LOGGER.debug("NodeType: %s", self._node_info.node_type)
+                if (
+                    self._node_info.node_type is not None
+                    and (
+                        correct_model := str(self._node_info.node_type.name).lower()
+                    ) not in self._node_info.model.lower()
+                ):
+                    self._node_info.model = correct_model.capitalize()
+
                 # Handle + devices
                 if len(model_info) > 1 and "+" in model_info[1]:
                     self._node_info.model = model_info[0] + " " + model_info[1]
@@ -542,6 +549,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             minutes=5
         ):
             await self._available_update_state(True, timestamp)
+
         return complete
 
     async def is_online(self) -> bool:
