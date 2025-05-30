@@ -517,6 +517,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                     ) not in self._node_info.model.lower()
                 ):
                     self._node_info.model = correct_model.capitalize()
+                    model_info[0] = self._node_info.model
 
                 # Handle + devices
                 if len(model_info) > 1 and "+" in model_info[1]:
