@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.40.1
+
+- Improve device Name and Model detection for Switch
+
 ## v0.40.0
 
 - Make auto-joining work: (@bouwew)
