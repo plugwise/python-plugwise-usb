@@ -217,7 +217,7 @@ class Stick:
         try:
             await self._network.set_energy_intervals(mac, cons_interval, prod_interval)
         except (MessageError, NodeError) as exc:
-            raise NodeError(f"{exc}")
+            raise NodeError(f"{exc}") from exc
         return True
 
     async def clear_cache(self) -> None:
