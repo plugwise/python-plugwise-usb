@@ -216,7 +216,7 @@ class Stick:
         """Configure the energy logging interval settings."""
         try:
             await self._network.set_energy_intervals(mac, cons_interval, prod_interval)
-        except (MessageError, NodeError) as exc:
+        except (MessageError, NodeError, ValueError) as exc:
             raise NodeError(f"{exc}") from exc
         return True
 
