@@ -2,7 +2,7 @@
 
 ## v0.40.1
 
-- Improve device Name and Model detection for Switch
+- Improve device Name and Model detection for Switch [#248](https://github.com/plugwise/python-plugwise-usb/pull/248)
 
 ## v0.40.0
 
