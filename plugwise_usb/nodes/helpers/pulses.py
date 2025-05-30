@@ -377,6 +377,7 @@ class PulseCollection:
                         self._mac,
                         direction
                     )
+                return False
 
         return False
 
