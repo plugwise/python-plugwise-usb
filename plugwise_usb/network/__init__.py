@@ -557,7 +557,7 @@ class StickNetwork:
         if production > 0 and production % consumption != 0:
             raise ValueError("Production interval must be a multiple of consumption interval")
 
-        _LOGGER.debug("set_energy_intervals | cons=%s, prod=%s", consumption, production)        
+        _LOGGER.debug("set_energy_intervals | cons=%s, prod=%s", consumption, production)
         request = CircleMeasureIntervalRequest(
             self._controller.send, bytes(mac, UTF8), consumption, production
         )
