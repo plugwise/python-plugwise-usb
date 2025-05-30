@@ -510,14 +510,17 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                 hardware, model_info = version_to_model(hardware)
                 model_info = model_info.split(" ")
                 self._node_info.model = model_info[0]
+                # Correct model when node_type doesn't match
+                # Switch reports hardware version of paired Circle (pw_usb_beta #245)
                 if (
                     self._node_info.node_type is not None
                     and (
-                        correct_model := str(self._node_info.node_type.name).lower().split("_")[0]
+                        correct_model := self._node_info.node_type.name.lower().split("_")[0]
                     ) not in self._node_info.model.lower()
                 ):
                     self._node_info.model = correct_model.capitalize()
-                    model_info[0] = self._node_info.model
+                    # Replace model_info list
+                    model_info = [self._node_info.model]
 
                 # Handle + devices
                 if len(model_info) > 1 and "+" in model_info[1]:
