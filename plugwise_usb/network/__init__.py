@@ -541,7 +541,7 @@ class StickNetwork:
         _LOGGER.debug("Sent AllowJoiningRequest to Circle+ with state=%s", state)
         self.accept_join_request = state
 
-    async def set_measure_interval(
+    async def set_measure_intervals(
         self, mac: str, consumption: int, production: int
     ) -> None:
         """Set the measure intervals for both consumption and production.
@@ -549,7 +549,7 @@ class StickNetwork:
         Default: consumption = 60, production = 0.
         For measuring in both directions set both to 60.
         """
-        _LOGGER.debug("set_measure_interval | cons=%s, prod=%s", consumption, production)
+        _LOGGER.debug("set_measure_intervals | cons=%s, prod=%s", consumption, production)
         request = CircleMeasureIntervalRequest(
             self._controller.send, bytes(mac, UTF8), consumption, production
         )
