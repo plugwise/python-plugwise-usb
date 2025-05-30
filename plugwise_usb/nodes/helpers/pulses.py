@@ -377,7 +377,7 @@ class PulseCollection:
                         self._mac,
                         direction
                     )
-                    
+
         return False
 
     def add_empty_log(self, address: int, slot: int) -> None:
@@ -540,7 +540,8 @@ class PulseCollection:
                 elif self._log_production is None:
                     self._log_production = False
             return prev_timestamp
-        elif self._first_prev_log_processed:
+
+        if self._first_prev_log_processed:
             self._first_prev_log_processed = False
             return None
 
@@ -567,7 +568,8 @@ class PulseCollection:
                 elif self._log_production is None:
                     self._log_production = False
             return next_timestamp
-        elif self._first_next_log_processed:
+
+        if self._first_next_log_processed:
             self._first_next_log_processed = False
             return None
 
