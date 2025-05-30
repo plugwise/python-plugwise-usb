@@ -525,7 +525,7 @@ class PulseCollection:
                         self._reset_log_references()
                 elif self._log_production is None:
                     self._log_production = False
-        elif self._prev_log_exists:    
+        elif self._prev_log_exists:
             self._prev_log_exists = False
 
         next_address, next_slot = calc_log_address(address, slot, 1)
