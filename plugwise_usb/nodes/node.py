@@ -490,11 +490,18 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
     ) -> bool:
         """Process new node info and return true if all fields are updated."""
         complete = True
+        if node_type is None:
+            complete = False
+        else:
+            self._node_info.node_type = NodeType(node_type)
+            self._set_cache(CACHE_NODE_TYPE, self._node_info.node_type.value)
+
         if firmware is None:
             complete = False
         else:
             self._node_info.firmware = firmware
             self._set_cache(CACHE_FIRMWARE, firmware)
+
         if hardware is None:
             complete = False
         else:
@@ -503,6 +510,18 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                 hardware, model_info = version_to_model(hardware)
                 model_info = model_info.split(" ")
                 self._node_info.model = model_info[0]
+                # Correct model when node_type doesn't match
+                # Switch reports hardware version of paired Circle (pw_usb_beta #245)
+                if (
+                    self._node_info.node_type is not None
+                    and (
+                        correct_model := self._node_info.node_type.name.lower().split("_")[0]
+                    ) not in self._node_info.model.lower()
+                ):
+                    self._node_info.model = correct_model.capitalize()
+                    # Replace model_info list
+                    model_info = [self._node_info.model]
+
                 # Handle + devices
                 if len(model_info) > 1 and "+" in model_info[1]:
                     self._node_info.model = model_info[0] + " " + model_info[1]
@@ -522,21 +541,19 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                 if self._node_info.model is not None:
                     self._node_info.name = f"{model_info[0]} {self._node_info.mac[-5:]}"
             self._set_cache(CACHE_HARDWARE, hardware)
+
         if timestamp is None:
             complete = False
         else:
             self._node_info.timestamp = timestamp
             self._set_cache(CACHE_NODE_INFO_TIMESTAMP, timestamp)
-        if node_type is None:
-            complete = False
-        else:
-            self._node_info.node_type = NodeType(node_type)
-            self._set_cache(CACHE_NODE_TYPE, self._node_info.node_type.value)
+
         await self.save_cache()
         if timestamp is not None and timestamp > datetime.now(tz=UTC) - timedelta(
             minutes=5
         ):
             await self._available_update_state(True, timestamp)
+
         return complete
 
     async def is_online(self) -> bool:
