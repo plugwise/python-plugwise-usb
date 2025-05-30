@@ -513,7 +513,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                 if (
                     self._node_info.node_type is not None
                     and (
-                        correct_model := str(self._node_info.node_type.name).lower()
+                        correct_model := str(self._node_info.node_type.name).lower().split("_")[0]
                     ) not in self._node_info.model.lower()
                 ):
                     self._node_info.model = correct_model.capitalize()
