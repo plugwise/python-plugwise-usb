@@ -545,7 +545,7 @@ class StickNetwork:
         self, mac: str, consumption: int, production: int
     ) -> None:
         """Set the logging intervals for both energy consumption and production.
-        
+
         Default: consumption = 60, production = 0.
         For logging energy in both directions set both to 60.
         """
