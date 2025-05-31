@@ -90,13 +90,12 @@ HW_MODELS: Final[dict[str, str]] = {
 }
 
 TYPE_MODEL: Final[dict[int, tuple[str]]] = {
-    0: ("Stick"),
+    0: ("Stick",),
     1: ("Circle", "Stealth"),
-    3: ("Switch"),
-    4: (),
-    5: ("Sense"),
-    6: ("Scan"),
-    7: ("Celsius"),
-    8: ("Celsius"),
-    9: ("Stealth"),
+    3: ("Switch",),
+    5: ("Sense",),
+    6: ("Scan",),
+    7: ("Celsius",),
+    8: ("Celsius",),
+    9: ("Stealth",),
 }

@@ -511,9 +511,9 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                 # Switch reports hardware version of paired Circle (pw_usb_beta #245)
                 if self._node_info.node_type is not None:
                     allowed_models = TYPE_MODEL.get(self._node_info.node_type.value)
-                    if allowed_models is not None and model_info[0] not in allowed_models:
+                    if allowed_models and model_info[0] not in allowed_models:
                         # Replace model_info list
-                        model_info = [allowed_models[0]]  # Not Ok for 1 but should not be a problem
+                        model_info = [allowed_models[0]]  # Not correct for 1 but should not be a problem
                         self._node_info.model = model_info[0]
 
                 # Handle + devices
