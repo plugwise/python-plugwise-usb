@@ -97,6 +97,6 @@ TYPE_MODEL: Final[dict[int, tuple[str]]] = {
     5: ("Sense"),
     6: ("Scan"),
     7: ("Celsius"),
-    8: ("Celcius"),
+    8: ("Celsius"),
     9: ("Stealth"),
 }
