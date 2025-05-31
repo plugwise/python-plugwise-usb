@@ -1218,7 +1218,7 @@ class TestStick:
         # Test consumption & production - Log import #1 - production
         # Missing addresses can not be determined yet
         test_timestamp = fixed_this_hour - td(hours=1)
-        tst_production.add_log(200, 2, test_timestamp, 2000)
+        tst_production.add_log(200, 2, test_timestamp, -2000)
         assert tst_production.log_addresses_missing is None
         assert tst_production.production_logging is None
 
@@ -1226,7 +1226,7 @@ class TestStick:
         # production must be enabled & intervals are unknown
         # Log at address 200 is known and expect production logs too
         test_timestamp = fixed_this_hour - td(hours=1)
-        tst_production.add_log(200, 1, test_timestamp, 1000)
+        tst_production.add_log(200, 1, test_timestamp, 0)
         assert tst_production.log_addresses_missing is None
         assert tst_production.log_interval_consumption is None
         assert tst_production.log_interval_production is None
@@ -1235,7 +1235,7 @@ class TestStick:
         # Test consumption & production - Log import #3 - production
         # Interval of consumption is not yet available
         test_timestamp = fixed_this_hour - td(hours=2)  # type: ignore[unreachable]
-        tst_production.add_log(199, 4, test_timestamp, 4000)
+        tst_production.add_log(199, 4, test_timestamp, -2200)
         missing_check = list(range(199, 157, -1))
         assert tst_production.log_addresses_missing == missing_check
         assert tst_production.log_interval_consumption is None
@@ -1245,32 +1245,32 @@ class TestStick:
         # Test consumption & production - Log import #4
         # Interval of consumption is available
         test_timestamp = fixed_this_hour - td(hours=2)
-        tst_production.add_log(199, 3, test_timestamp, 3000)
+        tst_production.add_log(199, 3, test_timestamp, 0)
         assert tst_production.log_addresses_missing == missing_check
         assert tst_production.log_interval_consumption == 60
         assert tst_production.log_interval_production == 60
         assert tst_production.production_logging
 
         pulse_update_1 = fixed_this_hour + td(minutes=5)
-        tst_production.update_pulse_counter(100, 50, pulse_update_1)
+        tst_production.update_pulse_counter(0, -500, pulse_update_1)
         assert tst_production.collected_pulses(
             fixed_this_hour, is_consumption=True
-        ) == (100, pulse_update_1)
+        ) == (0, pulse_update_1)
         assert tst_production.collected_pulses(
             fixed_this_hour, is_consumption=False
-        ) == (50, pulse_update_1)
+        ) == (500, pulse_update_1)
         assert tst_production.collected_pulses(
             fixed_this_hour - td(hours=1), is_consumption=True
-        ) == (100, pulse_update_1)
+        ) == (0, pulse_update_1)
         assert tst_production.collected_pulses(
             fixed_this_hour - td(hours=2), is_consumption=True
-        ) == (1000 + 100, pulse_update_1)
+        ) == (0 + 0, pulse_update_1)
         assert tst_production.collected_pulses(
             fixed_this_hour - td(hours=1), is_consumption=False
-        ) == (50, pulse_update_1)
+        ) == (500, pulse_update_1)
         assert tst_production.collected_pulses(
             fixed_this_hour - td(hours=2), is_consumption=False
-        ) == (2000 + 50, pulse_update_1)
+        ) == (2000 + 500, pulse_update_1)
 
     _pulse_update = 0
 

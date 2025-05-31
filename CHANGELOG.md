@@ -1,6 +1,10 @@
 # Changelog
 
-## v0.40.1
+## v0.41.0
+
+- Implement setting of energy logging intervals [#247](https://github.com/plugwise/python-plugwise-usb/pull/247)
+
+## v0.40.1 (not released)
 
 - Improve device Name and Model detection for Switch [#248](https://github.com/plugwise/python-plugwise-usb/pull/248)
 

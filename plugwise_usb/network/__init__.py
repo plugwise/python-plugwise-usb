@@ -14,7 +14,11 @@ from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
 from ..constants import UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
-from ..messages.requests import CirclePlusAllowJoiningRequest, NodePingRequest
+from ..messages.requests import (
+    CirclePlusAllowJoiningRequest,
+    CircleMeasureIntervalRequest,
+    NodePingRequest,
+)
 from ..messages.responses import (
     NODE_AWAKE_RESPONSE_ID,
     NODE_JOIN_ID,
@@ -536,6 +540,34 @@ class StickNetwork:
 
         _LOGGER.debug("Sent AllowJoiningRequest to Circle+ with state=%s", state)
         self.accept_join_request = state
+
+    async def set_energy_intervals(
+        self, mac: str, consumption: int, production: int
+    ) -> None:
+        """Set the logging intervals for both energy consumption and production.
+
+        Default: consumption = 60, production = 0.
+        For logging energy in both directions set both to 60.
+        """
+        # Validate input parameters
+        if consumption <= 0:
+            raise ValueError("Consumption interval must be positive")
+        if production < 0:
+            raise ValueError("Production interval must be non-negative")
+        if production > 0 and production % consumption != 0:
+            raise ValueError("Production interval must be a multiple of consumption interval")
+
+        _LOGGER.debug("set_energy_intervals | cons=%s, prod=%s", consumption, production)
+        request = CircleMeasureIntervalRequest(
+            self._controller.send, bytes(mac, UTF8), consumption, production
+        )
+        if (response := await request.send()) is None:
+            raise NodeError("No response for CircleMeasureIntervalRequest.")
+
+        if response.response_type != NodeResponseType.POWER_LOG_INTERVAL_ACCEPTED:
+            raise MessageError(
+                f"Unknown NodeResponseType '{response.response_type.name}' received"
+            )
 
     def subscribe_to_node_events(
         self,

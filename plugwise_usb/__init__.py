@@ -210,6 +210,16 @@ class Stick:
             raise NodeError(f"Failed setting accept joining: {exc}") from exc
         return True
 
+    async def set_energy_intervals(
+        self, mac: str, cons_interval: int, prod_interval: int
+    ) -> bool:
+        """Configure the energy logging interval settings."""
+        try:
+            await self._network.set_energy_intervals(mac, cons_interval, prod_interval)
+        except (MessageError, NodeError, ValueError) as exc:
+            raise NodeError(f"{exc}") from exc
+        return True
+
     async def clear_cache(self) -> None:
         """Clear current cache."""
         if self._network is not None:

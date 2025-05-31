@@ -88,6 +88,8 @@ class PulseCollection:
         self._rollover_consumption = False
         self._rollover_production = False
 
+        self._first_next_log_processed = False
+        self._first_prev_log_processed = False
         self._logs: dict[int, dict[int, PulseLogRecord]] | None = None
         self._log_addresses_missing: list[int] | None = None
         self._log_production: bool | None = None
@@ -377,6 +379,8 @@ class PulseCollection:
                     )
                 return False
 
+        return False
+
     def add_empty_log(self, address: int, slot: int) -> None:
         """Add empty energy log record to mark any start of beginning of energy log collection."""
         recalculate = False
@@ -439,11 +443,12 @@ class PulseCollection:
             self.recalculate_missing_log_addresses()
 
         _LOGGER.debug(
-            "add_log | pulses=%s | address=%s | slot= %s |time:%s",
+            "add_log | pulses=%s | address=%s | slot=%s | time=%s, direction=%s",
             pulses,
             address,
             slot,
             timestamp,
+            direction,
         )
         return True
 
@@ -504,37 +509,70 @@ class PulseCollection:
         if self._logs is None:
             return
 
+        prev_timestamp = self._check_prev_production(address, slot, timestamp)
+        next_timestamp = self._check_next_production(address, slot, timestamp)
+        if self._first_prev_log_processed and self._first_next_log_processed:
+            # _log_production is True when 2 out of 3 consecutive slots have
+            # the same timestamp, otherwise it is False
+            self._log_production = (
+                next_timestamp == timestamp and prev_timestamp != timestamp
+            ) or (next_timestamp == prev_timestamp and next_timestamp != timestamp)
+
+    def _check_prev_production(
+        self, address: int, slot: int, timestamp: datetime
+    ) -> datetime | None:
+        """Check the previous slot for production pulses."""
         prev_address, prev_slot = calc_log_address(address, slot, -1)
         if self._log_exists(prev_address, prev_slot):
-            if self._logs[prev_address][prev_slot].timestamp == timestamp:
-                # Given log is the second log with same timestamp,
-                # mark direction as production
-                self._logs[address][slot].is_consumption = False
-                self._logs[prev_address][prev_slot].is_consumption = True
-                self._log_production = True
-            elif self._log_production:
-                self._logs[address][slot].is_consumption = True
-                if self._logs[prev_address][prev_slot].is_consumption:
-                    self._logs[prev_address][prev_slot].is_consumption = False
-                    self._reset_log_references()
-            elif self._log_production is None:
-                self._log_production = False
+            prev_timestamp = self._logs[prev_address][prev_slot].timestamp
+            if not self._first_prev_log_processed:
+                self._first_prev_log_processed = True
+                if prev_timestamp == timestamp:
+                    # Given log is the second log with same timestamp,
+                    # mark direction as production
+                    self._logs[address][slot].is_consumption = False
+                    self._logs[prev_address][prev_slot].is_consumption = True
+                    self._log_production = True
+                elif self._log_production:
+                    self._logs[address][slot].is_consumption = True
+                    if self._logs[prev_address][prev_slot].is_consumption:
+                        self._logs[prev_address][prev_slot].is_consumption = False
+                        self._reset_log_references()
+                elif self._log_production is None:
+                    self._log_production = False
+            return prev_timestamp
 
+        if self._first_prev_log_processed:
+            self._first_prev_log_processed = False
+            return None
+
+    def _check_next_production(
+        self, address: int, slot: int, timestamp: datetime
+    ) -> datetime | None:
+        """Check the next slot for production pulses."""
         next_address, next_slot = calc_log_address(address, slot, 1)
         if self._log_exists(next_address, next_slot):
-            if self._logs[next_address][next_slot].timestamp == timestamp:
-                # Given log is the first log with same timestamp,
-                # mark direction as production of next log
-                self._logs[address][slot].is_consumption = True
-                if self._logs[next_address][next_slot].is_consumption:
-                    self._logs[next_address][next_slot].is_consumption = False
-                    self._reset_log_references()
-                self._log_production = True
-            elif self._log_production:
-                self._logs[address][slot].is_consumption = False
-                self._logs[next_address][next_slot].is_consumption = True
-            elif self._log_production is None:
-                self._log_production = False
+            next_timestamp = self._logs[next_address][next_slot].timestamp
+            if not self._first_next_log_processed:
+                self._first_next_log_processed = True
+                if next_timestamp == timestamp:
+                    # Given log is the first log with same timestamp,
+                    # mark direction as production of next log
+                    self._logs[address][slot].is_consumption = True
+                    if self._logs[next_address][next_slot].is_consumption:
+                        self._logs[next_address][next_slot].is_consumption = False
+                        self._reset_log_references()
+                    self._log_production = True
+                elif self._log_production:
+                    self._logs[address][slot].is_consumption = False
+                    self._logs[next_address][next_slot].is_consumption = True
+                elif self._log_production is None:
+                    self._log_production = False
+            return next_timestamp
+
+        if self._first_next_log_processed:
+            self._first_next_log_processed = False
+            return None
 
     def _update_log_interval(self) -> None:
         """Update the detected log interval based on the most recent two logs."""

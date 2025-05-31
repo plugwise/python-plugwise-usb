@@ -56,9 +56,10 @@ class StickResponseType(bytes, Enum):
 class NodeResponseType(bytes, Enum):
     """Response types of a 'NodeResponse' reply message."""
 
-    CIRCLE_PLUS = b"00DD"  # type for CirclePlusAllowJoiningRequest with state false
+    CIRCLE_PLUS = b"00DD"  # ack for CirclePlusAllowJoiningRequest with state false
     CLOCK_ACCEPTED = b"00D7"
-    JOIN_ACCEPTED = b"00D9"  # type for CirclePlusAllowJoiningRequest with state true
+    JOIN_ACCEPTED = b"00D9"  # ack for CirclePlusAllowJoiningRequest with state true
+    POWER_LOG_INTERVAL_ACCEPTED = b"00F8"  # ack for CircleMeasureIntervalRequest
     RELAY_SWITCHED_OFF = b"00DE"
     RELAY_SWITCHED_ON = b"00D8"
     RELAY_SWITCH_FAILED = b"00E2"
@@ -68,7 +69,6 @@ class NodeResponseType(bytes, Enum):
 
     # TODO: Validate these response types
     SED_CONFIG_FAILED = b"00F7"
-    POWER_LOG_INTERVAL_ACCEPTED = b"00F8"
     POWER_CALIBRATION_ACCEPTED = b"00DA"
 
 
