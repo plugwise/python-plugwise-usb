@@ -26,7 +26,7 @@ from ..api import (
     RelayState,
 )
 from ..connection import StickController
-from ..constants import SUPPRESS_INITIALIZATION_WARNINGS, UTF8
+from ..constants import SUPPRESS_INITIALIZATION_WARNINGS, TYPE_MODEL, UTF8
 from ..exceptions import FeatureError, NodeError
 from ..helpers.util import version_to_model
 from ..messages.requests import NodeInfoRequest, NodePingRequest
@@ -38,19 +38,16 @@ from .helpers.subscription import FeaturePublisher
 
 _LOGGER = logging.getLogger(__name__)
 
-
 NODE_FEATURES = (
     NodeFeature.AVAILABLE,
     NodeFeature.INFO,
     NodeFeature.PING,
 )
 
-
 CACHE_FIRMWARE = "firmware"
 CACHE_NODE_TYPE = "node_type"
 CACHE_HARDWARE = "hardware"
 CACHE_NODE_INFO_TIMESTAMP = "node_info_timestamp"
-
 
 class PlugwiseBaseNode(FeaturePublisher, ABC):
     """Abstract Base Class for a Plugwise node."""
@@ -512,15 +509,12 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                 self._node_info.model = model_info[0]
                 # Correct model when node_type doesn't match
                 # Switch reports hardware version of paired Circle (pw_usb_beta #245)
-                if (
-                    self._node_info.node_type is not None
-                    and (
-                        correct_model := self._node_info.node_type.name.lower().split("_")[0]
-                    ) not in self._node_info.model.lower()
-                ):
-                    self._node_info.model = correct_model.capitalize()
-                    # Replace model_info list
-                    model_info = [self._node_info.model]
+                if self._node_info.node_type is not None:
+                    allowed_models = TYPE_MODEL.get(self._node_info.node_type.value)
+                    if allowed_models and model_info[0] not in allowed_models:
+                        # Replace model_info list
+                        model_info = [allowed_models[0]]  # Not correct for 1 but should not be a problem
+                        self._node_info.model = model_info[0]
 
                 # Handle + devices
                 if len(model_info) > 1 and "+" in model_info[1]:
