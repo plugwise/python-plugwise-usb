@@ -175,16 +175,14 @@ class StickQueue:
         while self._running and self._stick is not None:
             request = await self._submit_queue.get()
             _LOGGER.debug("Sending from send queue %s", request)
+            _LOGGER.debug("HOI queue: %s", list(self._submit_queue._queue))
             if request.priority == Priority.CANCEL:
                 self._submit_queue.task_done()
                 return
 
             if self._stick.queue_depth > 3:
+                _LOGGER.warning("Awaiting plugwise responses %d", self._stick.queue_depth)
                 await sleep(0.125)
-                if self._stick.queue_depth > 3:
-                    _LOGGER.warning(
-                        "Awaiting plugwise responses %d", self._stick.queue_depth
-                    )
 
             await self._stick.write_to_stick(request)
             self._submit_queue.task_done()
