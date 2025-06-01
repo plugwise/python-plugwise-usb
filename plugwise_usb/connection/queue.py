@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from asyncio import PriorityQueue, Task, get_running_loop, sleep
+from asyncio import Queue, Task, get_running_loop, sleep
 from collections.abc import Callable
 from dataclasses import dataclass
+from sortedcontainers import SortedList
 import logging
 
 from ..api import StickEvent
@@ -25,6 +26,39 @@ class RequestState:
     zigbee_address: int
 
 
+class DroppingPriorityQueue(Queue):
+    def _init(self, maxsize):
+        # called by asyncio.Queue.__init__
+        self._queue = SortedList()
+
+    def _put(self, item):
+        # called by asyncio.Queue.put_nowait
+        self._queue.add(item)
+
+    def _get(self):
+        # called by asyncio.Queue.get_nowait
+        # pop the first (most important) item off the queue
+        return self._queue.pop(0)
+
+    def __drop(self):
+        # drop the last (least important) item from the queue
+        self._queue.pop()
+        # no consumer will get a chance to process this item, so
+        # we must decrement the unfinished count ourselves
+        self.task_done()
+
+    def put_nowait(self, item):
+        if self.full():
+            self.__drop()
+        super().put_nowait(item)
+
+    async def put(self, item):
+        # Queue.put blocks when full, so we must override it.
+        # Since our put_nowait never raises QueueFull, we can just
+        # call it directly
+        self.put_nowait(item)
+
+
 class StickQueue:
     """Manage queue of all request sessions."""
 
@@ -32,7 +66,7 @@ class StickQueue:
         """Initialize the message session controller."""
         self._stick: StickConnectionManager | None = None
         self._loop = get_running_loop()
-        self._submit_queue: PriorityQueue[PlugwiseRequest] = PriorityQueue()
+        self._submit_queue: DroppingPriorityQueue[PlugwiseRequest] = DroppingPriorityQueue(maxsize=85)
         self._submit_worker_task: Task[None] | None = None
         self._unsubscribe_connection_events: Callable[[], None] | None = None
         self._running = False
