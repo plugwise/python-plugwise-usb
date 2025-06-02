@@ -218,8 +218,7 @@ class Stick:
             raise NodeError(f"{exc}") from exc
 
         # Follow up by an energy-intervals (re)set
-        result = await self.set_energy_intervals(mac, 60, 0)
-        if result:
+        if (result := await self.set_energy_intervals(mac, 60, 0)):
             return True
 
         return False

@@ -6,13 +6,13 @@ from __future__ import annotations
 
 from asyncio import Task, create_task, gather, sleep
 from collections.abc import Callable, Coroutine
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 import logging
 from typing import Any
 
 from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
-from ..constants import UTC, UTF8
+from ..constants import UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
 from ..messages.requests import (
     CircleClockSetRequest,
@@ -545,7 +545,7 @@ class StickNetwork:
     async def energy_reset_request(self, mac: str) -> None:
         """Send an energy-reset to a Node."""
         request = CircleClockSetRequest(
-            self._send,
+            self._controller.send,
             self._mac_in_bytes,
             datetime.now(tz=UTC),
             self._node_protocols.max,
