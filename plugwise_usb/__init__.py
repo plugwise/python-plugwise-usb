@@ -219,7 +219,7 @@ class Stick:
 
         # Follow up by an energy-intervals (re)set
         if (result := await self.set_energy_intervals(mac, 60, 0)):
-            return True
+            return result
 
         return False
 

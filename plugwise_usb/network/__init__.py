@@ -544,11 +544,12 @@ class StickNetwork:
 
     async def energy_reset_request(self, mac: str) -> None:
         """Send an energy-reset to a Node."""
+        node_protocols = self._nodes[mac].node_protocols
         request = CircleClockSetRequest(
             self._controller.send,
-            self._mac_in_bytes,
+            bytes(mac, UTF8),
             datetime.now(tz=UTC),
-            self._node_protocols.max,
+            node_protocols.max,
             True,
         )
         if (response := await request.send()) is None:
