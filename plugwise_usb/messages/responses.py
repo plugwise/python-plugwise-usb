@@ -651,7 +651,7 @@ class NodeInfoResponse(PlugwiseResponse):
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
-        return f"{super().__repr__()[:-1]}, log_address_pointer={self._logaddress_pointer.value})"
+        return f"{super().__repr__()[:-1]}, hardware={self.hardware[4:10]}, log_address_pointer={self._logaddress_pointer.value})"
 
 
 class EnergyCalibrationResponse(PlugwiseResponse):
