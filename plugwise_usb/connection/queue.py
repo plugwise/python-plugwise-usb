@@ -164,6 +164,7 @@ class StickQueue:
         """Add request to send queue."""
         _LOGGER.debug("Add request to queue: %s", request)
         await self._submit_queue.put(request)
+        _LOGGER.debug("HOI queue maxsize: %s", self._submit_queue.maxsize)
         _LOGGER.debug("HOI queue: %s", list(self._submit_queue._queue))
         if self._submit_worker_task is None or self._submit_worker_task.done():
             self._submit_worker_task = self._loop.create_task(
