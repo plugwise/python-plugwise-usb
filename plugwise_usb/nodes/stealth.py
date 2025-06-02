@@ -1,4 +1,5 @@
 """Plugwise Stealth node object."""
+
 from ..nodes.circle import PlugwiseCircle
 
 

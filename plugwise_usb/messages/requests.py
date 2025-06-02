@@ -311,7 +311,9 @@ class PlugwiseRequest(PlugwiseMessage):
             self,
         )
 
-    async def _send_request(self, suppress_node_errors=False) -> PlugwiseResponse | None:
+    async def _send_request(
+        self, suppress_node_errors=False
+    ) -> PlugwiseResponse | None:
         """Send request."""
         if self._send_fn is None:
             return None
