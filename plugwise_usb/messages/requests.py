@@ -12,7 +12,7 @@ from typing import Any
 from ..constants import (
     DAY_IN_MINUTES,
     HOUR_IN_MINUTES,
-    LOGADDR_OFFSET,
+#    LOGADDR_OFFSET,
     MAX_RETRIES,
     MESSAGE_FOOTER,
     MESSAGE_HEADER,
@@ -764,8 +764,9 @@ class CircleClockSetRequest(PlugwiseRequest):
         day_of_week = Int(dt.weekday(), 2)
         if reset:
             self._args += [
-                this_date,
-                LogAddr(LOGADDR_OFFSET, 8, False),
+                this_date,       
+                #LogAddr(LOGADDR_OFFSET, 8, False),
+                String("00044000", 8),
                 this_time,
                 day_of_week,
             ]
