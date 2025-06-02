@@ -173,7 +173,7 @@ class PulseCollection:
             self._mac,
             from_timestamp,
             is_consumption,
-            self._log_production
+            self._log_production,
         )
         if not is_consumption:
             if self._log_production is None or not self._log_production:
@@ -375,7 +375,7 @@ class PulseCollection:
                     _LOGGER.debug(
                         "_update_rollover | %s | reset %s rollover",
                         self._mac,
-                        direction
+                        direction,
                     )
                 return False
 

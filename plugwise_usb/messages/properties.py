@@ -9,7 +9,10 @@ from ..constants import LOGADDR_OFFSET, PLUGWISE_EPOCH, UTF8
 from ..exceptions import MessageError
 from ..helpers.util import int_to_uint
 
-DESERIALIZE_ERROR: Final[MessageError] = MessageError("Unable to return value. Deserialize data first")
+DESERIALIZE_ERROR: Final[MessageError] = MessageError(
+    "Unable to return value. Deserialize data first"
+)
+
 
 class BaseType:
     """Generic single instance property."""

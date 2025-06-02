@@ -510,10 +510,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         for _slot in range(4, 0, -1):
             log_timestamp, log_pulses = response.log_data[_slot]
             _LOGGER.debug(
-                "In slot=%s: pulses=%s, timestamp=%s",
-                _slot,
-                log_pulses,
-                log_timestamp
+                "In slot=%s: pulses=%s, timestamp=%s", _slot, log_pulses, log_timestamp
             )
             if log_timestamp is None or log_pulses is None:
                 self._energy_counters.add_empty_log(response.log_address, _slot)

@@ -79,7 +79,9 @@ class StickSender:
 
         # Write message to serial port buffer
         serialized_data = request.serialize()
-        _LOGGER.debug("write_request_to_port | Write %s to port as %s", request, serialized_data)
+        _LOGGER.debug(
+            "write_request_to_port | Write %s to port as %s", request, serialized_data
+        )
         self._transport.write(serialized_data)
         # Don't timeout when no response expected
         if not request.no_response:
@@ -106,7 +108,11 @@ class StickSender:
             _LOGGER.warning("Exception for %s: %s", request, exc)
             request.assign_error(exc)
         else:
-            _LOGGER.debug("write_request_to_port | USB-Stick replied with %s to request %s", response, request)
+            _LOGGER.debug(
+                "write_request_to_port | USB-Stick replied with %s to request %s",
+                response,
+                request,
+            )
             if response.response_type == StickResponseType.ACCEPT:
                 if request.seq_id is not None:
                     request.assign_error(
@@ -121,7 +127,9 @@ class StickSender:
                         self._receiver.subscribe_to_stick_responses,
                         self._receiver.subscribe_to_node_responses,
                     )
-                    _LOGGER.debug("write_request_to_port | request has subscribed : %s", request)
+                    _LOGGER.debug(
+                        "write_request_to_port | request has subscribed : %s", request
+                    )
             elif response.response_type == StickResponseType.TIMEOUT:
                 _LOGGER.warning(
                     "USB-Stick directly responded with communication timeout for %s",
@@ -142,7 +150,6 @@ class StickSender:
         finally:
             self._stick_response.cancel()
             self._stick_lock.release()
-
 
     async def _process_stick_response(self, response: StickResponse) -> None:
         """Process stick response."""

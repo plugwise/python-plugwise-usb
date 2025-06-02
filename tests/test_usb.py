@@ -1118,7 +1118,6 @@ class TestStick:
         tst_consumption.add_log(94, 1, (fixed_this_hour - td(hours=24)), 1000)
         assert tst_consumption.collected_logs == 24
 
-
         # Test rollover by updating pulses before log record
         pulse_update_3 = fixed_this_hour + td(hours=1, minutes=0, seconds=30)
         test_timestamp = fixed_this_hour + td(hours=1)

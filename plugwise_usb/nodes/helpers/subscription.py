@@ -32,7 +32,6 @@ class FeaturePublisher:
             NodeFeatureSubscription,
         ] = {}
 
-
     def subscribe_to_feature_update(
         self,
         node_feature_callback: Callable[[NodeFeature, Any], Coroutine[Any, Any, None]],
@@ -64,6 +63,8 @@ class FeaturePublisher:
             self._feature_update_subscribers.values()
         ):
             if feature in node_feature_subscription.features:
-                callback_list.append(node_feature_subscription.callback_fn(feature, state))
+                callback_list.append(
+                    node_feature_subscription.callback_fn(feature, state)
+                )
         if len(callback_list) > 0:
             await gather(*callback_list)

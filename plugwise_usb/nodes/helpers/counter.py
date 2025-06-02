@@ -80,9 +80,12 @@ class EnergyCounters:
         import_only: bool = False,
     ) -> None:
         """Add pulse log."""
-        if self._pulse_collection.add_log(
-            address, slot, timestamp, pulses, import_only
-        ) and not import_only:
+        if (
+            self._pulse_collection.add_log(
+                address, slot, timestamp, pulses, import_only
+            )
+            and not import_only
+        ):
             self.update()
 
     def get_pulse_logs(self) -> dict[int, dict[int, PulseLogRecord]]:
@@ -160,7 +163,9 @@ class EnergyCounters:
             (
                 self._energy_statistics.hour_production,
                 self._energy_statistics.hour_production_reset,
-            ) = self._counters[EnergyType.PRODUCTION_HOUR].update(self._pulse_collection)
+            ) = self._counters[EnergyType.PRODUCTION_HOUR].update(
+                self._pulse_collection
+            )
             (
                 self._energy_statistics.day_production,
                 self._energy_statistics.day_production_reset,
@@ -295,7 +300,9 @@ class EnergyCounter:
                     self._midnight_reset_passed = True
                 if last_reset.hour == 1 and self._midnight_reset_passed:
                     self._midnight_reset_passed = False
-                last_reset = last_reset.replace(hour=0, minute=0, second=0, microsecond=0)
+                last_reset = last_reset.replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
 
         pulses, last_update = pulse_collection.collected_pulses(
             last_reset, self._is_consumption
