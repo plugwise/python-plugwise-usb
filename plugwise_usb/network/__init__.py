@@ -12,11 +12,12 @@ from typing import Any
 
 from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
-from ..constants import UTF8
+from ..constants import UTC, UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
 from ..messages.requests import (
-    CirclePlusAllowJoiningRequest,
+    CircleClockSetRequest,
     CircleMeasureIntervalRequest,
+    CirclePlusAllowJoiningRequest,
     NodePingRequest,
 )
 from ..messages.responses import (
@@ -540,6 +541,23 @@ class StickNetwork:
 
         _LOGGER.debug("Sent AllowJoiningRequest to Circle+ with state=%s", state)
         self.accept_join_request = state
+
+    async def energy_reset_request(self, mac: str) -> None:
+        """Send an energy-reset to a Node."""
+        request = CircleClockSetRequest(
+            self._send,
+            self._mac_in_bytes,
+            datetime.now(tz=UTC),
+            self._node_protocols.max,
+            True,
+        )
+        if (response := await request.send()) is None:
+            raise NodeError(f"Energy-reset for {mac} failed")
+
+        if response.ack_id != NodeResponseType.CLOCK_ACCEPTED:
+            raise MessageError(
+                f"Unknown NodeResponseType '{response.response_type.name}' received"
+            )
 
     async def set_energy_intervals(
         self, mac: str, consumption: int, production: int

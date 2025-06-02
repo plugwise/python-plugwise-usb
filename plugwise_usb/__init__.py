@@ -10,7 +10,7 @@ from asyncio import get_running_loop
 from collections.abc import Callable, Coroutine
 from functools import wraps
 import logging
-from typing import Any, TypeVar, cast, Final
+from typing import Any, Final, TypeVar, cast
 
 from .api import NodeEvent, PlugwiseNode, StickEvent
 from .connection import StickController
@@ -210,6 +210,20 @@ class Stick:
             raise NodeError(f"Failed setting accept joining: {exc}") from exc
         return True
 
+    async def energy_reset_request(self, mac: str) -> bool:
+        """Send an energy-reset request to a Node."""
+        try:
+            await self._network.energy_reset_request(mac)
+        except (MessageError, NodeError) as exc:
+            raise NodeError(f"{exc}") from exc
+
+        # Follow up by an energy-intervals (re)set
+        result = await self.set_energy_intervals(mac, 60, 0)
+        if result:
+            return True
+
+        return False
+
     async def set_energy_intervals(
         self, mac: str, cons_interval: int, prod_interval: int
     ) -> bool:
@@ -295,7 +309,7 @@ class Stick:
                 "Unable to connect. " +
                 "Path to USB-Stick is not defined, set port property first"
             )
-        
+
         await self._controller.connect_to_stick(
             self._port,
         )
