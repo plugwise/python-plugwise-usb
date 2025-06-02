@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 import logging
 from typing import Final
 
-from ...constants import LOGADDR_MAX, MINUTE_IN_SECONDS, DAY_IN_HOURS
+from ...constants import DAY_IN_HOURS, LOGADDR_MAX, MINUTE_IN_SECONDS
 from ...exceptions import EnergyError
 
 _LOGGER = logging.getLogger(__name__)

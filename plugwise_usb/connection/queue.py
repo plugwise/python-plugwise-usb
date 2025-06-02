@@ -76,7 +76,6 @@ class StickQueue:
 
     async def submit(self, request: PlugwiseRequest) -> PlugwiseResponse | None:
         """Add request to queue and return the received node-response when applicable.
-        
         Raises an error when something fails.
         """
         if request.waiting_for_response:

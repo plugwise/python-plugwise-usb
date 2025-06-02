@@ -38,9 +38,24 @@ class StickConnectionManager:
 
     @property
     def queue_depth(self) -> int:
+        """Calculate and return the current depth of the message queue.
+
+        Returns:
+            int: The number of expected responses that have not yet been processed.
+
+        """
         return self._sender.expected_responses - self._receiver.processed_messages
 
     def correct_received_messages(self, correction: int) -> None:
+        """Adjusts the count of received messages by applying a correction value.
+
+        Args:
+            correction (int): The number to adjust the processed messages count by. Positive values increase the count, negative values decrease it.
+
+        Returns:
+            None
+
+        """
         self._receiver.correct_processed_messages(correction)
 
     @property

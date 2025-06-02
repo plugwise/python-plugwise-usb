@@ -391,7 +391,7 @@ class LogAddr(Int):
     def deserialize(self, val: bytes) -> None:
         """Convert data into integer value based on log address formatted data."""
         if val == b"00000000":
-            self._value = int(0)
+            self._value = 0
             return
         Int.deserialize(self, val)
         self._value = (self.value - LOGADDR_OFFSET) // 32
