@@ -38,16 +38,16 @@ class StickSender:
         self._loop = get_running_loop()
         self._receiver = stick_receiver
         self._transport = transport
-        self._processed_msgs = 0
+        self._expected_responses = 0
         self._stick_response: Future[StickResponse] | None = None
         self._stick_lock = Lock()
         self._current_request: None | PlugwiseRequest = None
         self._unsubscribe_stick_response: Callable[[], None] | None = None
 
     @property
-    def processed_messages(self) -> int:
+    def expected_responses(self) -> int:
         """Return the number of processed messages."""
-        return self._processed_msgs
+        return self._expected_responses
     
     async def start(self) -> None:
         """Start the sender."""
@@ -115,6 +115,7 @@ class StickSender:
                         )
                     )
                 else:
+                    self._expected_responses += 1
                     request.seq_id = response.seq_id
                     await request.subscribe_to_response(
                         self._receiver.subscribe_to_stick_responses,
@@ -141,7 +142,7 @@ class StickSender:
         finally:
             self._stick_response.cancel()
             self._stick_lock.release()
-            self._processed_msgs += 1
+
 
     async def _process_stick_response(self, response: StickResponse) -> None:
         """Process stick response."""

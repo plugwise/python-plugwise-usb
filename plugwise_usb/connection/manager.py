@@ -38,7 +38,7 @@ class StickConnectionManager:
 
     @property
     def queue_depth(self) -> int:
-        return self._sender.processed_messages - self._receiver.processed_messages
+        return self._sender.expected_responses - self._receiver.processed_messages
 
     def correct_received_messages(self, correction: int) -> None:
         self._receiver.correct_processed_messages(correction)
