@@ -7,7 +7,6 @@ from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from typing import Any
 
-
 from ...api import NodeFeature
 
 
@@ -21,7 +20,13 @@ class NodeFeatureSubscription:
 
 class FeaturePublisher:
     """Base Class to call awaitable of subscription when event happens."""
+
     def __init__(self) -> None:
+        """Initializes the instance with an empty dictionary to store feature update subscribers.
+
+        The dictionary maps callback functions (Callable[[], None]) to their corresponding
+        NodeFeatureSubscription objects, allowing management of feature update subscriptions.
+        """
         self._feature_update_subscribers: dict[
             Callable[[], None],
             NodeFeatureSubscription,

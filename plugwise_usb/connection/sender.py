@@ -48,7 +48,7 @@ class StickSender:
     def expected_responses(self) -> int:
         """Return the number of processed messages."""
         return self._expected_responses
-    
+
     async def start(self) -> None:
         """Start the sender."""
         # Subscribe to ACCEPT stick responses, which contain the seq_id we need.

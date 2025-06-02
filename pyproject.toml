@@ -258,8 +258,7 @@ lint.select = [
     "S316",  # suspicious-xml-expat-builder-usage
     "S317",  # suspicious-xml-sax-usage
     "S318",  # suspicious-xml-mini-dom-usage
-    "S319",  # suspicious-xml-pull-dom-usage
-    "S320",  # suspicious-xmle-tree-usage
+    "S319",  # suspicious-xml-pull-dom-usag
     "S601",  # paramiko-call
     "S602",  # subprocess-popen-with-shell-equals-true
     "S604",  # call-with-shell-equals-true
@@ -278,7 +277,7 @@ lint.select = [
     "TID251", # Banned imports
     "TRY004", # Prefer TypeError exception for invalid type
     # "TRY200", # TRY200 has been remapped to B904
-    "TRY302", # Remove exception handler; error is immediately re-raised
+    "TRY203", # Remove exception handler; error is immediately re-raised
     "UP",  # pyupgrade
     "W",  # pycodestyle
 ]
@@ -286,7 +285,9 @@ lint.select = [
 lint.ignore = [
     "D202",  # No blank lines allowed after function docstring
     "D203",  # 1 blank line required before class docstring
+    "D205",  # 1 blank line required between summary line and description
     "D213",  # Multi-line docstring summary should start at the second line
+    "D401",  # First line of docstring should be in imperative mood
     "D406",  # Section name should end with a newline
     "D407",  # Section name underlining
     "E501",  # line too long

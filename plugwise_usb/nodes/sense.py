@@ -117,7 +117,7 @@ class PlugwiseSense(NodeSED):
                 NodeFeature.HUMIDITY, self._humidity
             )
             report_received = True
-    
+
         return report_received
 
     @raise_not_loaded

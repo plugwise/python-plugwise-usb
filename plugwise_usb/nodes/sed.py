@@ -239,7 +239,7 @@ class NodeSED(PlugwiseBaseNode):
 
         if self._battery_config.awake_duration == seconds:
              return False
- 
+
         self._new_battery_config = replace(
             self._new_battery_config, awake_duration=seconds
         )

@@ -590,7 +590,7 @@ class TestStick:
         )
         assert stick.nodes["5555555555555555"].node_info.version == "080007"
         assert stick.nodes["5555555555555555"].node_info.model == "Scan"
-        assert stick.nodes["5555555555555555"].node_info.model_type == None
+        assert stick.nodes["5555555555555555"].node_info.model_type is None
         assert stick.nodes["5555555555555555"].available
         assert stick.nodes["5555555555555555"].node_info.is_battery_powered
         assert sorted(stick.nodes["5555555555555555"].features) == sorted(
@@ -1131,7 +1131,7 @@ class TestStick:
         # Collected pulses last day:
         assert tst_consumption.collected_pulses(
             test_timestamp - td(hours=24), is_consumption=True
-        ) == (45 + 22861, pulse_update_4)  
+        ) == (45 + 22861, pulse_update_4)
         # pulse-count of 2500 is ignored, the code does not export this incorrect value
 
         tst_consumption.add_log(100, 2, (fixed_this_hour + td(hours=1)), 2222)
@@ -2545,7 +2545,7 @@ class TestStick:
         )
         assert stick.nodes["5555555555555555"].node_info.version == "080007"
         assert stick.nodes["5555555555555555"].node_info.model == "Scan"
-        assert stick.nodes["5555555555555555"].node_info.model_type == None
+        assert stick.nodes["5555555555555555"].node_info.model_type is None
         assert stick.nodes["5555555555555555"].available
         assert stick.nodes["5555555555555555"].node_info.is_battery_powered
         assert sorted(stick.nodes["5555555555555555"].features) == sorted(
@@ -2610,7 +2610,7 @@ class TestStick:
         )
         assert stick.nodes["8888888888888888"].node_info.version == "070051"
         assert stick.nodes["8888888888888888"].node_info.model == "Switch"
-        assert stick.nodes["8888888888888888"].node_info.model_type == None
+        assert stick.nodes["8888888888888888"].node_info.model_type is None
         assert stick.nodes["8888888888888888"].available
         assert stick.nodes["8888888888888888"].node_info.is_battery_powered
         assert sorted(stick.nodes["8888888888888888"].features) == sorted(
