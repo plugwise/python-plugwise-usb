@@ -33,6 +33,8 @@ from ..messages.responses import (
 from ..nodes import get_plugwise_node
 from .registry import StickNetworkRegister
 
+ENERGY_NODE_TYPES: tuple[int] = (1, 2, 9)
+
 _LOGGER = logging.getLogger(__name__)
 # endregion
 
@@ -544,9 +546,9 @@ class StickNetwork:
 
     async def energy_reset_request(self, mac: str) -> None:
         """Send an energy-reset to a Node."""
-        if self._nodes[mac].node_info.node_type.value not in (1, 2, 9):
+        if self._nodes[mac].node_info.node_type.value not in ENERGY_NODE_TYPES:
             raise NodeError(
-                "Energy-resetting not supported for {self._nodes[mac].node_info.node_type.name}"
+                f"Energy-resetting not supported for {self._nodes[mac].node_info.node_type.name}"
                 )
 
         node_protocols = self._nodes[mac].node_protocols
@@ -573,9 +575,9 @@ class StickNetwork:
         Default: consumption = 60, production = 0.
         For logging energy in both directions set both to 60.
         """
-        if self._nodes[mac].node_info.node_type.value not in (1, 2, 9):
+        if self._nodes[mac].node_info.node_type.value not in ENERGY_NODE_TYPES:
             raise NodeError(
-                "Setting energy-intervals not supported for {self._nodes[mac].node_info.node_type.name}"
+                f"Setting energy-intervals not supported for {self._nodes[mac].node_info.node_type.name}"
                 )
 
         # Validate input parameters
