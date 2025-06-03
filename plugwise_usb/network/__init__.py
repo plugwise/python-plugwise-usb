@@ -547,17 +547,7 @@ class StickNetwork:
 
     async def energy_reset_request(self, mac: str) -> None:
         """Send an energy-reset to a Node."""
-        if not validate_mac(mac):
-            raise NodeError(f"MAC '{mac}' invalid")
-
-        if mac not in self._nodes:
-            raise NodeError(f"Node {mac} not present in network")
-
-        if self._nodes[mac].node_info.node_type.value not in ENERGY_NODE_TYPES:
-            raise NodeError(
-                f"Energy-resetting not supported for {self._nodes[mac].node_info.node_type.name}"
-                )
-
+        self._validate_energy_node(mac)
         node_protocols = self._nodes[mac].node_protocols
         request = CircleClockSetRequest(
             self._controller.send,
@@ -582,17 +572,7 @@ class StickNetwork:
         Default: consumption = 60, production = 0.
         For logging energy in both directions set both to 60.
         """
-        if not validate_mac(mac):
-            raise NodeError(f"MAC '{mac}' invalid")
-
-        if mac not in self._nodes:
-            raise NodeError(f"Node {mac} not present in network")
-
-        if self._nodes[mac].node_info.node_type.value not in ENERGY_NODE_TYPES:
-            raise NodeError(
-                f"Setting energy-intervals not supported for {self._nodes[mac].node_info.node_type.name}"
-                )
-
+        self._validate_energy_node(mac)
         # Validate input parameters
         if consumption <= 0:
             raise ValueError("Consumption interval must be positive")
@@ -611,6 +591,19 @@ class StickNetwork:
         if response.response_type != NodeResponseType.POWER_LOG_INTERVAL_ACCEPTED:
             raise MessageError(
                 f"Unknown NodeResponseType '{response.response_type.name}' received"
+            )
+
+    def _validate_energy_node(self, mac: str) -> None:
+        """Validate node for energy operations."""
+        if not validate_mac(mac):
+            raise NodeError(f"MAC '{mac}' invalid")
+        
+        if mac not in self._nodes:
+            raise NodeError(f"Node {mac} not present in network")
+        
+        if self._nodes[mac].node_info.node_type.value not in ENERGY_NODE_TYPES:
+            raise NodeError(
+                f"Energy operations not supported for {self._nodes[mac].node_info.node_type.name}"
             )
 
     def subscribe_to_node_events(
