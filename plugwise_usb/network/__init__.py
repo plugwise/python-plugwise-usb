@@ -573,6 +573,11 @@ class StickNetwork:
         Default: consumption = 60, production = 0.
         For logging energy in both directions set both to 60.
         """
+        if self._nodes[mac].node_info.node_type.value not in (1, 2, 9):
+            raise NodeError(
+                "Setting energy-intervals not supported for {self._nodes[mac].node_info.node_type.name}"
+                )
+
         # Validate input parameters
         if consumption <= 0:
             raise ValueError("Consumption interval must be positive")
