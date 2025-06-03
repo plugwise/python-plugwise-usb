@@ -571,7 +571,8 @@ class StickNetwork:
 
         if response.ack_id != NodeResponseType.CLOCK_ACCEPTED:
             raise MessageError(
-                f"Unknown NodeResponseType '{response.response_type.name}' received"
+                f"Unexpected NodeResponseType {response.ack_id!r} "
+                +"received in response to CircleClockSetRequest "
             )
 
     async def set_energy_intervals(
