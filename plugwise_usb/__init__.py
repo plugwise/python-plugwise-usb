@@ -14,6 +14,7 @@ from typing import Any, Final, TypeVar, cast
 
 from .api import NodeEvent, PlugwiseNode, StickEvent
 from .connection import StickController
+from .const import DEFAULT_CONS_INTERVAL, NO_PRODUCTION_INTERVAL
 from .exceptions import MessageError, NodeError, StickError, SubscriptionError
 from .network import StickNetwork
 
@@ -219,7 +220,11 @@ class Stick:
             raise NodeError(f"{exc}") from exc
 
         # Follow up by an energy-intervals (re)set
-        if (result := await self.set_energy_intervals(mac, 60, 0)):
+        if (
+            result := await self.set_energy_intervals(
+                mac, DEFAULT_CONS_INTERVAL, NO_PRODUCTION_INTERVAL
+            )
+        ):
             return result
 
         return False

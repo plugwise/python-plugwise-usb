@@ -31,7 +31,7 @@ MESSAGE_HEADER: Final = b"\x05\x05\x03\x03"
 
 # Max timeout in seconds
 # Stick responds with timeout messages within 10s.
-STICK_TIME_OUT: Final = 11 
+STICK_TIME_OUT: Final = 11
 # In bigger networks a response from a Node could take up a while, so lets use 15 seconds.
 NODE_TIME_OUT: Final = 15
 
@@ -99,3 +99,10 @@ TYPE_MODEL: Final[dict[int, tuple[str]]] = {
     8: ("Celsius",),
     9: ("Stealth",),
 }
+
+# Energy logging intervals
+DEFAULT_CONS_INTERVAL: Final[int] = 60
+NO_PRODUCTION_INTERVAL: Final[int] = 0
+
+# Energy Node types
+ENERGY_NODE_TYPES: tuple[int] = (1, 2, 9)

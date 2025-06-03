@@ -12,9 +12,9 @@ from typing import Any
 
 from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
-from ..constants import UTF8
-from ..helpers.util import validate_mac
+from ..constants import ENERGY_NODE_TYPES, UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
+from ..helpers.util import validate_mac
 from ..messages.requests import (
     CircleClockSetRequest,
     CircleMeasureIntervalRequest,
@@ -33,8 +33,6 @@ from ..messages.responses import (
 )
 from ..nodes import get_plugwise_node
 from .registry import StickNetworkRegister
-
-ENERGY_NODE_TYPES: tuple[int] = (1, 2, 9)
 
 _LOGGER = logging.getLogger(__name__)
 # endregion
@@ -596,10 +594,10 @@ class StickNetwork:
         """Validate node for energy operations."""
         if not validate_mac(mac):
             raise NodeError(f"MAC '{mac}' invalid")
-        
+
         if mac not in self._nodes:
             raise NodeError(f"Node {mac} not present in network")
-        
+
         if self._nodes[mac].node_info.node_type.value not in ENERGY_NODE_TYPES:
             raise NodeError(
                 f"Energy operations not supported for {self._nodes[mac].node_info.node_type.name}"
