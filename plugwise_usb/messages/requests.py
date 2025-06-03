@@ -764,7 +764,7 @@ class CircleClockSetRequest(PlugwiseRequest):
         day_of_week = Int(dt.weekday(), 2)
         if reset:
             self._args += [
-                this_date,       
+                this_date,
                 LogAddr(0, 8, False),
                 this_time,
                 day_of_week,

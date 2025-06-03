@@ -212,6 +212,7 @@ class Stick:
 
     async def energy_reset_request(self, mac: str) -> bool:
         """Send an energy-reset request to a Node."""
+        _LOGGER.debug("Resetting energy logs for %s", mac)
         try:
             await self._network.energy_reset_request(mac)
         except (MessageError, NodeError) as exc:

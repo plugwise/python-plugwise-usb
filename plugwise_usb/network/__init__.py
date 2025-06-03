@@ -13,6 +13,7 @@ from typing import Any
 from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
 from ..constants import UTF8
+from ..helpers.util import validate_mac
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
 from ..messages.requests import (
     CircleClockSetRequest,
@@ -546,6 +547,12 @@ class StickNetwork:
 
     async def energy_reset_request(self, mac: str) -> None:
         """Send an energy-reset to a Node."""
+        if not validate_mac(mac):
+            raise NodeError(f"MAC '{mac}' invalid")
+
+        if mac not in self._nodes:
+            raise NodeError(f"Node {mac} not present in network")
+        
         if self._nodes[mac].node_info.node_type.value not in ENERGY_NODE_TYPES:
             raise NodeError(
                 f"Energy-resetting not supported for {self._nodes[mac].node_info.node_type.name}"
@@ -575,6 +582,12 @@ class StickNetwork:
         Default: consumption = 60, production = 0.
         For logging energy in both directions set both to 60.
         """
+        if not validate_mac(mac):
+            raise NodeError(f"MAC '{mac}' invalid")
+
+        if mac not in self._nodes:
+            raise NodeError(f"Node {mac} not present in network")
+
         if self._nodes[mac].node_info.node_type.value not in ENERGY_NODE_TYPES:
             raise NodeError(
                 f"Setting energy-intervals not supported for {self._nodes[mac].node_info.node_type.name}"
