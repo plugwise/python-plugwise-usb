@@ -2,7 +2,7 @@
 
 ## v0.42.0
 
-- Implement resetting of energylogs
+- Implement resetting of energy logs
 
 ## v0.41.0
 
