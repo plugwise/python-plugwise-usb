@@ -552,7 +552,7 @@ class StickNetwork:
 
         if mac not in self._nodes:
             raise NodeError(f"Node {mac} not present in network")
-        
+
         if self._nodes[mac].node_info.node_type.value not in ENERGY_NODE_TYPES:
             raise NodeError(
                 f"Energy-resetting not supported for {self._nodes[mac].node_info.node_type.name}"
