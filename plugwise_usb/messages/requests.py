@@ -12,7 +12,6 @@ from typing import Any
 from ..constants import (
     DAY_IN_MINUTES,
     HOUR_IN_MINUTES,
-    LOGADDR_OFFSET,
     MAX_RETRIES,
     MESSAGE_FOOTER,
     MESSAGE_HEADER,
