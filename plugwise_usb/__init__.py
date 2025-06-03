@@ -14,7 +14,7 @@ from typing import Any, Final, TypeVar, cast
 
 from .api import NodeEvent, PlugwiseNode, StickEvent
 from .connection import StickController
-from .const import DEFAULT_CONS_INTERVAL, NO_PRODUCTION_INTERVAL
+from .constants import DEFAULT_CONS_INTERVAL, NO_PRODUCTION_INTERVAL
 from .exceptions import MessageError, NodeError, StickError, SubscriptionError
 from .network import StickNetwork
 
