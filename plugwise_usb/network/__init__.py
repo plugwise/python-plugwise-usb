@@ -573,7 +573,6 @@ class StickNetwork:
         For logging energy in both directions set both to 60.
         """
         self._validate_energy_node(mac)
-        # Validate input parameters
         if consumption <= 0:
             raise ValueError("Consumption interval must be positive")
         if production < 0:
