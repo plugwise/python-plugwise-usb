@@ -101,6 +101,14 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         )
 
     @property
+    def node_protocols(self) -> SupportedVersions | None:
+        """Return the node_protocols for the Node."""
+        if self._node_protocols is None:
+            return None
+
+        return self._node_protocols
+
+    @property
     @raise_not_loaded
     def battery_config(self) -> BatteryConfig:
         """Battery related configuration settings."""

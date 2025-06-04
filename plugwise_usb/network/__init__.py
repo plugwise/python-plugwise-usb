@@ -6,17 +6,19 @@ from __future__ import annotations
 
 from asyncio import Task, create_task, gather, sleep
 from collections.abc import Callable, Coroutine
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 import logging
 from typing import Any
 
 from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
-from ..constants import UTF8
+from ..constants import ENERGY_NODE_TYPES, UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
+from ..helpers.util import validate_mac
 from ..messages.requests import (
-    CirclePlusAllowJoiningRequest,
+    CircleClockSetRequest,
     CircleMeasureIntervalRequest,
+    CirclePlusAllowJoiningRequest,
     NodePingRequest,
 )
 from ..messages.responses import (
@@ -541,6 +543,25 @@ class StickNetwork:
         _LOGGER.debug("Sent AllowJoiningRequest to Circle+ with state=%s", state)
         self.accept_join_request = state
 
+    async def energy_reset_request(self, mac: str) -> None:
+        """Send an energy-reset to a Node."""
+        self._validate_energy_node(mac)
+        node_protocols = self._nodes[mac].node_protocols
+        request = CircleClockSetRequest(
+            self._controller.send,
+            bytes(mac, UTF8),
+            datetime.now(tz=UTC),
+            node_protocols.max,
+            True,
+        )
+        if (response := await request.send()) is None:
+            raise NodeError(f"Energy-reset for {mac} failed")
+
+        if response.ack_id != NodeResponseType.CLOCK_ACCEPTED:
+            raise MessageError(
+                f"Unexpected NodeResponseType {response.ack_id!r} received as response to CircleClockSetRequest"
+            )
+
     async def set_energy_intervals(
         self, mac: str, consumption: int, production: int
     ) -> None:
@@ -549,7 +570,7 @@ class StickNetwork:
         Default: consumption = 60, production = 0.
         For logging energy in both directions set both to 60.
         """
-        # Validate input parameters
+        self._validate_energy_node(mac)
         if consumption <= 0:
             raise ValueError("Consumption interval must be positive")
         if production < 0:
@@ -567,6 +588,19 @@ class StickNetwork:
         if response.response_type != NodeResponseType.POWER_LOG_INTERVAL_ACCEPTED:
             raise MessageError(
                 f"Unknown NodeResponseType '{response.response_type.name}' received"
+            )
+
+    def _validate_energy_node(self, mac: str) -> None:
+        """Validate node for energy operations."""
+        if not validate_mac(mac):
+            raise NodeError(f"MAC '{mac}' invalid")
+
+        if mac not in self._nodes:
+            raise NodeError(f"Node {mac} not present in network")
+
+        if self._nodes[mac].node_info.node_type.value not in ENERGY_NODE_TYPES:
+            raise NodeError(
+                f"Energy operations not supported for {self._nodes[mac].node_info.node_type.name}"
             )
 
     def subscribe_to_node_events(
