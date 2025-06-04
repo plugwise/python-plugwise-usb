@@ -34,7 +34,9 @@ class NetworkRegistrationCache(PlugwiseCache):
                 node_value = ""
             else:
                 node_value = str(node_type)
-            cache_data_to_save[str(address)] = f"{mac}{CACHE_DATA_SEPARATOR}{node_value}"
+            cache_data_to_save[str(address)] = (
+                f"{mac}{CACHE_DATA_SEPARATOR}{node_value}"
+            )
         await self.write_cache(cache_data_to_save)
 
     async def clear_cache(self) -> None:

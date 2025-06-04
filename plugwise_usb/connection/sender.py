@@ -38,17 +38,17 @@ class StickSender:
         self._loop = get_running_loop()
         self._receiver = stick_receiver
         self._transport = transport
-        self._processed_msgs = 0
+        self._expected_responses = 0
         self._stick_response: Future[StickResponse] | None = None
         self._stick_lock = Lock()
         self._current_request: None | PlugwiseRequest = None
         self._unsubscribe_stick_response: Callable[[], None] | None = None
 
     @property
-    def processed_messages(self) -> int:
+    def expected_responses(self) -> int:
         """Return the number of processed messages."""
-        return self._processed_msgs
-    
+        return self._expected_responses
+
     async def start(self) -> None:
         """Start the sender."""
         # Subscribe to ACCEPT stick responses, which contain the seq_id we need.
@@ -79,7 +79,9 @@ class StickSender:
 
         # Write message to serial port buffer
         serialized_data = request.serialize()
-        _LOGGER.debug("write_request_to_port | Write %s to port as %s", request, serialized_data)
+        _LOGGER.debug(
+            "write_request_to_port | Write %s to port as %s", request, serialized_data
+        )
         self._transport.write(serialized_data)
         # Don't timeout when no response expected
         if not request.no_response:
@@ -106,7 +108,11 @@ class StickSender:
             _LOGGER.warning("Exception for %s: %s", request, exc)
             request.assign_error(exc)
         else:
-            _LOGGER.debug("write_request_to_port | USB-Stick replied with %s to request %s", response, request)
+            _LOGGER.debug(
+                "write_request_to_port | USB-Stick replied with %s to request %s",
+                response,
+                request,
+            )
             if response.response_type == StickResponseType.ACCEPT:
                 if request.seq_id is not None:
                     request.assign_error(
@@ -115,12 +121,15 @@ class StickSender:
                         )
                     )
                 else:
+                    self._expected_responses += 1
                     request.seq_id = response.seq_id
                     await request.subscribe_to_response(
                         self._receiver.subscribe_to_stick_responses,
                         self._receiver.subscribe_to_node_responses,
                     )
-                    _LOGGER.debug("write_request_to_port | request has subscribed : %s", request)
+                    _LOGGER.debug(
+                        "write_request_to_port | request has subscribed : %s", request
+                    )
             elif response.response_type == StickResponseType.TIMEOUT:
                 _LOGGER.warning(
                     "USB-Stick directly responded with communication timeout for %s",
@@ -141,7 +150,6 @@ class StickSender:
         finally:
             self._stick_response.cancel()
             self._stick_lock.release()
-            self._processed_msgs += 1
 
     async def _process_stick_response(self, response: StickResponse) -> None:
         """Process stick response."""

@@ -9,7 +9,10 @@ from ..constants import LOGADDR_OFFSET, PLUGWISE_EPOCH, UTF8
 from ..exceptions import MessageError
 from ..helpers.util import int_to_uint
 
-DESERIALIZE_ERROR: Final[MessageError] = MessageError("Unable to return value. Deserialize data first")
+DESERIALIZE_ERROR: Final[MessageError] = MessageError(
+    "Unable to return value. Deserialize data first"
+)
+
 
 class BaseType:
     """Generic single instance property."""
@@ -391,7 +394,7 @@ class LogAddr(Int):
     def deserialize(self, val: bytes) -> None:
         """Convert data into integer value based on log address formatted data."""
         if val == b"00000000":
-            self._value = int(0)
+            self._value = 0
             return
         Int.deserialize(self, val)
         self._value = (self.value - LOGADDR_OFFSET) // 32

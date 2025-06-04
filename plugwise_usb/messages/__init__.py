@@ -19,6 +19,7 @@ class Priority(Enum):
     MEDIUM = 2
     LOW = 3
 
+
 class PlugwiseMessage:
     """Plugwise message base class."""
 

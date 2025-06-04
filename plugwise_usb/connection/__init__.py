@@ -209,9 +209,7 @@ class StickController:
         ping_response: NodePingResponse | None = None
         if ping_first:
             # Define ping request with one retry
-            ping_request = NodePingRequest(
-                self.send, bytes(mac, UTF8), retries=1
-            )
+            ping_request = NodePingRequest(self.send, bytes(mac, UTF8), retries=1)
             try:
                 ping_response = await ping_request.send()
             except StickError:
@@ -219,9 +217,7 @@ class StickController:
             if ping_response is None:
                 return (None, None)
 
-        info_request = NodeInfoRequest(
-            self.send, bytes(mac, UTF8), retries=1
-        )
+        info_request = NodeInfoRequest(self.send, bytes(mac, UTF8), retries=1)
         try:
             info_response = await info_request.send()
         except StickError:
