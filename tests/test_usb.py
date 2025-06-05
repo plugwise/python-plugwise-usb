@@ -710,11 +710,12 @@ class TestStick:
         state: pw_api.RelayState,  # type: ignore[name-defined]
     ) -> None:
         """Handle relay event callback."""
-        if feature == pw_api.NodeFeature.RELAY:
-            if state.state:
-                self.test_relay_state_on.set_result(state.state)
-            else:
-                self.test_relay_state_off.set_result(state.state)
+        if feature in (pw_api.NodeFeature.RELAY, pw_api.NodeFeature.RELAY_LOCK):
+            if feature == pw_api.NodeFeature.RELAY:
+                if state.state:
+                    self.test_relay_state_on.set_result(state.state)
+                else:
+                    self.test_relay_state_off.set_result(state.state)
         else:
             self.test_relay_state_on.set_exception(
                 BaseException(
