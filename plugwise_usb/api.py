@@ -50,6 +50,7 @@ class NodeFeature(str, Enum):
     POWER = "power"
     RELAY = "relay"
     RELAY_INIT = "relay_init"
+    RELAY_LOCK = "relay_lock"
     SWITCH = "switch"
     TEMPERATURE = "temperature"
 
