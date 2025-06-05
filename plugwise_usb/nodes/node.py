@@ -303,6 +303,14 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
 
     @property
     @raise_not_loaded
+    def relay_lock(self) -> bool:
+        """Relay value."""
+        if NodeFeature.RELAY_LOCK not in self._features:
+            raise FeatureError(f"Relay lock is not supported for node {self.mac}")
+        raise NotImplementedError()
+
+    @property
+    @raise_not_loaded
     def switch(self) -> bool:
         """Switch button value."""
         if NodeFeature.SWITCH not in self._features:
@@ -766,7 +774,16 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Change the state of the relay."""
         if NodeFeature.RELAY not in self._features:
             raise FeatureError(
-                f"Changing state of relay is not supported for node {self.mac}"
+                f"Changing relay-lock is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
+
+    @raise_not_loaded
+    async def set_relay_lock(self, state: bool) -> bool:
+        """Change lock of the relay."""
+        if NodeFeature.RELAY_LOCK not in self._features:
+            raise FeatureError(
+                f"Changing relay-lock is not supported for node {self.mac}"
             )
         raise NotImplementedError()
 
