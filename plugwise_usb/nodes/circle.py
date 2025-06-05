@@ -302,46 +302,39 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
         return self._power
 
+    def _log_no_energy_stats_update(self) -> None:
+        """Return log-message based on conditions."""
+        if (
+            self._initialization_delay_expired is not None
+            and datetime.now(tz=UTC) < self._initialization_delay_expired
+        ):
+            _LOGGER.info(
+                "Unable to return energy statistics for %s during initialization, because it is not responding",
+                self.name,
+            )
+        else:
+            _LOGGER.warning(
+                "Unable to return energy statistics for %s, because it is not responding",
+                self.name,
+            )
+
+
     @raise_not_loaded
     @raise_calibration_missing
     async def energy_update(self) -> EnergyStatistics | None:
         """Return updated energy usage statistics."""
         if self._current_log_address is None:
             _LOGGER.debug(
-                "Unable to update energy logs for node %s because last_log_address is unknown.",
+                "Unable to update energy logs for node %s because the current log address is unknown.",
                 self._mac_in_str,
             )
             if await self.node_info_update() is None:
-                if (
-                    self._initialization_delay_expired is not None
-                    and datetime.now(tz=UTC) < self._initialization_delay_expired
-                ):
-                    _LOGGER.info(
-                        "Unable to return energy statistics for %s during initialization, because it is not responding",
-                        self.name,
-                    )
-                else:
-                    _LOGGER.warning(
-                        "Unable to return energy statistics for %s, because it is not responding",
-                        self.name,
-                    )
+                self._log_no_energy_stats_update()
                 return None
-        # request node info update every 30 minutes.
+        # Request node info update every 30 minutes.
         elif not self.skip_update(self._node_info, 1800):
             if await self.node_info_update() is None:
-                if (
-                    self._initialization_delay_expired is not None
-                    and datetime.now(tz=UTC) < self._initialization_delay_expired
-                ):
-                    _LOGGER.info(
-                        "Unable to return energy statistics for %s during initialization, because it is not responding",
-                        self.name,
-                    )
-                else:
-                    _LOGGER.warning(
-                        "Unable to return energy statistics for %s, because it is not responding",
-                        self.name,
-                    )
+                self._log_no_energy_stats_update()
                 return None
 
         # Always request last energy log records at initial startup
@@ -351,6 +344,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
 
         if self._energy_counters.log_rollover:
+            # Try updating node_info
             if await self.node_info_update() is None:
                 _LOGGER.debug(
                     "async_energy_update | %s | Log rollover | node_info_update failed",
@@ -358,6 +352,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 )
                 return None
 
+            # Try collecting energy-stats for _current_log_address
             if not await self.energy_log_update(self._current_log_address):
                 _LOGGER.debug(
                     "async_energy_update | %s | Log rollover | energy_log_update failed",
@@ -365,10 +360,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 )
                 return None
 
-            if (
-                self._energy_counters.log_rollover
-                and self._current_log_address is not None
-            ):
+            if self._current_log_address is not None:
                 # Retry with previous log address as Circle node pointer to self._current_log_address
                 # could be rolled over while the last log is at previous address/slot
                 _prev_log_address, _ = calc_log_address(
@@ -414,11 +406,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             self._retrieve_energy_logs_task = create_task(
                 self.get_missing_energy_logs()
             )
-        else:
-            _LOGGER.debug(
-                "Skip creating task to update energy logs for node %s",
-                self._mac_in_str,
-            )
+
         if (
             self._initialization_delay_expired is not None
             and datetime.now(tz=UTC) < self._initialization_delay_expired
