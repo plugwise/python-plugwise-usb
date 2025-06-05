@@ -421,6 +421,9 @@ class PlugwiseNode(Protocol):
 
         """
 
+    async def set_relay_lock(self, state: bool) -> bool:
+        """Change the state of the relay-lock."""
+
     # endregion
 
     # region configuration properties
