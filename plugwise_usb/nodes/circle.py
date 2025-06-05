@@ -754,6 +754,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     (
                         NodeFeature.RELAY,
                         NodeFeature.RELAY_INIT,
+                        NodeFeature.RELAY_LOCK,
                         NodeFeature.ENERGY,
                         NodeFeature.POWER,
                     ),
@@ -792,6 +793,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             (
                 NodeFeature.RELAY,
                 NodeFeature.RELAY_INIT,
+                NodeFeature.RELAY_LOCK,
                 NodeFeature.ENERGY,
                 NodeFeature.POWER,
             ),
@@ -1112,6 +1114,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     self._mac_in_str,
                     states[feature],
                 )
+            elif feature == NodeFeature.RELAY_LOCK:
+                states[feature] = self._relay_lock
             elif feature == NodeFeature.RELAY_INIT:
                 states[feature] = self._relay_config
             elif feature == NodeFeature.POWER:
