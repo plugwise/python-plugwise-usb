@@ -384,6 +384,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     self._mac_in_str,
                 )
                 return self._energy_counters.energy_statistics
+
             if len(missing_addresses) == 1:
                 if await self.energy_log_update(missing_addresses[0]):
                     await self.power_update()
