@@ -84,6 +84,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         super().__init__(mac, address, controller, loaded_callback)
 
         # Relay
+        self._relay_lock = False
         self._relay_state: RelayState = RelayState()
         self._relay_config: RelayConfig = RelayConfig()
 
@@ -174,6 +175,15 @@ class PlugwiseCircle(PlugwiseBaseNode):
     async def relay_init_on(self) -> None:
         """Switch relay on."""
         await self._relay_init_set(True)
+
+    @property
+    def relay_lock(self) -> bool:
+        """State of the relay lock."""
+        return self._relay_lock
+
+    def set_relay_lock(self, state: bool) -> None:
+       """Set the state of the relay-lock."""
+       self._relay_lock = state
 
     # endregion
 
@@ -628,6 +638,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
             raise FeatureError(
                 f"Changing state of relay is not supported for node {self.mac}"
             )
+
+        if self._relay_lock:
+            raise NodeError("Changing state of relay failed, it is locked")
+
         _LOGGER.debug("set_relay() start")
         request = CircleRelaySwitchRequest(self._send, self._mac_in_bytes, state)
         response = await request.send()
