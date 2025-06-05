@@ -34,6 +34,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                     (
                         NodeFeature.RELAY,
                         NodeFeature.RELAY_INIT,
+                        NodeFeature.RELAY_LOCK,
                         NodeFeature.ENERGY,
                         NodeFeature.POWER,
                     ),
@@ -69,6 +70,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             (
                 NodeFeature.RELAY,
                 NodeFeature.RELAY_INIT,
+                NodeFeature.RELAY_LOCK,
                 NodeFeature.ENERGY,
                 NodeFeature.POWER,
             ),
