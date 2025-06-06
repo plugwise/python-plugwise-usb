@@ -792,12 +792,13 @@ class TestStick:
         # Test blocked async switching due to relay-lock active
         await stick.nodes["0098765432101234"].set_relay_lock(True)
         assert stick.nodes["0098765432101234"].relay_lock
+        assert stick.nodes["0098765432101234"].relay_lock.lock_state
         with pytest.raises(pw_exceptions.NodeError):
             await stick.nodes["0098765432101234"].set_relay(True)
         assert not stick.nodes["0098765432101234"].relay
         # Make sure to turn lock off for further testing
         await stick.nodes["0098765432101234"].set_relay_lock(False)
-        assert not stick.nodes["0098765432101234"].relay_lock
+        assert not stick.nodes["0098765432101234"].relay_lock.lock_state
 
         # Test async switching back from off to on
         self.test_relay_state_on = asyncio.Future()
@@ -2512,7 +2513,7 @@ class TestStick:
         assert state[pw_api.NodeFeature.INFO].version == "070073"
 
         assert state[pw_api.NodeFeature.RELAY].state
-        assert not state[pw_api.NodeFeature.RELAY_LOCK]
+        assert not state[pw_api.NodeFeature.RELAY_LOCK].lock_state
 
         # Check 1111111111111111
         get_state_timestamp = dt.now(UTC).replace(minute=0, second=0, microsecond=0)
@@ -2549,7 +2550,7 @@ class TestStick:
         )
         assert state[pw_api.NodeFeature.AVAILABLE].state
         assert state[pw_api.NodeFeature.RELAY].state
-        assert not state[pw_api.NodeFeature.RELAY_LOCK]
+        assert not state[pw_api.NodeFeature.RELAY_LOCK].lock_state
 
 
         # region Scan
