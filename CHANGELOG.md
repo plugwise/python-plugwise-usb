@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.42.1
+
+- Implement code improvements, extend debug message [#253](https://github.com/plugwise/python-plugwise-usb/pull/247)
+
 ## v0.42.0
 
 - Implement resetting of energy logs

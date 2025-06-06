@@ -850,10 +850,11 @@ class PulseCollection:
 
         missing = []
         _LOGGER.debug(
-            "_logs_missing | %s | first_address=%s, last_address=%s",
+            "_logs_missing | %s | first_address=%s, last_address=%s, from_timestamp=%s",
             self._mac,
             first_address,
             last_address,
+            from_timestamp,
         )
 
         # When higher addresses contain outdated data
