@@ -613,17 +613,20 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                     f"Update of feature '{feature.name}' is "
                     + f"not supported for {self.mac}"
                 )
-            if feature == NodeFeature.INFO:
-                states[NodeFeature.INFO] = await self.node_info_update()
-            elif feature == NodeFeature.AVAILABLE:
-                states[NodeFeature.AVAILABLE] = self.available_state
-            elif feature == NodeFeature.PING:
-                states[NodeFeature.PING] = await self.ping_update()
-            else:
-                raise NodeError(
-                    f"Update of feature '{feature.name}' is "
-                    + f"not supported for {self.mac}"
-                )
+
+            match feature:
+                case NodeFeature.INFO:
+                    states[NodeFeature.INFO] = await self.node_info_update()
+                case NodeFeature.AVAILABLE:
+                    states[NodeFeature.AVAILABLE] = self.available_state
+                case NodeFeature.PING:
+                    states[NodeFeature.PING] = await self.ping_update()
+                case _:
+                    raise NodeError(
+                        f"Update of feature '{feature.name}' is "
+                        + f"not supported for {self.mac}"
+                    )
+
         return states
 
     async def unload(self) -> None:

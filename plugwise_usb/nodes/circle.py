@@ -1141,34 +1141,35 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     f"Update of feature '{feature}' is not supported for {self.name}"
                 )
 
-            if feature == NodeFeature.ENERGY:
-                states[feature] = await self.energy_update()
-                _LOGGER.debug(
-                    "async_get_state %s - energy: %s",
-                    self._mac_in_str,
-                    states[feature],
-                )
-            elif feature == NodeFeature.RELAY:
-                states[feature] = self._relay_state
-                _LOGGER.debug(
-                    "async_get_state %s - relay: %s",
-                    self._mac_in_str,
-                    states[feature],
-                )
-            elif feature == NodeFeature.RELAY_LOCK:
-                states[feature] = self._relay_lock
-            elif feature == NodeFeature.RELAY_INIT:
-                states[feature] = self._relay_config
-            elif feature == NodeFeature.POWER:
-                states[feature] = await self.power_update()
-                _LOGGER.debug(
-                    "async_get_state %s - power: %s",
-                    self._mac_in_str,
-                    states[feature],
-                )
-            else:
-                state_result = await super().get_state((feature,))
-                states[feature] = state_result[feature]
+            match feature:
+                case NodeFeature.ENERGY:
+                    states[feature] = await self.energy_update()
+                    _LOGGER.debug(
+                        "async_get_state %s - energy: %s",
+                        self._mac_in_str,
+                        states[feature],
+                    )
+                case NodeFeature.RELAY:
+                    states[feature] = self._relay_state
+                    _LOGGER.debug(
+                        "async_get_state %s - relay: %s",
+                        self._mac_in_str,
+                        states[feature],
+                    )
+                case NodeFeature.RELAY_LOCK:
+                    states[feature] = self._relay_lock
+                case NodeFeature.RELAY_INIT:
+                    states[feature] = self._relay_config
+                case NodeFeature.POWER:
+                    states[feature] = await self.power_update()
+                    _LOGGER.debug(
+                        "async_get_state %s - power: %s",
+                        self._mac_in_str,
+                        states[feature],
+                    )
+                case _:
+                    state_result = await super().get_state((feature,))
+                    states[feature] = state_result[feature]
 
         if NodeFeature.AVAILABLE not in states:
             states[NodeFeature.AVAILABLE] = self.available_state

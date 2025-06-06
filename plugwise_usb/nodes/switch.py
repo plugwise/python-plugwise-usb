@@ -147,11 +147,15 @@ class PlugwiseSwitch(NodeSED):
                     f"Update of feature '{feature.name}' is "
                     + f"not supported for {self.mac}"
                 )
-            if feature == NodeFeature.SWITCH:
-                states[NodeFeature.SWITCH] = self._switch_state
-            else:
-                state_result = await super().get_state((feature,))
-                states[feature] = state_result[feature]
+
+            match feature:
+                case NodeFeature.SWITCH:
+                    states[NodeFeature.SWITCH] = self._switch_state
+                case _:
+                    state_result = await super().get_state((feature,))
+                    states[feature] = state_result[feature]
+
         if NodeFeature.AVAILABLE not in states:
             states[NodeFeature.AVAILABLE] = self.available_state
+
         return states
