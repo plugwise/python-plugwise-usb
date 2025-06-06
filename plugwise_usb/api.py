@@ -176,7 +176,7 @@ class RelayConfig:
 class RelayLock:
     """Status of relay lock."""
 
-    lock_state: bool | None = None
+    state: bool | None = None
 
 
 @dataclass(frozen=True)

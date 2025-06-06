@@ -86,7 +86,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         super().__init__(mac, address, controller, loaded_callback)
 
         # Relay
-        self._relay_lock: RelayLock = RelayLock(lock_state=False)
+        self._relay_lock: RelayLock = RelayLock(state=False)
         self._relay_state: RelayState = RelayState()
         self._relay_config: RelayConfig = RelayConfig()
 
@@ -644,7 +644,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 f"Changing state of relay is not supported for node {self.mac}"
             )
 
-        if getattr(self._relay_lock, "lock_state"):
+        if getattr(self._relay_lock, "state"):
             raise NodeError("Changing state of relay failed, it is locked")
 
         _LOGGER.debug("set_relay() start")
@@ -722,7 +722,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             if self._relay_lock:
                 state_update = True
     
-        self._relay_lock = replace(self._relay_lock, lock_state=state)
+        self._relay_lock = replace(self._relay_lock, state=state)
         if state_update:
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.RELAY_LOCK, self._relay_lock
