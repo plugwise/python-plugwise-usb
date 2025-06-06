@@ -18,6 +18,7 @@ from ..api import (
     NodeType,
     PowerStatistics,
     RelayConfig,
+    RelayLock,
     RelayState,
 )
 from ..connection import StickController
@@ -85,7 +86,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         super().__init__(mac, address, controller, loaded_callback)
 
         # Relay
-        self._relay_lock = False
+        self._relay_lock: RelayLock = RelayLock(lock_state=False)
         self._relay_state: RelayState = RelayState()
         self._relay_config: RelayConfig = RelayConfig()
 
@@ -178,13 +179,12 @@ class PlugwiseCircle(PlugwiseBaseNode):
         await self._relay_init_set(True)
 
     @property
-    def relay_lock(self) -> bool:
+    def relay_lock(self) -> RelayLock:
         """State of the relay lock."""
         return self._relay_lock
 
-    async def set_relay_lock(self, state: bool) -> None:
+    async def set_relay_lock(self, state: bool) -> RelayLock:
         """Set the state of the relay-lock."""
-        self._relay_lock = state
         await self._relay_update_lock(state)
         await self.publish_feature_update_to_subscribers(
             NodeFeature.RELAY_LOCK, state
@@ -644,7 +644,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 f"Changing state of relay is not supported for node {self.mac}"
             )
 
-        if self._relay_lock:
+        if getattr(self._relay_lock, "lock_state"):
             raise NodeError("Changing state of relay failed, it is locked")
 
         _LOGGER.debug("set_relay() start")
@@ -710,10 +710,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             await self.save_cache()
 
-    async def _relay_update_lock(self, lock: bool) -> None:
+    async def _relay_update_lock(self, state: bool) -> None:
         """Process relay lock update."""
         state_update = False
-        if lock:
+        if state:
             self._set_cache(CACHE_RELAY_LOCK, "True")
             if not self._relay_lock:
                 state_update = True
@@ -722,7 +722,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             if self._relay_lock:
                 state_update = True
     
-        self._relay_lock = lock
+        self._relay_lock = replace(self._relay_lock, lock_state=state)
         if state_update:
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.RELAY_LOCK, self._relay_lock
