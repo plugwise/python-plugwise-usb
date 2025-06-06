@@ -1140,6 +1140,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 raise NodeError(
                     f"Update of feature '{feature}' is not supported for {self.name}"
                 )
+
             if feature == NodeFeature.ENERGY:
                 states[feature] = await self.energy_update()
                 _LOGGER.debug(
@@ -1168,6 +1169,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
             else:
                 state_result = await super().get_state((feature,))
                 states[feature] = state_result[feature]
+
         if NodeFeature.AVAILABLE not in states:
             states[NodeFeature.AVAILABLE] = self.available_state
+
         return states
