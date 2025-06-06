@@ -2512,7 +2512,7 @@ class TestStick:
         assert state[pw_api.NodeFeature.INFO].version == "070073"
 
         assert state[pw_api.NodeFeature.RELAY].state
-        assert state[pw_api.NodeFeature.RELAY_LOCK]
+        assert not state[pw_api.NodeFeature.RELAY_LOCK]
 
         # Check 1111111111111111
         get_state_timestamp = dt.now(UTC).replace(minute=0, second=0, microsecond=0)
@@ -2549,7 +2549,7 @@ class TestStick:
         )
         assert state[pw_api.NodeFeature.AVAILABLE].state
         assert state[pw_api.NodeFeature.RELAY].state
-        assert state[pw_api.NodeFeature.RELAY_LOCK]
+        assert not state[pw_api.NodeFeature.RELAY_LOCK]
 
 
         # region Scan
