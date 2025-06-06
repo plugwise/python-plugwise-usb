@@ -162,6 +162,7 @@ FEATURE_SUPPORTED_AT_FIRMWARE: Final = {
     NodeFeature.POWER: 2.0,
     NodeFeature.RELAY: 2.0,
     NodeFeature.RELAY_INIT: 2.6,
+    NodeFeature.RELAY_LOCK: 2.0,
     NodeFeature.MOTION: 2.0,
     NodeFeature.MOTION_CONFIG: 2.0,
     NodeFeature.SWITCH: 2.0,
