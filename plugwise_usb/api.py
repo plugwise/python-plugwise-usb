@@ -378,6 +378,13 @@ class PlugwiseNode(Protocol):
         """
 
     @property
+    def relay_lock(self) -> RelayLock:
+        """Last known relay lock state information.
+
+        Raises NodeError when relay lock feature is not present at device.
+        """
+
+    @property
     def relay_state(self) -> RelayState:
         """Last known relay state information.
 
