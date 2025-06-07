@@ -716,6 +716,9 @@ class TestStick:
                     self.test_relay_state_on.set_result(state.state)
                 else:
                     self.test_relay_state_off.set_result(state.state)
+            if feature == pw_api.NodeFeature.RELAY_LOCK:
+                # Handle RELAY_LOCK callbacks if needed
+                pass
         else:
             self.test_relay_state_on.set_exception(
                 BaseException(
