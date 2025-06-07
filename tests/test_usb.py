@@ -2168,6 +2168,7 @@ class TestStick:
             hardware="080007",
             node_type=None,
             timestamp=None,
+            relay_lock=None,
             relay_state=None,
             logaddress_pointer=None,
         )
@@ -2272,6 +2273,7 @@ class TestStick:
             hardware="080007",
             node_type=None,
             timestamp=None,
+            relay_lock=None,
             relay_state=None,
             logaddress_pointer=None,
         )
@@ -2348,6 +2350,7 @@ class TestStick:
             hardware="070051",
             node_type=None,
             timestamp=None,
+            relay_lock=None,
             relay_state=None,
             logaddress_pointer=None,
         )
@@ -2365,6 +2368,7 @@ class TestStick:
             hardware="070051",
             node_type=None,
             timestamp=None,
+            relay_lock=None,
             relay_state=None,
             logaddress_pointer=None,
         )
