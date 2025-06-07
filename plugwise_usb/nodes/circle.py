@@ -663,9 +663,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
     async def set_relay_lock(self, state: bool) -> bool:
         """Set the state of the relay-lock."""
         await self._relay_update_lock(state)
-        await self.publish_feature_update_to_subscribers(
-            NodeFeature.RELAY_LOCK, state
-        )
         return state
 
     async def _relay_load_from_cache(self) -> bool:
