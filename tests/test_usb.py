@@ -784,6 +784,10 @@ class TestStick:
         # Manually load node
         assert await stick.nodes["0098765432101234"].load()
 
+        # Check relay_lock is set to False when not in cache
+        assert stick.nodes["0098765432101234"].relay_lock
+        assert not stick.nodes["0098765432101234"].relay_lock.state
+
         unsub_relay = stick.nodes["0098765432101234"].subscribe_to_feature_update(
             node_feature_callback=self.node_relay_state,
             features=(pw_api.NodeFeature.RELAY, pw_api.NodeFeature.RELAY_LOCK,),
@@ -797,7 +801,6 @@ class TestStick:
 
         # Test blocked async switching due to relay-lock active
         await stick.nodes["0098765432101234"].set_relay_lock(True)
-        assert stick.nodes["0098765432101234"].relay_lock
         assert stick.nodes["0098765432101234"].relay_lock.state
         with pytest.raises(pw_exceptions.NodeError):
             await stick.nodes["0098765432101234"].set_relay(True)
