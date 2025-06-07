@@ -775,6 +775,9 @@ class TestStick:
         with pytest.raises(pw_exceptions.NodeError):
             await stick.nodes["0098765432101234"].set_relay(True)
 
+        with pytest.raises(pw_exceptions.NodeError):
+            await stick.nodes["0098765432101234"].set_relay_lock(True)
+
         # Manually load node
         assert await stick.nodes["0098765432101234"].load()
 
