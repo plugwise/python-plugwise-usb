@@ -50,6 +50,7 @@ class NodeFeature(str, Enum):
     POWER = "power"
     RELAY = "relay"
     RELAY_INIT = "relay_init"
+    RELAY_LOCK = "relay_lock"
     SWITCH = "switch"
     TEMPERATURE = "temperature"
 
@@ -169,6 +170,13 @@ class RelayConfig:
     """
 
     init_state: bool | None = None
+
+
+@dataclass(frozen=True)
+class RelayLock:
+    """Status of relay lock."""
+
+    state: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -370,6 +378,13 @@ class PlugwiseNode(Protocol):
         """
 
     @property
+    def relay_lock(self) -> RelayLock:
+        """Last known relay lock state information.
+
+        Raises NodeError when relay lock feature is not present at device.
+        """
+
+    @property
     def relay_state(self) -> RelayState:
         """Last known relay state information.
 
@@ -419,6 +434,9 @@ class PlugwiseNode(Protocol):
             NodeError: When the node is not yet loaded or setting the state failed.
 
         """
+
+    async def set_relay_lock(self, state: bool) -> bool:
+        """Change the state of the relay-lock."""
 
     # endregion
 

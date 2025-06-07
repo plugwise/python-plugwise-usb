@@ -566,13 +566,16 @@ class PlugwiseScan(NodeSED):
                     f"Update of feature '{feature.name}' is "
                     + f"not supported for {self.mac}"
                 )
-            if feature == NodeFeature.MOTION:
-                states[NodeFeature.MOTION] = self._motion_state
-            elif feature == NodeFeature.MOTION_CONFIG:
-                states[NodeFeature.MOTION_CONFIG] = self._motion_config
-            else:
-                state_result = await super().get_state((feature,))
-                states[feature] = state_result[feature]
+
+            match feature:
+                case NodeFeature.MOTION:
+                    states[NodeFeature.MOTION] = self._motion_state
+                case NodeFeature.MOTION_CONFIG:
+                    states[NodeFeature.MOTION_CONFIG] = self._motion_config
+                case _:
+                    state_result = await super().get_state((feature,))
+                    states[feature] = state_result[feature]
+
         if NodeFeature.AVAILABLE not in states:
             states[NodeFeature.AVAILABLE] = self.available_state
         return states

@@ -134,15 +134,19 @@ class PlugwiseSense(NodeSED):
                 raise NodeError(
                     f"Update of feature '{feature.name}' is not supported for {self.mac}"
                 )
-            if feature == NodeFeature.TEMPERATURE:
-                states[NodeFeature.TEMPERATURE] = self._temperature
-            elif feature == NodeFeature.HUMIDITY:
-                states[NodeFeature.HUMIDITY] = self._humidity
-            elif feature == NodeFeature.PING:
-                states[NodeFeature.PING] = await self.ping_update()
-            else:
-                state_result = await super().get_state((feature,))
-                states[feature] = state_result[feature]
+
+            match feature:
+                case NodeFeature.TEMPERATURE:
+                    states[NodeFeature.TEMPERATURE] = self._temperature
+                case NodeFeature.HUMIDITY:
+                    states[NodeFeature.HUMIDITY] = self._humidity
+                case NodeFeature.PING:
+                    states[NodeFeature.PING] = await self.ping_update()
+                case _:
+                    state_result = await super().get_state((feature,))
+                    states[feature] = state_result[feature]
+
         if NodeFeature.AVAILABLE not in states:
             states[NodeFeature.AVAILABLE] = self.available_state
+
         return states

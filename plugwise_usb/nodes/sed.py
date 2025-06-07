@@ -756,11 +756,14 @@ class NodeSED(PlugwiseBaseNode):
                     f"Update of feature '{feature.name}' is "
                     + f"not supported for {self.mac}"
                 )
-            if feature == NodeFeature.INFO:
-                states[NodeFeature.INFO] = await self.node_info_update()
-            elif feature == NodeFeature.BATTERY:
-                states[NodeFeature.BATTERY] = self._battery_config
-            else:
-                state_result = await super().get_state((feature,))
-                states[feature] = state_result[feature]
+
+            match feature:
+                case NodeFeature.INFO:
+                    states[NodeFeature.INFO] = await self.node_info_update()
+                case NodeFeature.BATTERY:
+                    states[NodeFeature.BATTERY] = self._battery_config
+                case _:
+                    state_result = await super().get_state((feature,))
+                    states[feature] = state_result[feature]
+
         return states
