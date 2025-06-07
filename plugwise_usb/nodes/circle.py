@@ -666,27 +666,43 @@ class PlugwiseCircle(PlugwiseBaseNode):
         return state
 
     async def _relay_load_from_cache(self) -> bool:
-        """Load relay state and lock from cache."""
+        """Load relay state from cache."""
         if (cached_relay_data := self._get_cache(CACHE_RELAY)) is not None:
-            cached_relay_lock = self._get_cache(CACHE_RELAY_LOCK)
-            _LOGGER.debug("Restore relay state and lock cache for node %s", self._mac_in_str)
-            relay_state = relay_lock = False
+            _LOGGER.debug(
+                "Restore relay state from cache for node %s: relay: %s",
+                self._mac_in_str,
+                cached_relay_data,
+            )
+            relay_state = False
             if cached_relay_data == "True":
                 relay_state = True
-            if cached_relay_lock == "True":
-                relay_lock = True
+
             await self._relay_update_state(relay_state)
-            await self._relay_update_lock(relay_lock)
-            return True
+            result = True
 
         _LOGGER.debug(
             "Failed to restore relay state from cache for node %s, try to request node info...",
             self._mac_in_str,
         )
         if await self.node_info_update() is None:
-            return False
+            result = False
 
-        return True
+        if (cached_relay_lock := self._get_cache(CACHE_RELAY_LOCK)) is not None:
+            _LOGGER.debug(
+                "Restore relay_lock state from cache for node %s: relay_lock: %s",
+                self._mac_in_str,
+                cached_relay_lock,
+            )
+            relay_lock = False
+            if cached_relay_lock == "True":
+                relay_lock = True
+
+            await self._relay_update_lock(relay_lock)
+
+        # Set to initial state False when not present in cache
+        await self._relay_update_lock(False)
+
+        return result
 
     async def _relay_update_state(
         self, state: bool, timestamp: datetime | None = None
@@ -960,7 +976,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         hardware: str | None,
         node_type: NodeType | None,
         timestamp: datetime | None,
-        relay_lock: bool | None,        
+        relay_lock: bool | None,
         relay_state: bool | None,
         logaddress_pointer: int | None,
     ) -> bool:
