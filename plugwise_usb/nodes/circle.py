@@ -701,7 +701,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             self._set_cache(CACHE_RELAY, "False")
             if self._relay_state.state is None or self._relay_state.state:
                 state_update = True
-    
+
         self._relay_state = replace(self._relay_state, state=state, timestamp=timestamp)
         if state_update:
             await self.publish_feature_update_to_subscribers(
@@ -720,7 +720,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             self._set_cache(CACHE_RELAY_LOCK, "False")
             if self._relay_lock.state is None or self._relay_lock.state:
                 state_update = True
-    
+
         if state_update:
             self._relay_lock = replace(self._relay_lock, state=state)
             await self.publish_feature_update_to_subscribers(
