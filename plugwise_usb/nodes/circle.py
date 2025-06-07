@@ -963,6 +963,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         hardware: str | None,
         node_type: NodeType | None,
         timestamp: datetime | None,
+        relay_lock: bool | None,        
         relay_state: bool | None,
         logaddress_pointer: int | None,
     ) -> bool:
@@ -972,6 +973,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._relay_state, state=relay_state, timestamp=timestamp
             )
 
+        if relay_lock is not None:
+            self._relay_lock = replace(self._relay_lock, state=relay_lock)
+
         if logaddress_pointer is not None:
             self._current_log_address = logaddress_pointer
 
@@ -980,6 +984,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             hardware,
             node_type,
             timestamp,
+            relay_lock,
             relay_state,
             logaddress_pointer,
         )

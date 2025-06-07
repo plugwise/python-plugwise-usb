@@ -469,6 +469,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             node_type=node_info.node_type,
             hardware=node_info.hardware,
             timestamp=node_info.timestamp,
+            relay_lock=None,
             relay_state=node_info.relay_state,
             logaddress_pointer=node_info.current_logaddress_pointer,
         )
@@ -487,6 +488,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             hardware=hardware,
             node_type=node_type,
             timestamp=timestamp,
+            relay_lock=None,
             relay_state=None,
             logaddress_pointer=None,
         )
@@ -498,6 +500,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         hardware: str | None,
         node_type: NodeType | None,
         timestamp: datetime | None,
+        relay_lock: bool | None,
         relay_state: bool | None,
         logaddress_pointer: int | None,
     ) -> bool:
