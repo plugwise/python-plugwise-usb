@@ -667,6 +667,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
     async def _relay_load_from_cache(self) -> bool:
         """Load relay state from cache."""
+        result = True
         if (cached_relay_data := self._get_cache(CACHE_RELAY)) is not None:
             _LOGGER.debug(
                 "Restore relay state from cache for node %s: relay: %s",
@@ -674,9 +675,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 cached_relay_data,
             )
 
-            relay_state = False if cached_relay_data == "True" else True
+            relay_state = cached_relay_data != "True"
             await self._relay_update_state(relay_state)
-            result = True
         else:
             _LOGGER.debug(
                 "Failed to restore relay state from cache for node %s, try to request node info...",
@@ -691,7 +691,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._mac_in_str,
                 cached_relay_lock,
             )
-            relay_lock = False if cached_relay_lock == "True" else True
+            relay_lock = cached_relay_lock != "True"
             await self._relay_update_lock(relay_lock)
         else:
             # Set to initial state False when not present in cache
