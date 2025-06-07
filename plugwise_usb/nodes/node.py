@@ -23,6 +23,7 @@ from ..api import (
     NodeType,
     PowerStatistics,
     RelayConfig,
+    RelayLock,
     RelayState,
 )
 from ..connection import StickController
@@ -277,10 +278,12 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
 
     @property
     @raise_not_loaded
-    def relay_state(self) -> RelayState:
-        """State of relay."""
-        if NodeFeature.RELAY not in self._features:
-            raise FeatureError(f"Relay state is not supported for node {self.mac}")
+    def relay_config(self) -> RelayConfig:
+        """Relay configuration."""
+        if NodeFeature.RELAY_INIT not in self._features:
+            raise FeatureError(
+                f"Relay configuration is not supported for node {self.mac}"
+            )
         raise NotImplementedError()
 
     @property
@@ -293,18 +296,16 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
 
     @property
     @raise_not_loaded
-    def relay_config(self) -> RelayConfig:
-        """Relay configuration."""
-        if NodeFeature.RELAY_INIT not in self._features:
-            raise FeatureError(
-                f"Relay configuration is not supported for node {self.mac}"
-            )
+    def relay_state(self) -> RelayState:
+        """State of relay."""
+        if NodeFeature.RELAY not in self._features:
+            raise FeatureError(f"Relay state is not supported for node {self.mac}")
         raise NotImplementedError()
 
     @property
     @raise_not_loaded
-    def relay_lock(self) -> bool:
-        """Relay value."""
+    def relay_lock(self) -> RelayLock:
+        """State of relay lock."""
         if NodeFeature.RELAY_LOCK not in self._features:
             raise FeatureError(f"Relay lock is not supported for node {self.mac}")
         raise NotImplementedError()
