@@ -964,12 +964,18 @@ class PlugwiseCircle(PlugwiseBaseNode):
     async def _node_info_load_from_cache(self) -> bool:
         """Load node info settings from cache."""
         result = await super()._node_info_load_from_cache()
+        _LOGGER.debug("circle._node_info_load_from_cache | result=%s", result)
         if (
             current_log_address := self._get_cache(CACHE_CURRENT_LOG_ADDRESS)
         ) is not None:
             self._current_log_address = int(current_log_address)
+            _LOGGER.debug(
+                "circle._node_info_load_from_cache | current_log_address=%s",
+                self._current_log_address
+            )
             return result
 
+        _LOGGER.debug("circle._node_info_load_from_cache | current_log_address=None")
         return False
 
     # pylint: disable=too-many-arguments
