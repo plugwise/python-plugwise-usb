@@ -183,14 +183,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
         """State of the relay lock."""
         return self._relay_lock
 
-    async def set_relay_lock(self, state: bool) -> bool:
-        """Set the state of the relay-lock."""
-        await self._relay_update_lock(state)
-        await self.publish_feature_update_to_subscribers(
-            NodeFeature.RELAY_LOCK, state
-        )
-        return state
-
     # endregion
 
     async def calibration_update(self) -> bool:
@@ -666,6 +658,15 @@ class PlugwiseCircle(PlugwiseBaseNode):
             f"Unexpected NodeResponseType {response.ack_id!r} received "
             + "in response to CircleRelaySwitchRequest for node {self.mac}"
         )
+
+    @raise_not_loaded
+    async def set_relay_lock(self, state: bool) -> bool:
+        """Set the state of the relay-lock."""
+        await self._relay_update_lock(state)
+        await self.publish_feature_update_to_subscribers(
+            NodeFeature.RELAY_LOCK, state
+        )
+        return state
 
     async def _relay_load_from_cache(self) -> bool:
         """Load relay state and lock from cache."""
