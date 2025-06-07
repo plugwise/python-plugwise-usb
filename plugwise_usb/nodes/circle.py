@@ -847,6 +847,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
         if not await super()._load_from_cache():
+            _LOGGER.debug("_load_from_cache | super-load failed")
             return False
 
         # Calibration settings
@@ -855,25 +856,32 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 "Node %s failed to load calibration from cache", self._mac_in_str
             )
             return False
+
         # Energy collection
-        if await self._energy_log_records_load_from_cache():
+        if not await self._energy_log_records_load_from_cache():
             _LOGGER.warning(
                 "Node %s failed to load energy_log_records from cache",
                 self._mac_in_str,
             )
+            return False
+
         # Relay
-        if await self._relay_load_from_cache():
+        if not await self._relay_load_from_cache():
             _LOGGER.debug(
-                "Node %s successfully loaded relay state from cache",
+                "Node %s failed to load relay state from cache",
                 self._mac_in_str,
             )
+            return False
+
         # Relay init config if feature is enabled
         if NodeFeature.RELAY_INIT in self._features:
-            if await self._relay_init_load_from_cache():
+            if not await self._relay_init_load_from_cache():
                 _LOGGER.debug(
-                    "Node %s successfully loaded relay_init state from cache",
+                    "Node %s failed to load relay_init state from cache",
                     self._mac_in_str,
                 )
+            return False
+
         return True
 
     @raise_not_loaded
