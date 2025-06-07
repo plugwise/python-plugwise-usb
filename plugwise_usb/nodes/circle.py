@@ -86,7 +86,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         super().__init__(mac, address, controller, loaded_callback)
 
         # Relay
-        self._relay_lock: RelayLock = RelayLock(state=False)
+        self._relay_lock: RelayLock = RelayLock()
         self._relay_state: RelayState = RelayState()
         self._relay_config: RelayConfig = RelayConfig()
 
