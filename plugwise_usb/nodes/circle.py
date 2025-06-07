@@ -716,11 +716,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
         state_update = False
         if state:
             self._set_cache(CACHE_RELAY_LOCK, "True")
-            if not self._relay_lock:
+            if self._relay_lock.state is None or not self._relay_lock.state:
                 state_update = True
         else:
             self._set_cache(CACHE_RELAY_LOCK, "False")
-            if self._relay_lock:
+            if self._relay_lock.state is None or self._relay_lock.state:
                 state_update = True
     
         self._relay_lock = replace(self._relay_lock, state=state)
