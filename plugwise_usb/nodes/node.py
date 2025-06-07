@@ -506,6 +506,19 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         logaddress_pointer: int | None,
     ) -> bool:
         """Process new node info and return true if all fields are updated."""
+        _LOGGER.debug(
+            "update_node_details | firmware=%s, hardware=%s, nodetype=%s, timestamp=%s",
+            firmware,
+            hardware,
+            node_type,
+            timestamp,
+        )
+        _LOGGER.debug(
+            "update_node_details | relay_lock=%s, relay_state=%s, logaddress_pointer=%s,",
+            relay_lock,
+            relay_state,
+            logaddress_pointer,
+        )
         complete = True
         if node_type is None:
             complete = False
@@ -549,11 +562,14 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                         self.mac,
                         hardware,
                     )
+
                 self._node_info.model_type = None
                 if len(model_info) > 1:
                     self._node_info.model_type = " ".join(model_info[1:])
+
                 if self._node_info.model is not None:
                     self._node_info.name = f"{model_info[0]} {self._node_info.mac[-5:]}"
+
             self._set_cache(CACHE_HARDWARE, hardware)
 
         if timestamp is None:
@@ -567,7 +583,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             minutes=5
         ):
             await self._available_update_state(True, timestamp)
-
+        _LOGGER.debug("update_node_details | complete=%s", complete)
         return complete
 
     async def is_online(self) -> bool:
