@@ -484,7 +484,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         node_type: NodeType | None = None
         if (node_type_str := self._get_cache(CACHE_NODE_TYPE)) is not None:
             node_type = NodeType(int(node_type_str))
-        return await self.update_node_details(
+        result = await self.update_node_details(
             firmware=firmware,
             hardware=hardware,
             node_type=node_type,
@@ -493,6 +493,8 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             relay_state=None,
             logaddress_pointer=None,
         )
+        _LOGGER.debug("_node_info_load_from_cache returns %s", result)
+        return result
 
     # pylint: disable=too-many-arguments
     async def update_node_details(
