@@ -403,15 +403,18 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Load states from previous cached information. Return True if successful."""
         if self._loaded:
             return True
+
         if not await self._load_cache_file():
             _LOGGER.debug("Node %s failed to load cache file", self.mac)
             return False
+
         # Node Info
         result: bool = await self._node_info_load_from_cache()
         _LOGGER.debug("_load_from_cache | load node_info | result=%s", result)
         if not result:
             _LOGGER.debug("Node %s failed to load node_info from cache", self.mac)
             return False
+
         return True
 
     async def initialize(self) -> None:
