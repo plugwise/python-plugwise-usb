@@ -781,7 +781,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Change the state of the relay."""
         if NodeFeature.RELAY not in self._features:
             raise FeatureError(
-                f"Changing relay-lock is not supported for node {self.mac}"
+                f"Changing relay-state is not supported for node {self.mac}"
             )
         raise NotImplementedError()
 
@@ -790,7 +790,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Change lock of the relay."""
         if NodeFeature.RELAY_LOCK not in self._features:
             raise FeatureError(
-                f"Changing relay-lock is not supported for node {self.mac}"
+                f"Changing relay-lock state is not supported for node {self.mac}"
             )
         raise NotImplementedError()
 
