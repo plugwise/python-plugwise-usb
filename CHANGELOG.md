@@ -2,7 +2,7 @@
 
 ## v0.43.0
 
-- Feature Request: add a lock to disable relay-switch-changes (energy devices only)
+- Feature Request: add a lock to disable relay-switch-changes (energy devices only) [#254](https://github.com/plugwise/python-plugwise-usb/pull/254)
 
 ## v0.42.1
 
