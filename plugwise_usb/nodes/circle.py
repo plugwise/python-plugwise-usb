@@ -721,8 +721,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
             if self._relay_lock.state is None or self._relay_lock.state:
                 state_update = True
     
-        self._relay_lock = replace(self._relay_lock, state=state)
         if state_update:
+            self._relay_lock = replace(self._relay_lock, state=state)
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.RELAY_LOCK, self._relay_lock
             )
