@@ -786,8 +786,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
         """Load and activate Circle node features."""
         if self._loaded:
             return True
+
         if self._cache_enabled:
-            _LOGGER.debug("Load Circle node %s from cache", self._mac_in_str)
+            _LOGGER.debug("Loading Circle node %s from cache", self._mac_in_str)
             if await self._load_from_cache():
                 self._loaded = True
                 self._setup_protocol(
@@ -803,12 +804,13 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 if await self.initialize():
                     await self._loaded_callback(NodeEvent.LOADED, self.mac)
                     return True
+
             _LOGGER.debug(
-                "Load Circle node %s from cache failed",
+                "Loading Circle node %s from cache failed",
                 self._mac_in_str,
             )
         else:
-            _LOGGER.debug("Load Circle node %s", self._mac_in_str)
+            _LOGGER.debug("Loading Circle node %s", self._mac_in_str)
 
         # Check if node is online
         if not self._available and not await self.is_online():
@@ -828,6 +830,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._mac_in_str,
             )
             return False
+
         self._loaded = True
         self._setup_protocol(
             CIRCLE_FIRMWARE_SUPPORT,
@@ -841,6 +844,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
         if not await self.initialize():
             return False
+
         await self._loaded_callback(NodeEvent.LOADED, self.mac)
         return True
 
