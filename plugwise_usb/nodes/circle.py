@@ -966,8 +966,14 @@ class PlugwiseCircle(PlugwiseBaseNode):
             await self.save_cache()
 
         if self._current_log_address is not None and (
+            # This can be the case after an energy-reset
+            self._current_log_address > node_info.current_logaddress_pointer
+            or (self._current_log_address < node_info.current_logaddress_pointer and self._current_log_address == 0)
+        ):
+
+        if self._current_log_address is not None and (
             # Change note: _curr_log_addr lags behind c_l_a__pointer so must be < instead of >
-            self._current_log_address < node_info.current_logaddress_pointer 
+            self._current_log_address < node_info.current_logaddress_pointer
             # Change note: rollover is from 6015 to 0 so must be 6015 instead of 0
             or self._current_log_address == 6015
         ):
