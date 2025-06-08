@@ -955,14 +955,17 @@ class PlugwiseCircle(PlugwiseBaseNode):
         await self._relay_update_state(
             node_info.relay_state, timestamp=node_info.timestamp
         )
-        if self._current_log_address is None:
-            if node_info.current_logaddress_pointer:
-                self._set_cache(
-                    CACHE_CURRENT_LOG_ADDRESS,
-                    node_info.current_logaddress_pointer,
-                )
-                await self.save_cache()
-        elif (
+        if (
+            self._get_cache(CACHE_CURRENT_LOG_ADDRESS) is None
+            and node_info.current_logaddress_pointer
+        ):
+            self._set_cache(
+                CACHE_CURRENT_LOG_ADDRESS,
+                node_info.current_logaddress_pointer,
+            )
+            await self.save_cache()
+
+        if self._current_log_address is not None and (
             self._current_log_address > node_info.current_logaddress_pointer
             or self._current_log_address == 0
         ):
@@ -973,13 +976,12 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 node_info.current_logaddress_pointer,
                 self._mac_in_str,
             )
-
-        if self._current_log_address != node_info.current_logaddress_pointer:
-            self._current_log_address = node_info.current_logaddress_pointer
-            self._set_cache(
-                CACHE_CURRENT_LOG_ADDRESS, node_info.current_logaddress_pointer
-            )
-            await self.save_cache()
+            if self._current_log_address != node_info.current_logaddress_pointer:
+                self._current_log_address = node_info.current_logaddress_pointer
+                self._set_cache(
+                    CACHE_CURRENT_LOG_ADDRESS, node_info.current_logaddress_pointer
+                )
+                await self.save_cache()
 
         return self._node_info
 
