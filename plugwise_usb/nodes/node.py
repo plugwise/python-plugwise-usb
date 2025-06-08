@@ -409,9 +409,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             return False
 
         # Node Info
-        result: bool = await self._node_info_load_from_cache()
-        _LOGGER.debug("_load_from_cache | load node_info | result=%s", result)
-        if not result:
+        if not await self._node_info_load_from_cache():
             _LOGGER.debug("Node %s failed to load node_info from cache", self.mac)
             return False
 
@@ -489,7 +487,8 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         node_type: NodeType | None = None
         if (node_type_str := self._get_cache(CACHE_NODE_TYPE)) is not None:
             node_type = NodeType(int(node_type_str))
-        result = await self.update_node_details(
+        
+        return await self.update_node_details(
             firmware=firmware,
             hardware=hardware,
             node_type=node_type,
@@ -498,8 +497,6 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             relay_state=None,
             logaddress_pointer=None,
         )
-        _LOGGER.debug("_node_info_load_from_cache returns %s", result)
-        return result
 
     # pylint: disable=too-many-arguments
     async def update_node_details(
@@ -590,7 +587,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             minutes=5
         ):
             await self._available_update_state(True, timestamp)
-        _LOGGER.debug("update_node_details | complete=%s", complete)
+
         return complete
 
     async def is_online(self) -> bool:
