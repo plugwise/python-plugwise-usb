@@ -74,7 +74,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         self._cache_enabled: bool = False
         self._cache_folder_create: bool = False
         self._cache_save_task: Task[None] | None = None
-        self._node_cache = NodeCache(mac, "")
+        self._node_cache = NodeCache(mac)
         # Sensors
         self._available: bool = False
         self._connected: bool = False
