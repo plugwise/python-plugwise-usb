@@ -690,6 +690,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Store setting with value in cache memory."""
         if not self._cache_enabled:
             return
+
         if isinstance(value, datetime):
             self._node_cache.update_state(
                 setting,
@@ -707,9 +708,11 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Save cached data to cache file when cache is enabled."""
         if not self._cache_enabled or not self._loaded or not self._initialized:
             return
+
         _LOGGER.debug("Save cache file for node %s", self.mac)
         if self._cache_save_task is not None and not self._cache_save_task.done():
             await self._cache_save_task
+
         if trigger_only:
             self._cache_save_task = create_task(self._node_cache.save_cache())
         else:

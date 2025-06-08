@@ -591,6 +591,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 cached_logs += f"-{log.timestamp.hour}-{log.timestamp.minute}"
                 cached_logs += f"-{log.timestamp.second}:{log.pulses}"
         self._set_cache(CACHE_ENERGY_COLLECTION, cached_logs)
+        await self.save_cache()
 
     async def _energy_log_record_update_state(
         self,
@@ -606,6 +607,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
         if not self._cache_enabled:
             return False
+
         log_cache_record = f"{address}:{slot}:{timestamp.year}"
         log_cache_record += f"-{timestamp.month}-{timestamp.day}"
         log_cache_record += f"-{timestamp.hour}-{timestamp.minute}"
@@ -621,12 +623,16 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._set_cache(
                     CACHE_ENERGY_COLLECTION, cached_logs + "|" + log_cache_record
                 )
+                await self.save_cache()
                 return True
+
             return False
+
         _LOGGER.debug(
             "No existing energy collection log cached for %s", self._mac_in_str
         )
         self._set_cache(CACHE_ENERGY_COLLECTION, log_cache_record)
+        await self.save_cache()
         return True
 
     @raise_not_loaded

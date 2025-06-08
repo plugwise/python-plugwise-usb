@@ -550,6 +550,7 @@ class NodeSED(PlugwiseBaseNode):
                 tasks.append(self.update_ping_at_awake())
 
         await gather(*tasks)
+        await self.save_cache()
         return True
 
     async def update_ping_at_awake(self) -> None:
@@ -560,6 +561,7 @@ class NodeSED(PlugwiseBaseNode):
         """Detect current maintenance interval."""
         if self._last_awake[NodeAwakeResponseType.MAINTENANCE] == timestamp:
             return
+
         new_interval_in_sec = (
             timestamp - self._last_awake[NodeAwakeResponseType.MAINTENANCE]
         ).seconds
@@ -594,6 +596,8 @@ class NodeSED(PlugwiseBaseNode):
             self._set_cache(
                 CACHE_MAINTENANCE_INTERVAL, SED_DEFAULT_MAINTENANCE_INTERVAL
             )
+
+        await self.save_cache()
         self._maintenance_interval_restored_from_cache = True
 
     async def _reset_awake(self, last_alive: datetime) -> None:
