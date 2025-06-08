@@ -674,8 +674,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._mac_in_str,
                 cached_relay_data,
             )
-
-            relay_state = cached_relay_data != "True"
+            relay_state = cached_relay_data == "True"
             await self._relay_update_state(relay_state)
         else:
             _LOGGER.debug(
@@ -691,7 +690,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._mac_in_str,
                 cached_relay_lock,
             )
-            relay_lock = cached_relay_lock != "True"
+            relay_lock = cached_relay_lock == "True"
             await self._relay_update_lock(relay_lock)
         else:
             # Set to initial state False when not present in cache
