@@ -527,6 +527,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
             return False
         restored_logs: dict[int, list[int]] = {}
         log_data = cache_data.split("|")
+        if len(log_data) == 0:
+            return False
+
         for log_record in log_data:
             log_fields = log_record.split(":")
             if len(log_fields) == 4:
@@ -558,6 +561,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         # Create task to retrieve remaining (missing) logs
         if self._energy_counters.log_addresses_missing is None:
             return False
+
         if len(self._energy_counters.log_addresses_missing) > 0:
             if self._retrieve_energy_logs_task is not None:
                 if not self._retrieve_energy_logs_task.done():
@@ -566,6 +570,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self.get_missing_energy_logs()
             )
             return False
+
         return True
 
     async def _energy_log_records_save_to_cache(self) -> None:
