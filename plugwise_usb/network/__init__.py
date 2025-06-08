@@ -549,6 +549,7 @@ class StickNetwork:
         if self._cache_enabled:
             node_cache = NodeCache(mac, "")
             node_cache.update_state(CACHE_ENERGY_COLLECTION, "")
+            await node_cache.save_cache()
 
     async def set_energy_intervals(
         self, mac: str, consumption: int, production: int
