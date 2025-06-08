@@ -637,7 +637,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 f"Changing state of relay is not supported for node {self.mac}"
             )
 
-        if getattr(self._relay_lock, "state"):
+        if self._relay_lock.state:
             raise NodeError("Changing state of relay failed, it is locked")
 
         _LOGGER.debug("set_relay() start")
