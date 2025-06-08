@@ -547,7 +547,7 @@ class StickNetwork:
 
         # Clear the cached energy_collection
         if self._cache_enabled:
-            node_cache = NodeCache(mac, "")
+            node_cache = NodeCache(mac)
             node_cache.update_state(CACHE_ENERGY_COLLECTION, "")
             await node_cache.save_cache()
 
