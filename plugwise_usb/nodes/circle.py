@@ -852,8 +852,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         result = True
         if not await super()._load_from_cache():
             _LOGGER.debug("_load_from_cache | super-load failed")
-            if result:
-                result = False
+            result = False
 
         # Calibration settings
         if not await self._calibration_load_from_cache():
