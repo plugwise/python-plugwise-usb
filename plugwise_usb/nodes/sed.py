@@ -597,7 +597,6 @@ class NodeSED(PlugwiseBaseNode):
                 CACHE_MAINTENANCE_INTERVAL, SED_DEFAULT_MAINTENANCE_INTERVAL
             )
 
-        await self.save_cache()
         self._maintenance_interval_restored_from_cache = True
 
     async def _reset_awake(self, last_alive: datetime) -> None:
