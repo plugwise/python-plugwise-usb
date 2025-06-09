@@ -802,8 +802,7 @@ class TestStick:
         # Test blocked async switching due to relay-lock active
         await stick.nodes["0098765432101234"].set_relay_lock(True)
         assert stick.nodes["0098765432101234"].relay_lock.state
-        with pytest.raises(pw_exceptions.NodeError):
-            await stick.nodes["0098765432101234"].set_relay(True)
+        assert not await stick.nodes["0098765432101234"].set_relay(True)
         assert not stick.nodes["0098765432101234"].relay
         # Make sure to turn lock off for further testing
         await stick.nodes["0098765432101234"].set_relay_lock(False)
