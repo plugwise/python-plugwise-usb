@@ -641,9 +641,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
 
         if self._relay_lock.state:
-            raise NodeError("Changing state of relay failed, it is locked")
+            _LOGGER.debug("Relay switch blocked, relay is locked")
+            return not state
 
-        _LOGGER.debug("set_relay() start")
+        _LOGGER.debug("Switching relay to %s", state)
         request = CircleRelaySwitchRequest(self._send, self._mac_in_bytes, state)
         response = await request.send()
 
