@@ -100,22 +100,22 @@ class PlugwiseSense(NodeSED):
         self._humidity = Humidity(
             humidity = 0.0,
         )
-    # region properties
+# region properties
     
     @property
     @raise_not_loaded
     def temperature(self) -> Temperature:
-        """Temperature. """
+        """Temperature."""
         return self._temperature
 
 
     @property
     @raise_not_loaded
     def humidity(self) -> Humidity:
-        """Humidity. """
+        """Humidity."""
         return self._humidity
 
-    # end region
+# end region
 
     async def _sense_report(self, response: PlugwiseResponse) -> bool:
         """Process sense report message to extract current temperature and humidity values."""
