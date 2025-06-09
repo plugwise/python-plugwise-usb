@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable
 import logging
 from typing import Any, Final
 
-from ..api import NodeEvent, NodeFeature
+from ..api import NodeEvent, NodeFeature, Temperature, Humidity
 from ..connection import StickController
 from ..exceptions import MessageError, NodeError
 from ..messages.responses import SENSE_REPORT_ID, PlugwiseResponse, SenseReportResponse
@@ -43,8 +43,8 @@ class PlugwiseSense(NodeSED):
         """Initialize Scan Device."""
         super().__init__(mac, address, controller, loaded_callback)
 
-        self._humidity: float | None = None
-        self._temperature: float | None = None
+        self._humidity: Humidity()
+        self._temperature: Temperature()
 
         self._sense_subscription: Callable[[], None] | None = None
 
@@ -56,16 +56,17 @@ class PlugwiseSense(NodeSED):
         self._node_info.is_battery_powered = True
         if self._cache_enabled:
             _LOGGER.debug("Loading Sense node %s from cache", self._node_info.mac)
-            if await self._load_from_cache():
-                self._loaded = True
-                self._setup_protocol(
-                    SENSE_FIRMWARE_SUPPORT,
-                    (NodeFeature.INFO, NodeFeature.TEMPERATURE, NodeFeature.HUMIDITY),
-                )
-                if await self.initialize():
-                    await self._loaded_callback(NodeEvent.LOADED, self.mac)
-                    return True
-
+            await self._load_from_cache()
+        else:
+            self._load_defaults()
+        self._loaded = True
+        self._setup_protocol(
+            SENSE_FIRMWARE_SUPPORT,
+            (NodeFeature.INFO, NodeFeature.TEMPERATURE, NodeFeature.HUMIDITY),
+        )
+        if await self.initialize():
+            await self._loaded_callback(NodeEvent.LOADED, self.mac)
+            return True
         _LOGGER.debug("Loading of Sense node %s failed", self._node_info.mac)
         return False
 
@@ -90,6 +91,32 @@ class PlugwiseSense(NodeSED):
             self._sense_subscription()
         await super().unload()
 
+    def _load_defaults(self) -> None:
+        """Load default configuration settings."""
+        super()._load_defaults()
+        self._temperature = Temperature(
+            temperature = 0.0,
+        )
+        self._humidity = Humidity(
+            humidity = 0.0,
+        )
+    # region properties
+    
+    @property
+    @raise_not_loaded
+    def temperature(self) -> Temperature:
+        """Temperature. """
+        return self._temperature
+
+
+    @property
+    @raise_not_loaded
+    def humidity(self) -> Humidity:
+        """Humidity. """
+        return self._humidity
+
+    # end region
+
     async def _sense_report(self, response: PlugwiseResponse) -> bool:
         """Process sense report message to extract current temperature and humidity values."""
         if not isinstance(response, SenseReportResponse):
@@ -99,7 +126,7 @@ class PlugwiseSense(NodeSED):
         report_received = False
         await self._available_update_state(True, response.timestamp)
         if response.temperature.value != 65535:
-            self._temperature = int(
+            self._temperature.temperature = float(
                 SENSE_TEMPERATURE_MULTIPLIER * (response.temperature.value / 65536)
                 - SENSE_TEMPERATURE_OFFSET
             )
@@ -109,7 +136,7 @@ class PlugwiseSense(NodeSED):
             report_received = True
 
         if response.humidity.value != 65535:
-            self._humidity = int(
+            self._humidity.humidity = float(
                 SENSE_HUMIDITY_MULTIPLIER * (response.humidity.value / 65536)
                 - SENSE_HUMIDITY_OFFSET
             )

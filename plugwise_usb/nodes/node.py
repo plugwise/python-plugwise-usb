@@ -25,6 +25,8 @@ from ..api import (
     RelayConfig,
     RelayLock,
     RelayState,
+    Temperature,
+    Humidity,
 )
 from ..connection import StickController
 from ..constants import SUPPRESS_INITIALIZATION_WARNINGS, TYPE_MODEL, UTF8
@@ -261,6 +263,26 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Motion detection state."""
         if NodeFeature.MOTION not in self._features:
             raise FeatureError(f"Motion state is not supported for node {self.mac}")
+        raise NotImplementedError()
+
+    @property
+    @raise_not_loaded
+    def temperature(self) -> Temperature:
+        """Temperature configuration settings."""
+        if NodeFeature.TEMPERATURE not in self._features:
+            raise FeatureError(
+                f"Temperature configuration is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
+
+    @property
+    @raise_not_loaded
+    def humidity(self) -> Humidity:
+        """Humidity configuration settings."""
+        if NodeFeature.HUMIDITY not in self._features:
+            raise FeatureError(
+                f"Humidity configuration is not supported for node {self.mac}"
+            )
         raise NotImplementedError()
 
     @property
