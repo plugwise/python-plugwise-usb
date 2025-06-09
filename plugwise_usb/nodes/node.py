@@ -196,7 +196,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
 
     @property
     @raise_not_loaded
-    def humidity(self) -> float:
+    def humidity(self) -> Humidity:
         """Humidity state."""
         if NodeFeature.HUMIDITY not in self._features:
             raise FeatureError(f"Humidity state is not supported for node {self.mac}")
@@ -266,26 +266,6 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         raise NotImplementedError()
 
     @property
-    @raise_not_loaded
-    def temperature(self) -> Temperature:
-        """Temperature configuration settings."""
-        if NodeFeature.TEMPERATURE not in self._features:
-            raise FeatureError(
-                f"Temperature configuration is not supported for node {self.mac}"
-            )
-        raise NotImplementedError()
-
-    @property
-    @raise_not_loaded
-    def humidity(self) -> Humidity:
-        """Humidity configuration settings."""
-        if NodeFeature.HUMIDITY not in self._features:
-            raise FeatureError(
-                f"Humidity configuration is not supported for node {self.mac}"
-            )
-        raise NotImplementedError()
-
-    @property
     def ping_stats(self) -> NetworkStatistics:
         """Ping statistics."""
         return self._ping
@@ -342,7 +322,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
 
     @property
     @raise_not_loaded
-    def temperature(self) -> float:
+    def temperature(self) -> Temperature:
         """Temperature value."""
         if NodeFeature.TEMPERATURE not in self._features:
             raise FeatureError(
