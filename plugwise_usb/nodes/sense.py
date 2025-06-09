@@ -43,8 +43,8 @@ class PlugwiseSense(NodeSED):
         """Initialize Scan Device."""
         super().__init__(mac, address, controller, loaded_callback)
 
-        self._humidity: Humidity()
-        self._temperature: Temperature()
+        self._humidity = Humidity()
+        self._temperature = Temperature()
 
         self._sense_subscription: Callable[[], None] | None = None
 
