@@ -522,6 +522,7 @@ class NodeSED(PlugwiseBaseNode):
                 NodeFeature.BATTERY,
                 self._battery_config,
             ),
+            self.save_cache(),
         ]
         self._delayed_task = self._loop.create_task(
             self._send_tasks(), name=f"Delayed update for {self._mac_in_str}"
@@ -550,7 +551,6 @@ class NodeSED(PlugwiseBaseNode):
                 tasks.append(self.update_ping_at_awake())
 
         await gather(*tasks)
-        await self.save_cache()
         return True
 
     async def update_ping_at_awake(self) -> None:
