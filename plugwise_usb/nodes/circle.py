@@ -591,7 +591,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 cached_logs += f"-{log.timestamp.hour}-{log.timestamp.minute}"
                 cached_logs += f"-{log.timestamp.second}:{log.pulses}"
         self._set_cache(CACHE_ENERGY_COLLECTION, cached_logs)
-        await self.save_cache()
 
     async def _energy_log_record_update_state(
         self,
