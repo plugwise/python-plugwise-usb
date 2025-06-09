@@ -623,7 +623,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._set_cache(
                     CACHE_ENERGY_COLLECTION, cached_logs + "|" + log_cache_record
                 )
-                await self.save_cache()
                 return True
 
             return False
@@ -632,7 +631,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
             "No existing energy collection log cached for %s", self._mac_in_str
         )
         self._set_cache(CACHE_ENERGY_COLLECTION, log_cache_record)
-        await self.save_cache()
         return True
 
     @raise_not_loaded
