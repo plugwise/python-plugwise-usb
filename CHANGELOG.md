@@ -3,7 +3,7 @@
 ## v0.43.0
 
 - PR [#254](https://github.com/plugwise/python-plugwise-usb/pull/254):
-  - Feature Request: add a lock-function to disable relay-switch-changes (energy devices only) 
+  - Feature Request: add a lock-function to disable relay-switch-changes (energy devices only)
   - Fix data not loading from cache at (re)start, store `current_log_address` item to cache
 
 ## v0.42.1
