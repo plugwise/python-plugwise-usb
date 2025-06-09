@@ -26,7 +26,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         if self._loaded:
             return True
         if self._cache_enabled:
-            _LOGGER.debug("Load Circle node %s from cache", self._node_info.mac)
+            _LOGGER.debug("Loading Circle node %s from cache", self._node_info.mac)
             if await self._load_from_cache():
                 self._loaded = True
                 self._setup_protocol(
@@ -34,6 +34,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                     (
                         NodeFeature.RELAY,
                         NodeFeature.RELAY_INIT,
+                        NodeFeature.RELAY_LOCK,
                         NodeFeature.ENERGY,
                         NodeFeature.POWER,
                     ),
@@ -42,11 +43,11 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                     await self._loaded_callback(NodeEvent.LOADED, self.mac)
                     return True
             _LOGGER.info(
-                "Load Circle+ node %s from cache failed",
+                "Loading Circle+ node %s from cache failed",
                 self._node_info.mac,
             )
         else:
-            _LOGGER.debug("Load Circle+ node %s", self._node_info.mac)
+            _LOGGER.debug("Loading Circle+ node %s", self._node_info.mac)
 
         # Check if node is online
         if not self._available and not await self.is_online():
@@ -69,6 +70,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             (
                 NodeFeature.RELAY,
                 NodeFeature.RELAY_INIT,
+                NodeFeature.RELAY_LOCK,
                 NodeFeature.ENERGY,
                 NodeFeature.POWER,
             ),

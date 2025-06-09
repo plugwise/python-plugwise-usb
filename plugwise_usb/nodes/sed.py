@@ -522,6 +522,7 @@ class NodeSED(PlugwiseBaseNode):
                 NodeFeature.BATTERY,
                 self._battery_config,
             ),
+            self.save_cache(),
         ]
         self._delayed_task = self._loop.create_task(
             self._send_tasks(), name=f"Delayed update for {self._mac_in_str}"
@@ -560,6 +561,7 @@ class NodeSED(PlugwiseBaseNode):
         """Detect current maintenance interval."""
         if self._last_awake[NodeAwakeResponseType.MAINTENANCE] == timestamp:
             return
+
         new_interval_in_sec = (
             timestamp - self._last_awake[NodeAwakeResponseType.MAINTENANCE]
         ).seconds
@@ -594,6 +596,7 @@ class NodeSED(PlugwiseBaseNode):
             self._set_cache(
                 CACHE_MAINTENANCE_INTERVAL, SED_DEFAULT_MAINTENANCE_INTERVAL
             )
+
         self._maintenance_interval_restored_from_cache = True
 
     async def _reset_awake(self, last_alive: datetime) -> None:
@@ -756,11 +759,14 @@ class NodeSED(PlugwiseBaseNode):
                     f"Update of feature '{feature.name}' is "
                     + f"not supported for {self.mac}"
                 )
-            if feature == NodeFeature.INFO:
-                states[NodeFeature.INFO] = await self.node_info_update()
-            elif feature == NodeFeature.BATTERY:
-                states[NodeFeature.BATTERY] = self._battery_config
-            else:
-                state_result = await super().get_state((feature,))
-                states[feature] = state_result[feature]
+
+            match feature:
+                case NodeFeature.INFO:
+                    states[NodeFeature.INFO] = await self.node_info_update()
+                case NodeFeature.BATTERY:
+                    states[NodeFeature.BATTERY] = self._battery_config
+                case _:
+                    state_result = await super().get_state((feature,))
+                    states[feature] = state_result[feature]
+
         return states

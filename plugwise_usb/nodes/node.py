@@ -23,6 +23,7 @@ from ..api import (
     NodeType,
     PowerStatistics,
     RelayConfig,
+    RelayLock,
     RelayState,
 )
 from ..connection import StickController
@@ -73,7 +74,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         self._cache_enabled: bool = False
         self._cache_folder_create: bool = False
         self._cache_save_task: Task[None] | None = None
-        self._node_cache = NodeCache(mac, "")
+        self._node_cache = NodeCache(mac)
         # Sensors
         self._available: bool = False
         self._connected: bool = False
@@ -277,10 +278,12 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
 
     @property
     @raise_not_loaded
-    def relay_state(self) -> RelayState:
-        """State of relay."""
-        if NodeFeature.RELAY not in self._features:
-            raise FeatureError(f"Relay state is not supported for node {self.mac}")
+    def relay_config(self) -> RelayConfig:
+        """Relay configuration."""
+        if NodeFeature.RELAY_INIT not in self._features:
+            raise FeatureError(
+                f"Relay configuration is not supported for node {self.mac}"
+            )
         raise NotImplementedError()
 
     @property
@@ -293,12 +296,18 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
 
     @property
     @raise_not_loaded
-    def relay_config(self) -> RelayConfig:
-        """Relay configuration."""
-        if NodeFeature.RELAY_INIT not in self._features:
-            raise FeatureError(
-                f"Relay configuration is not supported for node {self.mac}"
-            )
+    def relay_state(self) -> RelayState:
+        """State of relay."""
+        if NodeFeature.RELAY not in self._features:
+            raise FeatureError(f"Relay state is not supported for node {self.mac}")
+        raise NotImplementedError()
+
+    @property
+    @raise_not_loaded
+    def relay_lock(self) -> RelayLock:
+        """State of relay lock."""
+        if NodeFeature.RELAY_LOCK not in self._features:
+            raise FeatureError(f"Relay lock is not supported for node {self.mac}")
         raise NotImplementedError()
 
     @property
@@ -394,13 +403,16 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Load states from previous cached information. Return True if successful."""
         if self._loaded:
             return True
+
         if not await self._load_cache_file():
             _LOGGER.debug("Node %s failed to load cache file", self.mac)
             return False
+
         # Node Info
         if not await self._node_info_load_from_cache():
             _LOGGER.debug("Node %s failed to load node_info from cache", self.mac)
             return False
+
         return True
 
     async def initialize(self) -> None:
@@ -474,6 +486,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         node_type: NodeType | None = None
         if (node_type_str := self._get_cache(CACHE_NODE_TYPE)) is not None:
             node_type = NodeType(int(node_type_str))
+        
         return await self.update_node_details(
             firmware=firmware,
             hardware=hardware,
@@ -494,6 +507,18 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         logaddress_pointer: int | None,
     ) -> bool:
         """Process new node info and return true if all fields are updated."""
+        _LOGGER.debug(
+            "update_node_details | firmware=%s, hardware=%s, nodetype=%s",
+            firmware,
+            hardware,
+            node_type,
+        )
+        _LOGGER.debug(
+            "update_node_details | timestamp=%s, relay_state=%s, logaddress_pointer=%s,",
+            timestamp,
+            relay_state,
+            logaddress_pointer,
+        )
         complete = True
         if node_type is None:
             complete = False
@@ -537,11 +562,14 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                         self.mac,
                         hardware,
                     )
+
                 self._node_info.model_type = None
                 if len(model_info) > 1:
                     self._node_info.model_type = " ".join(model_info[1:])
+
                 if self._node_info.model is not None:
                     self._node_info.name = f"{model_info[0]} {self._node_info.mac[-5:]}"
+
             self._set_cache(CACHE_HARDWARE, hardware)
 
         if timestamp is None:
@@ -605,17 +633,20 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                     f"Update of feature '{feature.name}' is "
                     + f"not supported for {self.mac}"
                 )
-            if feature == NodeFeature.INFO:
-                states[NodeFeature.INFO] = await self.node_info_update()
-            elif feature == NodeFeature.AVAILABLE:
-                states[NodeFeature.AVAILABLE] = self.available_state
-            elif feature == NodeFeature.PING:
-                states[NodeFeature.PING] = await self.ping_update()
-            else:
-                raise NodeError(
-                    f"Update of feature '{feature.name}' is "
-                    + f"not supported for {self.mac}"
-                )
+
+            match feature:
+                case NodeFeature.INFO:
+                    states[NodeFeature.INFO] = await self.node_info_update()
+                case NodeFeature.AVAILABLE:
+                    states[NodeFeature.AVAILABLE] = self.available_state
+                case NodeFeature.PING:
+                    states[NodeFeature.PING] = await self.ping_update()
+                case _:
+                    raise NodeError(
+                        f"Update of feature '{feature.name}' is "
+                        + f"not supported for {self.mac}"
+                    )
+
         return states
 
     async def unload(self) -> None:
@@ -659,6 +690,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Store setting with value in cache memory."""
         if not self._cache_enabled:
             return
+
         if isinstance(value, datetime):
             self._node_cache.update_state(
                 setting,
@@ -676,9 +708,11 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Save cached data to cache file when cache is enabled."""
         if not self._cache_enabled or not self._loaded or not self._initialized:
             return
+
         _LOGGER.debug("Save cache file for node %s", self.mac)
         if self._cache_save_task is not None and not self._cache_save_task.done():
             await self._cache_save_task
+
         if trigger_only:
             self._cache_save_task = create_task(self._node_cache.save_cache())
         else:
@@ -766,7 +800,16 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Change the state of the relay."""
         if NodeFeature.RELAY not in self._features:
             raise FeatureError(
-                f"Changing state of relay is not supported for node {self.mac}"
+                f"Changing relay state is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
+
+    @raise_not_loaded
+    async def set_relay_lock(self, state: bool) -> bool:
+        """Change lock of the relay."""
+        if NodeFeature.RELAY_LOCK not in self._features:
+            raise FeatureError(
+                f"Changing relay lock state is not supported for node {self.mac}"
             )
         raise NotImplementedError()
 
