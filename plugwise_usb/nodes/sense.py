@@ -51,7 +51,6 @@ class PlugwiseSense(NodeSED):
         if self._loaded:
             return True
 
-        self._node_info.is_battery_powered = True
         await super().load()
         self._setup_protocol(
             SENSE_FIRMWARE_SUPPORT,
