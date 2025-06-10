@@ -57,11 +57,11 @@ class PlugwiseSense(NodeSED):
             await self._load_from_cache()
         else:
             self._load_defaults()
+        self._loaded = True
         self._setup_protocol(
             SENSE_FIRMWARE_SUPPORT,
             (NodeFeature.INFO, NodeFeature.SENSE),
         )
-        self._loaded = True
         if await self.initialize():
             await self._loaded_callback(NodeEvent.LOADED, self.mac)
             return True
