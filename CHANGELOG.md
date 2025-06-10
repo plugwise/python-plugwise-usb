@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.44.1
+
+- PR [#258](https://github.com/plugwise/python-plugwise-usb/pull/258)
+  - Make sure NodeFeature.BATTERY is called and configuration parameters are propagated properly
+
 ## v0.44.0
 
 - PR [#256](https://github.com/plugwise/python-plugwise-usb/pull/256) Implement PlugWise Sense product
