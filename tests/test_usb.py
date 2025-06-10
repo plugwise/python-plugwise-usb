@@ -614,9 +614,7 @@ class TestStick:
         with pytest.raises(pw_exceptions.FeatureError):
             assert stick.nodes["5555555555555555"].power
         with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["5555555555555555"].humidity
-        with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["5555555555555555"].temperature
+            assert stick.nodes["5555555555555555"].sense
         with pytest.raises(pw_exceptions.FeatureError):
             assert stick.nodes["5555555555555555"].energy
 
@@ -847,9 +845,7 @@ class TestStick:
         with pytest.raises(pw_exceptions.FeatureError):
             assert stick.nodes["0098765432101234"].switch
         with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["0098765432101234"].humidity
-        with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["0098765432101234"].temperature
+            assert stick.nodes["0098765432101234"].sense
 
         # Test relay init
         # load node 2222222222222222 which has
