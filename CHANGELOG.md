@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.44.0
+
+- PR [#256](https://github.com/plugwise/python-plugwise-usb/pull/256) Implement PlugWise Sense product
+
 ## v0.43.0(.2)
 
 - PR [#254](https://github.com/plugwise/python-plugwise-usb/pull/254):
