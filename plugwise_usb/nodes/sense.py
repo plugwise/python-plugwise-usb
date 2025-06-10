@@ -25,8 +25,7 @@ SENSE_TEMPERATURE_OFFSET: Final = 46.85
 
 SENSE_FEATURES: Final = (
     NodeFeature.INFO,
-    NodeFeature.TEMPERATURE,
-    NodeFeature.HUMIDITY,
+    NodeFeature.SENSE,
 )
 
 
@@ -61,7 +60,7 @@ class PlugwiseSense(NodeSED):
         self._loaded = True
         self._setup_protocol(
             SENSE_FIRMWARE_SUPPORT,
-            (NodeFeature.INFO, NodeFeature.TEMPERATURE, NodeFeature.HUMIDITY),
+            (NodeFeature.INFO, NodeFeature.SENSE),
         )
         if await self.initialize():
             await self._loaded_callback(NodeEvent.LOADED, self.mac)
@@ -114,17 +113,14 @@ class PlugwiseSense(NodeSED):
             raise MessageError(
                 f"Invalid response message type ({response.__class__.__name__}) received, expected SenseReportResponse"
             )
-        report_received = False
+        report_received_1 = report_received_2 = False
         await self._available_update_state(True, response.timestamp)
         if response.temperature.value != 65535:
             self._sense_statistics.temperature = float(
                 SENSE_TEMPERATURE_MULTIPLIER * (response.temperature.value / 65536)
                 - SENSE_TEMPERATURE_OFFSET
             )
-            await self.publish_feature_update_to_subscribers(
-                NodeFeature.TEMPERATURE, self._sense_statistics
-            )
-            report_received = True
+            report_received_1 = True
 
         if response.humidity.value != 65535:
             self._sense_statistics.humidity = float(
@@ -132,11 +128,11 @@ class PlugwiseSense(NodeSED):
                 - SENSE_HUMIDITY_OFFSET
             )
             await self.publish_feature_update_to_subscribers(
-                NodeFeature.HUMIDITY, self._sense_statistics
+                NodeFeature.SENSE, self._sense_statistics
             )
-            report_received = True
+            report_received_2 = True
     
-        return report_received
+        return report_received_1 and report_received_2
 
     @raise_not_loaded
     async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
@@ -154,12 +150,10 @@ class PlugwiseSense(NodeSED):
                 )
 
             match feature:
-                case NodeFeature.TEMPERATURE:
-                    states[NodeFeature.TEMPERATURE] = self._sense_statistics
-                case NodeFeature.HUMIDITY:
-                    states[NodeFeature.HUMIDITY] = self._sense_statistics
                 case NodeFeature.PING:
                     states[NodeFeature.PING] = await self.ping_update()
+                case NodeFeature.SENSE:
+                    states[NodeFeature.TEMPERATURE] = self._sense_statistics
                 case _:
                     state_result = await super().get_state((feature,))
                     states[feature] = state_result[feature]

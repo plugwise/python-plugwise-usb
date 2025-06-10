@@ -315,13 +315,10 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
     @raise_not_loaded
     def sense(self) -> SenseStatistics:
         """Sense statistics."""
-        if NodeFeature.TEMPERATURE not in self._features:
+        if NodeFeature.SENSE not in self._features:
             raise FeatureError(
-                f"Temperature state is not supported for node {self.mac}"
+                f"Sense statistics is not supported for node {self.mac}"
             )
-        if NodeFeature.HUMIDITY not in self._features:
-            raise FeatureError(f"Humidity state is not supported for node {self.mac}")
-        raise NotImplementedError()
 
     # endregion
 
