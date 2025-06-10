@@ -51,11 +51,14 @@ class PlugwiseSense(NodeSED):
         if self._loaded:
             return True
 
-        await super().load()
+        if not await super().load():
+            return False
+
         self._setup_protocol(SENSE_FIRMWARE_SUPPORT, SENSE_FEATURES)
         if await self.initialize():
             await self._loaded_callback(NodeEvent.LOADED, self.mac)
             return True
+
         _LOGGER.debug("Loading of Sense node %s failed", self._node_info.mac)
         return False
 
