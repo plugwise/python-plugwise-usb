@@ -63,6 +63,7 @@ class PlugwiseSense(NodeSED):
         )
         if await self.initialize():
             await self._loaded_callback(NodeEvent.LOADED, self.mac)
+            self._loaded = True
             return True
         _LOGGER.debug("Loading of Sense node %s failed", self._node_info.mac)
         return False
