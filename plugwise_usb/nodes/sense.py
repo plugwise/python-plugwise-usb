@@ -113,27 +113,28 @@ class PlugwiseSense(NodeSED):
             raise MessageError(
                 f"Invalid response message type ({response.__class__.__name__}) received, expected SenseReportResponse"
             )
-        report_received_1 = report_received_2 = False
+        report_received = False
         await self._available_update_state(True, response.timestamp)
         if response.temperature.value != 65535:
             self._sense_statistics.temperature = float(
                 SENSE_TEMPERATURE_MULTIPLIER * (response.temperature.value / 65536)
                 - SENSE_TEMPERATURE_OFFSET
             )
-            report_received_1 = True
+            report_received = True
 
         if response.humidity.value != 65535:
             self._sense_statistics.humidity = float(
                 SENSE_HUMIDITY_MULTIPLIER * (response.humidity.value / 65536)
                 - SENSE_HUMIDITY_OFFSET
             )
-            report_received_2 = True
+            report_received = True
 
-        await self.publish_feature_update_to_subscribers(
-            NodeFeature.SENSE, self._sense_statistics
-        )
+        if report_received:
+            await self.publish_feature_update_to_subscribers(
+                NodeFeature.SENSE, self._sense_statistics
+            )
 
-        return report_received_1 and report_received_2
+        return report_received
 
     @raise_not_loaded
     async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
