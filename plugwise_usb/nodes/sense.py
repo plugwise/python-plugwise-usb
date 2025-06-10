@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable
 import logging
 from typing import Any, Final
 
-from ..api import NodeEvent, NodeFeature, Temperature, Humidity
+from ..api import NodeEvent, NodeFeature, SenseStatistics
 from ..connection import StickController
 from ..exceptions import MessageError, NodeError
 from ..messages.responses import SENSE_REPORT_ID, PlugwiseResponse, SenseReportResponse
@@ -43,8 +43,7 @@ class PlugwiseSense(NodeSED):
         """Initialize Scan Device."""
         super().__init__(mac, address, controller, loaded_callback)
 
-        self._humidity = Humidity()
-        self._temperature = Temperature()
+        self._sense_statistics = SenseStatistics()
 
         self._sense_subscription: Callable[[], None] | None = None
 
@@ -94,26 +93,18 @@ class PlugwiseSense(NodeSED):
     def _load_defaults(self) -> None:
         """Load default configuration settings."""
         super()._load_defaults()
-        self._temperature = Temperature(
-            temperature = 0.0,
+        self._sense_statistics = SenseStatistics(
+            temperature=0.0,
+            humidity=0.0,
         )
-        self._humidity = Humidity(
-            humidity = 0.0,
-        )
+
 # region properties
-    
+ 
     @property
     @raise_not_loaded
-    def temperature(self) -> Temperature:
-        """Temperature."""
-        return self._temperature
-
-
-    @property
-    @raise_not_loaded
-    def humidity(self) -> Humidity:
-        """Humidity."""
-        return self._humidity
+    def sense_statistics(self) -> SenseStatistics:
+        """Sense Statistics."""
+        return self._sense_statistics
 
 # end region
 
@@ -126,22 +117,22 @@ class PlugwiseSense(NodeSED):
         report_received = False
         await self._available_update_state(True, response.timestamp)
         if response.temperature.value != 65535:
-            self._temperature.temperature = float(
+            self._sense_statistics.temperature = float(
                 SENSE_TEMPERATURE_MULTIPLIER * (response.temperature.value / 65536)
                 - SENSE_TEMPERATURE_OFFSET
             )
             await self.publish_feature_update_to_subscribers(
-                NodeFeature.TEMPERATURE, self._temperature
+                NodeFeature.TEMPERATURE, self._sense_statistics
             )
             report_received = True
 
         if response.humidity.value != 65535:
-            self._humidity.humidity = float(
+            self._sense_statistics.humidity = float(
                 SENSE_HUMIDITY_MULTIPLIER * (response.humidity.value / 65536)
                 - SENSE_HUMIDITY_OFFSET
             )
             await self.publish_feature_update_to_subscribers(
-                NodeFeature.HUMIDITY, self._humidity
+                NodeFeature.HUMIDITY, self._sense_statistics
             )
             report_received = True
     
@@ -164,9 +155,9 @@ class PlugwiseSense(NodeSED):
 
             match feature:
                 case NodeFeature.TEMPERATURE:
-                    states[NodeFeature.TEMPERATURE] = self._temperature
+                    states[NodeFeature.TEMPERATURE] = self._sense_statistics
                 case NodeFeature.HUMIDITY:
-                    states[NodeFeature.HUMIDITY] = self._humidity
+                    states[NodeFeature.HUMIDITY] = self._sense_statistics
                 case NodeFeature.PING:
                     states[NodeFeature.PING] = await self.ping_update()
                 case _:

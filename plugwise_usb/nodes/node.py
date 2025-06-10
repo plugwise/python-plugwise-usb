@@ -25,8 +25,7 @@ from ..api import (
     RelayConfig,
     RelayLock,
     RelayState,
-    Temperature,
-    Humidity,
+    SenseStatistics,
 )
 from ..connection import StickController
 from ..constants import SUPPRESS_INITIALIZATION_WARNINGS, TYPE_MODEL, UTF8
@@ -195,14 +194,6 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         return self._features
 
     @property
-    @raise_not_loaded
-    def humidity(self) -> Humidity:
-        """Humidity state."""
-        if NodeFeature.HUMIDITY not in self._features:
-            raise FeatureError(f"Humidity state is not supported for node {self.mac}")
-        raise NotImplementedError()
-
-    @property
     def is_battery_powered(self) -> bool:
         """Return if node is battery powered."""
         return self._node_info.is_battery_powered
@@ -322,12 +313,14 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
 
     @property
     @raise_not_loaded
-    def temperature(self) -> Temperature:
-        """Temperature value."""
+    def sense(self) -> SenseStatistics:
+        """Sense statistics."""
         if NodeFeature.TEMPERATURE not in self._features:
             raise FeatureError(
                 f"Temperature state is not supported for node {self.mac}"
             )
+        if NodeFeature.HUMIDITY not in self._features:
+            raise FeatureError(f"Humidity state is not supported for node {self.mac}")
         raise NotImplementedError()
 
     # endregion

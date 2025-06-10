@@ -230,15 +230,10 @@ class EnergyStatistics:
     day_production_reset: datetime | None = None
 
 @dataclass
-class Temperature:
-    """Temperature statistics collection."""
+class SenseStatistics:
+    """Sense statistics collection."""
 
     temperature: float | None = None
-
-@dataclass
-class Humidity:
-    """Humidity statistics collection."""
-
     humidity: float | None = None
 
 class PlugwiseNode(Protocol):
