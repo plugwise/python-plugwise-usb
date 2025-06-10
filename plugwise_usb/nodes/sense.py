@@ -99,7 +99,7 @@ class PlugwiseSense(NodeSED):
         )
 
 # region properties
- 
+
     @property
     @raise_not_loaded
     def sense_statistics(self) -> SenseStatistics:
