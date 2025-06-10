@@ -52,6 +52,7 @@ class NodeFeature(str, Enum):
     RELAY_INIT = "relay_init"
     RELAY_LOCK = "relay_lock"
     SWITCH = "switch"
+    SENSE = "sense"
     TEMPERATURE = "temperature"
 
 
@@ -80,6 +81,7 @@ PUSHING_FEATURES = (
     NodeFeature.MOTION,
     NodeFeature.MOTION_CONFIG,
     NodeFeature.TEMPERATURE,
+    NodeFeature.SENSE,
     NodeFeature.SWITCH,
 )
 
