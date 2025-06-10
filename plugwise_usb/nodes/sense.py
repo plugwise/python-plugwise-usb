@@ -127,11 +127,12 @@ class PlugwiseSense(NodeSED):
                 SENSE_HUMIDITY_MULTIPLIER * (response.humidity.value / 65536)
                 - SENSE_HUMIDITY_OFFSET
             )
-            await self.publish_feature_update_to_subscribers(
-                NodeFeature.SENSE, self._sense_statistics
-            )
             report_received_2 = True
-    
+
+        await self.publish_feature_update_to_subscribers(
+            NodeFeature.SENSE, self._sense_statistics
+        )
+
         return report_received_1 and report_received_2
 
     @raise_not_loaded
