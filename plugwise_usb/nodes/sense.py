@@ -57,7 +57,6 @@ class PlugwiseSense(NodeSED):
             await self._load_from_cache()
         else:
             self._load_defaults()
-        self._loaded = True
         self._setup_protocol(
             SENSE_FIRMWARE_SUPPORT,
             (NodeFeature.INFO, NodeFeature.SENSE),
@@ -153,7 +152,7 @@ class PlugwiseSense(NodeSED):
                 case NodeFeature.PING:
                     states[NodeFeature.PING] = await self.ping_update()
                 case NodeFeature.SENSE:
-                    states[NodeFeature.TEMPERATURE] = self._sense_statistics
+                    states[NodeFeature.SENSE] = self._sense_statistics
                 case _:
                     state_result = await super().get_state((feature,))
                     states[feature] = state_result[feature]
