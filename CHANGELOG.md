@@ -3,7 +3,7 @@
 ## v0.44.1
 
 - PR [#258](https://github.com/plugwise/python-plugwise-usb/pull/258)
-  - Make sure NodeFeature.BATTERY is called and configuration parameters are propagated properly
+  - Sense: make sure NodeFeature.BATTERY is called and configuration parameters are propagated properly
 
 ## v0.44.0
 
