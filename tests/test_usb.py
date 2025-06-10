@@ -614,9 +614,7 @@ class TestStick:
         with pytest.raises(pw_exceptions.FeatureError):
             assert stick.nodes["5555555555555555"].power
         with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["5555555555555555"].humidity
-        with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["5555555555555555"].temperature
+            assert stick.nodes["5555555555555555"].sense_statistics
         with pytest.raises(pw_exceptions.FeatureError):
             assert stick.nodes["5555555555555555"].energy
 
