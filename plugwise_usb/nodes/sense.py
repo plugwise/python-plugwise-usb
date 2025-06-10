@@ -52,12 +52,7 @@ class PlugwiseSense(NodeSED):
             return True
 
         self._node_info.is_battery_powered = True
-        if self._cache_enabled:
-            _LOGGER.debug("Loading Sense node %s from cache", self._node_info.mac)
-            await self._load_from_cache()
-        else:
-            self._load_defaults()
-        self._loaded = True
+        await super().load()
         self._setup_protocol(
             SENSE_FIRMWARE_SUPPORT,
             (NodeFeature.INFO, NodeFeature.SENSE),
