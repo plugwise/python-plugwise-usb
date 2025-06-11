@@ -503,8 +503,14 @@ class PulseCollection:
     ) -> None:
         """Update Energy direction of log record.
 
-        Two subsequential logs with the same timestamp indicates the first
-        is consumption and second production.
+        Two subsequential logging slots with the same timestamp indicate
+        both consumption and production logging is active.
+        The first slot (e.g. 1) contains consumption data,
+        the second slot (e.g. 2) production data.
+
+        This code expects either single slots containing consumption data
+        or double slots containing consumption and production data.
+        Single slots containing production data only is NOT supported/tested.
         """
         if self._logs is None:
             return
@@ -513,10 +519,11 @@ class PulseCollection:
         next_timestamp = self._check_next_production(address, slot, timestamp)
         if self._first_prev_log_processed and self._first_next_log_processed:
             # _log_production is True when 2 out of 3 consecutive slots have
-            # the same timestamp, otherwise it is False
+            # the same timestamp
             self._log_production = (
-                next_timestamp == timestamp and prev_timestamp != timestamp
-            ) or (prev_timestamp == timestamp and next_timestamp != timestamp)
+                (prev_timestamp == timestamp)
+                ^ (next_timestamp == timestamp)
+            )
 
     def _check_prev_production(
         self, address: int, slot: int, timestamp: datetime
