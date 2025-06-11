@@ -413,6 +413,7 @@ class PulseCollection:
             ):
                 self._last_empty_log_slot = slot
                 recalculate = True
+
         if recalculate:
             self.recalculate_missing_log_addresses()
 
@@ -938,14 +939,21 @@ class PulseCollection:
         calculated_timestamp = self._logs[first_address][
             first_slot
         ].timestamp - timedelta(minutes=log_interval)
+        _LOGGER.debug(
+            "_logs_missing | %s | first_empty_log_address=%s",
+            self._mac,
+            self._first_empty_log_address,
+        )
         while from_timestamp < calculated_timestamp:
             if (
                 address == self._first_empty_log_address
                 and slot == self._first_empty_log_slot
             ):
                 break
+
             if address not in missing:
                 missing.append(address)
+
             calculated_timestamp -= timedelta(minutes=log_interval)
             address, slot = calc_log_address(address, slot, -1)
 
