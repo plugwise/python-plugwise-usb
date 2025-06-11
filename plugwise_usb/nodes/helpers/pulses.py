@@ -163,9 +163,10 @@ class PulseCollection:
         """Return a pulse_counter reset."""
         return self._cons_pulsecounter_reset or self._prod_pulsecounter_reset
 
-    def reset_logs(self) -> None:
-        """Reset _logs() after e.g. an energy-logs reset."""
-        self._logs = {}
+    def reset(self) -> None:
+        """Reset PulseCollection after e.g. an energy-logs reset."""
+        mac = self._mac
+        self.__init__(mac)
 
     def collected_pulses(
         self, from_timestamp: datetime, is_consumption: bool

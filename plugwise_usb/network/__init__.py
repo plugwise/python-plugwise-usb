@@ -554,7 +554,7 @@ class StickNetwork:
 
         # Clear PulseCollection._logs
         pulse_collection = PulseCollection(mac)
-        pulse_collection.reset_logs()
+        pulse_collection.reset()
 
     async def set_energy_intervals(
         self, mac: str, consumption: int, production: int
