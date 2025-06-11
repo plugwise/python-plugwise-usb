@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.44.2
+
+- Bugfix: implement solution for Issue [#259](https://github.com/plugwise/plugwise_usb-beta/issues/259)
+
 ## v0.44.1
 
 - PR [#258](https://github.com/plugwise/python-plugwise-usb/pull/258)
