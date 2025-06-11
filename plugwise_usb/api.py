@@ -415,6 +415,13 @@ class PlugwiseNode(Protocol):
         Raises NodeError when temperature feature is not present at device.
         """
 
+    @property
+    def auto_join(self) -> bool:
+        """Last received auto_join state.
+
+        Raises NodeError when circleplus feature is not present at device.
+        """
+
     # endregion
 
     # region control

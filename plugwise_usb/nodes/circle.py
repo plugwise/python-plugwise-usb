@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from abc import ABC
 from asyncio import Task, create_task
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
@@ -72,7 +73,7 @@ def raise_calibration_missing(func: FuncT) -> FuncT:
     return cast(FuncT, decorated)
 
 
-class PlugwiseCircle(PlugwiseBaseNode):
+class PlugwiseCircle(PlugwiseBaseNode, ABC):
     """Plugwise Circle node."""
 
     def __init__(
@@ -182,6 +183,16 @@ class PlugwiseCircle(PlugwiseBaseNode):
     def relay_lock(self) -> RelayLock:
         """State of the relay lock."""
         return self._relay_lock
+
+    @property
+    @raise_not_loaded
+    def auto_join(self) -> bool:
+        """Enable Auto Join."""
+        if NodeFeature.CIRCLEPLUS not in self._features:
+            raise FeatureError(
+                f"Auto-Joining is not supported for node {self.mac}"
+            )
+        raise NotImplementedError()
 
     # endregion
 
