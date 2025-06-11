@@ -514,9 +514,9 @@ class PulseCollection:
         if self._first_prev_log_processed and self._first_next_log_processed:
             # _log_production is True when 2 out of 3 consecutive slots have
             # the same timestamp, otherwise it is False
-            self._log_production = (
+             self._log_production = (
                 next_timestamp == timestamp and prev_timestamp != timestamp
-            ) or (next_timestamp == prev_timestamp and next_timestamp != timestamp)
+            ) or (prev_timestamp == timestamp and next_timestamp != timestamp)
 
     def _check_prev_production(
         self, address: int, slot: int, timestamp: datetime
