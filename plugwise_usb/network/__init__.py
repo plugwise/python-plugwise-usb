@@ -15,6 +15,7 @@ from ..connection import StickController
 from ..constants import ENERGY_NODE_TYPES, UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
 from ..nodes.helpers.cache import NodeCache
+from ..nodes.helpers.pulses import PulseCollection
 from ..helpers.util import validate_mac
 from ..messages.requests import (
     CircleClockSetRequest,
@@ -550,6 +551,10 @@ class StickNetwork:
             node_cache = NodeCache(mac)
             node_cache.update_state(CACHE_ENERGY_COLLECTION, "")
             await node_cache.save_cache()
+
+        # Clear PulseCollection._logs
+        pulse_collection = PulseCollection(mac)
+        pulse_collection.reset_logs()
 
     async def set_energy_intervals(
         self, mac: str, consumption: int, production: int
