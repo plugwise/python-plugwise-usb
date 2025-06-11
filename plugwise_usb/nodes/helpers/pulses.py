@@ -858,7 +858,7 @@ class PulseCollection:
 
         missing = []
         _LOGGER.debug(
-            "_logs_missing | %s | first_address=%s, last_address=%s, from_timestamp=%s",
+            "_logs_missing | %s | checking in range: first_address=%s, last_address=%s, from_timestamp=%s",
             self._mac,
             first_address,
             last_address,
@@ -930,6 +930,10 @@ class PulseCollection:
             return None
 
         # We have an suspected interval, so try to calculate missing log addresses prior to first collected log
+        _LOGGER.debug(
+            "_logs_missing | %s | checking before range with log_interval=%s",
+            log_interval,
+        )
         calculated_timestamp = self._logs[first_address][
             first_slot
         ].timestamp - timedelta(minutes=log_interval)
