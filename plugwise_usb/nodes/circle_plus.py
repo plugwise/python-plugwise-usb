@@ -14,7 +14,7 @@ from ..messages.requests import (
 from ..messages.responses import NodeResponseType
 from .circle import PlugwiseCircle
 from .helpers.firmware import CIRCLE_PLUS_FIRMWARE_SUPPORT
-
+from .helpers import raise_not_loaded
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -37,6 +37,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                         NodeFeature.RELAY_LOCK,
                         NodeFeature.ENERGY,
                         NodeFeature.POWER,
+                        NodeFeature.CIRCLEPLUS,
                     ),
                 )
                 if await self.initialize():
@@ -121,3 +122,18 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             self.name,
         )
         return False
+
+    @raise_not_loaded
+    async def enable_auto_join(self) -> bool:
+        """Enable Auto Join."""
+        _LOGGER.warning("Auto Joining Started")
+        return True
+
+# region properties
+    @property
+    def auto_join(self) -> bool:
+        """Auto Join Attribute."""
+        _LOGGER.warning("Auto Joining Started")
+        return True
+
+# end region

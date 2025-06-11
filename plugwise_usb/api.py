@@ -54,6 +54,7 @@ class NodeFeature(str, Enum):
     SWITCH = "switch"
     SENSE = "sense"
     TEMPERATURE = "temperature"
+    CIRCLEPLUS = "circleplus"
 
 
 class NodeType(Enum):
@@ -83,6 +84,7 @@ PUSHING_FEATURES = (
     NodeFeature.TEMPERATURE,
     NodeFeature.SENSE,
     NodeFeature.SWITCH,
+    NodeFeature.CIRCLEPLUS,
 )
 
 
