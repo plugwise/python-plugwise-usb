@@ -2498,6 +2498,7 @@ class TestStick:
                 pw_api.NodeFeature.RELAY,
                 pw_api.NodeFeature.RELAY_LOCK,
                 pw_api.NodeFeature.ENERGY,
+                pw_api.NodeFeature.CIRCLEPLUS,
                 pw_api.NodeFeature.POWER,
             )
         )
