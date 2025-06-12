@@ -2,8 +2,8 @@
 
 ## v0.44.3 - 2025-06-12
 
-- PR [#260] (https://github.com/plugwise/python-plugwise-usb/pull/260)
-  - CirclePlus: Expose Allow Joining Request to circle plus interface
+- PR [#260](https://github.com/plugwise/python-plugwise-usb/pull/260)
+  - Expose enable-auto-joining via CirclePlus interface
 
 ## v0.44.2 - 2025-06-11
 
