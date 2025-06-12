@@ -134,8 +134,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         """
         _LOGGER.info("Enabling auto-join for CirclePlus")
         request = CirclePlusAllowJoiningRequest(self._send, True)
-        response = await request.send()
-        if response is None:
+        if (response := await request.send()) is None:
             return False
 
         # JOIN_ACCEPTED is the ACK for enable=True
