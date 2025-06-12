@@ -75,6 +75,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                 NodeFeature.RELAY_LOCK,
                 NodeFeature.ENERGY,
                 NodeFeature.POWER,
+                NodeFeature.CIRCLEPLUS,
             ),
         )
         if not await self.initialize():
@@ -126,7 +127,16 @@ class PlugwiseCirclePlus(PlugwiseCircle):
 
     @raise_not_loaded
     async def enable_auto_join(self) -> bool:
-        """Enable Auto Join."""
-        _LOGGER.info("Allow Auto Joining Enabled")
-        allow_auto_join_request =  CirclePlusAllowJoiningRequest(self._send, True)
-        return await allow_auto_join_request.send()
+        """Enable auto-join on the Circle+.
+
+        Returns:
+           bool: True if the request was acknowledged, False otherwise.
+        """
+        _LOGGER.info("Enabling auto-join for CirclePlus")
+        request = CirclePlusAllowJoiningRequest(self._send, True)
+        response = await request.send()
+        if response is None:
+            return False
+
+        # JOIN_ACCEPTED is the ACK for enable=True
+        return NodeResponseType(response.ack_id) == NodeResponseType.JOIN_ACCEPTED

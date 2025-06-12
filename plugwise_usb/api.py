@@ -41,6 +41,7 @@ class NodeFeature(str, Enum):
 
     AVAILABLE = "available"
     BATTERY = "battery"
+    CIRCLEPLUS = "circleplus"
     ENERGY = "energy"
     HUMIDITY = "humidity"
     INFO = "info"
@@ -54,7 +55,6 @@ class NodeFeature(str, Enum):
     SWITCH = "switch"
     SENSE = "sense"
     TEMPERATURE = "temperature"
-    CIRCLEPLUS = "circleplus"
 
 
 class NodeType(Enum):
