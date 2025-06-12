@@ -184,16 +184,6 @@ class PlugwiseCircle(PlugwiseBaseNode, ABC):
         """State of the relay lock."""
         return self._relay_lock
 
-    @property
-    @raise_not_loaded
-    def auto_join(self) -> bool:
-        """Enable Auto Join."""
-        if NodeFeature.CIRCLEPLUS not in self._features:
-            raise FeatureError(
-                f"Auto-Joining is not supported for node {self.mac}"
-            )
-        raise NotImplementedError()
-
     # endregion
 
     async def calibration_update(self) -> bool:

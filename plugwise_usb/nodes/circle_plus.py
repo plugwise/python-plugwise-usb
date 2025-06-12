@@ -10,6 +10,7 @@ from ..constants import MAX_TIME_DRIFT
 from ..messages.requests import (
     CirclePlusRealTimeClockGetRequest,
     CirclePlusRealTimeClockSetRequest,
+    CirclePlusAllowJoiningRequest,
 )
 from ..messages.responses import NodeResponseType
 from .circle import PlugwiseCircle
@@ -126,14 +127,9 @@ class PlugwiseCirclePlus(PlugwiseCircle):
     @raise_not_loaded
     async def enable_auto_join(self) -> bool:
         """Enable Auto Join."""
-        _LOGGER.warning("Auto Joining Started")
-        return True
+        _LOGGER.warning("Enable Auto Joining Started")
+        allow_auto_join_request =  CirclePlusAllowJoiningRequest(self._send, True)
+        return await allow_auto_join_request.send()
 
 # region properties
-    @property
-    def auto_join(self) -> bool:
-        """Auto Join Attribute."""
-        _LOGGER.warning("Auto Joining Started")
-        return True
-
 # end region

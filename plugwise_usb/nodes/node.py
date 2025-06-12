@@ -320,15 +320,6 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                 f"Sense statistics is not supported for node {self.mac}"
             )
 
-    @property
-    @raise_not_loaded
-    def auto_join(self) -> bool:
-        """Enable Auto Join."""
-        if NodeFeature.CIRCLEPLUS not in self._features:
-            raise FeatureError(f"Auto-Joining is not supported for node {self.mac}")
-        raise NotImplementedError()
-
-
     # endregion
 
     def _setup_protocol(
