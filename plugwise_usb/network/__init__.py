@@ -41,7 +41,6 @@ _LOGGER = logging.getLogger(__name__)
 class StickNetwork:
     """USB-Stick zigbee network class."""
 
-    accept_join_request = False
     _event_subscriptions: dict[StickEvent, int] = {}
 
     def __init__(
@@ -152,9 +151,6 @@ class StickNetwork:
 
     async def register_node(self, mac: str) -> bool:
         """Register node to Plugwise network."""
-        if not self.accept_join_request:
-            return False
-
         try:
             await self._register.register_node(mac)
         except NodeError as exc:
@@ -526,22 +522,6 @@ class StickNetwork:
         _LOGGER.debug("Stopping finished")
 
     # endregion
-
-    async def allow_join_requests(self, state: bool) -> None:
-        """Enable or disable Plugwise network."""
-        request = CirclePlusAllowJoiningRequest(self._controller.send, state)
-        if (response := await request.send()) is None:
-            raise NodeError("No response for CirclePlusAllowJoiningRequest.")
-
-        if response.response_type not in (
-            NodeResponseType.JOIN_ACCEPTED, NodeResponseType.CIRCLE_PLUS
-        ):
-            raise MessageError(
-                f"Unknown NodeResponseType '{response.response_type.name}' received"
-            )
-
-        _LOGGER.debug("Sent AllowJoiningRequest to Circle+ with state=%s", state)
-        self.accept_join_request = state
 
     async def energy_reset_request(self, mac: str) -> None:
         """Send an energy-reset to a Node."""

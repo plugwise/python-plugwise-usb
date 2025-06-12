@@ -180,37 +180,6 @@ class Stick:
 
         self._port = port
 
-    @property
-    def accept_join_request(self) -> bool | None:
-        """Automatically accept joining request of new nodes."""
-        if not self._controller.is_connected:
-            return None
-        if self._network is None or not self._network.is_running:
-            return None
-        return self._network.accept_join_request
-
-    async def set_accept_join_request(self, state: bool) -> bool:
-        """Configure join request setting."""
-        if not self._controller.is_connected:
-            raise StickError(
-                "Cannot accept joining node"
-                + " without an active USB-Stick connection."
-            )
-
-        if self._network is None or not self._network.is_running:
-            raise StickError(
-                "Cannot accept joining node"
-                + " without node discovery be activated. Call discover() first."
-            )
-
-        # Observation: joining is only temporarily possible after a HA (re)start or
-        # Integration reload, force the setting when used otherwise
-        try:
-            await self._network.allow_join_requests(state)
-        except (MessageError, NodeError) as exc:
-            raise NodeError(f"Failed setting accept joining: {exc}") from exc
-        return True
-
     async def energy_reset_request(self, mac: str) -> bool:
         """Send an energy-reset request to a Node."""
         _LOGGER.debug("Resetting energy logs for %s", mac)
