@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from abc import ABC
 from asyncio import Task, create_task
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
@@ -73,7 +72,7 @@ def raise_calibration_missing(func: FuncT) -> FuncT:
     return cast(FuncT, decorated)
 
 
-class PlugwiseCircle(PlugwiseBaseNode, ABC):
+class PlugwiseCircle(PlugwiseBaseNode):
     """Plugwise Circle node."""
 
     def __init__(
