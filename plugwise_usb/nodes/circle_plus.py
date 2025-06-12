@@ -130,6 +130,3 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         _LOGGER.info("Allow Auto Joining Enabled")
         allow_auto_join_request =  CirclePlusAllowJoiningRequest(self._send, True)
         return await allow_auto_join_request.send()
-
-# region properties
-# end region
