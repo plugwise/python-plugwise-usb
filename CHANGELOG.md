@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.44.3 - 2025-06-12
+
+- PR [#260] (https://github.com/plugwise/python-plugwise-usb/pull/260)
+  - CirclePlus: Expose Allow Joining Request to circle plus interface
+
 ## v0.44.2 - 2025-06-11
 
 - Bugfix: implement solution for Issue [#259](https://github.com/plugwise/plugwise_usb-beta/issues/259)
