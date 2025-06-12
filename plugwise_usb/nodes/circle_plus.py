@@ -127,7 +127,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
     @raise_not_loaded
     async def enable_auto_join(self) -> bool:
         """Enable Auto Join."""
-        _LOGGER.warning("Enable Auto Joining Started")
+        _LOGGER.info("Allow Auto Joining Enabled")
         allow_auto_join_request =  CirclePlusAllowJoiningRequest(self._send, True)
         return await allow_auto_join_request.send()
 
