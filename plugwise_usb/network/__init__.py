@@ -14,6 +14,9 @@ from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
 from ..constants import ENERGY_NODE_TYPES, UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
+from ..nodes.circle import PlugwiseCircle
+from ..nodes.helpers.cache import NodeCache
+from ..nodes.helpers.pulses import PulseCollection
 from ..helpers.util import validate_mac
 from ..messages.requests import (
     CircleClockSetRequest,
@@ -34,6 +37,7 @@ from ..messages.responses import (
 from ..nodes import get_plugwise_node
 from .registry import StickNetworkRegister
 
+CACHE_ENERGY_COLLECTION = "energy_collection"
 _LOGGER = logging.getLogger(__name__)
 # endregion
 
@@ -541,6 +545,20 @@ class StickNetwork:
             raise MessageError(
                 f"Unexpected NodeResponseType {response.ack_id!r} received as response to CircleClockSetRequest"
             )
+
+        # Clear the cached energy_collection
+        if self._cache_enabled:
+            node_cache = NodeCache(mac)
+            node_cache.update_state(CACHE_ENERGY_COLLECTION, "")
+            await node_cache.save_cache()
+
+        # Reset the PulseCollection
+        pulse_collection = PulseCollection(mac)
+        pulse_collection.reset()
+
+        # Clear PlugwiseCircle._current_log_address
+        circle = PlugwiseCircle(mac, address(?))
+        circle._current_log_address = 0
 
     async def set_energy_intervals(
         self, mac: str, consumption: int, production: int
