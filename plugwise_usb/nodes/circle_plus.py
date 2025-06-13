@@ -10,11 +10,12 @@ from ..constants import MAX_TIME_DRIFT
 from ..messages.requests import (
     CirclePlusRealTimeClockGetRequest,
     CirclePlusRealTimeClockSetRequest,
+    CirclePlusAllowJoiningRequest,
 )
 from ..messages.responses import NodeResponseType
 from .circle import PlugwiseCircle
 from .helpers.firmware import CIRCLE_PLUS_FIRMWARE_SUPPORT
-
+from .helpers import raise_not_loaded
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -37,6 +38,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                         NodeFeature.RELAY_LOCK,
                         NodeFeature.ENERGY,
                         NodeFeature.POWER,
+                        NodeFeature.CIRCLEPLUS,
                     ),
                 )
                 if await self.initialize():
@@ -73,6 +75,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                 NodeFeature.RELAY_LOCK,
                 NodeFeature.ENERGY,
                 NodeFeature.POWER,
+                NodeFeature.CIRCLEPLUS,
             ),
         )
         if not await self.initialize():
@@ -121,3 +124,18 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             self.name,
         )
         return False
+
+    @raise_not_loaded
+    async def enable_auto_join(self) -> bool:
+        """Enable auto-join on the Circle+.
+
+        Returns:
+           bool: True if the request was acknowledged, False otherwise.
+        """
+        _LOGGER.info("Enabling auto-join for CirclePlus")
+        request = CirclePlusAllowJoiningRequest(self._send, True)
+        if (response := await request.send()) is None:
+            return False
+
+        # JOIN_ACCEPTED is the ACK for enable=True
+        return NodeResponseType(response.ack_id) == NodeResponseType.JOIN_ACCEPTED

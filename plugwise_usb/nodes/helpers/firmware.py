@@ -167,6 +167,7 @@ FEATURE_SUPPORTED_AT_FIRMWARE: Final = {
     NodeFeature.MOTION: 2.0,
     NodeFeature.MOTION_CONFIG: 2.0,
     NodeFeature.SWITCH: 2.0,
+    NodeFeature.CIRCLEPLUS: 2.0,
 }
 
 # endregion
