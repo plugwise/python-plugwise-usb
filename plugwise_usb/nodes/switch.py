@@ -53,7 +53,12 @@ class PlugwiseSwitch(NodeSED):
         self._loaded = True
         self._setup_protocol(
             SWITCH_FIRMWARE_SUPPORT,
-            (NodeFeature.BATTERY, NodeFeature.INFO, NodeFeature.PING, NodeFeature.SWITCH),
+            (
+                NodeFeature.BATTERY,
+                NodeFeature.INFO,
+                NodeFeature.PING,
+                NodeFeature.SWITCH,
+            ),
         )
         if await self.initialize():
             await self._loaded_callback(NodeEvent.LOADED, self.mac)
@@ -89,7 +94,7 @@ class PlugwiseSwitch(NodeSED):
         """Current state of switch."""
         return bool(self._switch_state)
 
-    #endregion
+    # endregion
 
     async def _switch_group(self, response: PlugwiseResponse) -> bool:
         """Switch group request from Switch."""
@@ -99,7 +104,7 @@ class PlugwiseSwitch(NodeSED):
             )
         await gather(
             self._available_update_state(True, response.timestamp),
-            self._switch_state_update(response.switch_state, response.timestamp)
+            self._switch_state_update(response.switch_state, response.timestamp),
         )
         return True
 

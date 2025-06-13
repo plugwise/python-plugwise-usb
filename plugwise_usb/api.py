@@ -704,5 +704,4 @@ class PlugwiseNode(Protocol):
 
         """
 
-
     # endregion

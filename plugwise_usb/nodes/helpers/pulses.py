@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 import logging
 from typing import Final
 
-from ...constants import LOGADDR_MAX, MINUTE_IN_SECONDS, DAY_IN_HOURS
+from ...constants import DAY_IN_HOURS, LOGADDR_MAX, MINUTE_IN_SECONDS
 from ...exceptions import EnergyError
 
 _LOGGER = logging.getLogger(__name__)
@@ -173,7 +173,7 @@ class PulseCollection:
             self._mac,
             from_timestamp,
             is_consumption,
-            self._log_production
+            self._log_production,
         )
         if not is_consumption:
             if self._log_production is None or not self._log_production:
@@ -375,7 +375,7 @@ class PulseCollection:
                     _LOGGER.debug(
                         "_update_rollover | %s | reset %s rollover",
                         self._mac,
-                        direction
+                        direction,
                     )
                 return False
 

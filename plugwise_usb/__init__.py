@@ -20,41 +20,43 @@ from .network import StickNetwork
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
-NOT_INITIALIZED_STICK_ERROR: Final[StickError] = StickError("Cannot load nodes when network is not initialized")
+NOT_INITIALIZED_STICK_ERROR: Final[StickError] = StickError(
+    "Cannot load nodes when network is not initialized"
+)
 _LOGGER = logging.getLogger(__name__)
 
 
 def raise_not_connected(func: FuncT) -> FuncT:
     """Validate existence of an active connection to Stick. Raise StickError when there is no active connection."""
+
     @wraps(func)
     def decorated(*args: Any, **kwargs: Any) -> Any:
         if not args[0].is_connected:
-            raise StickError(
-                "Not connected to USB-Stick, connect to USB-stick first."
-            )
+            raise StickError("Not connected to USB-Stick, connect to USB-stick first.")
         return func(*args, **kwargs)
+
     return cast(FuncT, decorated)
 
 
 def raise_not_initialized(func: FuncT) -> FuncT:
     """Validate if active connection is initialized. Raise StickError when not initialized."""
+
     @wraps(func)
     def decorated(*args: Any, **kwargs: Any) -> Any:
         if not args[0].is_initialized:
             raise StickError(
-                "Connection to USB-Stick is not initialized, " +
-                "initialize USB-stick first."
+                "Connection to USB-Stick is not initialized, "
+                + "initialize USB-stick first."
             )
         return func(*args, **kwargs)
+
     return cast(FuncT, decorated)
 
 
 class Stick:
     """Plugwise connection stick."""
 
-    def __init__(
-        self, port: str | None = None, cache_enabled: bool = True
-    ) -> None:
+    def __init__(self, port: str | None = None, cache_enabled: bool = True) -> None:
         """Initialize Stick."""
         self._loop = get_running_loop()
         self._loop.set_debug(True)
@@ -170,13 +172,8 @@ class Stick:
     @port.setter
     def port(self, port: str) -> None:
         """Path to serial port of USB-Stick."""
-        if (
-            self._controller.is_connected
-            and port != self._port
-        ):
-            raise StickError(
-                "Unable to change port while connected. Disconnect first"
-            )
+        if self._controller.is_connected and port != self._port:
+            raise StickError("Unable to change port while connected. Disconnect first")
 
         self._port = port
 
@@ -238,7 +235,9 @@ class Stick:
         Returns the function to be called to unsubscribe later.
         """
         if self._network is None:
-            raise SubscriptionError("Unable to subscribe to node events without network connection initialized")
+            raise SubscriptionError(
+                "Unable to subscribe to node events without network connection initialized"
+            )
         return self._network.subscribe_to_node_events(
             node_event_callback,
             events,
@@ -252,9 +251,7 @@ class Stick:
         if self._network is None or not self._network.is_running:
             raise StickError("Plugwise network node discovery is not active.")
 
-    async def setup(
-        self, discover: bool = True, load: bool = True
-    ) -> None:
+    async def setup(self, discover: bool = True, load: bool = True) -> None:
         """Fully connect, initialize USB-Stick and discover all connected nodes."""
         if not self.is_connected:
             await self.connect()
@@ -271,8 +268,8 @@ class Stick:
         """Connect to USB-Stick. Raises StickError if connection fails."""
         if self._controller.is_connected:
             raise StickError(
-                f"Already connected to {self._port}, " +
-                "Close existing connection before (re)connect."
+                f"Already connected to {self._port}, "
+                + "Close existing connection before (re)connect."
             )
 
         if port is not None:
@@ -280,8 +277,8 @@ class Stick:
 
         if self._port is None:
             raise StickError(
-                "Unable to connect. " +
-                "Path to USB-Stick is not defined, set port property first"
+                "Unable to connect. "
+                + "Path to USB-Stick is not defined, set port property first"
             )
 
         await self._controller.connect_to_stick(
@@ -319,9 +316,7 @@ class Stick:
         if self._network is None:
             raise NOT_INITIALIZED_STICK_ERROR
         if not self._network.is_running:
-            raise StickError(
-                "Cannot load nodes when network is not started"
-            )
+            raise StickError("Cannot load nodes when network is not started")
         return await self._network.discover_nodes(load=True)
 
     @raise_not_connected

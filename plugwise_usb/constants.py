@@ -1,4 +1,5 @@
 """Plugwise Stick constants."""
+
 from __future__ import annotations
 
 import datetime as dt
