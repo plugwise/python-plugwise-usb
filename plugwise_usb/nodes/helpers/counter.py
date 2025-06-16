@@ -103,6 +103,10 @@ class EnergyCounters:
         )
         self.update()
 
+    def reset_pulse_collection(self) -> None:
+        """ Reset the related pulse collection."""
+        self._pulse_collection.reset()
+
     @property
     def energy_statistics(self) -> EnergyStatistics:
         """Return collection with energy statistics."""

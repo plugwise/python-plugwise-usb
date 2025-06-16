@@ -28,7 +28,7 @@ from ..constants import (
     PULSES_PER_KW_SECOND,
     SECOND_IN_NANOSECONDS,
 )
-from ..exceptions import FeatureError, NodeError
+from ..exceptions import FeatureError, MessageError, NodeError
 from ..messages.requests import (
     CircleClockGetRequest,
     CircleClockSetRequest,
@@ -43,7 +43,7 @@ from ..messages.responses import NodeInfoResponse, NodeResponseType
 from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.counter import EnergyCounters
 from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
-from .helpers.pulses import PulseLogRecord, calc_log_address
+from .helpers.pulses import PulseCollection, PulseLogRecord, calc_log_address
 from .node import PlugwiseBaseNode
 
 CACHE_CURRENT_LOG_ADDRESS = "current_log_address"
@@ -1211,6 +1211,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
     async def energy_reset_request(self) -> None:
         """Send an energy-reset to a Node."""
+        if self._node_protocols is None:
+            raise NodeError(
+                "Unable to energy-rest when protocol version is unknown"
+            )
+
         request = CircleClockSetRequest(
             self._send,
             self._mac_in_bytes,
@@ -1219,18 +1224,25 @@ class PlugwiseCircle(PlugwiseBaseNode):
             True,
         )
         if (response := await request.send()) is None:
-            raise NodeError(f"Energy-reset for {mac} failed")
+            raise NodeError(f"Energy-reset for {self._mac_in_str} failed")
 
         if response.ack_id != NodeResponseType.CLOCK_ACCEPTED:
             raise MessageError(
                 f"Unexpected NodeResponseType {response.ack_id!r} received as response to CircleClockSetRequest"
             )
 
+        _LOGGER.warning("Energy reset for Node %s successful", self._mac_in_bytes)
         # Clear the cached energy_collection
         if self._cache_enabled:
             self._node_cache.update_state(CACHE_ENERGY_COLLECTION, "")
+            _LOGGER.warning("Energy-collection cache cleared successfully")
             await self._node_cache.save_cache()
+
+        # Clear PulseCollection._logs
+        self._energy_counters.reset_pulse_collection()
 
         # Request a NodeInfo update
         if await self.node_info_update() is None:
             _LOGGER.warning("Node info update failed after energy-reset")
+        else:
+            _LOGGER.warning("Node info update after energy-reset successful")
