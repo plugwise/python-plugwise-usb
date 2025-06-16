@@ -23,8 +23,10 @@ from ..api import (
 )
 from ..connection import StickController
 from ..constants import (
+    DEFAULT_CONS_INTERVAL,
     MAX_TIME_DRIFT,
     MINIMAL_POWER_UPDATE,
+    NO_PRODUCTION_INTERVAL,
     PULSES_PER_KW_SECOND,
     SECOND_IN_NANOSECONDS,
 )
@@ -42,8 +44,7 @@ from ..messages.requests import (
 from ..messages.responses import NodeInfoResponse, NodeResponseType
 from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.counter import EnergyCounters
-from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
-from .helpers.pulses import PulseCollection, PulseLogRecord, calc_log_address
+from .network import StickNetwork
 from .node import PlugwiseBaseNode
 
 CACHE_CURRENT_LOG_ADDRESS = "current_log_address"
@@ -1232,6 +1233,15 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
 
         _LOGGER.warning("Energy reset for Node %s successful", self._mac_in_bytes)
+        # Follow up by an energy-intervals (re)set
+        network = StickNetwork()
+        if not (
+            result := await network.set_energy_intervals(
+                mac, DEFAULT_CONS_INTERVAL, NO_PRODUCTION_INTERVAL
+            )
+        ):
+            _LOGGER.warning("Failed enery-intervals (re)set after an energy-reset")
+
         # Clear the cached energy_collection
         if self._cache_enabled:
             self._node_cache.update_state(CACHE_ENERGY_COLLECTION, "")
@@ -1246,3 +1256,22 @@ class PlugwiseCircle(PlugwiseBaseNode):
             _LOGGER.warning("Node info update failed after energy-reset")
         else:
             _LOGGER.warning("Node info update after energy-reset successful")
+
+
+    async def energy_reset_request(self, mac: str) -> bool:
+        """Send an energy-reset request to a Node."""
+        _LOGGER.debug("Resetting energy logs for %s", mac)
+        try:
+            await self._network.energy_reset_request(mac)
+        except (MessageError, NodeError) as exc:
+            raise NodeError(f"{exc}") from exc
+
+        # Follow up by an energy-intervals (re)set
+        if (
+            result := await self.set_energy_intervals(
+                mac, DEFAULT_CONS_INTERVAL, NO_PRODUCTION_INTERVAL
+            )
+        ):
+            return result
+
+        return False
