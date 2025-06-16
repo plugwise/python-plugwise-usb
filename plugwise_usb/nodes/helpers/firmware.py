@@ -155,6 +155,8 @@ CELSIUS_FIRMWARE_SUPPORT: Final = {
 
 FEATURE_SUPPORTED_AT_FIRMWARE: Final = {
     NodeFeature.BATTERY: 2.0,
+    NodeFeature.CIRCLE: 2.0,
+    NodeFeature.CIRCLEPLUS: 2.0,
     NodeFeature.INFO: 2.0,
     NodeFeature.SENSE: 2.0,
     NodeFeature.TEMPERATURE: 2.0,
@@ -167,7 +169,6 @@ FEATURE_SUPPORTED_AT_FIRMWARE: Final = {
     NodeFeature.MOTION: 2.0,
     NodeFeature.MOTION_CONFIG: 2.0,
     NodeFeature.SWITCH: 2.0,
-    NodeFeature.CIRCLEPLUS: 2.0,
 }
 
 # endregion

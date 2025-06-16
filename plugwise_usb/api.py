@@ -41,6 +41,7 @@ class NodeFeature(str, Enum):
 
     AVAILABLE = "available"
     BATTERY = "battery"
+    CIRCLE = "circle"
     CIRCLEPLUS = "circleplus"
     ENERGY = "energy"
     HUMIDITY = "humidity"
@@ -78,13 +79,14 @@ class NodeType(Enum):
 PUSHING_FEATURES = (
     NodeFeature.AVAILABLE,
     NodeFeature.BATTERY,
+    NodeFeature.CIRCLE,
+    NodeFeature.CIRCLEPLUS,
     NodeFeature.HUMIDITY,
     NodeFeature.MOTION,
     NodeFeature.MOTION_CONFIG,
     NodeFeature.TEMPERATURE,
     NodeFeature.SENSE,
     NodeFeature.SWITCH,
-    NodeFeature.CIRCLEPLUS,
 )
 
 

@@ -800,6 +800,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._setup_protocol(
                     CIRCLE_FIRMWARE_SUPPORT,
                     (
+                        NodeFeature.CIRCLE,
                         NodeFeature.RELAY,
                         NodeFeature.RELAY_INIT,
                         NodeFeature.RELAY_LOCK,
@@ -841,6 +842,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         self._setup_protocol(
             CIRCLE_FIRMWARE_SUPPORT,
             (
+                NodeFeature.CIRCLE,
                 NodeFeature.RELAY,
                 NodeFeature.RELAY_INIT,
                 NodeFeature.RELAY_LOCK,
