@@ -35,6 +35,7 @@ from ..messages.requests import (
     CircleClockGetRequest,
     CircleClockSetRequest,
     CircleEnergyLogsRequest,
+    CircleMeasureIntervalRequest,
     CirclePowerUsageRequest,
     CircleRelayInitStateRequest,
     CircleRelaySwitchRequest,
@@ -42,7 +43,6 @@ from ..messages.requests import (
     NodeInfoRequest,
 )
 from ..messages.responses import NodeInfoResponse, NodeResponseType
-from ..network import StickNetwork
 from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.counter import EnergyCounters
 from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
@@ -1236,13 +1236,19 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         _LOGGER.warning("Energy reset for Node %s successful", self._mac_in_bytes)
         # Follow up by an energy-intervals (re)set
-        network = StickNetwork()
-        if not (
-            await network.set_energy_intervals(
-                mac, DEFAULT_CONS_INTERVAL, NO_PRODUCTION_INTERVAL
+        request = CircleMeasureIntervalRequest(
+            self._send,
+            self._mac_in_bytes,
+            DEFAULT_CONS_INTERVAL,
+            NO_PRODUCTION_INTERVAL,
+        )
+        if (response := await request.send()) is None:
+            raise NodeError("No response for CircleMeasureIntervalRequest.")
+
+        if response.response_type != NodeResponseType.POWER_LOG_INTERVAL_ACCEPTED:
+            raise MessageError(
+                f"Unknown NodeResponseType '{response.response_type.name}' received"
             )
-        ):
-            _LOGGER.warning("Failed enery-intervals (re)set after an energy-reset")
 
         # Clear the cached energy_collection
         if self._cache_enabled:
@@ -1258,22 +1264,3 @@ class PlugwiseCircle(PlugwiseBaseNode):
             _LOGGER.warning("Node info update failed after energy-reset")
         else:
             _LOGGER.warning("Node info update after energy-reset successful")
-
-
-    async def energy_reset_request(self, mac: str) -> bool:
-        """Send an energy-reset request to a Node."""
-        _LOGGER.debug("Resetting energy logs for %s", mac)
-        try:
-            await self._network.energy_reset_request(mac)
-        except (MessageError, NodeError) as exc:
-            raise NodeError(f"{exc}") from exc
-
-        # Follow up by an energy-intervals (re)set
-        if (
-            result := await self.set_energy_intervals(
-                mac, DEFAULT_CONS_INTERVAL, NO_PRODUCTION_INTERVAL
-            )
-        ):
-            return result
-
-        return False
