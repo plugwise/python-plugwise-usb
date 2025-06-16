@@ -530,6 +530,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             return False
         restored_logs: dict[int, list[int]] = {}
         if cache_data == "":
+            _LOGGER.debug("Cache-record is empty")
             return False
 
         log_data = cache_data.split("|")
@@ -563,6 +564,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         # Create task to retrieve remaining (missing) logs
         if self._energy_counters.log_addresses_missing is None:
+            _LOGGER.debug("Cache | missing log addresses is None")
             return False
 
         if len(self._energy_counters.log_addresses_missing) > 0:
@@ -572,6 +574,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             self._retrieve_energy_logs_task = create_task(
                 self.get_missing_energy_logs()
             )
+            _LOGGER.debug("Cache | creating tasks to obtain missing energy logs")
             return False
 
         return True
