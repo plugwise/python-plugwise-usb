@@ -166,7 +166,9 @@ class PulseCollection:
     def reset(self) -> None:
         """Reset PulseCollection after an energy-logs reset."""
         # Keep mac, wipe every other attribute.
-        self.__dict__.update(PulseCollection(self._mac).__dict__)
+        fresh_state = PulseCollection(self._mac).__dict__
+        self.__dict__.clear()  # remove *all* existing keys first
+        self.__dict__.update(fresh_state)
 
     def collected_pulses(
         self, from_timestamp: datetime, is_consumption: bool
