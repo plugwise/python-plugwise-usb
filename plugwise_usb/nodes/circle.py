@@ -23,19 +23,19 @@ from ..api import (
 )
 from ..connection import StickController
 from ..constants import (
-    # DEFAULT_CONS_INTERVAL,
+    DEFAULT_CONS_INTERVAL,
     MAX_TIME_DRIFT,
     MINIMAL_POWER_UPDATE,
-    # NO_PRODUCTION_INTERVAL,
+    NO_PRODUCTION_INTERVAL,
     PULSES_PER_KW_SECOND,
     SECOND_IN_NANOSECONDS,
 )
-from ..exceptions import FeatureError, NodeError  # MessageError
+from ..exceptions import FeatureError, MessageError, NodeError
 from ..messages.requests import (
     CircleClockGetRequest,
     CircleClockSetRequest,
     CircleEnergyLogsRequest,
-    # CircleMeasureIntervalRequest,
+    CircleMeasureIntervalRequest,
     CirclePowerUsageRequest,
     CircleRelayInitStateRequest,
     CircleRelaySwitchRequest,
@@ -1224,46 +1224,47 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 "Unable to energy-rest when protocol version is unknown"
             )
 
-        #request = CircleClockSetRequest(
-        #    self._send,
-        #    self._mac_in_bytes,
-        #    datetime.now(tz=UTC),
-        #    self._node_protocols.max,
-        #    True,
-        #)
-        #if (response := await request.send()) is None:
-        #    raise NodeError(f"Energy-reset for {self._mac_in_str} failed")
+        request = CircleClockSetRequest(
+            self._send,
+            self._mac_in_bytes,
+            datetime.now(tz=UTC),
+            self._node_protocols.max,
+            True,
+        )
+        if (response := await request.send()) is None:
+            raise NodeError(f"Energy-reset for {self._mac_in_str} failed")
 
-        #if response.ack_id != NodeResponseType.CLOCK_ACCEPTED:
-        #    raise MessageError(
-        #        f"Unexpected NodeResponseType {response.ack_id!r} received as response to CircleClockSetRequest"
-        #    )
+        if response.ack_id != NodeResponseType.CLOCK_ACCEPTED:
+            raise MessageError(
+                f"Unexpected NodeResponseType {response.ack_id!r} received as response to CircleClockSetRequest"
+            )
 
         _LOGGER.warning("Energy reset for Node %s successful", self._mac_in_bytes)
-        # Follow up by an energy-intervals (re)set
-        #request = CircleMeasureIntervalRequest(
-        #    self._send,
-        #    self._mac_in_bytes,
-        #    DEFAULT_CONS_INTERVAL,
-        #    NO_PRODUCTION_INTERVAL,
-        #)
-        #if (response := await request.send()) is None:
-        #    raise NodeError("No response for CircleMeasureIntervalRequest.")
 
-        #if response.response_type != NodeResponseType.POWER_LOG_INTERVAL_ACCEPTED:
-        #    raise MessageError(
-        #        f"Unknown NodeResponseType '{response.response_type.name}' received"
-        #    )
+        # Follow up by an energy-intervals (re)set
+        request = CircleMeasureIntervalRequest(
+            self._send,
+            self._mac_in_bytes,
+            DEFAULT_CONS_INTERVAL,
+            NO_PRODUCTION_INTERVAL,
+        )
+        if (response := await request.send()) is None:
+            raise NodeError("No response for CircleMeasureIntervalRequest.")
+
+        if response.response_type != NodeResponseType.POWER_LOG_INTERVAL_ACCEPTED:
+            raise MessageError(
+                f"Unknown NodeResponseType '{response.response_type.name}' received"
+            )
         _LOGGER.warning("Resetting energy intervals to default (= consumption only)")
 
         # Clear the cached energy_collection
         if self._cache_enabled:
-            #self._node_cache.update_state(CACHE_ENERGY_COLLECTION, "")
+            self._node_cache.update_state(CACHE_ENERGY_COLLECTION, "")
             _LOGGER.warning("Energy-collection cache cleared successfully")
-            #await self._node_cache.save_cache()
+            await self._node_cache.save_cache()
 
         # Clear PulseCollection._logs
-        #self._energy_counters.reset_pulse_collection()
+        self._energy_counters.reset_pulse_collection()
         _LOGGER.warning("Resetting pulse-collection")
 
         # Request a NodeInfo update
