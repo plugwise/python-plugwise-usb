@@ -516,8 +516,8 @@ class PulseCollection:
         or double slots containing consumption and production data.
         Single slots containing production data only is NOT supported/tested.
         """
-        prev_timestamp = self._check_prev_production(self, address, slot, timestamp)
-        next_timestamp = self._check_next_production(self, address, slot, timestamp)
+        prev_timestamp = self._check_prev_production(address, slot, timestamp)
+        next_timestamp = self._check_next_production(address, slot, timestamp)
         if self._first_prev_log_processed and self._first_next_log_processed:
             # _log_production is True when 2 out of 3 consecutive slots have
             # the same timestamp
