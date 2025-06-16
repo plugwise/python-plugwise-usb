@@ -42,9 +42,9 @@ from ..messages.requests import (
     NodeInfoRequest,
 )
 from ..messages.responses import NodeInfoResponse, NodeResponseType
+from ..network import StickNetwork
 from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.counter import EnergyCounters
-from .network import StickNetwork
 from .node import PlugwiseBaseNode
 
 CACHE_CURRENT_LOG_ADDRESS = "current_log_address"
