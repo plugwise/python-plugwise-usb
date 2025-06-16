@@ -557,7 +557,7 @@ class PulseCollection:
         if self._first_prev_log_processed:
             self._first_prev_log_processed = False
             return None
-        
+
     def _check_next_production(
         self, address: int, slot: int, timestamp: datetime
     ) -> datetime | None:
