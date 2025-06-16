@@ -527,10 +527,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             return False
         restored_logs: dict[int, list[int]] = {}
-        log_data = cache_data.split("|")
-        if len(log_data) == 0:
+        if cache_data == "":
             return False
 
+        log_data = cache_data.split("|")
         for log_record in log_data:
             log_fields = log_record.split(":")
             if len(log_fields) == 4:
