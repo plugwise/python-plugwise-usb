@@ -1236,7 +1236,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         # Follow up by an energy-intervals (re)set
         network = StickNetwork()
         if not (
-            result := await network.set_energy_intervals(
+            await network.set_energy_intervals(
                 mac, DEFAULT_CONS_INTERVAL, NO_PRODUCTION_INTERVAL
             )
         ):
