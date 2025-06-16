@@ -23,19 +23,19 @@ from ..api import (
 )
 from ..connection import StickController
 from ..constants import (
-    DEFAULT_CONS_INTERVAL,
+    # DEFAULT_CONS_INTERVAL,
     MAX_TIME_DRIFT,
     MINIMAL_POWER_UPDATE,
-    NO_PRODUCTION_INTERVAL,
+    # NO_PRODUCTION_INTERVAL,
     PULSES_PER_KW_SECOND,
     SECOND_IN_NANOSECONDS,
 )
-from ..exceptions import FeatureError, MessageError, NodeError
+from ..exceptions import FeatureError, NodeError  # MessageError
 from ..messages.requests import (
     CircleClockGetRequest,
     CircleClockSetRequest,
     CircleEnergyLogsRequest,
-    CircleMeasureIntervalRequest,
+    # CircleMeasureIntervalRequest,
     CirclePowerUsageRequest,
     CircleRelayInitStateRequest,
     CircleRelaySwitchRequest,
