@@ -2488,12 +2488,12 @@ class TestStick:
         assert sorted(state[pw_api.NodeFeature.INFO].features) == sorted(
             (
                 pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.CIRCLEPLUS,
                 pw_api.NodeFeature.INFO,
                 pw_api.NodeFeature.PING,
                 pw_api.NodeFeature.RELAY,
                 pw_api.NodeFeature.RELAY_LOCK,
                 pw_api.NodeFeature.ENERGY,
-                pw_api.NodeFeature.CIRCLEPLUS,
                 pw_api.NodeFeature.POWER,
             )
         )
@@ -2540,6 +2540,7 @@ class TestStick:
         assert sorted(state[pw_api.NodeFeature.INFO].features) == sorted(
             (
                 pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.CIRCLE,
                 pw_api.NodeFeature.INFO,
                 pw_api.NodeFeature.PING,
                 pw_api.NodeFeature.RELAY,
