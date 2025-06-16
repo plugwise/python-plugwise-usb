@@ -527,35 +527,6 @@ class StickNetwork:
 
     # endregion
 
-    async def energy_reset_request(self, mac: str) -> None:
-        """Send an energy-reset to a Node."""
-        self._validate_energy_node(mac)
-        node_protocols = self._nodes[mac].node_protocols
-        request = CircleClockSetRequest(
-            self._controller.send,
-            bytes(mac, UTF8),
-            datetime.now(tz=UTC),
-            node_protocols.max,
-            True,
-        )
-        if (response := await request.send()) is None:
-            raise NodeError(f"Energy-reset for {mac} failed")
-
-        if response.ack_id != NodeResponseType.CLOCK_ACCEPTED:
-            raise MessageError(
-                f"Unexpected NodeResponseType {response.ack_id!r} received as response to CircleClockSetRequest"
-            )
-
-        # Clear the cached energy_collection
-        if self._cache_enabled:
-            node_cache = NodeCache(mac)
-            node_cache.update_state(CACHE_ENERGY_COLLECTION, "")
-            await node_cache.save_cache()
-
-        # Clear PulseCollection._logs
-        pulse_collection = PulseCollection(mac)
-        pulse_collection.reset()
-
     async def set_energy_intervals(
         self, mac: str, consumption: int, production: int
     ) -> None:

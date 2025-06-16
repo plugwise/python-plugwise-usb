@@ -1208,3 +1208,29 @@ class PlugwiseCircle(PlugwiseBaseNode):
             states[NodeFeature.AVAILABLE] = self.available_state
 
         return states
+
+    async def energy_reset_request(self) -> None:
+        """Send an energy-reset to a Node."""
+        request = CircleClockSetRequest(
+            self._send,
+            self._mac_in_bytes,
+            datetime.now(tz=UTC),
+            self._node_protocols.max,
+            True,
+        )
+        if (response := await request.send()) is None:
+            raise NodeError(f"Energy-reset for {mac} failed")
+
+        if response.ack_id != NodeResponseType.CLOCK_ACCEPTED:
+            raise MessageError(
+                f"Unexpected NodeResponseType {response.ack_id!r} received as response to CircleClockSetRequest"
+            )
+
+        # Clear the cached energy_collection
+        if self._cache_enabled:
+            self._node_cache.update_state(CACHE_ENERGY_COLLECTION, "")
+            await self._node_cache.save_cache()
+
+        # Request a NodeInfo update
+        if await self.node_info_update() is None:
+            _LOGGER.warning("Node info update failed after energy-reset")
