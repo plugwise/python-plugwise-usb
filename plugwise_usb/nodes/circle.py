@@ -45,6 +45,8 @@ from ..messages.responses import NodeInfoResponse, NodeResponseType
 from ..network import StickNetwork
 from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.counter import EnergyCounters
+from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
+from .helpers.pulses import PulseLogRecord, calc_log_address
 from .node import PlugwiseBaseNode
 
 CACHE_CURRENT_LOG_ADDRESS = "current_log_address"
