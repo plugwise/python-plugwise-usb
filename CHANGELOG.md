@@ -1,5 +1,10 @@
 # Changelog
 
+## ongoing
+
+- PR [#261] (https://github.com/plugwise/python-plugwise-usb/pull/261L)
+  - Sense: BugFix parsing of humidity value should be unsigned int
+
 ## v0.44.3 - 2025-06-12
 
 - PR [#260](https://github.com/plugwise/python-plugwise-usb/pull/260)
