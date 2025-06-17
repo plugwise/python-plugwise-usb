@@ -930,7 +930,7 @@ class SenseReportResponse(PlugwiseResponse):
     def __init__(self) -> None:
         """Initialize SenseReportResponse message object."""
         super().__init__(SENSE_REPORT_ID)
-        self.humidity = Int(0, length=4)
+        self.humidity = Int(0, 4, False)
         self.temperature = Int(0, length=4)
         self._params += [self.humidity, self.temperature]
 
