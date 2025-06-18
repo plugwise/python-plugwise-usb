@@ -106,7 +106,7 @@ jobs:
           ruff format plugwise_usb/ tests/
           git config --global user.name 'autoruff'
           git config --global user.email 'plugwise_usb@users.noreply.github.com'
-          git remote set-url origin https://x-access-token:${{ secrets.PAT_CT }}@github.com/$GITHUB_REPOSITORY
+          git remote set-url origin https://x-access-token:${{ secrets.PAT_CT_PYPLUSB }}@github.com/$GITHUB_REPOSITORY
           git checkout $GITHUB_HEAD_REF
           git commit -am "fixup: ${GITHUB_REF##*/} Python code reformatted using Ruff"
           git push origin ${GITHUB_REF##*/}
