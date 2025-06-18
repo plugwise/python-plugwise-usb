@@ -26,6 +26,7 @@ runs:
             ${{ inputs.precommit-home }}
           key: ${{ inputs.cache-key }}
       - name: Create Python virtual environment
+        shell: bash
         run: |
           pip install virtualenv --upgrade
           python -m venv venv
