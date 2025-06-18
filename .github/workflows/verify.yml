@@ -38,10 +38,6 @@ jobs:
           venv-directory: ${{ env.VENV }}
           precommit-home: ${{ env.PRE_COMMIT_HOME }}
           fail-on-miss: false # First time create cache (if not already exists)
-      - name: Install pre-commit dependencies
-        run: |
-          . venv/bin/activate
-          pre-commit install-hooks
 
   ruff:
     runs-on: ubuntu-latest
