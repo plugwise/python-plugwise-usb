@@ -97,17 +97,12 @@ jobs:
       - name: Ruff (check)
         run: |
           . venv/bin/activate
-          #ruff plugwise_usb/*py tests/*py
-          echo "***"
-          echo "***"
-          echo "Code is not up to par for ruff, skipping"
-          echo "***"
-          echo "***"
+          ruff check plugwise_usb/ tests/
       - name: If needed, commit ruff changes to the pull request
         if: failure()
         run: |
           . venv/bin/activate
-          ruff --fix plugwise_usb/*py tests/*py
+          ruff format plugwise_usb/ tests/
           git config --global user.name 'autoruff'
           git config --global user.email 'plugwise_usb@users.noreply.github.com'
           git remote set-url origin https://x-access-token:${{ secrets.PAT_CT }}@github.com/$GITHUB_REPOSITORY
