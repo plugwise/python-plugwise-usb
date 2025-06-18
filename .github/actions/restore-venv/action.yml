@@ -3,13 +3,16 @@ description: "Restores the venv and pre-commit cache or fails"
 
 inputs:
   python-version:
-    required: false
-    default: "${{ env.DEFAULT_PYTHON }}"
+    required: true
   cache-key:
     required: true
   fail-on-miss:
     required: false
     default: "true" # DefauLt fail if not available
+  venv-dir:
+    required: true
+  precommit-home:
+    required: true
 
 runs:
   using: "composite"
@@ -19,8 +22,8 @@ runs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.VENV }}
-            ${{ env.PRE_COMMIT_HOME }}
+            ${{ inputs.venv_dir }}
+            ${{ inputs.precommit-home }}
           key: ${{ inputs.cache-key }}
       - name: Create Python virtual environment
         if: ${{ steps.cache-create.outputs.cache-hit != 'true' }}

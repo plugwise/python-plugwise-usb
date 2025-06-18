@@ -54,6 +54,9 @@ jobs:
         with:
           cache-key: ${{ needs.cache.outputs.cache-key }}
           fail-on-miss: false # First time create cache (if not already exists)
+          python-version: ${{ steps.python.outputs.python-version }}
+          venv-dir: ${{ env.VENV }}
+          precommit-home: ${{ env.PRE_COMMIT_HOME }}
 
   ruff:
     runs-on: ubuntu-latest
@@ -74,6 +77,9 @@ jobs:
         uses: ./.github/actions/restore-venv
         with:
           cache-key: ${{ needs.cache.outputs.cache-key }}
+          python-version: ${{ steps.python.outputs.python-version }}
+          venv-dir: ${{ env.VENV }}
+          precommit-home: ${{ env.PRE_COMMIT_HOME }}
       - name: Ruff (check)
         run: |
           . venv/bin/activate
@@ -111,6 +117,9 @@ jobs:
         uses: ./.github/actions/restore-venv
         with:
           cache-key: ${{ needs.cache.outputs.cache-key }}
+          python-version: ${{ steps.python.outputs.python-version }}
+          venv-dir: ${{ env.VENV }}
+          precommit-home: ${{ env.PRE_COMMIT_HOME }}
       - name: Verify commit
         run: |
           . venv/bin/activate
@@ -146,9 +155,11 @@ jobs:
         id: cache-reuse
         uses: ./.github/actions/restore-venv
         with:
-          python-version: ${{ matrix.python-version }}
           cache-key: ${{ needs.cache.outputs.cache-key }}-pytest-matrix-${{ matrix.python-version }}
           fail-on-miss: false # First time create cache (if not already exists)
+          python-version: ${{ matrix.python-version }}
+          venv-dir: ${{ env.VENV }}
+          precommit-home: ${{ env.PRE_COMMIT_HOME }}
       - name: Run all tests
         run: |
           . venv/bin/activate
@@ -183,6 +194,9 @@ jobs:
         uses: ./.github/actions/restore-venv
         with:
           cache-key: ${{ needs.cache.outputs.cache-key }}
+          python-version: ${{ steps.python.outputs.python-version }}
+          venv-dir: ${{ env.VENV }}
+          precommit-home: ${{ env.PRE_COMMIT_HOME }}
       - name: Run mypy
         run: |
           . venv/bin/activate
@@ -229,6 +243,9 @@ jobs:
         uses: ./.github/actions/restore-venv
         with:
           cache-key: ${{ needs.cache.outputs.cache-key }}
+          python-version: ${{ steps.python.outputs.python-version }}
+          venv-dir: ${{ env.VENV }}
+          precommit-home: ${{ env.PRE_COMMIT_HOME }}
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v4
       - name: Combine coverage results
@@ -267,6 +284,9 @@ jobs:
         uses: ./.github/actions/restore-venv
         with:
           cache-key: ${{ needs.cache.outputs.cache-key }}
+          python-version: ${{ steps.python.outputs.python-version }}
+          venv-dir: ${{ env.VENV }}
+          precommit-home: ${{ env.PRE_COMMIT_HOME }}
       - name: Install pypa/build
         run: |
           . venv/bin/activate
@@ -302,6 +322,9 @@ jobs:
         uses: ./.github/actions/restore-venv
         with:
           cache-key: ${{ needs.cache.outputs.cache-key }}
+          python-version: ${{ steps.python.outputs.python-version }}
+          venv-dir: ${{ env.VENV }}
+          precommit-home: ${{ env.PRE_COMMIT_HOME }}
       - name: Run complexity report (click to view details)
         run: |
           . venv/bin/activate
