@@ -500,9 +500,10 @@ lint.ignore = [
     "E711",   # "none-comparison", # E711 FIXFOR171
     "W293",   # blank line contains whitespaace FIXFOR171
     "UP018",  # FIXFOR171 unnecessary int call
-    "W293",   # FIXFOR171 trailing whitespace
+    "W291",   # FIXFOR171 trailing whitespace
     "I001",   # FIXFOR171 import block is unsorted or unformatted
     "D204",   # FIXFOR171 blank line required after class docstring
+    "D413",   # FIXFOR171 missing blank line after last section
 
     # Generic
     "D202",  # No blank lines allowed after function docstring
