@@ -7,3 +7,4 @@ types-python-dateutil
 pyserial-asyncio-fast
 aiofiles
 freezegun
+pytest-cov
