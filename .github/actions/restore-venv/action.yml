@@ -25,10 +25,18 @@ runs:
             ${{ inputs.venv-directory }}
             ${{ inputs.precommit-home }}
           key: ${{ inputs.cache-key }}
+      - name: Save cache if (purposely) created
+        if: ${{ inputs.fail-on-miss == 'false' && steps.cache-venv.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          key: ${{ inputs.cache-key }}
+          path: |
+            ${{ inputs.venv-directory }}
+            ${{ inputs.precommit-home }}
+
       - name: Fail job if Python cache restore failed
         if: ${{ inputs.fail-on-miss == 'true' && steps.cache-create.outputs.cache-hit != 'true' }}
         shell: bash
         run: |
           echo "Failed to restore cache for ${{ inputs.python-version}} virtual environment from cache"
           exit 1
-
