@@ -1214,7 +1214,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         """Send an energy-reset to a Node."""
         if self._node_protocols is None:
             raise NodeError(
-                "Unable to energy-rest when protocol version is unknown"
+                "Unable to energy-reset when protocol version is unknown"
             )
 
         request = CircleClockSetRequest(
@@ -1232,7 +1232,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 f"Unexpected NodeResponseType {response.ack_id!r} received as response to CircleClockSetRequest"
             )
 
-        _LOGGER.warning("Energy reset for Node %s successful", self._mac_in_bytes)
+        _LOGGER.warning("Energy reset for Node %s successful", self._mac_in_str)
 
         # Follow up by an energy-intervals (re)set
         request = CircleMeasureIntervalRequest(
@@ -1252,9 +1252,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         # Clear the cached energy_collection
         if self._cache_enabled:
-            self._node_cache.update_state(CACHE_ENERGY_COLLECTION, "")
+            self._set_cache(CACHE_ENERGY_COLLECTION, "")
             _LOGGER.warning("Energy-collection cache cleared successfully")
-            await self._node_cache.save_cache()
+            await self.save_cache()
 
         # Clear PulseCollection._logs
         self._energy_counters.reset_pulse_collection()
