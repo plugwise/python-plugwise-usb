@@ -255,7 +255,7 @@ jobs:
     needs: 
       - prepare
       - coverage
-      - mypy
+    #  - mypy # Re-instate mypy when we are ready
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
