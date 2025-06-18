@@ -446,13 +446,24 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             total_addresses = 11
             log_address = self._current_log_address
+            prev_address_timestamp: datetime | None = None
             while total_addresses > 0:
                 await self.energy_log_update(log_address)
-                if self._last_collected_energy_timestamp is not None and (
-                    datetime.now(tz=UTC) - self._last_collected_energy_timestamp
-                ).total_seconds // 60 > 65:  # assuming log_interval is 60 minutes
+                # Check if the most recent timestamp of an earlier address is recent (4 * log_interval plus 5 mins margin)
+                if (
+                    log_address != self._current_log_address
+                    and self._last_collected_energy_timestamp is not None
+                    and prev_address_timestamp is not None
+                    and (
+                        prev_address_timestamp - self._last_collected_energy_timestamp
+                    ).total_seconds() // 60 > (4 * 60) + 5  # minutes
+                ):
                     _LOGGER.debug("Energy data collected is outdated, stopping collection")
                     break
+
+                if self._last_collected_energy_timestamp is not None:
+                    prev_address_timestamp = self._last_collected_energy_timestamp
+
                 log_address, _ = calc_log_address(log_address, 1, -4)
                 total_addresses -= 1
 
