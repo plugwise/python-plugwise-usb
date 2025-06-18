@@ -17,7 +17,7 @@ repos:
     rev: v5.0.0
     hooks:
       - id: check-executables-have-shebangs
-        name: "Checking executables for #!""
+        name: "Checking executables"
         stages: [manual]
       - id: no-commit-to-branch
         name: "Verifying branch"
