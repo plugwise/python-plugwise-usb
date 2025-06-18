@@ -27,11 +27,11 @@ uv pip install --upgrade -e . -r requirements_test.txt -c https://raw.githubuser
 echo "Fetching/updating biome cli"
 arch=$(uname -m)
 case "$arch" in
-  aarch64|arm64) url="biome-darwin-arm64" ;;
-  x86_64)       url="biome-linux-x64" ;;
+  aarch64|arm64) use_arch="darwin-arm64" ;;
+  x86_64)       use_arch="linux-x64" ;;
   *) echo "Unsupported arch for biome cli version: $arch"; exit 2 ;;
 esac
-curl -sL "https://github.com/biomejs/biome/releases/latest/download/biome-$url" -o "${my_path}/tmp/biome"
+curl -sL "https://github.com/biomejs/biome/releases/latest/download/biome-${use_arch}" -o "${my_path}/tmp/biome"
 
 # Make biome executable (if necessary)
 chmod +x "${my_path}/tmp/biome"
