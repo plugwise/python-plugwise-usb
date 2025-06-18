@@ -49,7 +49,6 @@ from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
 from .helpers.pulses import PulseLogRecord, calc_log_address
 from .node import PlugwiseBaseNode
 
-CACHE_CURRENT_LOG_ADDRESS = "current_log_address"
 CACHE_CALIBRATION_GAIN_A = "calibration_gain_a"
 CACHE_CALIBRATION_GAIN_B = "calibration_gain_b"
 CACHE_CALIBRATION_NOISE = "calibration_noise"
@@ -973,16 +972,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
         await self._relay_update_state(
             node_info.relay_state, timestamp=node_info.timestamp
         )
-        if (
-            self._get_cache(CACHE_CURRENT_LOG_ADDRESS) is None
-            and node_info.current_logaddress_pointer
-        ):
-            self._set_cache(
-                CACHE_CURRENT_LOG_ADDRESS,
-                node_info.current_logaddress_pointer,
-            )
-            await self.save_cache()
-
         if self._current_log_address is not None and (
             self._current_log_address > node_info.current_logaddress_pointer
             or self._current_log_address == 1
@@ -997,27 +986,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         if self._current_log_address != node_info.current_logaddress_pointer:
             self._current_log_address = node_info.current_logaddress_pointer
-            self._set_cache(
-                CACHE_CURRENT_LOG_ADDRESS, node_info.current_logaddress_pointer
-            )
-            await self.save_cache()
 
         return self._node_info
-
-    async def _node_info_load_from_cache(self) -> bool:
-        """Load node info settings from cache."""
-        if (
-            current_log_address := self._get_cache(CACHE_CURRENT_LOG_ADDRESS)
-        ) is not None:
-            self._current_log_address = int(current_log_address)
-            _LOGGER.debug(
-                "circle._node_info_load_from_cache | current_log_address=%s",
-                self._current_log_address,
-            )
-            return True
-
-        _LOGGER.debug("circle._node_info_load_from_cache | current_log_address=None")
-        return False
 
     # pylint: disable=too-many-arguments
     async def update_node_details(
