@@ -3,6 +3,7 @@
 ## Ongoing
 
 - PR [#261](https://github.com/plugwise/python-plugwise-usb/pull/261): Sense: bugfix parsing of humidity value as an unsigned int
+- Maintenance chores and re-instatement of ruff, deprecate pre-commit cloud runs (just leveraging renovate)
 
 ## v0.44.3 - 2025-06-12
 

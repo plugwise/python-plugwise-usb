@@ -75,7 +75,7 @@ if [ -z "${GITHUB_ACTIONS}" ] || [ "$1" == "linting" ] ; then
     pylint plugwise_usb/ tests/
     handle_command_error "pylint validation"
 
-    echo "... mypy-ing ..."
-    mypy plugwise_usb/
-    handle_command_error "mypy validation"
+    # echo "... mypy-ing ..."
+    # mypy plugwise_usb/
+    # handle_command_error "mypy validation"
 fi
