@@ -164,7 +164,6 @@ jobs:
     needs: 
       - prepare
       - pytest
-      - coverage
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
