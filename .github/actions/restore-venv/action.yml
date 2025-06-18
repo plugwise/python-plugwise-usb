@@ -43,7 +43,7 @@ runs:
         shell: bash
         run: |
           . venv/bin/activate
-          pre-commit install-hooks
+          PRE_COMMIT_HOME=${{ inputs.precommit-home}} pre-commit install-hooks
       - name: Save cache if (purposely) created
         if: ${{ inputs.fail-on-miss == 'false' && steps.cache-create.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v4
