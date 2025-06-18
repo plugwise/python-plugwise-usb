@@ -1,6 +1,19 @@
 name: "Restore venv and pre-commit from cache"
 description: "Restores the venv and pre-commit cache or fails"
 
+inputs:
+  python-version:
+    required: true
+  cache-key:
+    required: true
+  venv-directory:
+    required: true
+  precommit-home:
+    required: true
+  fail-on-miss:
+    required: false
+    default: "true" # DefauLt fail if not available
+
 runs:
   using: "composite"
   steps:
@@ -13,18 +26,9 @@ runs:
             ${{ inputs.precommit-home }}
           key: ${{ inputs.cache-key }}
       - name: Fail job if Python cache restore failed
-        if: steps.cache-create.outputs.cache-hit != 'true'
+        if: ${{ inputs.fail-on-miss == 'true' && steps.cache-create.outputs.cache-hit != 'true' }}
         shell: bash
         run: |
           echo "Failed to restore cache for {{ inputs.python-version}} virtual environment from cache"
           exit 1
 
-inputs:
-  python-version:
-    required: true
-  cache-key:
-    required: true
-  venv-directory:
-    required: true
-  precommit-home:
-    required: true

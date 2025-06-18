@@ -37,6 +37,7 @@ jobs:
           cache-key: ${{ runner.os }}-venv-cache-${{ env.CACHE_VERSION }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements_test.txt', '.pre-commit-config.yaml') }}
           venv-directory: ${{ env.VENV }}
           precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          fail-on-miss: false # First time create cache (if not already exists)
       - name: Create Python virtual environment
         run: |
           pip install virtualenv --upgrade
