@@ -3,9 +3,6 @@
 
 name: Latest commit
 
-x-python-matrix: &python-matrix
-  python-version: ["3.13"]
-
 env:
   CACHE_VERSION: 2
   DEFAULT_PYTHON: "3.13"
@@ -138,7 +135,8 @@ jobs:
     needs: 
       - prepare
     strategy:
-      matrix: *python-matrix
+      matrix: 
+        python-version: ["3.13"]
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
