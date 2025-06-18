@@ -29,6 +29,6 @@ runs:
         if: ${{ inputs.fail-on-miss == 'true' && steps.cache-create.outputs.cache-hit != 'true' }}
         shell: bash
         run: |
-          echo "Failed to restore cache for {{ inputs.python-version}} virtual environment from cache"
+          echo "Failed to restore cache for ${{ inputs.python-version}} virtual environment from cache"
           exit 1
 

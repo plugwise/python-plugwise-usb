@@ -3,6 +3,9 @@
 
 name: Latest commit
 
+x-python-matrix: &python-matrix
+  python-version: ["3.13"]
+
 env:
   CACHE_VERSION: 2
   DEFAULT_PYTHON: "3.13"
@@ -129,47 +132,13 @@ jobs:
           . venv/bin/activate
           pre-commit run --show-diff-on-failure --color=always --all-files --hook-stage manual markdownlint
 
-  prepare-test-cache:
-    runs-on: ubuntu-latest
-    name: Create pytest cache for Python ${{ matrix.python-version }}
-    needs: 
-      - prepare
-      - commitcheck
-    strategy:
-      matrix:
-        python-version: ["3.13"]
-    steps:
-      - name: Check out committed code
-        uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        id: python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Create or reuse cache
-        id: cache-reuse
-        uses: ./.github/actions/restore-venv
-        with:
-          python-version: ${{ steps.python.outputs.python-version }}
-          cache-key: ${{ runner.os }}-venv-cache-${{ env.CACHE_VERSION }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements_test.txt', '.pre-commit-config.yaml') }}
-          venv-directory: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
-      - name: Extend Python ${{ matrix.python-version }} virtual environment
-        run: |
-          python -m venv venv
-          . venv/bin/activate
-          pip install uv
-
   pytest:
     runs-on: ubuntu-latest
     name: Run pytest using Python ${{ matrix.python-version }}
     needs: 
       - prepare
-      - prepare-test-cache
     strategy:
-      matrix:
-        python-version: ["3.13"]
-
+      matrix: *python-matrix
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
@@ -182,10 +151,11 @@ jobs:
         id: cache-reuse
         uses: ./.github/actions/restore-venv
         with:
-          python-version: ${{ steps.python.outputs.python-version }}
-          cache-key: ${{ runner.os }}-venv-cache-${{ env.CACHE_VERSION }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements_test.txt', '.pre-commit-config.yaml') }}
+          python-version: ${{ matrix.python-version }}
+          cache-key: ${{ runner.os }}-venv-cache-${{ env.CACHE_VERSION }}-${{ matrix.python--version }}-${{ hashFiles('pyproject.toml', 'requirements_test.txt', '.pre-commit-config.yaml') }}
           venv-directory: ${{ env.VENV }}
           precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          fail-on-miss: false # First time create cache (if not already exists)
       - name: Run all tests
         run: |
           . venv/bin/activate
