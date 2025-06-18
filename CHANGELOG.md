@@ -1,9 +1,12 @@
 # Changelog
 
+## Ongoing
+
+- PR [#261](https://github.com/plugwise/python-plugwise-usb/pull/261): Sense: bugfix parsing of humidity value as an unsigned int
+
 ## v0.44.3 - 2025-06-12
 
-- PR [#260](https://github.com/plugwise/python-plugwise-usb/pull/260)
-  - Expose enable-auto-joining via CirclePlus interface
+- PR [#260](https://github.com/plugwise/python-plugwise-usb/pull/260): Expose enable-auto-joining via CirclePlus interface
 
 ## v0.44.2 - 2025-06-11
 
@@ -11,12 +14,11 @@
 
 ## v0.44.1 - 2025-06-10
 
-- PR [#258](https://github.com/plugwise/python-plugwise-usb/pull/258)
-  - Sense: make sure NodeFeature.BATTERY is called and configuration parameters are propagated properly
+- PR [#258](https://github.com/plugwise/python-plugwise-usb/pull/258): Sense: make sure NodeFeature.BATTERY is called and configuration parameters are propagated properly
 
 ## v0.44.0 - 2025-06-10
 
-- PR [#256](https://github.com/plugwise/python-plugwise-usb/pull/256) Implement PlugWise Sense product
+- PR [#256](https://github.com/plugwise/python-plugwise-usb/pull/256): Implement Plugwise Sense product
 
 ## v0.43.0(.2)
 
