@@ -4,15 +4,16 @@ description: "Restores the venv and pre-commit cache or fails"
 inputs:
   python-version:
     required: true
-  cache-key:
-    required: true
-  fail-on-miss:
-    required: false
-    default: "true" # DefauLt fail if not available
   venv-dir:
     required: true
   precommit-home:
     required: true
+  cache-key:
+    required: true
+
+  fail-on-miss:
+    required: false
+    default: "true" # DefauLt fail if not available
 
 runs:
   using: "composite"
