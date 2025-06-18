@@ -101,6 +101,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         self._energy_counters = EnergyCounters(mac)
         self._retrieve_energy_logs_task: None | Task[None] = None
         self._last_energy_log_requested: bool = False
+        self._last_collected_energy_timestamp: datetime | None = None
 
         self._group_member: list[int] = []
 
@@ -441,13 +442,18 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         if (missing_addresses := self._energy_counters.log_addresses_missing) is None:
             _LOGGER.debug(
-                "Start with initial energy request for the last 10 log addresses for node %s.",
+                "Start with initial energy requests for the last 10 log addresses for node %s.",
                 self._mac_in_str,
             )
             total_addresses = 11
             log_address = self._current_log_address
             while total_addresses > 0:
                 await self.energy_log_update(log_address)
+                if (
+                    datetime.now(tz=UTC) - self._last_collected_energy_timestamp
+                ).total_seconds // 60 > 65:  # assuming log_interval is 60 minutes
+                    _LOGGER.debug("Energy data collected is outdated, stopping collection")
+                    break
                 log_address, _ = calc_log_address(log_address, 1, -4)
                 total_addresses -= 1
 
@@ -499,6 +505,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         # Forward historical energy log information to energy counters
         # Each response message contains 4 log counters (slots) of the
         # energy pulses collected during the previous hour of given timestamp
+        last_energy_timestamp_collected = False
         for _slot in range(4, 0, -1):
             log_timestamp, log_pulses = response.log_data[_slot]
             _LOGGER.debug(
@@ -514,6 +521,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 import_only=True,
             ):
                 energy_record_update = True
+                if not last_energy_timestamp_collected:
+                    self._last_collected_energy_timestamp = (
+                        log_timestamp.replace(tzinfo=UTC)
+                    )
+                    last_energy_timestamp_collected = True
 
         self._energy_counters.update()
         if energy_record_update:
