@@ -17,6 +17,17 @@ on:
   #pull_request:
 
 jobs:
+  # Determine cache key once
+  cache:
+    runs-on: ubuntu-latest
+    name: Cache identify
+    outputs:
+      cache-key: ${{ steps.set-key.outputs.cache-key }}
+    steps:
+      - name: Compute cache key
+        id: set-key
+        run: echo "${{ runner.os }}-venv-cache-${{ env.CACHE_VERSION }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements_test.txt', '.pre-commit-config.yaml') }}" >> "$GITHUB_OUTPUT"
+
   # Prepare default python version environment
   prepare:
     runs-on: ubuntu-latest
@@ -33,10 +44,7 @@ jobs:
         id: cache-reuse
         uses: ./.github/actions/restore-venv
         with:
-          python-version: ${{ steps.python.outputs.python-version }}
-          cache-key: ${{ runner.os }}-venv-cache-${{ env.CACHE_VERSION }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements_test.txt', '.pre-commit-config.yaml') }}
-          venv-directory: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          cache-key: ${{ needs.cache.outputs.cache-key }}
           fail-on-miss: false # First time create cache (if not already exists)
 
   ruff:
@@ -57,10 +65,7 @@ jobs:
         id: cache-reuse
         uses: ./.github/actions/restore-venv
         with:
-          python-version: ${{ steps.python.outputs.python-version }}
-          cache-key: ${{ runner.os }}-venv-cache-${{ env.CACHE_VERSION }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements_test.txt', '.pre-commit-config.yaml') }}
-          venv-directory: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          cache-key: ${{ needs.cache.outputs.cache-key }}
       - name: Ruff (check)
         run: |
           . venv/bin/activate
@@ -97,10 +102,7 @@ jobs:
         id: cache-reuse
         uses: ./.github/actions/restore-venv
         with:
-          python-version: ${{ steps.python.outputs.python-version }}
-          cache-key: ${{ runner.os }}-venv-cache-${{ env.CACHE_VERSION }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements_test.txt', '.pre-commit-config.yaml') }}
-          venv-directory: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          cache-key: ${{ needs.cache.outputs.cache-key }}
       - name: Verify commit
         run: |
           . venv/bin/activate
@@ -137,9 +139,7 @@ jobs:
         uses: ./.github/actions/restore-venv
         with:
           python-version: ${{ matrix.python-version }}
-          cache-key: ${{ runner.os }}-venv-cache-${{ env.CACHE_VERSION }}-matrix-${{ matrix.python--version }}-${{ hashFiles('pyproject.toml', 'requirements_test.txt', '.pre-commit-config.yaml') }}
-          venv-directory: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          cache-key: ${{ needs.cache.outputs.cache-key }}-pytest-matrix-${{ matrix.python-version }}
           fail-on-miss: false # First time create cache (if not already exists)
       - name: Run all tests
         run: |
@@ -174,10 +174,7 @@ jobs:
         id: cache-reuse
         uses: ./.github/actions/restore-venv
         with:
-          python-version: ${{ steps.python.outputs.python-version }}
-          cache-key: ${{ runner.os }}-venv-cache-${{ env.CACHE_VERSION }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements_test.txt', '.pre-commit-config.yaml') }}
-          venv-directory: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          cache-key: ${{ needs.cache.outputs.cache-key }}
       - name: Run mypy
         run: |
           . venv/bin/activate
@@ -223,10 +220,7 @@ jobs:
         id: cache-reuse
         uses: ./.github/actions/restore-venv
         with:
-          python-version: ${{ steps.python.outputs.python-version }}
-          cache-key: ${{ runner.os }}-venv-cache-${{ env.CACHE_VERSION }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements_test.txt', '.pre-commit-config.yaml') }}
-          venv-directory: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          cache-key: ${{ needs.cache.outputs.cache-key }}
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v4
       - name: Combine coverage results
@@ -264,14 +258,15 @@ jobs:
         id: cache-reuse
         uses: ./.github/actions/restore-venv
         with:
-          python-version: ${{ steps.python.outputs.python-version }}
-          cache-key: ${{ runner.os }}-venv-cache-${{ env.CACHE_VERSION }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements_test.txt', '.pre-commit-config.yaml') }}
-          venv-directory: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          cache-key: ${{ needs.cache.outputs.cache-key }}
       - name: Install pypa/build
-        run: uv pip install build --user
+        run: |
+          . venv/bin/activate
+          uv pip install build --user
       - name: Build a binary wheel and a source tarball
-        run: python3 -m build
+        run: |
+          . venv/bin/activate
+          python3 -m build
       - name: Publish distribution 📦 to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         continue-on-error: true
@@ -298,10 +293,7 @@ jobs:
         id: cache-reuse
         uses: ./.github/actions/restore-venv
         with:
-          python-version: ${{ steps.python.outputs.python-version }}
-          cache-key: ${{ runner.os }}-venv-cache-${{ env.CACHE_VERSION }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements_test.txt', '.pre-commit-config.yaml') }}
-          venv-directory: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          cache-key: ${{ needs.cache.outputs.cache-key }}
       - name: Run complexity report (click to view details)
         run: |
           . venv/bin/activate
