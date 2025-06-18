@@ -105,6 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Check commit
     needs:
+      - prepare
       - ruff
       - shellcheck
       - dependencies_check
@@ -146,7 +147,9 @@ jobs:
   prepare-test-cache:
     runs-on: ubuntu-latest
     name: Create pytest cache for Python ${{ matrix.python-version }}
-    needs: commitcheck
+    needs: 
+      - prepare
+      - commitcheck
     strategy:
       matrix:
         python-version: ["3.13"]
@@ -179,7 +182,9 @@ jobs:
   pytest:
     runs-on: ubuntu-latest
     name: Run pytest using Python ${{ matrix.python-version }}
-    needs: prepare-test-cache
+    needs: 
+      - prepare
+      - prepare-test-cache
     strategy:
       matrix:
         python-version: ["3.13"]
@@ -218,7 +223,9 @@ jobs:
   mypy:
     runs-on: ubuntu-latest
     name: Run mypy
-    needs: pytest
+    needs: 
+      - prepare
+      - pytest
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
@@ -274,7 +281,9 @@ jobs:
   coverage:
     name: Process test coverage
     runs-on: ubuntu-latest
-    needs: pytest
+    needs: 
+      - prepare
+      - pytest
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
@@ -354,7 +363,9 @@ jobs:
   complexity:
     name: Process test complexity
     runs-on: ubuntu-latest
-    needs: coverage
+    needs: 
+      - prepare
+      - coverage
     steps:
       - name: Check out committed code
         uses: actions/checkout@v4
