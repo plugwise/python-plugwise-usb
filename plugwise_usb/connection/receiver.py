@@ -149,7 +149,7 @@ class StickReceiver(Protocol):
         return self._connection_state
 
     def correct_processed_messages(self, correction: int) -> None:
-        """Return the number of processed messages."""
+        """Correct the number of processed messages."""
         self._processed_msgs += correction
 
     def connection_made(self, transport: SerialTransport) -> None:
