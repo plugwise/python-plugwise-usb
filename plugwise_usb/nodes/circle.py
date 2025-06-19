@@ -700,7 +700,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         if self._relay_lock.state:
             _LOGGER.debug("Relay switch blocked, relay is locked")
-            return not state
+            return self._relay_state.state
 
         _LOGGER.debug("Switching relay to %s", state)
         request = CircleRelaySwitchRequest(self._send, self._mac_in_bytes, state)
@@ -753,7 +753,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 cached_relay_lock,
             )
             relay_lock = cached_relay_lock == "True"
-            await self._relay_update_lock(relay_lock)
+            await self._relay_update_lock(relay_lock, load_from_cache=True)
         else:
             # Set to initial state False when not present in cache
             await self._relay_update_lock(False)
@@ -782,7 +782,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             _LOGGER.debug("Saving relay state update to cache for %s", self._mac_in_str)
             await self.save_cache()
 
-    async def _relay_update_lock(self, state: bool) -> None:
+    async def _relay_update_lock(self, state: bool, load_from_cache=False) -> None:
         """Process relay lock update."""
         state_update = False
         if state:
@@ -799,8 +799,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.RELAY_LOCK, self._relay_lock
             )
-            _LOGGER.debug("Saving relay lock state update to cachefor %s", self._mac_in_str)
-            await self.save_cache()
+            if not load_from_cache:
+                _LOGGER.debug("Saving relay lock state update to cache for %s", self._mac_in_str)
+                await self.save_cache()
 
     async def clock_synchronize(self) -> bool:
         """Synchronize clock. Returns true if successful."""
