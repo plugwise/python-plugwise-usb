@@ -954,7 +954,6 @@ def get_message_object(  # noqa: C901
     identifier: bytes, length: int, seq_id: bytes
 ) -> PlugwiseResponse | None:
     """Return message class based on sequence ID, Length of message or message ID."""
-
     # First check for known sequence ID's
     if seq_id == REJOIN_RESPONSE_SEQ_ID:
         return NodeRejoinResponse()

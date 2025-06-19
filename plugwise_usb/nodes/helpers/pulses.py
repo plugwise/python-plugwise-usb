@@ -19,7 +19,6 @@ MAX_LOG_HOURS = DAY_IN_HOURS
 
 def calc_log_address(address: int, slot: int, offset: int) -> tuple[int, int]:
     """Calculate address and slot for log based for specified offset."""
-
     if offset < 0:
         while offset + slot < 1:
             address -= 1
@@ -344,7 +343,6 @@ class PulseCollection:
         is_consumption=True,
     ) -> bool:
         """Detect rollover based on timestamp comparisons."""
-
         if (
             self._pulses_timestamp is not None
             and last_log_timestamp is not None

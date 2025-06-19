@@ -433,7 +433,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
     async def get_missing_energy_logs(self) -> None:
         """Task to retrieve missing energy logs."""
-
         self._energy_counters.update()
         if self._current_log_address is None:
             return None
@@ -1147,7 +1146,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
     def _correct_power_pulses(self, pulses: int, offset: int) -> float:
         """Correct pulses based on given measurement time offset (ns)."""
-
         # Sometimes the circle returns -1 for some of the pulse counters
         # likely this means the circle measures very little power and is
         # suffering from rounding errors. Zero these out. However, negative

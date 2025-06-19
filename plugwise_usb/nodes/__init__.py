@@ -22,7 +22,6 @@ def get_plugwise_node(
     node_type: NodeType,
 ) -> PlugwiseNode | None:
     """Return an initialized plugwise node class based on given the node type."""
-
     if node_type == NodeType.CIRCLE_PLUS:
         return PlugwiseCirclePlus(
             mac,

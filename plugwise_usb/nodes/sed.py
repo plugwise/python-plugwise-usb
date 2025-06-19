@@ -488,7 +488,6 @@ class NodeSED(PlugwiseBaseNode):
         self, node_info: NodeInfoResponse | None = None
     ) -> NodeInfo | None:
         """Update Node (hardware) information."""
-
         if node_info is None and self.skip_update(self._node_info, 86400):
             return self._node_info
         return await super().node_info_update(node_info)
