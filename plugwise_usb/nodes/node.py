@@ -577,6 +577,8 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             self._set_cache(CACHE_HARDWARE, hardware)
         return True
 
+        _LOGGER.debug("Saving Node calibration update to cache for %s" self.mac)
+
     async def is_online(self) -> bool:
         """Check if node is currently online."""
         if await self.ping_update() is None:
@@ -646,6 +648,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             return
         if self._cache_save_task is not None and not self._cache_save_task.done():
             await self._cache_save_task
+        _LOGGER.debug("Writing cache to disk while unloading for %s" self.mac)
         await self.save_cache(trigger_only=False, full_write=True)
 
     def _get_cache(self, setting: str) -> str | None:

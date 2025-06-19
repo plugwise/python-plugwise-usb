@@ -269,6 +269,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             self._set_cache(CACHE_CALIBRATION_GAIN_B, gain_b)
             self._set_cache(CACHE_CALIBRATION_NOISE, off_noise)
             self._set_cache(CACHE_CALIBRATION_TOT, off_tot)
+            _LOGGER.debug("Saving calibration update to cache for %s", self._mac_in_str)
             await self.save_cache()
         return True
 
@@ -558,6 +559,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         self._energy_counters.update()
         if energy_record_update:
+            _LOGGER.debug("Saving energy record update to cache for %s", self._mac_in_str)
             await self.save_cache()
 
         return True
@@ -777,6 +779,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.RELAY, self._relay_state
             )
+            _LOGGER.debug("Saving relay state update to cache for %s", self._mac_in_str)
             await self.save_cache()
 
     async def _relay_update_lock(self, state: bool) -> None:
@@ -796,6 +799,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.RELAY_LOCK, self._relay_lock
             )
+            _LOGGER.debug("Saving relay lock state update to cachefor %s", self._mac_in_str)
             await self.save_cache()
 
     async def clock_synchronize(self) -> bool:
@@ -1131,6 +1135,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.RELAY_INIT, self._relay_config
             )
+            _LOGGER.debug("Saving relay_init state update to cachefor %s", self._mac_in_str)
             await self.save_cache()
 
     @raise_calibration_missing
@@ -1270,7 +1275,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             NO_PRODUCTION_INTERVAL,
         )
         if (response := await request.send()) is None:
-            raise NodeError("No response for CircleMeasureIntervalRequest.")
+            raise NodeError("No response for CircleMeasureIntervalRequest")
 
         if response.response_type != NodeResponseType.POWER_LOG_INTERVAL_ACCEPTED:
             raise MessageError(
@@ -1281,7 +1286,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
         # Clear the cached energy_collection
         if self._cache_enabled:
             self._set_cache(CACHE_ENERGY_COLLECTION, "")
-            _LOGGER.warning("Energy-collection cache cleared successfully")
+            _LOGGER.warning(
+                "Energy-collection cache cleared successfully, updating cache for %s",
+                self._mac_in_str,
+            )
             await self.save_cache()
 
         # Clear PulseCollection._logs
@@ -1290,6 +1298,12 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         # Request a NodeInfo update
         if await self.node_info_update() is None:
-            _LOGGER.warning("Node info update failed after energy-reset")
+            _LOGGER.warning(
+                "Node info update failed after energy-reset for %s",
+                self._mac_in_str,
+            )
         else:
-            _LOGGER.warning("Node info update after energy-reset successful")
+            _LOGGER.warning(
+                "Node info update after energy-reset successful for %s",
+                self._mac_in_str,
+            )
