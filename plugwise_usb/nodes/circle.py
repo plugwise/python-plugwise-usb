@@ -622,6 +622,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         """Save currently collected energy logs to cached file."""
         if not self._cache_enabled:
             return
+
         logs: dict[int, dict[int, PulseLogRecord]] = (
             self._energy_counters.get_pulse_logs()
         )
@@ -635,6 +636,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 cached_logs += f"-{log.timestamp.month}-{log.timestamp.day}"
                 cached_logs += f"-{log.timestamp.hour}-{log.timestamp.minute}"
                 cached_logs += f"-{log.timestamp.second}:{log.pulses}"
+    
+        _LOGGER.debu("Saving energy logrecords to cache for %s", self._mac_in_str)
         self._set_cache(CACHE_ENERGY_COLLECTION, cached_logs)
 
     async def _energy_log_record_update_state(
@@ -659,7 +662,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         if (cached_logs := self._get_cache(CACHE_ENERGY_COLLECTION)) is not None:
             if log_cache_record not in cached_logs:
                 _LOGGER.debug(
-                    "Add logrecord (%s, %s) to log cache of %s",
+                    "Adding logrecord (%s, %s) to cache of %s",
                     str(address),
                     str(slot),
                     self._mac_in_str,
@@ -669,10 +672,16 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 )
                 return True
 
+            _LOGGER.debug(
+                "Energy logrecord already present for %s, ignoring", self._mac_in_str
+            )
             return False
 
         _LOGGER.debug(
-            "No existing energy collection log cached for %s", self._mac_in_str
+            "Cache is empty, adding new logrecord (%s, %s) for %s",
+            str(address),
+            str(slot),
+            self._mac_in_str
         )
         self._set_cache(CACHE_ENERGY_COLLECTION, log_cache_record)
         return True
