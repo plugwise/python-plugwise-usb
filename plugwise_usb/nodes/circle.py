@@ -236,6 +236,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             cal_gain_b,
             cal_noise,
             cal_tot,
+            load_from_cache=True,
         )
         if result:
             _LOGGER.debug(
@@ -254,6 +255,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         gain_b: float | None,
         off_noise: float | None,
         off_tot: float | None,
+        load_from_cache=False,
     ) -> bool:
         """Process new energy calibration settings. Returns True if successful."""
         if gain_a is None or gain_b is None or off_noise is None or off_tot is None:
@@ -263,13 +265,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
         # Forward calibration config to energy collection
         self._energy_counters.calibration = self._calibration
-
-        if self._cache_enabled:
+        if self._cache_enabled and not load_from_cache:
             self._set_cache(CACHE_CALIBRATION_GAIN_A, gain_a)
             self._set_cache(CACHE_CALIBRATION_GAIN_B, gain_b)
             self._set_cache(CACHE_CALIBRATION_NOISE, off_noise)
             self._set_cache(CACHE_CALIBRATION_TOT, off_tot)
-            _LOGGER.debug("Saving calibration update to cache for %s", self._mac_in_str)
             await self.save_cache()
         return True
 
