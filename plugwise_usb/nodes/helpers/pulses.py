@@ -890,9 +890,13 @@ class PulseCollection:
             return None
 
         # Collect any missing address in current range
+        count = 0
         address = last_address
         slot = last_slot
-        while not (address == first_address and slot == first_slot):
+        while not (
+            (address == first_address and slot == first_slot)
+            or count > MAX_LOG_HOURS
+        ):
             address, slot = calc_log_address(address, slot, -1)
             if address in missing:
                 continue
@@ -901,6 +905,8 @@ class PulseCollection:
                 continue
             if self._logs[address][slot].timestamp <= from_timestamp:
                 break
+
+            count += 1
 
         # return missing logs in range first
         if len(missing) > 0:
