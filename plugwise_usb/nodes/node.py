@@ -473,8 +473,8 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         node_type: NodeType | None = None
         if (node_type_str := self._get_cache(CACHE_NODE_TYPE)) is not None:
             node_type = NodeType(int(node_type_str))
-        relay_state = self._get_cache(CACHE_RELAY)
-        node_info = NodeInfoMessage(
+        relay_state = self._get_cache(CACHE_RELAY) == "True"
+        timestamp = self._get_cache_as_datetime(CACHE_NODE_INFO_TIMESTAMP)
             firmware=firmware,
             hardware=hardware,
             logaddress_pointer=None,
@@ -648,7 +648,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             return
         if self._cache_save_task is not None and not self._cache_save_task.done():
             await self._cache_save_task
-        _LOGGER.debug("Writing cache to disk while unloading for %s" self.mac)
+        _LOGGER.debug("Writing cache to disk while unloading for %s", self.mac)
         await self.save_cache(trigger_only=False, full_write=True)
 
     def _get_cache(self, setting: str) -> str | None:
