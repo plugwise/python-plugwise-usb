@@ -459,6 +459,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 if (
                     log_address == self._current_log_address
                     and self._last_collected_energy_timestamp is not None
+                    and log_interval is not None
                     and (
                         datetime.now(tz=UTC) - self._last_collected_energy_timestamp
                     ).total_seconds() // 60 > (factor * log_interval) + 5  # minutes
@@ -470,6 +471,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 if (
                     log_address != self._current_log_address
                     and self._last_collected_energy_timestamp is not None
+                    and log_interval is not None
                     and prev_address_timestamp is not None
                     and (
                         prev_address_timestamp - self._last_collected_energy_timestamp
@@ -637,7 +639,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 cached_logs += f"-{log.timestamp.hour}-{log.timestamp.minute}"
                 cached_logs += f"-{log.timestamp.second}:{log.pulses}"
     
-        _LOGGER.debu("Saving energy logrecords to cache for %s", self._mac_in_str)
+        _LOGGER.debug("Saving energy logrecords to cache for %s", self._mac_in_str)
         self._set_cache(CACHE_ENERGY_COLLECTION, cached_logs)
 
     async def _energy_log_record_update_state(
