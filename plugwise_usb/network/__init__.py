@@ -18,7 +18,6 @@ from ..helpers.util import validate_mac
 from ..messages.requests import (
     CircleClockSetRequest,
     CircleMeasureIntervalRequest,
-    CirclePlusAllowJoiningRequest,
     NodePingRequest,
 )
 from ..messages.responses import (
