@@ -682,7 +682,7 @@ class PulseCollection:
             self._last_log_consumption_address = address
             self._last_log_consumption_slot = slot
 
-    def _reset_log_references(self) -> None:
+    def _reset_log_references(self) -> None:  # noqa: PLR0912
         """Reset log references."""
         self._last_log_consumption_address = None
         self._last_log_consumption_slot = None
@@ -824,7 +824,7 @@ class PulseCollection:
             )
         return (self._first_log_production_address, self._first_log_production_slot)
 
-    def _logs_missing(self, from_timestamp: datetime) -> list[int] | None:
+    def _logs_missing(self, from_timestamp: datetime) -> list[int] | None:  # noqa: PLR0911 PLR0912
         """Calculate list of missing log addresses."""
         if self._logs is None:
             self._log_addresses_missing = None

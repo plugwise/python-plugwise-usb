@@ -14,7 +14,7 @@ from .stealth import PlugwiseStealth
 from .switch import PlugwiseSwitch
 
 
-def get_plugwise_node(
+def get_plugwise_node(  # noqa: PLR0911
     mac: str,
     address: int,
     controller: StickController,

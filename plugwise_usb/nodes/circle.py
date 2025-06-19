@@ -329,7 +329,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
     @raise_not_loaded
     @raise_calibration_missing
-    async def energy_update(self) -> EnergyStatistics | None:
+    async def energy_update(self) -> EnergyStatistics | None:  # noqa: PLR0911 PLR0912
         """Return updated energy usage statistics."""
         if self._current_log_address is None:
             _LOGGER.debug(
@@ -999,7 +999,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         return False
 
     # pylint: disable=too-many-arguments
-    async def update_node_details(
+    async def update_node_details(  # noqa: PLR0913
         self,
         firmware: datetime | None,
         hardware: str | None,

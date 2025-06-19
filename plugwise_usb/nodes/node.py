@@ -489,7 +489,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         )
 
     # pylint: disable=too-many-arguments
-    async def update_node_details(
+    async def update_node_details(  # noqa: PLR0912 PLR0913
         self,
         firmware: datetime | None,
         hardware: str | None,

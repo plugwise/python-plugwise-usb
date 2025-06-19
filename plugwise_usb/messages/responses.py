@@ -950,7 +950,7 @@ class CircleRelayInitStateResponse(PlugwiseResponse):
         self._params += [self.is_get, self.relay]
 
 
-def get_message_object(  # noqa: C901
+def get_message_object(  # noqa: C901 PLR0911 PLR0912
     identifier: bytes, length: int, seq_id: bytes
 ) -> PlugwiseResponse | None:
     """Return message class based on sequence ID, Length of message or message ID."""
