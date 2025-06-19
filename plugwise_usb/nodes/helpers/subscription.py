@@ -22,6 +22,7 @@ class NodeFeatureSubscription:
 class FeaturePublisher:
     """Base Class to call awaitable of subscription when event happens."""
     def __init__(self) -> None:
+        """Initialize FeaturePublisher Class."""
         self._feature_update_subscribers: dict[
             Callable[[], None],
             NodeFeatureSubscription,
