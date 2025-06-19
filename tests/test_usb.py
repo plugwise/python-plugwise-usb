@@ -2158,8 +2158,8 @@ class TestStick:
         node_info = pw_api.NodeInfoMessage(
             firmware=dt(2011, 6, 27, 8, 55, 44, tzinfo=UTC),
             hardware="080007",
+            logaddress_pointer=None,
             node_type=None,
-            timestamp=None,
             relay_state=None,
             current_logaddress_pointer=None,
         )
@@ -2263,8 +2263,8 @@ class TestStick:
         node_info = pw_api.NodeInfoMessage(
             firmware=dt(2011, 6, 27, 8, 55, 44, tzinfo=UTC),
             hardware="080007",
+            logaddress_pointer=None,
             node_type=None,
-            timestamp=None,
             relay_state=None,
             current_logaddress_pointer=None,
         )
@@ -2340,8 +2340,8 @@ class TestStick:
         node_info = pw_api.NodeInfoMessage(
             firmware=dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC),
             hardware="070051",
+            logaddress_pointer=None,
             node_type=None,
-            timestamp=None,
             relay_state=None,
             current_logaddress_pointer=None,
         )
@@ -2358,8 +2358,8 @@ class TestStick:
         node_info = pw_api.NodeInfoMessage(
             firmware=dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC),
             hardware="070051",
+            logaddress_pointer=None,
             node_type=None,
-            timestamp=None,
             relay_state=None,
             current_logaddress_pointer=None,
         )
