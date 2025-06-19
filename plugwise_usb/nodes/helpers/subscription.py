@@ -7,7 +7,6 @@ from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from typing import Any
 
-
 from ...api import NodeFeature
 
 
@@ -21,6 +20,7 @@ class NodeFeatureSubscription:
 
 class FeaturePublisher:
     """Base Class to call awaitable of subscription when event happens."""
+
     def __init__(self) -> None:
         """Initialize FeaturePublisher Class."""
         self._feature_update_subscribers: dict[

@@ -59,7 +59,7 @@ class PlugwiseCache:
             cache_dir = self._get_writable_os_dir()
         await makedirs(cache_dir, exist_ok=True)
         self._cache_path = cache_dir
-        
+
         self._cache_file = os_path_join(self._cache_path, self._file_name)
         self._cache_file_exists = await ospath.exists(self._cache_file)
         self._initialized = True

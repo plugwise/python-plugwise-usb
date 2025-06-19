@@ -49,7 +49,7 @@ SCAN_DEFAULT_DAYLIGHT_MODE: Final = False
 
 # Sensitivity values for motion sensor configuration
 SENSITIVITY_HIGH_VALUE = 20  # 0x14
-SENSITIVITY_MEDIUM_VALUE = 30  # 0x1E  
+SENSITIVITY_MEDIUM_VALUE = 30  # 0x1E
 SENSITIVITY_OFF_VALUE = 255  # 0xFF
 
 # endregion

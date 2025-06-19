@@ -478,7 +478,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         node_type: NodeType | None = None
         if (node_type_str := self._get_cache(CACHE_NODE_TYPE)) is not None:
             node_type = NodeType(int(node_type_str))
-        
+
         return await self.update_node_details(
             firmware=firmware,
             hardware=hardware,

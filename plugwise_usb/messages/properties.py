@@ -108,7 +108,7 @@ class Int(BaseType):
 
     def serialize(self) -> bytes:
         """Return current string formatted value into an iterable list of bytes."""
-        fmt = "%%0%dX" % self.length
+        fmt = "%%0%dX" % self.length  # noqa: UP031
         return bytes(fmt % self._raw_value, UTF8)
 
     def deserialize(self, val: bytes) -> None:
@@ -144,7 +144,7 @@ class SInt(BaseType):
 
     def serialize(self) -> bytes:
         """Return current string formatted integer value into an iterable list of bytes."""
-        fmt = "%%0%dX" % self.length
+        fmt = "%%0%dX" % self.length  # noqa: UP031
         return bytes(fmt % int_to_uint(self._raw_value, self.length), UTF8)
 
     def deserialize(self, val: bytes) -> None:
@@ -172,7 +172,7 @@ class UnixTimestamp(BaseType):
         """Return current string formatted value into an iterable list of bytes."""
         if not isinstance(self._raw_value, datetime):
             raise MessageError("Unable to serialize. Value is not a datetime object")
-        fmt = "%%0%dX" % self.length
+        fmt = "%%0%dX" % self.length  # noqa: UP031
         date_in_float = self._raw_value.timestamp()
         return bytes(fmt % int(date_in_float), UTF8)
 
@@ -287,7 +287,7 @@ class IntDec(BaseType):
 
     def serialize(self) -> bytes:
         """Return current string formatted integer value into an iterable list of bytes."""
-        fmt = "%%0%dd" % self.length
+        fmt = "%%0%dd" % self.length  # noqa: UP031
         return bytes(fmt % self._raw_value, UTF8)
 
     def deserialize(self, val: bytes) -> None:
@@ -391,7 +391,7 @@ class LogAddr(Int):
     def deserialize(self, val: bytes) -> None:
         """Convert data into integer value based on log address formatted data."""
         if val == b"00000000":
-            self._value = int(0)
+            self._value = 0
             return
         Int.deserialize(self, val)
         self._value = (self.value - LOGADDR_OFFSET) // 32
