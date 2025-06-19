@@ -51,6 +51,7 @@ CACHE_FIRMWARE = "firmware"
 CACHE_NODE_TYPE = "node_type"
 CACHE_HARDWARE = "hardware"
 CACHE_NODE_INFO_TIMESTAMP = "node_info_timestamp"
+CACHE_RELAY = "relay"
 
 
 class PlugwiseBaseNode(FeaturePublisher, ABC):
@@ -456,24 +457,30 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             _LOGGER.debug("No response for node_info_update() for %s", self.mac)
             await self._available_update_state(False)
             return self._node_info
+
         await self._available_update_state(True, node_info.timestamp)
         await self.update_node_details(node_info)
         return self._node_info
 
     async def _node_info_load_from_cache(self) -> bool:
         """Load node info settings from cache."""
+        if self._available:
+            # Skip loading this data from cache when the Node is available
+            return True
+
         firmware = self._get_cache_as_datetime(CACHE_FIRMWARE)
         hardware = self._get_cache(CACHE_HARDWARE)
-        timestamp = self._get_cache_as_datetime(CACHE_NODE_INFO_TIMESTAMP)
         node_type: NodeType | None = None
         if (node_type_str := self._get_cache(CACHE_NODE_TYPE)) is not None:
             node_type = NodeType(int(node_type_str))
+        relay_state = self._get_cache(CACHE_RELAY)
         node_info = NodeInfoMessage(
             firmware=firmware,
             hardware=hardware,
+            logaddress_pointer=None,
             node_type=node_type,
+            relay_state=relay_state,
             timestamp=timestamp,
-            relay_state=None,
             current_logaddress_pointer=None,
         )
         return await self.update_node_details(node_info)
