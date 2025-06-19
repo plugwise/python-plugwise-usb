@@ -65,10 +65,10 @@ if [ -z "${GITHUB_ACTIONS}" ] || [ "$1" == "linting" ] ; then
     biome_format
 
     echo "... ruff checking ..."
-    ruff check plugwise_usb/ tests/
+    ruff check plugwise_usb/* tests/.  # Does need the /* otherwise apparently skips __init__.py's
     handle_command_error "ruff checking"
     echo "... ruff formatting ..."
-    ruff format plugwise_usb/ tests/
+    ruff format plugwise_usb/* tests/*
     handle_command_error "ruff formatting"
 
     echo "... pylint-ing ..." 
