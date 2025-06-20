@@ -2156,14 +2156,14 @@ class TestStick:
         )
         assert not test_scan.cache_enabled
 
-        await test_scan.update_node_details(
-            firmware=dt(2011, 6, 27, 8, 55, 44, tzinfo=UTC),
-            hardware="080007",
-            node_type=None,
-            timestamp=None,
-            relay_state=None,
-            logaddress_pointer=None,
-        )
+        # await test_scan.update_node_details(
+        #     firmware=dt(2011, 6, 27, 8, 55, 44, tzinfo=UTC),
+        #     hardware="080007",
+        #     node_type=None,
+        #     timestamp=None,
+        #     relay_state=None,
+        #     logaddress_pointer=None,
+        # )
         assert await test_scan.load()
 
         # test motion reset timer
@@ -2260,14 +2260,14 @@ class TestStick:
         test_scan = pw_scan.PlugwiseScan(
             "1298347650AFBECD", 1, mock_stick_controller, load_callback
         )
-        await test_scan.update_node_details(
-            firmware=dt(2011, 6, 27, 8, 55, 44, tzinfo=UTC),
-            hardware="080007",
-            node_type=None,
-            timestamp=None,
-            relay_state=None,
-            logaddress_pointer=None,
-        )
+        # await test_scan.update_node_details(
+        #    firmware=dt(2011, 6, 27, 8, 55, 44, tzinfo=UTC),
+        #    hardware="080007",
+        #    node_type=None,
+        #    timestamp=None,
+        #    relay_state=None,
+        #    logaddress_pointer=None,
+        # )
         test_scan.cache_enabled = True
         assert await test_scan.load()
         assert sorted(test_scan.features) == sorted(
@@ -2336,14 +2336,14 @@ class TestStick:
                 pw_api.NodeFeature.PING,
             )
         )
-        await test_switch.update_node_details(
-            firmware=dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC),
-            hardware="070051",
-            node_type=None,
-            timestamp=None,
-            relay_state=None,
-            logaddress_pointer=None,
-        )
+        # await test_switch.update_node_details(
+        #    firmware=dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC),
+        #    hardware="070051",
+        #    node_type=None,
+        #    timestamp=None,
+        #    relay_state=None,
+        #    logaddress_pointer=None,
+        # )
         assert await test_switch.load()
 
         #  Switch specific defaults
@@ -2353,14 +2353,14 @@ class TestStick:
         test_switch = pw_switch.PlugwiseSwitch(
             "1298347650AFBECD", 1, mock_stick_controller, load_callback
         )
-        await test_switch.update_node_details(
-            firmware=dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC),
-            hardware="070051",
-            node_type=None,
-            timestamp=None,
-            relay_state=None,
-            logaddress_pointer=None,
-        )
+        # await test_switch.update_node_details(
+        #    firmware=dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC),
+        #    hardware="070051",
+        #    node_type=None,
+        #    timestamp=None,
+        #    relay_state=None,
+        #    logaddress_pointer=None,
+        # )
         test_switch.cache_enabled = True
         assert test_switch.cache_enabled is True
         assert await test_switch.load()

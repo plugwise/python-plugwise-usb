@@ -127,6 +127,18 @@ class BatteryConfig:
 
 
 @dataclass
+class NodeInfoMessage:
+    """Node hardware information Message."""
+
+    firmware: datetime | None = None
+    hardware: str | None = None
+    node_type: NodeType | None = None
+    timestamp: datetime | None = None
+    relay_state: bool | None = None
+    current_logaddress_pointer: int | None = None
+
+
+@dataclass
 class NodeInfo:
     """Node hardware information."""
 

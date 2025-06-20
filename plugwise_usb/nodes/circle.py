@@ -15,7 +15,7 @@ from ..api import (
     NodeEvent,
     NodeFeature,
     NodeInfo,
-    NodeType,
+    NodeInfoMessage,
     PowerStatistics,
     RelayConfig,
     RelayLock,
@@ -931,7 +931,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         return True
 
     async def node_info_update(
-        self, node_info: NodeInfoResponse | None = None
+        self, node_info: NodeInfoResponse | NodeInfoMessage | None = None
     ) -> NodeInfo | None:
         """Update Node (hardware) information."""
         if node_info is None:
@@ -995,32 +995,21 @@ class PlugwiseCircle(PlugwiseBaseNode):
         return False
 
     # pylint: disable=too-many-arguments
-    async def update_node_details(  # noqa: PLR0913
-        self,
-        firmware: datetime | None,
-        hardware: str | None,
-        node_type: NodeType | None,
-        timestamp: datetime | None,
-        relay_state: bool | None,
-        logaddress_pointer: int | None,
+    async def update_node_details(
+        self, node_info: NodeInfoResponse | None = None
     ) -> bool:
         """Process new node info and return true if all fields are updated."""
-        if relay_state is not None:
+        if node_info.relay_state is not None:
             self._relay_state = replace(
-                self._relay_state, state=relay_state, timestamp=timestamp
+                self._relay_state,
+                state=node_info.relay_state,
+                timestamp=node_info.timestamp,
             )
 
-        if logaddress_pointer is not None:
-            self._current_log_address = logaddress_pointer
+        if node_info.current_logaddress_pointer is not None:
+            self._current_log_address = node_info.current_logaddress_pointer
 
-        return await super().update_node_details(
-            firmware,
-            hardware,
-            node_type,
-            timestamp,
-            relay_state,
-            logaddress_pointer,
-        )
+        return await super().update_node_details(node_info)
 
     async def unload(self) -> None:
         """Deactivate and unload node features."""
