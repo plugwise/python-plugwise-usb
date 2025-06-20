@@ -507,8 +507,8 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             self._node_info.firmware = node_info.firmware
             self._set_cache(CACHE_FIRMWARE, node_info.firmware)
 
-        complete &= await self._update_node_details_hardware(node_info.hardware)
-        complete &= await self._update_node_details_timestamp(node_info.timestamp)
+        complete &= self._update_node_details_hardware(node_info.hardware)
+        complete &= self._update_node_details_timestamp(node_info.timestamp)
 
         await self.save_cache()
         if node_info.timestamp is not None and node_info.timestamp > datetime.now(
@@ -518,7 +518,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
 
         return complete
 
-    async def _update_node_details_timestamp(self, timestamp: datetime | None) -> bool:
+    def _update_node_details_timestamp(self, timestamp: datetime | None) -> bool:
         if timestamp is None:
             return False
         else:
@@ -526,7 +526,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             self._set_cache(CACHE_NODE_INFO_TIMESTAMP, timestamp)
         return True
 
-    async def _update_node_details_hardware(self, hardware: str | None) -> bool:
+    def _update_node_details_hardware(self, hardware: str | None) -> bool:
         if hardware is None:
             return False
         else:
