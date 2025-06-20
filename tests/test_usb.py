@@ -205,7 +205,7 @@ class MockSerial:
 class MockOsPath:
     """Mock aiofiles.path class."""
 
-    async def exists(self, file_or_path: str) -> bool:
+    async def exists(self, file_or_path: str) -> bool:  # noqa:  PLR0911
         """Exists folder."""
         if file_or_path == "mock_folder_that_exists":
             return True
@@ -285,7 +285,6 @@ class TestStick:
     @pytest.mark.asyncio
     async def test_sorting_request_messages(self) -> None:
         """Test request message priority sorting."""
-
         node_add_request = pw_requests.NodeAddRequest(
             self.dummy_fn, b"1111222233334444", True
         )
@@ -329,7 +328,6 @@ class TestStick:
     @pytest.mark.asyncio
     async def test_msg_properties(self) -> None:
         """Test message properties."""
-
         # UnixTimestamp
         unix_timestamp = pw_msg_properties.UnixTimestamp(
             dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC), 8
@@ -585,7 +583,7 @@ class TestStick:
         )
         assert stick.nodes["5555555555555555"].node_info.version == "080007"
         assert stick.nodes["5555555555555555"].node_info.model == "Scan"
-        assert stick.nodes["5555555555555555"].node_info.model_type == None
+        assert stick.nodes["5555555555555555"].node_info.model_type is None
         assert stick.nodes["5555555555555555"].available
         assert stick.nodes["5555555555555555"].node_info.is_battery_powered
         assert sorted(stick.nodes["5555555555555555"].features) == sorted(
@@ -752,7 +750,7 @@ class TestStick:
             )
 
     @pytest.mark.asyncio
-    async def test_node_relay_and_power(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_node_relay_and_power(self, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa:  PLR0915
         """Testing discovery of nodes."""
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
@@ -954,7 +952,7 @@ class TestStick:
         await stick.disconnect()
 
     @freeze_time("2025-04-03 22:00:00")
-    def test_pulse_collection_consumption(
+    def test_pulse_collection_consumption(  # noqa:  PLR0915
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Testing pulse collection class."""
@@ -1216,7 +1214,6 @@ class TestStick:
     @freeze_time(dt.now())
     def test_pulse_collection_production(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Testing pulse collection class."""
-
         # Set log hours to 1 week
         monkeypatch.setattr(pw_energy_pulses, "MAX_LOG_HOURS", 168)
 
@@ -1290,7 +1287,6 @@ class TestStick:
     @freeze_time(dt.now())
     def test_log_address_rollover(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test log address rollover."""
-
         # Set log hours to 25
         monkeypatch.setattr(pw_energy_pulses, "MAX_LOG_HOURS", 24)
 
@@ -1535,7 +1531,7 @@ class TestStick:
         return f"{str_a}/{str_b}"
 
     @pytest.mark.asyncio
-    async def test_cache(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_cache(self, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa:  PLR0915
         """Test PlugwiseCache class."""
         monkeypatch.setattr(pw_helpers_cache, "os_name", "nt")
         monkeypatch.setattr(pw_helpers_cache, "os_getenv", self.fake_env)
@@ -1791,9 +1787,8 @@ class TestStick:
             )
 
     @pytest.mark.asyncio
-    async def test_base_node(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_base_node(self, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa:  PLR0915
         """Testing properties of base node."""
-
         mock_stick_controller = MockStickController()
 
         async def load_callback(event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
@@ -1907,10 +1902,10 @@ class TestStick:
         assert test_node.mac == "1298347650AFBECD"
 
     @pytest.mark.asyncio
-    async def test_sed_node(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_sed_node(self, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa:  PLR0915
         """Testing properties of SED."""
 
-        def fake_cache(dummy: object, setting: str) -> str | None:
+        def fake_cache(dummy: object, setting: str) -> str | None:  # noqa: PLR0911
             """Fake cache retrieval."""
             if setting == pw_node.CACHE_FIRMWARE:
                 return "2011-6-27-8-55-44"
@@ -2106,10 +2101,10 @@ class TestStick:
         assert test_sed.sleep_duration == 120
 
     @pytest.mark.asyncio
-    async def test_scan_node(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_scan_node(self, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: PLR0915
         """Testing properties of scan."""
 
-        def fake_cache(dummy: object, setting: str) -> str | None:
+        def fake_cache(dummy: object, setting: str) -> str | None:  # noqa: PLR0911 PLR0912
             """Fake cache retrieval."""
             if setting == pw_node.CACHE_FIRMWARE:
                 return "2011-6-27-8-55-44"
@@ -2301,7 +2296,7 @@ class TestStick:
     async def test_switch_node(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Testing properties of switch."""
 
-        def fake_cache(dummy: object, setting: str) -> str | None:
+        def fake_cache(dummy: object, setting: str) -> str | None:  # noqa: PLR0911
             """Fake cache retrieval."""
             if setting == pw_node.CACHE_FIRMWARE:
                 return "2011-5-13-7-26-54"
@@ -2390,7 +2385,7 @@ class TestStick:
         assert not state[pw_api.NodeFeature.AVAILABLE].state
 
     @pytest.mark.asyncio
-    async def test_node_discovery_and_load(
+    async def test_node_discovery_and_load(  # noqa: PLR0915
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Testing discovery of nodes."""
@@ -2569,7 +2564,7 @@ class TestStick:
         )
         assert stick.nodes["5555555555555555"].node_info.version == "080007"
         assert stick.nodes["5555555555555555"].node_info.model == "Scan"
-        assert stick.nodes["5555555555555555"].node_info.model_type == None
+        assert stick.nodes["5555555555555555"].node_info.model_type is None
         assert stick.nodes["5555555555555555"].available
         assert stick.nodes["5555555555555555"].node_info.is_battery_powered
         assert sorted(stick.nodes["5555555555555555"].features) == sorted(
@@ -2634,7 +2629,7 @@ class TestStick:
         )
         assert stick.nodes["8888888888888888"].node_info.version == "070051"
         assert stick.nodes["8888888888888888"].node_info.model == "Switch"
-        assert stick.nodes["8888888888888888"].node_info.model_type == None
+        assert stick.nodes["8888888888888888"].node_info.model_type is None
         assert stick.nodes["8888888888888888"].available
         assert stick.nodes["8888888888888888"].node_info.is_battery_powered
         assert sorted(stick.nodes["8888888888888888"].features) == sorted(
