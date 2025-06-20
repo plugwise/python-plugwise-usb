@@ -892,6 +892,9 @@ class PulseCollection:
         # Collect any missing address in current range
         count = 0
         address = last_address
+        _LOGGER.debug(
+            "_logs_missing | %s | last_address=%s", self._mac, last_address
+        )
         slot = last_slot
         while not (
             (address == first_address and slot == first_slot)
@@ -900,7 +903,9 @@ class PulseCollection:
             address, slot = calc_log_address(address, slot, -1)
             if address in missing:
                 continue
+            _LOGGER.debug("address=%s, slot=%s", address, slot)
             if not self._log_exists(address, slot):
+                _LOGGER.debug("Address-slot without log: %s, %s", address, slot)
                 missing.append(address)
                 continue
             if self._logs[address][slot].timestamp <= from_timestamp:
