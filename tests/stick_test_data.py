@@ -1,3 +1,5 @@
+"""Stick Test Program."""
+
 from datetime import UTC, datetime, timedelta
 import importlib
 
