@@ -446,9 +446,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._mac_in_str,
             )
             total_addresses = 11
+            _LOGGER.debug("_last_collected_energy_timestamp: %s", self._last_collected_energy_timestamp)
             log_address = self._current_log_address
             prev_address_timestamp: datetime | None = None
             log_interval = self.energy_consumption_interval
+            _LOGGER.debug("log_interval: %s", log_interval)
             factor = 4
             if self.energy_production_interval is not None:
                 factor = 2
@@ -457,29 +459,33 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 await self.energy_log_update(log_address)
                 # Check if the most recent timestamp of the current address is recent
                 # (within 2/4 * log_interval plus 5 mins margin)
-                if (
-                    log_address == self._current_log_address
-                    and self._last_collected_energy_timestamp is not None
-                    and log_interval is not None
-                    and (
-                        datetime.now(tz=UTC) - self._last_collected_energy_timestamp
-                    ).total_seconds() // 60 > (factor * log_interval) + 5  # minutes
-                ):
-                    _LOGGER.debug("Energy data collected is outdated, stopping collection")
-                    break
+                if log_address == self._current_log_address:
+                    if (
+                        self._last_collected_energy_timestamp is not None
+                        and log_interval is not None
+                        and (
+                            datetime.now(tz=UTC) - self._last_collected_energy_timestamp
+                        ).total_seconds() // 60 > (factor * log_interval) + 5  # minutes
+                    ):
+                        _LOGGER.debug("Energy data collected is outdated, stopping collection")
+                        break
+                    
+                    "if pulses=None and timestamp == None:"
+                    "    break"
 
                 # Check if the most recent timestamp of an earlier address is recent
-                if (
-                    log_address != self._current_log_address
-                    and self._last_collected_energy_timestamp is not None
-                    and log_interval is not None
-                    and prev_address_timestamp is not None
-                    and (
-                        prev_address_timestamp - self._last_collected_energy_timestamp
-                    ).total_seconds() // 60 > (factor * log_interval) + 5  # minutes
-                ):
-                    _LOGGER.debug("Energy data collected is outdated, stopping collection")
-                    break
+                else:
+                    _LOGGER.debug("prev_address_timestamp: %s", prev_address_timestamp)
+                    if (
+                        self._last_collected_energy_timestamp is not None
+                        and log_interval is not None
+                        and prev_address_timestamp is not None
+                        and (
+                            prev_address_timestamp - self._last_collected_energy_timestamp
+                        ).total_seconds() // 60 > (factor * log_interval) + 5  # minutes
+                    ):
+                        _LOGGER.debug("Energy data collected is outdated, stopping collection")
+                        break
 
                 if self._last_collected_energy_timestamp is not None:
                     prev_address_timestamp = self._last_collected_energy_timestamp
