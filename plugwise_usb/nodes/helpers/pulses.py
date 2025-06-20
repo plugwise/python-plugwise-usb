@@ -891,14 +891,15 @@ class PulseCollection:
 
         # Collect any missing address in current range, within MAX_LOG_HOURS timeframe
         address = last_address
-        count = 0
         slot = last_slot
+        count = 0
+        max_count = MAX_LOG_HOURS
         if self._log_production:
-            MAX_LOG_HOURS = 2 * MAX_LOG_HOURS  # this requires production_interval == consumption_interval
+            max_count = 2 * max_count  # this requires production_interval == consumption_interval
 
         while not (
             (address == first_address and slot == first_slot)
-            or count > MAX_LOG_HOURS
+            or count > max_count
         ):
             address, slot = calc_log_address(address, slot, -1)
             if address in missing:
