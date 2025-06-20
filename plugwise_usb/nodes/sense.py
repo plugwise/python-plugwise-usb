@@ -20,8 +20,10 @@ _LOGGER = logging.getLogger(__name__)
 # Sense calculations
 SENSE_HUMIDITY_MULTIPLIER: Final = 125
 SENSE_HUMIDITY_OFFSET: Final = 6
+SENSE_HUMIDITY_LIMIT: Final = 65535
 SENSE_TEMPERATURE_MULTIPLIER: Final = 175.72
 SENSE_TEMPERATURE_OFFSET: Final = 46.85
+SENSE_TEMPERATURE_LIMIT: Final = 65535
 
 SENSE_FEATURES: Final = (
     NodeFeature.INFO,
@@ -111,14 +113,14 @@ class PlugwiseSense(NodeSED):
             )
         report_received = False
         await self._available_update_state(True, response.timestamp)
-        if response.temperature.value != 65535:
+        if response.temperature.value != SENSE_TEMPERATURE_LIMIT:
             self._sense_statistics.temperature = float(
                 SENSE_TEMPERATURE_MULTIPLIER * (response.temperature.value / 65536)
                 - SENSE_TEMPERATURE_OFFSET
             )
             report_received = True
 
-        if response.humidity.value != 65535:
+        if response.humidity.value != SENSE_HUMIDITY_LIMIT:
             self._sense_statistics.humidity = float(
                 SENSE_HUMIDITY_MULTIPLIER * (response.humidity.value / 65536)
                 - SENSE_HUMIDITY_OFFSET

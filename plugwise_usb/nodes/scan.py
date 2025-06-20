@@ -11,6 +11,7 @@ from typing import Any, Final
 
 from ..api import MotionConfig, MotionSensitivity, MotionState, NodeEvent, NodeFeature
 from ..connection import StickController
+from ..constants import MAX_UINT_2
 from ..exceptions import MessageError, NodeError, NodeTimeout
 from ..messages.requests import ScanConfigureRequest, ScanLightCalibrateRequest
 from ..messages.responses import (
@@ -306,7 +307,7 @@ class PlugwiseScan(NodeSED):
             self._motion_config.reset_timer,
             minutes,
         )
-        if minutes < 1 or minutes > 255:
+        if minutes < 1 or minutes > MAX_UINT_2:
             raise ValueError(
                 f"Invalid motion reset timer ({minutes}). It must be between 1 and 255 minutes."
             )

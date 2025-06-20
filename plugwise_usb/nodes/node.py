@@ -425,7 +425,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             if (
                 self._last_seen is not None
                 and timestamp is not None
-                and int((timestamp - self._last_seen).total_seconds()) > 5
+                and int((timestamp - self._last_seen).total_seconds()) > 5  # noqa: PLR2004
 
             ):
                 self._last_seen = timestamp
@@ -659,7 +659,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Retrieve value of specified setting from cache memory and return it as datetime object."""
         if (timestamp_str := self._get_cache(setting)) is not None:
             data = timestamp_str.split("-")
-            if len(data) == 6:
+            if len(data) == 6:  # noqa: PLR2004
                 try:
                     return datetime(
                         year=int(data[0]),

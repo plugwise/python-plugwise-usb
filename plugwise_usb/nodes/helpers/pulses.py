@@ -950,7 +950,7 @@ class PulseCollection:
         if self._logs is None:
             raise EnergyError("Unable to return last known duration without any logs")
 
-        if len(self._logs) < 2:
+        if len(self._logs) < 2:  # noqa: PLR2004
             return timedelta(hours=1)
 
         address, slot = self._last_log_reference()
