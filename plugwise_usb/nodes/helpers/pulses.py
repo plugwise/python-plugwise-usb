@@ -890,6 +890,8 @@ class PulseCollection:
             return None
 
         # Collect any missing address in current range, within MAX_LOG_HOURS timeframe
+        # The max_count-guarding has been added for when an outdated logrecord is present in the cache,
+        # this will result in the unwanted collection of missing logs outside the MAX_LOG_HOURS timeframe
         address = last_address
         slot = last_slot
         count = 0
