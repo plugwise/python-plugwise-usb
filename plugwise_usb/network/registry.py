@@ -189,17 +189,17 @@ class StickNetworkRegister:
                 continue
             registration = await self.retrieve_network_registration(address, False)
             if registration is not None:
-                address, mac = registration
+                nextaddress, mac = registration
                 if mac == "":
-                    self._first_free_address = min(self._first_free_address, address)
+                    self._first_free_address = min(self._first_free_address, nextaddress)
                     if quick:
                         break
                 _LOGGER.debug(
                     "Network registration at address %s is %s",
-                    str(address),
+                    str(nextaddress),
                     "'empty'" if mac == "" else f"set to {mac}",
                 )
-                self.update_network_registration(address, mac, None)
+                self.update_network_registration(nextaddress, mac, None)
             await sleep(0.1)
             if not quick:
                 await sleep(10)
