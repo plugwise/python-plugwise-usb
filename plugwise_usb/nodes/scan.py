@@ -174,8 +174,10 @@ class PlugwiseScan(NodeSED):
         if (cached_motion_state := self._get_cache(CACHE_MOTION_STATE)) is not None:
             if (
                 cached_motion_state == "True"
-                and (motion_timestamp := self._motion_timestamp_from_cache()) is not None
-                and int((datetime.now(tz=UTC) - motion_timestamp).total_seconds()) < self._reset_timer_from_cache() * 60
+                and (motion_timestamp := self._motion_timestamp_from_cache())
+                is not None
+                and int((datetime.now(tz=UTC) - motion_timestamp).total_seconds())
+                < self._reset_timer_from_cache() * 60
             ):
                 return True
             return False
@@ -360,7 +362,7 @@ class PlugwiseScan(NodeSED):
         _LOGGER.warning("%s received %s", self.name, response)
         await gather(
             self._available_update_state(True, response.timestamp),
-            self._motion_state_update(response.switch_state, response.timestamp)
+            self._motion_state_update(response.switch_state, response.timestamp),
         )
         return True
 
@@ -384,7 +386,9 @@ class PlugwiseScan(NodeSED):
             self._set_cache(CACHE_MOTION_STATE, "False")
             if self._motion_state.state is None or self._motion_state.state:
                 if self._reset_timer_motion_on is not None:
-                    reset_timer = int((timestamp - self._reset_timer_motion_on).total_seconds())
+                    reset_timer = int(
+                        (timestamp - self._reset_timer_motion_on).total_seconds()
+                    )
                     if self._motion_config.reset_timer is None:
                         self._motion_config = replace(
                             self._motion_config,
@@ -476,7 +480,9 @@ class PlugwiseScan(NodeSED):
             MotionSensitivity.OFF: SENSITIVITY_OFF_VALUE,
         }
         # Default to medium
-        sensitivity_value = sensitivity_map.get(sensitivity_level, SENSITIVITY_MEDIUM_VALUE)
+        sensitivity_value = sensitivity_map.get(
+            sensitivity_level, SENSITIVITY_MEDIUM_VALUE
+        )
         request = ScanConfigureRequest(
             self._send,
             self._mac_in_bytes,

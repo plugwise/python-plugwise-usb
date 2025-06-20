@@ -95,7 +95,7 @@ class PlugwiseSense(NodeSED):
             humidity=0.0,
         )
 
-# region properties
+    # region properties
 
     @property
     @raise_not_loaded
@@ -103,7 +103,7 @@ class PlugwiseSense(NodeSED):
         """Sense Statistics."""
         return self._sense_statistics
 
-# end region
+    # end region
 
     async def _sense_report(self, response: PlugwiseResponse) -> bool:
         """Process sense report message to extract current temperature and humidity values."""

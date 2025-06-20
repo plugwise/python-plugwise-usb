@@ -1,4 +1,5 @@
 """Plugwise utility helpers."""
+
 from __future__ import annotations
 
 import re
@@ -21,7 +22,7 @@ def validate_mac(mac: str) -> bool:
     return True
 
 
-def version_to_model(version: str | None) -> tuple[str|None, str]:
+def version_to_model(version: str | None) -> tuple[str | None, str]:
     """Translate hardware_version to device type."""
     if version is None:
         return (None, "Unknown")

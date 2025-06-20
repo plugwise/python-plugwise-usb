@@ -646,36 +646,36 @@ class TestStick:
                 )
             )
 
-    #@pytest.mark.asyncio
-    #async def test_stick_node_join_subscription(
+    # @pytest.mark.asyncio
+    # async def test_stick_node_join_subscription(
     #    self, monkeypatch: pytest.MonkeyPatch
-    #) -> None:
-        #"""Testing "new_node" subscription."""
-        #mock_serial = MockSerial(None)
-        #monkeypatch.setattr(
-        #    pw_connection_manager,
-        #    "create_serial_connection",
-        #    mock_serial.mock_connection,
-        #)
-        #monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.1)
-        #monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 0.5)
-        #stick = pw_stick.Stick("test_port", cache_enabled=False)
-        #await stick.connect()
-        #await stick.initialize()
-        #await stick.discover_nodes(load=False)
+    # ) -> None:
+    # """Testing "new_node" subscription."""
+    # mock_serial = MockSerial(None)
+    # monkeypatch.setattr(
+    #    pw_connection_manager,
+    #    "create_serial_connection",
+    #    mock_serial.mock_connection,
+    # )
+    # monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.1)
+    # monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 0.5)
+    # stick = pw_stick.Stick("test_port", cache_enabled=False)
+    # await stick.connect()
+    # await stick.initialize()
+    # await stick.discover_nodes(load=False)
 
-        #self.test_node_join = asyncio.Future()
-        #unusb_join = stick.subscribe_to_node_events(
-        #    node_event_callback=self.node_join,
-        #    events=(pw_api.NodeEvent.JOIN,),
-        #)
+    # self.test_node_join = asyncio.Future()
+    # unusb_join = stick.subscribe_to_node_events(
+    #    node_event_callback=self.node_join,
+    #    events=(pw_api.NodeEvent.JOIN,),
+    # )
 
-        ## Inject NodeJoinAvailableResponse
-        #mock_serial.inject_message(b"00069999999999999999", b"1253")  # @bouwew: seq_id is not FFFC!
-        #mac_join_node = await self.test_node_join
-        #assert mac_join_node == "9999999999999999"
-        #unusb_join()
-        #await stick.disconnect()
+    ## Inject NodeJoinAvailableResponse
+    # mock_serial.inject_message(b"00069999999999999999", b"1253")  # @bouwew: seq_id is not FFFC!
+    # mac_join_node = await self.test_node_join
+    # assert mac_join_node == "9999999999999999"
+    # unusb_join()
+    # await stick.disconnect()
 
     @pytest.mark.asyncio
     async def test_node_discovery(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -783,7 +783,10 @@ class TestStick:
 
         unsub_relay = stick.nodes["0098765432101234"].subscribe_to_feature_update(
             node_feature_callback=self.node_relay_state,
-            features=(pw_api.NodeFeature.RELAY, pw_api.NodeFeature.RELAY_LOCK,),
+            features=(
+                pw_api.NodeFeature.RELAY,
+                pw_api.NodeFeature.RELAY_LOCK,
+            ),
         )
 
         # Test async switching back from on to off
@@ -1118,7 +1121,6 @@ class TestStick:
         tst_consumption.add_log(94, 1, (fixed_this_hour - td(hours=24)), 1000)
         assert tst_consumption.collected_logs == 24
 
-
         # Test rollover by updating pulses before log record
         pulse_update_3 = fixed_this_hour + td(hours=1, minutes=0, seconds=30)
         test_timestamp = fixed_this_hour + td(hours=1)
@@ -1142,7 +1144,7 @@ class TestStick:
         # Collected pulses last day:
         assert tst_consumption.collected_pulses(
             test_timestamp - td(hours=24), is_consumption=True
-        ) == (45 + 22861, pulse_update_4)  
+        ) == (45 + 22861, pulse_update_4)
         # pulse-count of 2500 is ignored, the code does not export this incorrect value
 
         tst_consumption.add_log(100, 2, (fixed_this_hour + td(hours=1)), 2222)
@@ -2551,7 +2553,6 @@ class TestStick:
         assert state[pw_api.NodeFeature.AVAILABLE].state
         assert state[pw_api.NodeFeature.RELAY].state
         assert not state[pw_api.NodeFeature.RELAY_LOCK].state
-
 
         # region Scan
         self.test_node_awake = asyncio.Future()

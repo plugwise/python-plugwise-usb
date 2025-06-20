@@ -172,7 +172,7 @@ class PulseCollection:
             self._mac,
             from_timestamp,
             is_consumption,
-            self._log_production
+            self._log_production,
         )
         if not is_consumption:
             if self._log_production is None or not self._log_production:
@@ -373,7 +373,7 @@ class PulseCollection:
                     _LOGGER.debug(
                         "_update_rollover | %s | reset %s rollover",
                         self._mac,
-                        direction
+                        direction,
                     )
                 return False
 
@@ -518,9 +518,8 @@ class PulseCollection:
         if self._first_prev_log_processed and self._first_next_log_processed:
             # _log_production is True when 2 out of 3 consecutive slots have
             # the same timestamp
-            self._log_production = (
-                (prev_timestamp == timestamp)
-                ^ (next_timestamp == timestamp)
+            self._log_production = (prev_timestamp == timestamp) ^ (
+                next_timestamp == timestamp
             )
 
     def _check_prev_production(

@@ -233,12 +233,14 @@ class EnergyStatistics:
     day_production: float | None = None
     day_production_reset: datetime | None = None
 
+
 @dataclass
 class SenseStatistics:
     """Sense statistics collection."""
 
     temperature: float | None = None
     humidity: float | None = None
+
 
 class PlugwiseNode(Protocol):
     """Protocol definition of a Plugwise device node."""
@@ -703,6 +705,5 @@ class PlugwiseNode(Protocol):
             message: Plugwise message to process.
 
         """
-
 
     # endregion

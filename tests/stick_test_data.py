@@ -60,11 +60,11 @@ RESPONSE_MESSAGES = {
         + b"00044280"  # log address 20
         + b"01"  # relay
         + b"01"  # hz
-        + b"000000730007" # hw_ver
+        + b"000000730007"  # hw_ver
         + b"4E0843A9"  # fw_ver
         + b"01",  # node_type (Circle+)
     ),
-    b"\x05\x05\x03\x030008014068\r\n":(
+    b"\x05\x05\x03\x030008014068\r\n": (
         "Reply to CirclePlusAllowJoiningRequest",
         b"000000C1",  # Success ack
         b"000000D9"  # JOIN_ACCEPTED

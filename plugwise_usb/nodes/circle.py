@@ -326,7 +326,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self.name,
             )
 
-
     @raise_not_loaded
     @raise_calibration_missing
     async def energy_update(self) -> EnergyStatistics | None:  # noqa: PLR0911 PLR0912
@@ -500,10 +499,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         for _slot in range(4, 0, -1):
             log_timestamp, log_pulses = response.log_data[_slot]
             _LOGGER.debug(
-                "In slot=%s: pulses=%s, timestamp=%s",
-                _slot,
-                log_pulses,
-                log_timestamp
+                "In slot=%s: pulses=%s, timestamp=%s", _slot, log_pulses, log_timestamp
             )
             if log_timestamp is None or log_pulses is None:
                 self._energy_counters.add_empty_log(response.log_address, _slot)
@@ -991,7 +987,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             self._current_log_address = int(current_log_address)
             _LOGGER.debug(
                 "circle._node_info_load_from_cache | current_log_address=%s",
-                self._current_log_address
+                self._current_log_address,
             )
             return True
 

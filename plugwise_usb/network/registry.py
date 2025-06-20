@@ -191,7 +191,9 @@ class StickNetworkRegister:
             if registration is not None:
                 nextaddress, mac = registration
                 if mac == "":
-                    self._first_free_address = min(self._first_free_address, nextaddress)
+                    self._first_free_address = min(
+                        self._first_free_address, nextaddress
+                    )
                     if quick:
                         break
                 _LOGGER.debug(

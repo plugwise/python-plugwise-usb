@@ -51,6 +51,7 @@ CACHE_NODE_TYPE = "node_type"
 CACHE_HARDWARE = "hardware"
 CACHE_NODE_INFO_TIMESTAMP = "node_info_timestamp"
 
+
 class PlugwiseBaseNode(FeaturePublisher, ABC):
     """Abstract Base Class for a Plugwise node."""
 
@@ -316,9 +317,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
     def sense(self) -> SenseStatistics:
         """Sense statistics."""
         if NodeFeature.SENSE not in self._features:
-            raise FeatureError(
-                f"Sense statistics is not supported for node {self.mac}"
-            )
+            raise FeatureError(f"Sense statistics is not supported for node {self.mac}")
 
     # endregion
 
@@ -344,9 +343,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             if (
                 required_version := FEATURE_SUPPORTED_AT_FIRMWARE.get(feature)
             ) is not None and (
-                self._node_protocols.min
-                <= required_version
-                <= self._node_protocols.max
+                self._node_protocols.min <= required_version <= self._node_protocols.max
                 and feature not in self._features
             ):
                 self._features += (feature,)
@@ -426,7 +423,6 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                 self._last_seen is not None
                 and timestamp is not None
                 and int((timestamp - self._last_seen).total_seconds()) > 5  # noqa: PLR2004
-
             ):
                 self._last_seen = timestamp
                 await self.publish_feature_update_to_subscribers(
@@ -538,7 +534,9 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                     allowed_models = TYPE_MODEL.get(self._node_info.node_type.value)
                     if allowed_models and model_info[0] not in allowed_models:
                         # Replace model_info list
-                        model_info = [allowed_models[0]]  # Not correct for 1 but should not be a problem
+                        model_info = [
+                            allowed_models[0]
+                        ]  # Not correct for 1 but should not be a problem
                         self._node_info.model = model_info[0]
 
                 # Handle + devices

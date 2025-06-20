@@ -778,19 +778,19 @@ class CircleEnergyLogsResponse(PlugwiseResponse):
         if self.logdate1.value_set:
             log_data[1] = (self.logdate1.value, self.pulses1.value)
         else:
-             log_data[1] = (None, None)
+            log_data[1] = (None, None)
         if self.logdate2.value_set:
             log_data[2] = (self.logdate2.value, self.pulses2.value)
         else:
-             log_data[2] = (None, None)
+            log_data[2] = (None, None)
         if self.logdate3.value_set:
             log_data[3] = (self.logdate3.value, self.pulses3.value)
         else:
-             log_data[3] = (None, None)
+            log_data[3] = (None, None)
         if self.logdate4.value_set:
             log_data[4] = (self.logdate4.value, self.pulses4.value)
         else:
-             log_data[4] = (None, None)
+            log_data[4] = (None, None)
         return log_data
 
     def __repr__(self) -> str:
@@ -856,11 +856,12 @@ class NodeSwitchGroupResponse(PlugwiseResponse):
     @property
     def switch_state(self) -> bool:
         """Return state of switch (True = On, False = Off)."""
-        return (self._power_state.value != 0)
+        return self._power_state.value != 0
 
     def __repr__(self) -> str:
         """Convert request into writable str."""
         return f"{super().__repr__()[:-1]}, power_state={self._power_state.value}, group={self.group.value})"
+
 
 class NodeFeaturesResponse(PlugwiseResponse):
     """Returns supported features of node.
