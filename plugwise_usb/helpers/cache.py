@@ -80,7 +80,7 @@ class PlugwiseCache:
         return os_path_join(os_path_expand_user("~"), CACHE_DIR)
 
     async def write_cache(self, data: dict[str, str], rewrite: bool = False) -> None:
-        """ "Save information to cache file."""
+        """Save information to cache file."""
         if not self._initialized:
             raise CacheError(
                 f"Unable to save cache. Initialize cache file '{self._file_name}' first."
