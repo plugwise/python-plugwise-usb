@@ -889,13 +889,13 @@ class PulseCollection:
             # Power consumption logging, so we need at least 4 logs.
             return None
 
-        # Collect any missing address in current range
-        count = 0
+        # Collect any missing address in current range, within MAX_LOG_HOURS timeframe
         address = last_address
-        _LOGGER.debug(
-            "_logs_missing | %s | last_address=%s", self._mac, last_address
-        )
+        count = 0
         slot = last_slot
+        if self._log_production:
+            MAX_LOG_HOURS = 2 * MAX_LOG_HOURS  # this requires production_interval == consumption_interval
+
         while not (
             (address == first_address and slot == first_slot)
             or count > MAX_LOG_HOURS
@@ -903,11 +903,11 @@ class PulseCollection:
             address, slot = calc_log_address(address, slot, -1)
             if address in missing:
                 continue
-            _LOGGER.debug("address=%s, slot=%s", address, slot)
+
             if not self._log_exists(address, slot):
-                _LOGGER.debug("Address-slot without log: %s, %s", address, slot)
                 missing.append(address)
                 continue
+
             if self._logs[address][slot].timestamp <= from_timestamp:
                 break
 
