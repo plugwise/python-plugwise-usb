@@ -255,7 +255,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         gain_b: float | None,
         off_noise: float | None,
         off_tot: float | None,
-        load_from_cache=False,
+        load_from_cache: bool = False,
     ) -> bool:
         """Process new energy calibration settings. Returns True if successful."""
         if gain_a is None or gain_b is None or off_noise is None or off_tot is None:
@@ -434,84 +434,78 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
         return None
 
-    async def get_missing_energy_logs(self) -> None:
-        """Task to retrieve missing energy logs."""
-        self._energy_counters.update()
+    async def _get_initial_energy_logs(self) -> None:
+        """Collect initial energy logs from the last 10 log addresses."""
         if self._current_log_address is None:
-            return None
+            return
 
-        if (missing_addresses := self._energy_counters.log_addresses_missing) is None:
-            _LOGGER.debug(
-                "Start collecting initial energy logs from the last 10 log addresses for node %s.",
-                self._mac_in_str,
-            )
-            total_addresses = 11
-            log_address = self._current_log_address
-            prev_address_timestamp: datetime | None = None
-            while total_addresses > 0:
-                if not await self.energy_log_update(log_address):
-                    # Handle case with None-data in all address slots
-                    _LOGGER.debug(
-                       "Energy None-data collected from log address %s, stopping collection",
-                       log_address,
-                    )
-                    break
-
-                # Check if the most recent timestamp of an earlier address is recent
-                # (within 2/4 * log_interval plus 5 mins margin)
-                log_interval = self.energy_consumption_interval
-                _LOGGER.debug("log_interval: %s", log_interval)
+        _LOGGER.debug(
+            "Start collecting initial energy logs from the last 10 log addresses for node %s.",
+            self._mac_in_str,
+        )
+        total_addresses = 11
+        log_address = self._current_log_address
+        prev_address_timestamp: datetime | None = None
+        while total_addresses > 0:
+            if not await self.energy_log_update(log_address):
+                # Handle case with None-data in all address slots
                 _LOGGER.debug(
-                    "last_collected_energy_timestamp: %s",
-                    self._last_collected_energy_timestamp,
+                    "Energy None-data collected from log address %s, stopping collection",
+                    log_address,
                 )
-                _LOGGER.debug(
-                    "energy_production_interval: %s",
-                    self.energy_production_interval,
-                )
-                factor = 4
-                if self.energy_production_interval is not None:
-                    factor = 2
+                break
 
+            # Check if the most recent timestamp of an earlier address is recent
+            # (within 2/4 * log_interval plus 5 mins margin)
+            log_interval = self.energy_consumption_interval
+            factor = 2 if self.energy_production_interval is not None else 4
+
+            if log_interval is not None:
+                max_gap_minutes = (factor * log_interval) + 5
                 if log_address == self._current_log_address:
                     if (
                         self._last_collected_energy_timestamp is not None
-                        and log_interval is not None
                         and (
                             datetime.now(tz=UTC) - self._last_collected_energy_timestamp
-                        ).total_seconds() // 60 > (factor * log_interval) + 5  # minutes
+                        ).total_seconds()
+                        // 60
+                        > max_gap_minutes
                     ):
                         _LOGGER.debug(
                             "Energy data collected from the current log address is outdated, stopping collection"
                         )
                         break
-                else:
-                    _LOGGER.debug("prev_address_timestamp: %s", prev_address_timestamp)
-                    if (
-                        self._last_collected_energy_timestamp is not None
-                        and log_interval is not None
-                        and prev_address_timestamp is not None
-                        and (
-                            prev_address_timestamp
-                            - self._last_collected_energy_timestamp
-                        ).total_seconds()
-                        // 60
-                        > (factor * log_interval) + 5  # minutes
-                    ):
-                        _LOGGER.debug(
-                            "Collected energy data is outdated, stopping collection"
-                        )
-                        break
+                elif (
+                    prev_address_timestamp is not None
+                    and self._last_collected_energy_timestamp is not None
+                    and (
+                        prev_address_timestamp - self._last_collected_energy_timestamp
+                    ).total_seconds()
+                    // 60
+                    > max_gap_minutes
+                ):
+                    _LOGGER.debug(
+                        "Collected energy data is outdated, stopping collection"
+                    )
+                    break
 
-                if self._last_collected_energy_timestamp is not None:
-                    prev_address_timestamp = self._last_collected_energy_timestamp
+            if self._last_collected_energy_timestamp is not None:
+                prev_address_timestamp = self._last_collected_energy_timestamp
 
-                log_address, _ = calc_log_address(log_address, 1, -4)
-                total_addresses -= 1
+            log_address, _ = calc_log_address(log_address, 1, -4)
+            total_addresses -= 1
 
-            if self._cache_enabled:
-                await self._energy_log_records_save_to_cache()
+        if self._cache_enabled:
+            await self._energy_log_records_save_to_cache()
 
+    async def get_missing_energy_logs(self) -> None:
+        """Task to retrieve missing energy logs."""
+        self._energy_counters.update()
+        if self._current_log_address is None:
+            return
+
+        if (missing_addresses := self._energy_counters.log_addresses_missing) is None:
+            await self._get_initial_energy_logs()
             return
 
         _LOGGER.debug("Task created to get missing logs of %s", self._mac_in_str)
@@ -813,7 +807,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
             _LOGGER.debug("Saving relay state update to cache for %s", self._mac_in_str)
             await self.save_cache()
 
-    async def _relay_update_lock(self, state: bool, load_from_cache=False) -> None:
+    async def _relay_update_lock(
+        self, state: bool, load_from_cache: bool = False
+    ) -> None:
         """Process relay lock update."""
         state_update = False
         if state:
@@ -1302,18 +1298,18 @@ class PlugwiseCircle(PlugwiseBaseNode):
         _LOGGER.warning("Energy reset for Node %s successful", self._mac_in_str)
 
         # Follow up by an energy-intervals (re)set
-        request = CircleMeasureIntervalRequest(
+        interval_request = CircleMeasureIntervalRequest(
             self._send,
             self._mac_in_bytes,
             DEFAULT_CONS_INTERVAL,
             NO_PRODUCTION_INTERVAL,
         )
-        if (response := await request.send()) is None:
+        if (interval_response := await interval_request.send()) is None:
             raise NodeError("No response for CircleMeasureIntervalRequest")
 
-        if response.response_type != NodeResponseType.POWER_LOG_INTERVAL_ACCEPTED:
+        if interval_response.response_type != NodeResponseType.POWER_LOG_INTERVAL_ACCEPTED:
             raise MessageError(
-                f"Unknown NodeResponseType '{response.response_type.name}' received"
+                f"Unknown NodeResponseType '{interval_response.response_type.name}' received"
             )
         _LOGGER.warning("Resetting energy intervals to default (= consumption only)")
 
