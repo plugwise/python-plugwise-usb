@@ -6,7 +6,7 @@
 - PR #263 Maintenance chores and re-instatement of ruff, deprecate pre-commit cloud runs (just leveraging renovate)
 - PR #264 Maintenance chores Rework Github Actions workflow
 - PR [#269](https://github.com/plugwise/python-plugwise-usb/pull/269) Implementation of ruff fixes
-- PR [#271](https://github.com/plugwise/python-plugwise-usb/pull/271) Ruff fix: split update_missing_restrations in quick and full version
+- PR [#271](https://github.com/plugwise/python-plugwise-usb/pull/271) Ruff fix: split update_missing_registrations in quick and full version
 
 ## v0.44.3 - 2025-06-12
 
