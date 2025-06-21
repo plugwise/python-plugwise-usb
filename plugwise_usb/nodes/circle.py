@@ -521,6 +521,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         """Request energy log statistics from node. Returns true if successful."""
         if address is None:
             return False
+
         _LOGGER.debug(
             "Request of energy log at address %s for node %s",
             str(address),
@@ -570,8 +571,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 "Saving energy record update to cache for %s", self._mac_in_str
             )
             await self.save_cache()
+            return True
 
-        return True
+        return False
 
     async def _energy_log_records_load_from_cache(self) -> bool:
         """Load energy_log_record from cache."""
