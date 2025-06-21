@@ -108,7 +108,7 @@ class StickNetworkRegister:
         if self._cache_enabled:
             await self.restore_network_cache()
             await self.load_registry_from_cache()
-        await self.update_missing_registrations(quick=True)
+        await self.update_missing_registrations_quick()
 
     async def restore_network_cache(self) -> None:
         """Restore previously saved cached network and node information."""
@@ -179,10 +179,10 @@ class StickNetworkRegister:
         if self._network_cache is not None:
             self._network_cache.update_registration(address, mac, node_type)
 
-    async def update_missing_registrations(self, quick: bool = False) -> None:  # noqa: PLR0912
-        """Retrieve all unknown network registrations from network controller."""
+    async def update_missing_registrations_full(self) -> None:
+        """Full retrieval of all unknown network registrations from network controller."""
         for address in range(0, 64):
-            if self._registry.get(address) is not None and not quick:
+            if self._registry.get(address) is not None:
                 mac, _ = self._registry[address]
                 if mac == "":
                     self._first_free_address = min(self._first_free_address, address)
@@ -194,8 +194,35 @@ class StickNetworkRegister:
                     self._first_free_address = min(
                         self._first_free_address, nextaddress
                     )
-                    if quick:
-                        break
+                _LOGGER.debug(
+                    "Network registration at address %s is %s",
+                    str(nextaddress),
+                    "'empty'" if mac == "" else f"set to {mac}",
+                )
+                self.update_network_registration(nextaddress, mac, None)
+            await sleep(10)
+        _LOGGER.debug("Full network registration finished")
+        self._scan_completed = True
+        if self._cache_enabled:
+            _LOGGER.debug("Full network registration finished, save to cache")
+            await self.save_registry_to_cache()
+            _LOGGER.debug("Full network registration finished, post")
+        _LOGGER.info("Full network discovery completed")
+        if self._full_scan_finished is not None:
+            await self._full_scan_finished()
+            self._full_scan_finished = None
+
+    async def update_missing_registrations_quick(self) -> None:
+        """Quick retrieval of all unknown network registrations from network controller."""
+        for address in range(0, 64):
+            registration = await self.retrieve_network_registration(address, False)
+            if registration is not None:
+                nextaddress, mac = registration
+                if mac == "":
+                    self._first_free_address = min(
+                        self._first_free_address, nextaddress
+                    )
+                    break
                 _LOGGER.debug(
                     "Network registration at address %s is %s",
                     str(nextaddress),
@@ -203,28 +230,14 @@ class StickNetworkRegister:
                 )
                 self.update_network_registration(nextaddress, mac, None)
             await sleep(0.1)
-            if not quick:
-                await sleep(10)
-        if quick:
-            if self._registration_task is None or self._registration_task.done():
-                self._registration_task = create_task(
-                    self.update_missing_registrations(quick=False)
-                )
-                if self._quick_scan_finished is not None:
-                    await self._quick_scan_finished()
-                    self._quick_scan_finished = None
-                _LOGGER.info("Quick network registration discovery finished")
-        else:
-            _LOGGER.debug("Full network registration finished")
-            self._scan_completed = True
-            if self._cache_enabled:
-                _LOGGER.debug("Full network registration finished, save to cache")
-                await self.save_registry_to_cache()
-                _LOGGER.debug("Full network registration finished, post")
-            _LOGGER.info("Full network discovery completed")
-            if self._full_scan_finished is not None:
-                await self._full_scan_finished()
-                self._full_scan_finished = None
+        if self._registration_task is None or self._registration_task.done():
+            self._registration_task = create_task(
+                self.update_missing_registrations_full()
+            )
+            if self._quick_scan_finished is not None:
+                await self._quick_scan_finished()
+                self._quick_scan_finished = None
+            _LOGGER.info("Quick network registration discovery finished")
 
     def update_node_registration(self, mac: str) -> int:
         """Register (re)joined node to Plugwise network and return network address."""

@@ -17,3 +17,4 @@ fixtures/*
 *.sedbck
 tmp
 .cache
+appdata_folder
