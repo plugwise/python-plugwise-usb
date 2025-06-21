@@ -1307,7 +1307,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
         if (interval_response := await interval_request.send()) is None:
             raise NodeError("No response for CircleMeasureIntervalRequest")
 
-        if interval_response.response_type != NodeResponseType.POWER_LOG_INTERVAL_ACCEPTED:
+        if (
+            interval_response.response_type
+            != NodeResponseType.POWER_LOG_INTERVAL_ACCEPTED
+        ):
             raise MessageError(
                 f"Unknown NodeResponseType '{interval_response.response_type.name}' received"
             )

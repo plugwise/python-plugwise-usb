@@ -533,7 +533,7 @@ class PulseCollection:
         """Check the previous slot for production pulses."""
         if self._logs is None:
             return
-    
+
         prev_address, prev_slot = calc_log_address(address, slot, -1)
         if self._log_exists(prev_address, prev_slot):
             prev_timestamp = self._logs[prev_address][prev_slot].timestamp
@@ -897,11 +897,12 @@ class PulseCollection:
         count = 0
         max_count = MAX_LOG_HOURS
         if self._log_production:
-            max_count = 2 * max_count  # this requires production_interval == consumption_interval
+            max_count = (
+                2 * max_count
+            )  # this requires production_interval == consumption_interval
 
         while not (
-            (address == first_address and slot == first_slot)
-            or count > max_count
+            (address == first_address and slot == first_slot) or count > max_count
         ):
             address, slot = calc_log_address(address, slot, -1)
             if address in missing:
