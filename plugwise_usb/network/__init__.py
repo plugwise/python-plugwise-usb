@@ -14,8 +14,6 @@ from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
 from ..constants import ENERGY_NODE_TYPES, UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
-from ..nodes.helpers.cache import NodeCache
-from ..nodes.helpers.pulses import PulseCollection
 from ..helpers.util import validate_mac
 from ..messages.requests import (
     CircleClockSetRequest,
@@ -35,7 +33,6 @@ from ..messages.responses import (
 from ..nodes import get_plugwise_node
 from .registry import StickNetworkRegister
 
-CACHE_ENERGY_COLLECTION = "energy_collection"
 _LOGGER = logging.getLogger(__name__)
 # endregion
 
