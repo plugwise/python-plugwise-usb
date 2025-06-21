@@ -2159,7 +2159,6 @@ class TestStick:
             current_logaddress_pointer=None,
             firmware=dt(2011, 6, 27, 8, 55, 44, tzinfo=UTC),
             hardware="080007",
-            logaddress_pointer=None,
             node_type=None,
             relay_state=None,
         )
@@ -2264,7 +2263,6 @@ class TestStick:
             current_logaddress_pointer=None,
             firmware=dt(2011, 6, 27, 8, 55, 44, tzinfo=UTC),
             hardware="080007",
-            logaddress_pointer=None,
             node_type=None,
             relay_state=None,
         )
@@ -2341,7 +2339,6 @@ class TestStick:
             current_logaddress_pointer=None,
             firmware=dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC),
             hardware="070051",
-            logaddress_pointer=None,
             node_type=None,
             relay_state=None,
         )
@@ -2359,7 +2356,6 @@ class TestStick:
             current_logaddress_pointer=None,
             firmware=dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC),
             hardware="070051",
-            logaddress_pointer=None,
             node_type=None,
             relay_state=None,
         )

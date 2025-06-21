@@ -517,7 +517,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         complete &= self._update_node_details_hardware(node_info.hardware)
         complete &= self._update_node_details_timestamp(node_info.timestamp)
 
-        _LOGGER.debug("Saving Node calibration update to cache for %s" self.mac)
+        _LOGGER.debug("Saving Node calibration update to cache for %s", self.mac)
         await self.save_cache()
         if node_info.timestamp is not None and node_info.timestamp > datetime.now(
             tz=UTC
