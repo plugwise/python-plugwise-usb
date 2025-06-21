@@ -463,7 +463,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 else:
                     log_interval = self.energy_consumption_interval
                     _LOGGER.debug("log_interval: %s", log_interval)
-                    _LOGGER.debug("energy_production_interval: %s", self.energy_production_interval)
+                    _LOGGER.debug(
+                        "energy_production_interval: %s",
+                        self.energy_production_interval,
+                    )
                     factor = 4
                     if self.energy_production_interval is not None:
                         factor = 2
@@ -474,10 +477,15 @@ class PlugwiseCircle(PlugwiseBaseNode):
                         and log_interval is not None
                         and prev_address_timestamp is not None
                         and (
-                            prev_address_timestamp - self._last_collected_energy_timestamp
-                        ).total_seconds() // 60 > (factor * log_interval) + 5  # minutes
+                            prev_address_timestamp
+                            - self._last_collected_energy_timestamp
+                        ).total_seconds()
+                        // 60
+                        > (factor * log_interval) + 5  # minutes
                     ):
-                        _LOGGER.debug("Collected energy data is outdated, stopping collection")
+                        _LOGGER.debug(
+                            "Collected energy data is outdated, stopping collection"
+                        )
                         break
 
                 if self._last_collected_energy_timestamp is not None:
@@ -551,14 +559,16 @@ class PlugwiseCircle(PlugwiseBaseNode):
             ):
                 energy_record_update = True
                 if not last_energy_timestamp_collected:
-                    self._last_collected_energy_timestamp = (
-                        log_timestamp.replace(tzinfo=UTC)
+                    self._last_collected_energy_timestamp = log_timestamp.replace(
+                        tzinfo=UTC
                     )
                     last_energy_timestamp_collected = True
 
         self._energy_counters.update()
         if energy_record_update:
-            _LOGGER.debug("Saving energy record update to cache for %s", self._mac_in_str)
+            _LOGGER.debug(
+                "Saving energy record update to cache for %s", self._mac_in_str
+            )
             await self.save_cache()
 
         return True
@@ -639,7 +649,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 cached_logs += f"-{log.timestamp.month}-{log.timestamp.day}"
                 cached_logs += f"-{log.timestamp.hour}-{log.timestamp.minute}"
                 cached_logs += f"-{log.timestamp.second}:{log.pulses}"
-    
+
         _LOGGER.debug("Saving energy logrecords to cache for %s", self._mac_in_str)
         self._set_cache(CACHE_ENERGY_COLLECTION, cached_logs)
 
@@ -684,7 +694,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             "Cache is empty, adding new logrecord (%s, %s) for %s",
             str(address),
             str(slot),
-            self._mac_in_str
+            self._mac_in_str,
         )
         self._set_cache(CACHE_ENERGY_COLLECTION, log_cache_record)
         return True
@@ -799,7 +809,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 NodeFeature.RELAY_LOCK, self._relay_lock
             )
             if not load_from_cache:
-                _LOGGER.debug("Saving relay lock state update to cache for %s", self._mac_in_str)
+                _LOGGER.debug(
+                    "Saving relay lock state update to cache for %s", self._mac_in_str
+                )
                 await self.save_cache()
 
     async def clock_synchronize(self) -> bool:
@@ -1135,7 +1147,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
             await self.publish_feature_update_to_subscribers(
                 NodeFeature.RELAY_INIT, self._relay_config
             )
-            _LOGGER.debug("Saving relay_init state update to cachefor %s", self._mac_in_str)
+            _LOGGER.debug(
+                "Saving relay_init state update to cachefor %s", self._mac_in_str
+            )
             await self.save_cache()
 
     @raise_calibration_missing
@@ -1246,9 +1260,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
     async def energy_reset_request(self) -> None:
         """Send an energy-reset to a Node."""
         if self._node_protocols is None:
-            raise NodeError(
-                "Unable to energy-reset when protocol version is unknown"
-            )
+            raise NodeError("Unable to energy-reset when protocol version is unknown")
 
         request = CircleClockSetRequest(
             self._send,
