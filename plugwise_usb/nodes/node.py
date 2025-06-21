@@ -475,13 +475,13 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             node_type = NodeType(int(node_type_str))
         relay_state = self._get_cache(CACHE_RELAY) == "True"
         timestamp = self._get_cache_as_datetime(CACHE_NODE_INFO_TIMESTAMP)
+        node_info = NodeInfoMessage(
+            current_logaddress_pointer=None,
             firmware=firmware,
             hardware=hardware,
-            logaddress_pointer=None,
             node_type=node_type,
             relay_state=relay_state,
             timestamp=timestamp,
-            current_logaddress_pointer=None,
         )
         return await self.update_node_details(node_info)
 
@@ -517,6 +517,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         complete &= self._update_node_details_hardware(node_info.hardware)
         complete &= self._update_node_details_timestamp(node_info.timestamp)
 
+        _LOGGER.debug("Saving Node calibration update to cache for %s" self.mac)
         await self.save_cache()
         if node_info.timestamp is not None and node_info.timestamp > datetime.now(
             tz=UTC
@@ -576,8 +577,6 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
 
             self._set_cache(CACHE_HARDWARE, hardware)
         return True
-
-        _LOGGER.debug("Saving Node calibration update to cache for %s" self.mac)
 
     async def is_online(self) -> bool:
         """Check if node is currently online."""

@@ -2156,12 +2156,12 @@ class TestStick:
         )
         assert not test_scan.cache_enabled
         node_info = pw_api.NodeInfoMessage(
+            current_logaddress_pointer=None,
             firmware=dt(2011, 6, 27, 8, 55, 44, tzinfo=UTC),
             hardware="080007",
             logaddress_pointer=None,
             node_type=None,
             relay_state=None,
-            current_logaddress_pointer=None,
         )
         await test_scan.update_node_details(node_info)
         assert await test_scan.load()
@@ -2261,12 +2261,12 @@ class TestStick:
             "1298347650AFBECD", 1, mock_stick_controller, load_callback
         )
         node_info = pw_api.NodeInfoMessage(
+            current_logaddress_pointer=None,
             firmware=dt(2011, 6, 27, 8, 55, 44, tzinfo=UTC),
             hardware="080007",
             logaddress_pointer=None,
             node_type=None,
             relay_state=None,
-            current_logaddress_pointer=None,
         )
         await test_scan.update_node_details(node_info)
         test_scan.cache_enabled = True
@@ -2338,12 +2338,12 @@ class TestStick:
             )
         )
         node_info = pw_api.NodeInfoMessage(
+            current_logaddress_pointer=None,
             firmware=dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC),
             hardware="070051",
             logaddress_pointer=None,
             node_type=None,
             relay_state=None,
-            current_logaddress_pointer=None,
         )
         await test_switch.update_node_details(node_info)
         assert await test_switch.load()
@@ -2356,12 +2356,12 @@ class TestStick:
             "1298347650AFBECD", 1, mock_stick_controller, load_callback
         )
         node_info = pw_api.NodeInfoMessage(
+            current_logaddress_pointer=None,
             firmware=dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC),
             hardware="070051",
             logaddress_pointer=None,
             node_type=None,
             relay_state=None,
-            current_logaddress_pointer=None,
         )
         await test_switch.update_node_details(node_info)
         test_switch.cache_enabled = True
