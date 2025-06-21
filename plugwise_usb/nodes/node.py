@@ -20,6 +20,7 @@ from ..api import (
     NodeEvent,
     NodeFeature,
     NodeInfo,
+    NodeInfoMessage,
     NodeType,
     PowerStatistics,
     RelayConfig,
@@ -50,6 +51,7 @@ CACHE_FIRMWARE = "firmware"
 CACHE_NODE_TYPE = "node_type"
 CACHE_HARDWARE = "hardware"
 CACHE_NODE_INFO_TIMESTAMP = "node_info_timestamp"
+
 
 class PlugwiseBaseNode(FeaturePublisher, ABC):
     """Abstract Base Class for a Plugwise node."""
@@ -316,9 +318,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
     def sense(self) -> SenseStatistics:
         """Sense statistics."""
         if NodeFeature.SENSE not in self._features:
-            raise FeatureError(
-                f"Sense statistics is not supported for node {self.mac}"
-            )
+            raise FeatureError(f"Sense statistics is not supported for node {self.mac}")
 
     # endregion
 
@@ -344,9 +344,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             if (
                 required_version := FEATURE_SUPPORTED_AT_FIRMWARE.get(feature)
             ) is not None and (
-                self._node_protocols.min
-                <= required_version
-                <= self._node_protocols.max
+                self._node_protocols.min <= required_version <= self._node_protocols.max
                 and feature not in self._features
             ):
                 self._features += (feature,)
@@ -425,8 +423,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             if (
                 self._last_seen is not None
                 and timestamp is not None
-                and int((timestamp - self._last_seen).total_seconds()) > 5
-
+                and int((timestamp - self._last_seen).total_seconds()) > 5  # noqa: PLR2004
             ):
                 self._last_seen = timestamp
                 await self.publish_feature_update_to_subscribers(
@@ -460,14 +457,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             await self._available_update_state(False)
             return self._node_info
         await self._available_update_state(True, node_info.timestamp)
-        await self.update_node_details(
-            firmware=node_info.firmware,
-            node_type=node_info.node_type,
-            hardware=node_info.hardware,
-            timestamp=node_info.timestamp,
-            relay_state=node_info.relay_state,
-            logaddress_pointer=node_info.current_logaddress_pointer,
-        )
+        await self.update_node_details(node_info)
         return self._node_info
 
     async def _node_info_load_from_cache(self) -> bool:
@@ -478,54 +468,67 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         node_type: NodeType | None = None
         if (node_type_str := self._get_cache(CACHE_NODE_TYPE)) is not None:
             node_type = NodeType(int(node_type_str))
-        
-        return await self.update_node_details(
+        node_info = NodeInfoMessage(
             firmware=firmware,
             hardware=hardware,
             node_type=node_type,
             timestamp=timestamp,
             relay_state=None,
-            logaddress_pointer=None,
+            current_logaddress_pointer=None,
         )
+        return await self.update_node_details(node_info)
 
-    # pylint: disable=too-many-arguments
     async def update_node_details(
-        self,
-        firmware: datetime | None,
-        hardware: str | None,
-        node_type: NodeType | None,
-        timestamp: datetime | None,
-        relay_state: bool | None,
-        logaddress_pointer: int | None,
+        self, node_info: NodeInfoResponse | NodeInfoMessage | None = None
     ) -> bool:
         """Process new node info and return true if all fields are updated."""
         _LOGGER.debug(
             "update_node_details | firmware=%s, hardware=%s, nodetype=%s",
-            firmware,
-            hardware,
-            node_type,
+            node_info.firmware,
+            node_info.hardware,
+            node_info.node_type,
         )
         _LOGGER.debug(
             "update_node_details | timestamp=%s, relay_state=%s, logaddress_pointer=%s,",
-            timestamp,
-            relay_state,
-            logaddress_pointer,
+            node_info.timestamp,
+            node_info.relay_state,
+            node_info.current_logaddress_pointer,
         )
         complete = True
-        if node_type is None:
+        if node_info.node_type is None:
             complete = False
         else:
-            self._node_info.node_type = NodeType(node_type)
+            self._node_info.node_type = NodeType(node_info.node_type)
             self._set_cache(CACHE_NODE_TYPE, self._node_info.node_type.value)
 
-        if firmware is None:
+        if node_info.firmware is None:
             complete = False
         else:
-            self._node_info.firmware = firmware
-            self._set_cache(CACHE_FIRMWARE, firmware)
+            self._node_info.firmware = node_info.firmware
+            self._set_cache(CACHE_FIRMWARE, node_info.firmware)
 
+        complete &= self._update_node_details_hardware(node_info.hardware)
+        complete &= self._update_node_details_timestamp(node_info.timestamp)
+
+        await self.save_cache()
+        if node_info.timestamp is not None and node_info.timestamp > datetime.now(
+            tz=UTC
+        ) - timedelta(minutes=5):
+            await self._available_update_state(True, node_info.timestamp)
+
+        return complete
+
+    def _update_node_details_timestamp(self, timestamp: datetime | None) -> bool:
+        if timestamp is None:
+            return False
+        else:
+            self._node_info.timestamp = timestamp
+            self._set_cache(CACHE_NODE_INFO_TIMESTAMP, timestamp)
+        return True
+
+    def _update_node_details_hardware(self, hardware: str | None) -> bool:
         if hardware is None:
-            complete = False
+            return False
         else:
             if self._node_info.version != hardware:
                 # Generate modelname based on hardware version
@@ -538,7 +541,9 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                     allowed_models = TYPE_MODEL.get(self._node_info.node_type.value)
                     if allowed_models and model_info[0] not in allowed_models:
                         # Replace model_info list
-                        model_info = [allowed_models[0]]  # Not correct for 1 but should not be a problem
+                        model_info = [
+                            allowed_models[0]
+                        ]  # Not correct for 1 but should not be a problem
                         self._node_info.model = model_info[0]
 
                 # Handle + devices
@@ -563,20 +568,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                     self._node_info.name = f"{model_info[0]} {self._node_info.mac[-5:]}"
 
             self._set_cache(CACHE_HARDWARE, hardware)
-
-        if timestamp is None:
-            complete = False
-        else:
-            self._node_info.timestamp = timestamp
-            self._set_cache(CACHE_NODE_INFO_TIMESTAMP, timestamp)
-
-        await self.save_cache()
-        if timestamp is not None and timestamp > datetime.now(tz=UTC) - timedelta(
-            minutes=5
-        ):
-            await self._available_update_state(True, timestamp)
-
-        return complete
+        return True
 
     async def is_online(self) -> bool:
         """Check if node is currently online."""
@@ -659,7 +651,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Retrieve value of specified setting from cache memory and return it as datetime object."""
         if (timestamp_str := self._get_cache(setting)) is not None:
             data = timestamp_str.split("-")
-            if len(data) == 6:
+            if len(data) == 6:  # noqa: PLR2004
                 try:
                     return datetime(
                         year=int(data[0]),

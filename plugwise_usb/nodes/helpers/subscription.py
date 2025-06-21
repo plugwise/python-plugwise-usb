@@ -7,7 +7,6 @@ from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from typing import Any
 
-
 from ...api import NodeFeature
 
 
@@ -21,12 +20,13 @@ class NodeFeatureSubscription:
 
 class FeaturePublisher:
     """Base Class to call awaitable of subscription when event happens."""
+
     def __init__(self) -> None:
+        """Initialize FeaturePublisher Class."""
         self._feature_update_subscribers: dict[
             Callable[[], None],
             NodeFeatureSubscription,
         ] = {}
-
 
     def subscribe_to_feature_update(
         self,
@@ -59,6 +59,8 @@ class FeaturePublisher:
             self._feature_update_subscribers.values()
         ):
             if feature in node_feature_subscription.features:
-                callback_list.append(node_feature_subscription.callback_fn(feature, state))
+                callback_list.append(
+                    node_feature_subscription.callback_fn(feature, state)
+                )
         if len(callback_list) > 0:
             await gather(*callback_list)

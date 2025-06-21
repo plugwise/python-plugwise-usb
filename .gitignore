@@ -16,3 +16,4 @@ fixtures/*
 !fixtures/.keep
 *.sedbck
 tmp
+.cache

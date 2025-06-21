@@ -18,7 +18,6 @@ from ..helpers.util import validate_mac
 from ..messages.requests import (
     CircleClockSetRequest,
     CircleMeasureIntervalRequest,
-    CirclePlusAllowJoiningRequest,
     NodePingRequest,
 )
 from ..messages.responses import (
@@ -258,7 +257,9 @@ class StickNetwork:
             )
 
         mac = response.mac_decoded
-        _LOGGER.debug("node_join_available_message | sending NodeAddRequest for %s", mac)
+        _LOGGER.debug(
+            "node_join_available_message | sending NodeAddRequest for %s", mac
+        )
         try:
             result = await self.register_node(mac)
         except NodeError as exc:
@@ -556,9 +557,13 @@ class StickNetwork:
         if production < 0:
             raise ValueError("Production interval must be non-negative")
         if production > 0 and production % consumption != 0:
-            raise ValueError("Production interval must be a multiple of consumption interval")
+            raise ValueError(
+                "Production interval must be a multiple of consumption interval"
+            )
 
-        _LOGGER.debug("set_energy_intervals | cons=%s, prod=%s", consumption, production)
+        _LOGGER.debug(
+            "set_energy_intervals | cons=%s, prod=%s", consumption, production
+        )
         request = CircleMeasureIntervalRequest(
             self._controller.send, bytes(mac, UTF8), consumption, production
         )
@@ -612,4 +617,3 @@ class StickNetwork:
                 callback_list.append(callback(event, mac))
         if len(callback_list) > 0:
             await gather(*callback_list)
-

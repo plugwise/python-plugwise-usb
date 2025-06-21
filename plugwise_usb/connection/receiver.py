@@ -149,7 +149,7 @@ class StickReceiver(Protocol):
         return self._connection_state
 
     def correct_processed_messages(self, correction: int) -> None:
-        """Return the number of processed messages."""
+        """Correct the number of processed messages."""
         self._processed_msgs += correction
 
     def connection_made(self, transport: SerialTransport) -> None:
@@ -512,5 +512,6 @@ class StickReceiver(Protocol):
             self._put_message_in_queue(node_response, 0.1 * node_response.retries),
             name=f"Postpone subscription task for {node_response.seq_id!r} retry {node_response.retries}",
         )
+
 
 # endregion

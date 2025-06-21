@@ -19,6 +19,7 @@ from typing import Any, Final
 
 from ..api import BatteryConfig, NodeEvent, NodeFeature, NodeInfo
 from ..connection import StickController
+from ..constants import MAX_UINT_2, MAX_UINT_4
 from ..exceptions import MessageError, NodeError
 from ..messages.requests import NodeSleepConfigRequest
 from ..messages.responses import (
@@ -63,6 +64,8 @@ SED_MAX_MAINTENANCE_INTERVAL_OFFSET: Final = 30  # seconds
 # Time in minutes the SED will sleep
 SED_DEFAULT_SLEEP_DURATION: Final = 60
 
+# Value limits
+MAX_MINUTE_INTERVAL: Final = 1440
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -232,14 +235,14 @@ class NodeSED(PlugwiseBaseNode):
             self._battery_config.awake_duration,
             seconds,
         )
-        if seconds < 1 or seconds > 255:
+        if seconds < 1 or seconds > MAX_UINT_2:
             raise ValueError(
                 f"Invalid awake duration ({seconds}). It must be between 1 and 255 seconds."
             )
 
         if self._battery_config.awake_duration == seconds:
-             return False
- 
+            return False
+
         self._new_battery_config = replace(
             self._new_battery_config, awake_duration=seconds
         )
@@ -262,7 +265,7 @@ class NodeSED(PlugwiseBaseNode):
             self._battery_config.clock_interval,
             minutes,
         )
-        if minutes < 1 or minutes > 65535:
+        if minutes < 1 or minutes > MAX_UINT_4:
             raise ValueError(
                 f"Invalid clock interval ({minutes}). It must be between 1 and 65535 minutes."
             )
@@ -315,7 +318,7 @@ class NodeSED(PlugwiseBaseNode):
             self._battery_config.maintenance_interval,
             minutes,
         )
-        if minutes < 1 or minutes > 1440:
+        if minutes < 1 or minutes > MAX_MINUTE_INTERVAL:
             raise ValueError(
                 f"Invalid maintenance interval ({minutes}). It must be between 1 and 1440 minutes."
             )
@@ -348,7 +351,7 @@ class NodeSED(PlugwiseBaseNode):
             self._battery_config.sleep_duration,
             minutes,
         )
-        if minutes < 1 or minutes > 65535:
+        if minutes < 1 or minutes > MAX_UINT_4:
             raise ValueError(
                 f"Invalid sleep duration ({minutes}). It must be between 1 and 65535 minutes."
             )
@@ -488,7 +491,6 @@ class NodeSED(PlugwiseBaseNode):
         self, node_info: NodeInfoResponse | None = None
     ) -> NodeInfo | None:
         """Update Node (hardware) information."""
-
         if node_info is None and self.skip_update(self._node_info, 86400):
             return self._node_info
         return await super().node_info_update(node_info)

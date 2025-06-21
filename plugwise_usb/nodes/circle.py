@@ -15,7 +15,7 @@ from ..api import (
     NodeEvent,
     NodeFeature,
     NodeInfo,
-    NodeType,
+    NodeInfoMessage,
     PowerStatistics,
     RelayConfig,
     RelayLock,
@@ -326,10 +326,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self.name,
             )
 
-
     @raise_not_loaded
     @raise_calibration_missing
-    async def energy_update(self) -> EnergyStatistics | None:
+    async def energy_update(self) -> EnergyStatistics | None:  # noqa: PLR0911 PLR0912
         """Return updated energy usage statistics."""
         if self._current_log_address is None:
             _LOGGER.debug(
@@ -433,7 +432,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
     async def get_missing_energy_logs(self) -> None:
         """Task to retrieve missing energy logs."""
-
         self._energy_counters.update()
         if self._current_log_address is None:
             return None
@@ -501,10 +499,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         for _slot in range(4, 0, -1):
             log_timestamp, log_pulses = response.log_data[_slot]
             _LOGGER.debug(
-                "In slot=%s: pulses=%s, timestamp=%s",
-                _slot,
-                log_pulses,
-                log_timestamp
+                "In slot=%s: pulses=%s, timestamp=%s", _slot, log_pulses, log_timestamp
             )
             if log_timestamp is None or log_pulses is None:
                 self._energy_counters.add_empty_log(response.log_address, _slot)
@@ -936,7 +931,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         return True
 
     async def node_info_update(
-        self, node_info: NodeInfoResponse | None = None
+        self, node_info: NodeInfoResponse | NodeInfoMessage | None = None
     ) -> NodeInfo | None:
         """Update Node (hardware) information."""
         if node_info is None:
@@ -992,7 +987,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             self._current_log_address = int(current_log_address)
             _LOGGER.debug(
                 "circle._node_info_load_from_cache | current_log_address=%s",
-                self._current_log_address
+                self._current_log_address,
             )
             return True
 
@@ -1001,31 +996,20 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
     # pylint: disable=too-many-arguments
     async def update_node_details(
-        self,
-        firmware: datetime | None,
-        hardware: str | None,
-        node_type: NodeType | None,
-        timestamp: datetime | None,
-        relay_state: bool | None,
-        logaddress_pointer: int | None,
+        self, node_info: NodeInfoResponse | None = None
     ) -> bool:
         """Process new node info and return true if all fields are updated."""
-        if relay_state is not None:
+        if node_info.relay_state is not None:
             self._relay_state = replace(
-                self._relay_state, state=relay_state, timestamp=timestamp
+                self._relay_state,
+                state=node_info.relay_state,
+                timestamp=node_info.timestamp,
             )
 
-        if logaddress_pointer is not None:
-            self._current_log_address = logaddress_pointer
+        if node_info.current_logaddress_pointer is not None:
+            self._current_log_address = node_info.current_logaddress_pointer
 
-        return await super().update_node_details(
-            firmware,
-            hardware,
-            node_type,
-            timestamp,
-            relay_state,
-            logaddress_pointer,
-        )
+        return await super().update_node_details(node_info)
 
     async def unload(self) -> None:
         """Deactivate and unload node features."""
@@ -1147,7 +1131,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
     def _correct_power_pulses(self, pulses: int, offset: int) -> float:
         """Correct pulses based on given measurement time offset (ns)."""
-
         # Sometimes the circle returns -1 for some of the pulse counters
         # likely this means the circle measures very little power and is
         # suffering from rounding errors. Zero these out. However, negative

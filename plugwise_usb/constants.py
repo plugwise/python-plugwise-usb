@@ -1,4 +1,5 @@
 """Plugwise Stick constants."""
+
 from __future__ import annotations
 
 import datetime as dt
@@ -14,6 +15,10 @@ CACHE_DATA_SEPARATOR: str = "|"
 
 LOCAL_TIMEZONE = dt.datetime.now(dt.UTC).astimezone().tzinfo
 UTF8: Final = "utf-8"
+
+# Value limits
+MAX_UINT_2: Final = 255  # 8-bit unsigned integer max
+MAX_UINT_4: Final = 65535  # 16-bit unsigned integer max
 
 # Time
 DAY_IN_HOURS: Final = 24

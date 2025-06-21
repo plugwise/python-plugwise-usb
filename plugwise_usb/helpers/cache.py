@@ -53,13 +53,15 @@ class PlugwiseCache:
         """Set (and create) the plugwise cache directory to store cache file."""
         if self._root_dir != "":
             if not create_root_folder and not await ospath.exists(self._root_dir):
-                raise CacheError(f"Unable to initialize caching. Cache folder '{self._root_dir}' does not exists.")
+                raise CacheError(
+                    f"Unable to initialize caching. Cache folder '{self._root_dir}' does not exists."
+                )
             cache_dir = self._root_dir
         else:
             cache_dir = self._get_writable_os_dir()
         await makedirs(cache_dir, exist_ok=True)
         self._cache_path = cache_dir
-        
+
         self._cache_file = os_path_join(self._cache_path, self._file_name)
         self._cache_file_exists = await ospath.exists(self._cache_file)
         self._initialized = True
@@ -72,13 +74,17 @@ class PlugwiseCache:
         if os_name == "nt":
             if (data_dir := os_getenv("APPDATA")) is not None:
                 return os_path_join(data_dir, CACHE_DIR)
-            raise CacheError("Unable to detect writable cache folder based on 'APPDATA' environment variable.")
+            raise CacheError(
+                "Unable to detect writable cache folder based on 'APPDATA' environment variable."
+            )
         return os_path_join(os_path_expand_user("~"), CACHE_DIR)
 
     async def write_cache(self, data: dict[str, str], rewrite: bool = False) -> None:
-        """"Save information to cache file."""
+        """Save information to cache file."""
         if not self._initialized:
-            raise CacheError(f"Unable to save cache. Initialize cache file '{self._file_name}' first.")
+            raise CacheError(
+                f"Unable to save cache. Initialize cache file '{self._file_name}' first."
+            )
 
         current_data: dict[str, str] = {}
         if not rewrite:
@@ -111,19 +117,20 @@ class PlugwiseCache:
             if not self._cache_file_exists:
                 self._cache_file_exists = True
             _LOGGER.debug(
-                "Saved %s lines to cache file %s",
-                str(len(data)),
-                self._cache_file
+                "Saved %s lines to cache file %s", str(len(data)), self._cache_file
             )
 
     async def read_cache(self) -> dict[str, str]:
         """Return current data from cache file."""
         if not self._initialized:
-            raise CacheError(f"Unable to save cache. Initialize cache file '{self._file_name}' first.")
+            raise CacheError(
+                f"Unable to save cache. Initialize cache file '{self._file_name}' first."
+            )
         current_data: dict[str, str] = {}
         if not self._cache_file_exists:
             _LOGGER.debug(
-                "Cache file '%s' does not exists, return empty cache data", self._cache_file
+                "Cache file '%s' does not exists, return empty cache data",
+                self._cache_file,
             )
             return current_data
         try:
@@ -146,10 +153,10 @@ class PlugwiseCache:
                 _LOGGER.warning(
                     "Skip invalid line '%s' in cache file %s",
                     data,
-                    str(self._cache_file)
+                    str(self._cache_file),
                 )
                 break
-            current_data[data[:index_separator]] = data[index_separator + 1:]
+            current_data[data[:index_separator]] = data[index_separator + 1 :]
         return current_data
 
     async def delete_cache(self) -> None:

@@ -489,42 +489,13 @@ lint.select = [
 
 lint.ignore = [
     # Plugwise_usb todolist
-    "D100",   # Missing docstring in public FIXFOR171
-    "D102",   # "undocumented-public-method", # D102 FIXFOR171
-    "D107",   # "undocumented-public-init", # D107 FIXFOR171
-    "D210",   # whitespace in docstring FIXFOR171
-    "D212",   # "multi-line-summary-first-line", # D212 FIXFOR171
-    "F401",   # "unused-import", # F401 FIXFOR171
-    "UP031",  # "printf-string-formatting", # UP031 FIXFOR171
     "UP047",  # "non-pep695-generic-function", # UP047 FIXFOR171
-    "E711",   # "none-comparison", # E711 FIXFOR171
-    "W293",   # blank line contains whitespaace FIXFOR171
-    "UP018",  # FIXFOR171 unnecessary int call
-    "W291",   # FIXFOR171 trailing whitespace
-    "I001",   # FIXFOR171 import block is unsorted or unformatted
-    "D204",   # FIXFOR171 blank line required after class docstring
-    "D413",   # FIXFOR171 missing blank line after last section
 
     # Generic
-    "D202",  # No blank lines allowed after function docstring
     "D203",  # 1 blank line required before class docstring
     "D213",  # Multi-line docstring summary should start at the second line
-    "D406",  # Section name should end with a newline
-    "D407",  # Section name underlining
     "E501",  # line too long
-    "E731",  # do not assign a lambda expression, use a def
-    # False positives https://github.com/astral-sh/ruff/issues/5386
-    "PLC0208", # Use a sequence type instead of a `set` when iterating over values
-    "PLR0911", # Too many return statements ({returns} > {max_returns})
-    "PLR0912", # Too many branches ({branches} > {max_branches})
-    "PLR0913", # Too many arguments to function call ({c_args} > {max_args})
-    "PLR0915", # Too many statements ({statements} > {max_statements})
     "PLR2004",  # Magic value used in comparison, consider replacing {value} with a constant variable
-    "PLW2901", # Outer {outer_kind} variable {name} overwritten by inner {inner_kind} target
-    "UP006", # keep type annotation style as is
-    "UP007", # keep type annotation style as is
-    # Ignored due to performance: https://github.com/charliermarsh/ruff/issues/2923
-    #"UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
 ]
 
 exclude = []

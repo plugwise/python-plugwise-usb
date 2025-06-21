@@ -179,7 +179,7 @@ class StickNetworkRegister:
         if self._network_cache is not None:
             self._network_cache.update_registration(address, mac, node_type)
 
-    async def update_missing_registrations(self, quick: bool = False) -> None:
+    async def update_missing_registrations(self, quick: bool = False) -> None:  # noqa: PLR0912
         """Retrieve all unknown network registrations from network controller."""
         for address in range(0, 64):
             if self._registry.get(address) is not None and not quick:
@@ -189,17 +189,19 @@ class StickNetworkRegister:
                 continue
             registration = await self.retrieve_network_registration(address, False)
             if registration is not None:
-                address, mac = registration
+                nextaddress, mac = registration
                 if mac == "":
-                    self._first_free_address = min(self._first_free_address, address)
+                    self._first_free_address = min(
+                        self._first_free_address, nextaddress
+                    )
                     if quick:
                         break
                 _LOGGER.debug(
                     "Network registration at address %s is %s",
-                    str(address),
+                    str(nextaddress),
                     "'empty'" if mac == "" else f"set to {mac}",
                 )
-                self.update_network_registration(address, mac, None)
+                self.update_network_registration(nextaddress, mac, None)
             await sleep(0.1)
             if not quick:
                 await sleep(10)

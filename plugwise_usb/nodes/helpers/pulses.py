@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 import logging
 from typing import Final
 
-from ...constants import LOGADDR_MAX, MINUTE_IN_SECONDS, DAY_IN_HOURS
+from ...constants import DAY_IN_HOURS, LOGADDR_MAX, MINUTE_IN_SECONDS
 from ...exceptions import EnergyError
 
 _LOGGER = logging.getLogger(__name__)
@@ -19,7 +19,6 @@ MAX_LOG_HOURS = DAY_IN_HOURS
 
 def calc_log_address(address: int, slot: int, offset: int) -> tuple[int, int]:
     """Calculate address and slot for log based for specified offset."""
-
     if offset < 0:
         while offset + slot < 1:
             address -= 1
@@ -173,7 +172,7 @@ class PulseCollection:
             self._mac,
             from_timestamp,
             is_consumption,
-            self._log_production
+            self._log_production,
         )
         if not is_consumption:
             if self._log_production is None or not self._log_production:
@@ -344,7 +343,6 @@ class PulseCollection:
         is_consumption=True,
     ) -> bool:
         """Detect rollover based on timestamp comparisons."""
-
         if (
             self._pulses_timestamp is not None
             and last_log_timestamp is not None
@@ -375,7 +373,7 @@ class PulseCollection:
                     _LOGGER.debug(
                         "_update_rollover | %s | reset %s rollover",
                         self._mac,
-                        direction
+                        direction,
                     )
                 return False
 
@@ -520,9 +518,8 @@ class PulseCollection:
         if self._first_prev_log_processed and self._first_next_log_processed:
             # _log_production is True when 2 out of 3 consecutive slots have
             # the same timestamp
-            self._log_production = (
-                (prev_timestamp == timestamp)
-                ^ (next_timestamp == timestamp)
+            self._log_production = (prev_timestamp == timestamp) ^ (
+                next_timestamp == timestamp
             )
 
     def _check_prev_production(
@@ -684,7 +681,7 @@ class PulseCollection:
             self._last_log_consumption_address = address
             self._last_log_consumption_slot = slot
 
-    def _reset_log_references(self) -> None:
+    def _reset_log_references(self) -> None:  # noqa: PLR0912
         """Reset log references."""
         self._last_log_consumption_address = None
         self._last_log_consumption_slot = None
@@ -826,7 +823,7 @@ class PulseCollection:
             )
         return (self._first_log_production_address, self._first_log_production_slot)
 
-    def _logs_missing(self, from_timestamp: datetime) -> list[int] | None:
+    def _logs_missing(self, from_timestamp: datetime) -> list[int] | None:  # noqa: PLR0911 PLR0912
         """Calculate list of missing log addresses."""
         if self._logs is None:
             self._log_addresses_missing = None
@@ -952,7 +949,7 @@ class PulseCollection:
         if self._logs is None:
             raise EnergyError("Unable to return last known duration without any logs")
 
-        if len(self._logs) < 2:
+        if len(self._logs) < 2:  # noqa: PLR2004
             return timedelta(hours=1)
 
         address, slot = self._last_log_reference()

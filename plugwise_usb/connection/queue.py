@@ -76,7 +76,7 @@ class StickQueue:
 
     async def submit(self, request: PlugwiseRequest) -> PlugwiseResponse | None:
         """Add request to queue and return the received node-response when applicable.
-        
+
         Raises an error when something fails.
         """
         if request.waiting_for_response:
@@ -103,7 +103,8 @@ class StickQueue:
                 if isinstance(request, NodePingRequest):
                     # For ping requests it is expected to receive timeouts, so lower log level
                     _LOGGER.debug(
-                        "%s, cancel because timeout is expected for NodePingRequests", exc
+                        "%s, cancel because timeout is expected for NodePingRequests",
+                        exc,
                     )
                 elif request.resend:
                     _LOGGER.debug("%s, retrying", exc)
@@ -147,7 +148,9 @@ class StickQueue:
             if self._stick.queue_depth > 3:
                 await sleep(0.125)
                 if self._stick.queue_depth > 3:
-                    _LOGGER.warning("Awaiting plugwise responses %d", self._stick.queue_depth)
+                    _LOGGER.warning(
+                        "Awaiting plugwise responses %d", self._stick.queue_depth
+                    )
 
             await self._stick.write_to_stick(request)
             self._submit_queue.task_done()

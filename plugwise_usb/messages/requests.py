@@ -311,7 +311,9 @@ class PlugwiseRequest(PlugwiseMessage):
             self,
         )
 
-    async def _send_request(self, suppress_node_errors=False) -> PlugwiseResponse | None:
+    async def _send_request(
+        self, suppress_node_errors=False
+    ) -> PlugwiseResponse | None:
         """Send request."""
         if self._send_fn is None:
             return None
@@ -1201,7 +1203,7 @@ class NodeSleepConfigRequest(PlugwiseRequest):
     _identifier = b"0050"
 
     # pylint: disable=too-many-arguments
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
         mac: bytes,
@@ -1263,7 +1265,7 @@ class CircleMeasureIntervalRequest(PlugwiseRequest):
 
     FIXME: Make sure production interval is a multiply of consumption !!
 
-    Response message: NodeResponse with ack-type POWER_LOG_INTERVAL_ACCEPTED 
+    Response message: NodeResponse with ack-type POWER_LOG_INTERVAL_ACCEPTED
     """
 
     _identifier = b"0057"

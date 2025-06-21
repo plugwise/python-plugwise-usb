@@ -14,7 +14,7 @@ from .stealth import PlugwiseStealth
 from .switch import PlugwiseSwitch
 
 
-def get_plugwise_node(
+def get_plugwise_node(  # noqa: PLR0911
     mac: str,
     address: int,
     controller: StickController,
@@ -22,7 +22,6 @@ def get_plugwise_node(
     node_type: NodeType,
 ) -> PlugwiseNode | None:
     """Return an initialized plugwise node class based on given the node type."""
-
     if node_type == NodeType.CIRCLE_PLUS:
         return PlugwiseCirclePlus(
             mac,

@@ -31,7 +31,7 @@ case "$arch" in
   x86_64)       use_arch="linux-x64" ;;
   *) echo "Unsupported arch for biome cli version: $arch"; exit 2 ;;
 esac
-curl -sL "https://github.com/biomejs/biome/releases/latest/download/biome-${use_arch}" -o "${my_path}/tmp/biome"
+curl -sL "https://github.com/biomejs/biome/releases/download/%40biomejs%2Fbiome%402.0.0/biome-{$use_arch}" -o "${my_path}/tmp/biome"
 
 # Make biome executable (if necessary)
 chmod +x "${my_path}/tmp/biome"

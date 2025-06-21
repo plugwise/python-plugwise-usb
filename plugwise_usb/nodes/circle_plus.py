@@ -8,14 +8,15 @@ import logging
 from ..api import NodeEvent, NodeFeature
 from ..constants import MAX_TIME_DRIFT
 from ..messages.requests import (
+    CirclePlusAllowJoiningRequest,
     CirclePlusRealTimeClockGetRequest,
     CirclePlusRealTimeClockSetRequest,
-    CirclePlusAllowJoiningRequest,
 )
 from ..messages.responses import NodeResponseType
 from .circle import PlugwiseCircle
-from .helpers.firmware import CIRCLE_PLUS_FIRMWARE_SUPPORT
 from .helpers import raise_not_loaded
+from .helpers.firmware import CIRCLE_PLUS_FIRMWARE_SUPPORT
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -131,6 +132,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
 
         Returns:
            bool: True if the request was acknowledged, False otherwise.
+
         """
         _LOGGER.info("Enabling auto-join for CirclePlus")
         request = CirclePlusAllowJoiningRequest(self._send, True)
