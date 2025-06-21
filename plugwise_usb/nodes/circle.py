@@ -449,18 +449,17 @@ class PlugwiseCircle(PlugwiseBaseNode):
             log_address = self._current_log_address
             prev_address_timestamp: datetime | None = None
             while total_addresses > 0:
-                await self.energy_log_update(log_address)
-                if log_address == self._current_log_address:
-                    if self._last_collected_energy_timestamp is None:
-                        # Handle case with no data in slot 0
-                        _LOGGER.debug(
-                            "Energy data collected from the current log address is None, stopping collection"
-                        )
-                        break
+                if not await self.energy_log_update(log_address):
+                    # Handle case with None-data in all address slots
+                    _LOGGER.debug(
+                       "Energy None-data collected from log address %s, stopping collection",
+                       log_address,
+                    )
+                    break
 
                 # Check if the most recent timestamp of an earlier address is recent
                 # (within 2/4 * log_interval plus 5 mins margin)
-                else:
+                if log_address != self._current_log_address:
                     log_interval = self.energy_consumption_interval
                     _LOGGER.debug("log_interval: %s", log_interval)
                     _LOGGER.debug(
