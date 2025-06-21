@@ -59,7 +59,7 @@ repos:
     hooks:
       - id: biome-lint
         name: "Verifying/updating code with biome (improved prettier)"
-        additional_dependencies: ["@biomejs/biome@1.8.3"]
+        additional_dependencies: ["@biomejs/biome@2.0.4"]
   - repo: https://github.com/cdce8p/python-typing-update
     rev: v0.7.2
     hooks:

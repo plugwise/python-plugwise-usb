@@ -61,14 +61,15 @@ if [ -z "${GITHUB_ACTIONS}" ] || [ "$1" == "test_and_coverage" ] ; then
 fi
 
 if [ -z "${GITHUB_ACTIONS}" ] || [ "$1" == "linting" ] ; then
-    # Disabled as per #270
-    # echo "... biome-ing (prettier) ..."
-    # biome_format
+    echo "... biome-ing (prettier) ..."
+    biome_format
 
     echo "... ruff checking ..."
     ruff check plugwise_usb/ tests/
+
     handle_command_error "ruff checking"
     echo "... ruff formatting ..."
+
     ruff format plugwise_usb/ tests/
     handle_command_error "ruff formatting"
 
