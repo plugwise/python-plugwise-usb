@@ -834,7 +834,7 @@ class PulseCollection:
             )
         return (self._first_log_production_address, self._first_log_production_slot)
 
-    def _logs_missing(self, from_timestamp: datetime) -> list[int] | None:  # noqa: PLR0911 PLR0912
+    def _logs_missing(self, from_timestamp: datetime) -> list[int] | None:  # noqa: PLR0911 PLR0912 PLR0915
         """Calculate list of missing log addresses."""
         if self._logs is None:
             self._log_addresses_missing = None
