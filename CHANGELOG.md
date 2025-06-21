@@ -1,7 +1,8 @@
 # Changelog
 
-## Ongoing
+## v0.44.4
 
+- PR [#255](https://github.com/plugwise/python-plugwise-usb/pull/255): Improve enery-logs reset process, enable use of a button in Plugwise_usb beta
 - PR [#261](https://github.com/plugwise/python-plugwise-usb/pull/261): Sense: bugfix parsing of humidity value as an unsigned int
 - PR #263 Maintenance chores and re-instatement of ruff, deprecate pre-commit cloud runs (just leveraging renovate)
 - PR #264 Maintenance chores Rework Github Actions workflow

@@ -163,6 +163,13 @@ class PulseCollection:
         """Return a pulse_counter reset."""
         return self._cons_pulsecounter_reset or self._prod_pulsecounter_reset
 
+    def reset(self) -> None:
+        """Reset PulseCollection after an energy-logs reset."""
+        # Keep mac, wipe every other attribute.
+        fresh_state = PulseCollection(self._mac).__dict__
+        self.__dict__.clear()  # remove *all* existing keys first
+        self.__dict__.update(fresh_state)
+
     def collected_pulses(
         self, from_timestamp: datetime, is_consumption: bool
     ) -> tuple[int | None, datetime | None]:
@@ -409,6 +416,7 @@ class PulseCollection:
             ):
                 self._last_empty_log_slot = slot
                 recalculate = True
+
         if recalculate:
             self.recalculate_missing_log_addresses()
 
@@ -510,9 +518,6 @@ class PulseCollection:
         or double slots containing consumption and production data.
         Single slots containing production data only is NOT supported/tested.
         """
-        if self._logs is None:
-            return
-
         prev_timestamp = self._check_prev_production(address, slot, timestamp)
         next_timestamp = self._check_next_production(address, slot, timestamp)
         if self._first_prev_log_processed and self._first_next_log_processed:
@@ -526,6 +531,9 @@ class PulseCollection:
         self, address: int, slot: int, timestamp: datetime
     ) -> datetime | None:
         """Check the previous slot for production pulses."""
+        if self._logs is None:
+            return
+
         prev_address, prev_slot = calc_log_address(address, slot, -1)
         if self._log_exists(prev_address, prev_slot):
             prev_timestamp = self._logs[prev_address][prev_slot].timestamp
@@ -554,6 +562,9 @@ class PulseCollection:
         self, address: int, slot: int, timestamp: datetime
     ) -> datetime | None:
         """Check the next slot for production pulses."""
+        if self._logs is None:
+            return
+
         next_address, next_slot = calc_log_address(address, slot, 1)
         if self._log_exists(next_address, next_slot):
             next_timestamp = self._logs[next_address][next_slot].timestamp
@@ -823,7 +834,7 @@ class PulseCollection:
             )
         return (self._first_log_production_address, self._first_log_production_slot)
 
-    def _logs_missing(self, from_timestamp: datetime) -> list[int] | None:  # noqa: PLR0911 PLR0912
+    def _logs_missing(self, from_timestamp: datetime) -> list[int] | None:  # noqa: PLR0911 PLR0912 PLR0915
         """Calculate list of missing log addresses."""
         if self._logs is None:
             self._log_addresses_missing = None
@@ -854,7 +865,7 @@ class PulseCollection:
 
         missing = []
         _LOGGER.debug(
-            "_logs_missing | %s | first_address=%s, last_address=%s, from_timestamp=%s",
+            "_logs_missing | %s | checking in range: first_address=%s, last_address=%s, from_timestamp=%s",
             self._mac,
             first_address,
             last_address,
@@ -878,18 +889,33 @@ class PulseCollection:
             # Power consumption logging, so we need at least 4 logs.
             return None
 
-        # Collect any missing address in current range
+        # Collect any missing address in current range, within MAX_LOG_HOURS timeframe
+        # The max_count-guarding has been added for when an outdated logrecord is present in the cache,
+        # this will result in the unwanted collection of missing logs outside the MAX_LOG_HOURS timeframe
         address = last_address
         slot = last_slot
-        while not (address == first_address and slot == first_slot):
+        count = 0
+        max_count = MAX_LOG_HOURS
+        if self._log_production:
+            max_count = (
+                2 * max_count
+            )  # this requires production_interval == consumption_interval
+
+        while not (
+            (address == first_address and slot == first_slot) or count > max_count
+        ):
             address, slot = calc_log_address(address, slot, -1)
             if address in missing:
                 continue
+
             if not self._log_exists(address, slot):
                 missing.append(address)
                 continue
+
             if self._logs[address][slot].timestamp <= from_timestamp:
                 break
+
+            count += 1
 
         # return missing logs in range first
         if len(missing) > 0:
@@ -926,17 +952,29 @@ class PulseCollection:
             return None
 
         # We have an suspected interval, so try to calculate missing log addresses prior to first collected log
+        _LOGGER.debug(
+            "_logs_missing | %s | checking before range with log_interval=%s",
+            self._mac,
+            log_interval,
+        )
         calculated_timestamp = self._logs[first_address][
             first_slot
         ].timestamp - timedelta(minutes=log_interval)
+        _LOGGER.debug(
+            "_logs_missing | %s | first_empty_log_address=%s",
+            self._mac,
+            self._first_empty_log_address,
+        )
         while from_timestamp < calculated_timestamp:
             if (
                 address == self._first_empty_log_address
                 and slot == self._first_empty_log_slot
             ):
                 break
+
             if address not in missing:
                 missing.append(address)
+
             calculated_timestamp -= timedelta(minutes=log_interval)
             address, slot = calc_log_address(address, slot, -1)
 

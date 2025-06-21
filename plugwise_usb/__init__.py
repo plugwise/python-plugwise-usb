@@ -14,7 +14,6 @@ from typing import Any, Final, TypeVar, cast
 
 from .api import NodeEvent, PlugwiseNode, StickEvent
 from .connection import StickController
-from .constants import DEFAULT_CONS_INTERVAL, NO_PRODUCTION_INTERVAL
 from .exceptions import MessageError, NodeError, StickError, SubscriptionError
 from .network import StickNetwork
 
@@ -176,22 +175,6 @@ class Stick:
             raise StickError("Unable to change port while connected. Disconnect first")
 
         self._port = port
-
-    async def energy_reset_request(self, mac: str) -> bool:
-        """Send an energy-reset request to a Node."""
-        _LOGGER.debug("Resetting energy logs for %s", mac)
-        try:
-            await self._network.energy_reset_request(mac)
-        except (MessageError, NodeError) as exc:
-            raise NodeError(f"{exc}") from exc
-
-        # Follow up by an energy-intervals (re)set
-        if result := await self.set_energy_intervals(
-            mac, DEFAULT_CONS_INTERVAL, NO_PRODUCTION_INTERVAL
-        ):
-            return result
-
-        return False
 
     async def set_energy_intervals(
         self, mac: str, cons_interval: int, prod_interval: int

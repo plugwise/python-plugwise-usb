@@ -9,6 +9,7 @@ __pycache__
 .idea
 tests/__pycache__
 .coverage
+.python-version
 .vscode
 venv
 .venv

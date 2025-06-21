@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from asyncio import Task, create_task, gather, sleep
 from collections.abc import Callable, Coroutine
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 import logging
 from typing import Any
 
@@ -15,11 +15,7 @@ from ..connection import StickController
 from ..constants import ENERGY_NODE_TYPES, UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
 from ..helpers.util import validate_mac
-from ..messages.requests import (
-    CircleClockSetRequest,
-    CircleMeasureIntervalRequest,
-    NodePingRequest,
-)
+from ..messages.requests import CircleMeasureIntervalRequest, NodePingRequest
 from ..messages.responses import (
     NODE_AWAKE_RESPONSE_ID,
     NODE_JOIN_ID,
@@ -523,25 +519,6 @@ class StickNetwork:
         _LOGGER.debug("Stopping finished")
 
     # endregion
-
-    async def energy_reset_request(self, mac: str) -> None:
-        """Send an energy-reset to a Node."""
-        self._validate_energy_node(mac)
-        node_protocols = self._nodes[mac].node_protocols
-        request = CircleClockSetRequest(
-            self._controller.send,
-            bytes(mac, UTF8),
-            datetime.now(tz=UTC),
-            node_protocols.max,
-            True,
-        )
-        if (response := await request.send()) is None:
-            raise NodeError(f"Energy-reset for {mac} failed")
-
-        if response.ack_id != NodeResponseType.CLOCK_ACCEPTED:
-            raise MessageError(
-                f"Unexpected NodeResponseType {response.ack_id!r} received as response to CircleClockSetRequest"
-            )
 
     async def set_energy_intervals(
         self, mac: str, consumption: int, production: int

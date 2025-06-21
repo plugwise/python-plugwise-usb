@@ -51,6 +51,7 @@ CACHE_FIRMWARE = "firmware"
 CACHE_NODE_TYPE = "node_type"
 CACHE_HARDWARE = "hardware"
 CACHE_NODE_INFO_TIMESTAMP = "node_info_timestamp"
+CACHE_RELAY = "relay"
 
 
 class PlugwiseBaseNode(FeaturePublisher, ABC):
@@ -456,25 +457,31 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             _LOGGER.debug("No response for node_info_update() for %s", self.mac)
             await self._available_update_state(False)
             return self._node_info
+
         await self._available_update_state(True, node_info.timestamp)
         await self.update_node_details(node_info)
         return self._node_info
 
     async def _node_info_load_from_cache(self) -> bool:
         """Load node info settings from cache."""
+        if self._available:
+            # Skip loading this data from cache when the Node is available
+            return True
+
         firmware = self._get_cache_as_datetime(CACHE_FIRMWARE)
         hardware = self._get_cache(CACHE_HARDWARE)
-        timestamp = self._get_cache_as_datetime(CACHE_NODE_INFO_TIMESTAMP)
         node_type: NodeType | None = None
         if (node_type_str := self._get_cache(CACHE_NODE_TYPE)) is not None:
             node_type = NodeType(int(node_type_str))
+        relay_state = self._get_cache(CACHE_RELAY) == "True"
+        timestamp = self._get_cache_as_datetime(CACHE_NODE_INFO_TIMESTAMP)
         node_info = NodeInfoMessage(
+            current_logaddress_pointer=None,
             firmware=firmware,
             hardware=hardware,
             node_type=node_type,
+            relay_state=relay_state,
             timestamp=timestamp,
-            relay_state=None,
-            current_logaddress_pointer=None,
         )
         return await self.update_node_details(node_info)
 
@@ -510,6 +517,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         complete &= self._update_node_details_hardware(node_info.hardware)
         complete &= self._update_node_details_timestamp(node_info.timestamp)
 
+        _LOGGER.debug("Saving Node calibration update to cache for %s", self.mac)
         await self.save_cache()
         if node_info.timestamp is not None and node_info.timestamp > datetime.now(
             tz=UTC
@@ -639,6 +647,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             return
         if self._cache_save_task is not None and not self._cache_save_task.done():
             await self._cache_save_task
+        _LOGGER.debug("Writing cache to disk while unloading for %s", self.mac)
         await self.save_cache(trigger_only=False, full_write=True)
 
     def _get_cache(self, setting: str) -> str | None:
