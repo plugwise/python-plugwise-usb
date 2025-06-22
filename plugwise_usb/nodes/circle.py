@@ -57,6 +57,14 @@ CACHE_ENERGY_COLLECTION = "energy_collection"
 CACHE_RELAY = "relay"
 CACHE_RELAY_INIT = "relay_init"
 CACHE_RELAY_LOCK = "relay_lock"
+FEATURES_CIRCLE = (
+    NodeFeature.CIRCLE,
+    NodeFeature.RELAY,
+    NodeFeature.RELAY_INIT,
+    NodeFeature.RELAY_LOCK,
+    NodeFeature.ENERGY,
+    NodeFeature.POWER,
+)
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 _LOGGER = logging.getLogger(__name__)
@@ -884,17 +892,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             _LOGGER.debug("Loading Circle node %s from cache", self._mac_in_str)
             if await self._load_from_cache():
                 self._loaded = True
-                self._setup_protocol(
-                    CIRCLE_FIRMWARE_SUPPORT,
-                    (
-                        NodeFeature.CIRCLE,
-                        NodeFeature.RELAY,
-                        NodeFeature.RELAY_INIT,
-                        NodeFeature.RELAY_LOCK,
-                        NodeFeature.ENERGY,
-                        NodeFeature.POWER,
-                    ),
-                )
+                self._setup_protocol(CIRCLE_FIRMWARE_SUPPORT, FEATURES_CIRCLE)
                 if await self.initialize():
                     await self._loaded_callback(NodeEvent.LOADED, self.mac)
                     return True
@@ -926,17 +924,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             return False
 
         self._loaded = True
-        self._setup_protocol(
-            CIRCLE_FIRMWARE_SUPPORT,
-            (
-                NodeFeature.CIRCLE,
-                NodeFeature.RELAY,
-                NodeFeature.RELAY_INIT,
-                NodeFeature.RELAY_LOCK,
-                NodeFeature.ENERGY,
-                NodeFeature.POWER,
-            ),
-        )
+        self._setup_protocol(CIRCLE_FIRMWARE_SUPPORT, FEATURES_CIRCLE)
         if not await self.initialize():
             return False
 
