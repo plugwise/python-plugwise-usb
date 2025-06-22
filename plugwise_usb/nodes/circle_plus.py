@@ -39,6 +39,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                         NodeFeature.RELAY_LOCK,
                         NodeFeature.ENERGY,
                         NodeFeature.POWER,
+                        NodeFeature.CIRCLE,
                         NodeFeature.CIRCLEPLUS,
                     ),
                 )
@@ -76,6 +77,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                 NodeFeature.RELAY_LOCK,
                 NodeFeature.ENERGY,
                 NodeFeature.POWER,
+                NodeFeature.CIRCLE,
                 NodeFeature.CIRCLEPLUS,
             ),
         )
