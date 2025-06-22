@@ -1,6 +1,10 @@
 # Changelog
 
-## v0.44.4
+## v0.44.5 - 2025-06-22
+
+- PR [274](https://github.com/plugwise/python-plugwise-usb/pull/274): Make the energy-reset function available to Plus devices
+
+## v0.44.4 - 2025-06-21
 
 - PR [#255](https://github.com/plugwise/python-plugwise-usb/pull/255): Improve enery-logs reset process, enable use of a button in Plugwise_usb beta
 - PR [#261](https://github.com/plugwise/python-plugwise-usb/pull/261): Sense: bugfix parsing of humidity value as an unsigned int
