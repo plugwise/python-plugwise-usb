@@ -20,14 +20,15 @@ from .helpers.firmware import CIRCLE_PLUS_FIRMWARE_SUPPORT
 _LOGGER = logging.getLogger(__name__)
 
 FEATURES_CIRCLE_PLUS = (
+    NodeFeature.CIRCLE,
+    NodeFeature.CIRCLEPLUS,
     NodeFeature.RELAY,
     NodeFeature.RELAY_INIT,
     NodeFeature.RELAY_LOCK,
     NodeFeature.ENERGY,
     NodeFeature.POWER,
-    NodeFeature.CIRCLE,
-    NodeFeature.CIRCLEPLUS,
 )
+
 
 class PlugwiseCirclePlus(PlugwiseCircle):
     """Plugwise Circle+ node."""
@@ -36,45 +37,19 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         """Load and activate Circle+ node features."""
         if self._loaded:
             return True
-        if self._cache_enabled:
-            _LOGGER.debug("Loading Circle node %s from cache", self._node_info.mac)
-            if await self._load_from_cache():
-                self._loaded = True
-                self._setup_protocol(CIRCLE_PLUS_FIRMWARE_SUPPORT, FEATURES_CIRCLE_PLUS)
-                if await self.initialize():
-                    await self._loaded_callback(NodeEvent.LOADED, self.mac)
-                    return True
 
-            _LOGGER.info(
-                "Loading Circle+ node %s from cache failed",
-                self._node_info.mac,
-            )
-        else:
-            _LOGGER.debug("Loading Circle+ node %s", self._node_info.mac)
-
-        # Check if node is online
-        if not self._available and not await self.is_online():
-            _LOGGER.warning(
-                "Failed to load Circle+ node %s because it is not online",
-                self._node_info.mac,
-            )
+        _LOGGER.debug("Loading Circle + node %s", self._node_info.mac)
+        if not await super().load():
+            _LOGGER.debug("Loading of Circle base node failed")
             return False
 
-        # Get node info
-        if await self.node_info_update() is None:
-            _LOGGER.warning(
-                "Failed to load Circle+ node %s because it is not responding to information request",
-                self._node_info.mac,
-            )
-            return False
-
-        self._loaded = True
         self._setup_protocol(CIRCLE_PLUS_FIRMWARE_SUPPORT, FEATURES_CIRCLE_PLUS)
-        if not await self.initialize():
-            return False
+        if await self.initialize():
+            await self._loaded_callback(NodeEvent.LOADED, self.mac)
+            return True
 
-        await self._loaded_callback(NodeEvent.LOADED, self.mac)
-        return True
+        _LOGGER.debug("Loading of Circle + node %s failed", self._node_info.mac)
+        return False
 
     async def clock_synchronize(self) -> bool:
         """Synchronize realtime clock. Returns true if successful."""
