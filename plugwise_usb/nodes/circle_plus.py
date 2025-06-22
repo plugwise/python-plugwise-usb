@@ -19,6 +19,15 @@ from .helpers.firmware import CIRCLE_PLUS_FIRMWARE_SUPPORT
 
 _LOGGER = logging.getLogger(__name__)
 
+FEATURES_CIRCLE_PLUS = (
+    NodeFeature.RELAY,
+    NodeFeature.RELAY_INIT,
+    NodeFeature.RELAY_LOCK,
+    NodeFeature.ENERGY,
+    NodeFeature.POWER,
+    NodeFeature.CIRCLE,
+    NodeFeature.CIRCLEPLUS,
+)
 
 class PlugwiseCirclePlus(PlugwiseCircle):
     """Plugwise Circle+ node."""
@@ -31,21 +40,11 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             _LOGGER.debug("Loading Circle node %s from cache", self._node_info.mac)
             if await self._load_from_cache():
                 self._loaded = True
-                self._setup_protocol(
-                    CIRCLE_PLUS_FIRMWARE_SUPPORT,
-                    (
-                        NodeFeature.RELAY,
-                        NodeFeature.RELAY_INIT,
-                        NodeFeature.RELAY_LOCK,
-                        NodeFeature.ENERGY,
-                        NodeFeature.POWER,
-                        NodeFeature.CIRCLE,
-                        NodeFeature.CIRCLEPLUS,
-                    ),
-                )
+                self._setup_protocol(CIRCLE_PLUS_FIRMWARE_SUPPORT, FEATURES_CIRCLE_PLUS)
                 if await self.initialize():
                     await self._loaded_callback(NodeEvent.LOADED, self.mac)
                     return True
+
             _LOGGER.info(
                 "Loading Circle+ node %s from cache failed",
                 self._node_info.mac,
@@ -68,21 +67,12 @@ class PlugwiseCirclePlus(PlugwiseCircle):
                 self._node_info.mac,
             )
             return False
+
         self._loaded = True
-        self._setup_protocol(
-            CIRCLE_PLUS_FIRMWARE_SUPPORT,
-            (
-                NodeFeature.RELAY,
-                NodeFeature.RELAY_INIT,
-                NodeFeature.RELAY_LOCK,
-                NodeFeature.ENERGY,
-                NodeFeature.POWER,
-                NodeFeature.CIRCLE,
-                NodeFeature.CIRCLEPLUS,
-            ),
-        )
+        self._setup_protocol(CIRCLE_PLUS_FIRMWARE_SUPPORT, FEATURES_CIRCLE_PLUS)
         if not await self.initialize():
             return False
+
         await self._loaded_callback(NodeEvent.LOADED, self.mac)
         return True
 
