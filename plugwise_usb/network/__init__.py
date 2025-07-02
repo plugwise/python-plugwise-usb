@@ -12,7 +12,7 @@ from typing import Any
 
 from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
-from ..constants import ENERGY_NODE_TYPES, UTF8
+from ..constants import ENERGY_NODE_TYPES, NODE_DISCOVER_INTERVAL, UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
 from ..helpers.util import validate_mac
 from ..messages.requests import CircleMeasureIntervalRequest, NodePingRequest
@@ -72,6 +72,8 @@ class StickNetwork:
         self._unsubscribe_node_rejoin: Callable[[], None] | None = None
 
         self._discover_sed_tasks: dict[str, Task[bool]] = {}
+        self._discover_task: Task | None = None
+        self._discover_schedule_task: Task | None = None
 
     # region - Properties
 
@@ -431,15 +433,33 @@ class StickNetwork:
     async def _discover_registered_nodes(self) -> None:
         """Discover nodes."""
         _LOGGER.debug("Start discovery of registered nodes")
-        counter = 0
+        registered_counter = 0
+        discovered_counter = 0
         for address, registration in self._register.registry.items():
             mac, node_type = registration
             if mac != "":
                 if self._nodes.get(mac) is None:
-                    await self._discover_node(address, mac, node_type)
-                counter += 1
+                    if await self._discover_node(address, mac, node_type):
+                        discovered_counter += 1
+                else:
+                    discovered_counter += 1
+                registered_counter += 1
                 await sleep(0)
-        _LOGGER.debug("Total %s registered node(s)", str(counter))
+        _LOGGER.debug(
+            "Total %s online of %s registered node(s)",
+            str(discovered_counter),
+            str(registered_counter),
+        )
+        if discovered_counter < registered_counter:
+            if self._discover_task is None or self._discover_task.done():
+                self._discover_task = create_task(
+                    self._schedule_discover_registered_nodes()
+                )
+
+    async def _schedule_discover_registered_nodes(self) -> None:
+        """Reschedule node discovery every interval until finished."""
+        await sleep(NODE_DISCOVER_INTERVAL)
+        self._discover_schedule_task = create_task(self._discover_registered_nodes())
 
     async def _load_node(self, mac: str) -> bool:
         """Load node."""
@@ -499,7 +519,6 @@ class StickNetwork:
         await self.discover_network_coordinator(load=load)
         if not self._is_running:
             await self.start()
-
         await self._discover_registered_nodes()
         if load:
             return await self._load_discovered_nodes()
