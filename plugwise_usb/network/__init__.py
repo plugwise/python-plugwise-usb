@@ -12,7 +12,7 @@ from typing import Any
 
 from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
-from ..constants import ENERGY_NODE_TYPES, NODE_DISCOVER_INTERVAL, UTF8
+from ..constants import ENERGY_NODE_TYPES, UTF8
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
 from ..helpers.util import validate_mac
 from ..messages.requests import CircleMeasureIntervalRequest, NodePingRequest
@@ -72,8 +72,6 @@ class StickNetwork:
         self._unsubscribe_node_rejoin: Callable[[], None] | None = None
 
         self._discover_sed_tasks: dict[str, Task[bool]] = {}
-        self._discover_task: Task | None = None
-        self._discover_schedule_task: Task | None = None
 
     # region - Properties
 
@@ -340,7 +338,7 @@ class StickNetwork:
     # endregion
 
     # region - Nodes
-    def _create_node_object(
+    async def _create_node_object(
         self,
         mac: str,
         address: int,
@@ -365,7 +363,7 @@ class StickNetwork:
             return
         self._nodes[mac] = node
         _LOGGER.debug("%s node %s added", node.__class__.__name__, mac)
-        self._register.update_network_registration(address, mac, node_type)
+        await self._register.update_network_registration(address, mac, node_type)
 
         if self._cache_enabled:
             _LOGGER.debug(
@@ -406,22 +404,24 @@ class StickNetwork:
 
         Return True if discovery succeeded.
         """
-        _LOGGER.debug("Start discovery of node %s ", mac)
+        _LOGGER.debug(
+            "Start discovery of node %s with NodeType %s", mac, str(node_type)
+        )
         if self._nodes.get(mac) is not None:
             _LOGGER.debug("Skip discovery of already known node %s ", mac)
             return True
 
         if node_type is not None:
-            self._create_node_object(mac, address, node_type)
+            await self._create_node_object(mac, address, node_type)
             await self._notify_node_event_subscribers(NodeEvent.DISCOVERED, mac)
             return True
 
         # Node type is unknown, so we need to discover it first
-        _LOGGER.debug("Starting the discovery of node %s", mac)
+        _LOGGER.debug("Starting the discovery of node %s with unknown NodeType", mac)
         node_info, node_ping = await self._controller.get_node_details(mac, ping_first)
         if node_info is None:
             return False
-        self._create_node_object(mac, address, node_info.node_type)
+        await self._create_node_object(mac, address, node_info.node_type)
 
         # Forward received NodeInfoResponse message to node
         await self._nodes[mac].message_for_node(node_info)
@@ -450,16 +450,6 @@ class StickNetwork:
             str(discovered_counter),
             str(registered_counter),
         )
-        if discovered_counter < registered_counter:
-            if self._discover_task is None or self._discover_task.done():
-                self._discover_task = create_task(
-                    self._schedule_discover_registered_nodes()
-                )
-
-    async def _schedule_discover_registered_nodes(self) -> None:
-        """Reschedule node discovery every interval until finished."""
-        await sleep(NODE_DISCOVER_INTERVAL)
-        self._discover_schedule_task = create_task(self._discover_registered_nodes())
 
     async def _load_node(self, mac: str) -> bool:
         """Load node."""
