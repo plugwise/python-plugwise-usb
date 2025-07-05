@@ -69,6 +69,6 @@ class NetworkRegistrationCache(PlugwiseCache):
         self._nodetypes[mac] = node_type
         await self.save_cache()
 
-    def get_nodetype(self, mac: str) -> NodeType:
+    def get_nodetype(self, mac: str) -> NodeType | None:
         """Return NodeType from cache."""
         return self._nodetypes.get(mac)
