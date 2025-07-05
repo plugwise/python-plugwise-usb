@@ -74,6 +74,7 @@ class StickNetwork:
         self._discover_sed_tasks: dict[str, Task[bool]] = {}
         self._registry_stragglers: dict[int, str] = {}
         self._discover_stragglers_task: Task[None] | None = None
+        self._load_stragglers_task: Task[None] | None = None
 
     # region - Properties
 
@@ -483,6 +484,12 @@ class StickNetwork:
             return True
         return False
 
+    async def _discover_stragglers(self) -> None:
+        """Retry failed load operation."""
+        await sleep(60)
+        while not self._load_discovered_nodes():
+            await sleep(60)
+
     async def _load_discovered_nodes(self) -> bool:
         """Load all nodes currently discovered."""
         _LOGGER.debug("_load_discovered_nodes | START | %s", len(self._nodes))
@@ -532,7 +539,9 @@ class StickNetwork:
             await self.start()
         await self._discover_registered_nodes()
         if load:
-            return await self._load_discovered_nodes()
+            if not await self._load_discovered_nodes():
+                self._load_stragglers_task = create_task(self._load_stragglers())
+                return False
 
         return True
 
