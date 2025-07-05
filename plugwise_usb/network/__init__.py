@@ -72,6 +72,8 @@ class StickNetwork:
         self._unsubscribe_node_rejoin: Callable[[], None] | None = None
 
         self._discover_sed_tasks: dict[str, Task[bool]] = {}
+        self._registry_stragglers: dict[int, str] = {}
+        self._discover_stragglers_task: Task[None] | None = None
 
     # region - Properties
 
@@ -434,22 +436,41 @@ class StickNetwork:
         """Discover nodes."""
         _LOGGER.debug("Start discovery of registered nodes")
         registered_counter = 0
-        discovered_counter = 0
         for address, registration in self._register.registry.items():
             mac, node_type = registration
             if mac != "":
                 if self._nodes.get(mac) is None:
-                    if await self._discover_node(address, mac, node_type):
-                        discovered_counter += 1
-                else:
-                    discovered_counter += 1
+                    if not await self._discover_node(address, mac, node_type):
+                        self._registry_stragglers[address] = mac
                 registered_counter += 1
                 await sleep(0)
+        if len(self._registry_stragglers) > 0:
+            if (
+                self._discover_stragglers_task is None
+                or self._discover_stragglers_task.done()
+            ):
+                self._discover_stragglers_task = create_task(
+                    self._discover_stragglers()
+                )
         _LOGGER.debug(
             "Total %s online of %s registered node(s)",
-            str(discovered_counter),
+            str(len(self._nodes)),
             str(registered_counter),
         )
+
+    async def _discover_stragglers(self) -> None:
+        """Repeat Discovery of Nodes with unknown NodeType."""
+        while len(self._registry_stragglers) > 0:
+            await sleep(60)
+            stragglers: dict[int, str] = {}
+            for address, mac in self._registry_stragglers.items():
+                if not await self._discover_node(address, mac, None):
+                    stragglers[address] = mac
+            self._registry_stragglers = stragglers
+            _LOGGER.debug(
+                "Total %s nodes unreachable having unknown NodeType",
+                str(len(stragglers)),
+            )
 
     async def _load_node(self, mac: str) -> bool:
         """Load node."""
