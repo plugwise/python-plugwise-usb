@@ -160,7 +160,7 @@ class StickNetworkRegister:
                 if current_type is not None:
                     return
             if self._network_cache is not None:
-                node_type = self._network_cache._nodetypes.get(mac)
+                node_type = self._network_cache.get_nodetype(mac)
 
         self._registry[address] = (mac, node_type)
         if node_type is not None:

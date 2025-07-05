@@ -20,7 +20,7 @@ class NetworkRegistrationCache(PlugwiseCache):
         self._nodetypes: dict[str, NodeType] = {}
 
     @property
-    def nodetypes(self) -> dict[str, NodeType | None]:
+    def nodetypes(self) -> dict[str, NodeType]:
         """Cached network information."""
         return self._nodetypes
 
@@ -68,3 +68,7 @@ class NetworkRegistrationCache(PlugwiseCache):
             )
         self._nodetypes[mac] = node_type
         await self.save_cache()
+
+    def get_nodetype(self, mac: str) -> NodeType:
+        """Return NodeType from cache."""
+        return self._nodetypes.get(mac)
