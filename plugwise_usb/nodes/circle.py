@@ -884,48 +884,27 @@ class PlugwiseCircle(PlugwiseBaseNode):
             _LOGGER.debug("Loading Circle node %s from cache", self._mac_in_str)
             if await self._load_from_cache():
                 self._loaded = True
-                self._setup_protocol(
-                    CIRCLE_FIRMWARE_SUPPORT,
-                    (
-                        NodeFeature.CIRCLE,
-                        NodeFeature.RELAY,
-                        NodeFeature.RELAY_INIT,
-                        NodeFeature.RELAY_LOCK,
-                        NodeFeature.ENERGY,
-                        NodeFeature.POWER,
-                    ),
+        if not self._loaded:
+            _LOGGER.debug("Retrieving Info For Circle node %s", self._mac_in_str)
+
+            # Check if node is online
+            if not self._available and not await self.is_online():
+                _LOGGER.debug(
+                    "Failed to load Circle node %s because it is not online",
+                    self._mac_in_str,
                 )
-                if await self.initialize():
-                    await self._loaded_callback(NodeEvent.LOADED, self.mac)
-                    return True
+                return False
 
-            _LOGGER.debug(
-                "Loading Circle node %s from cache failed",
-                self._mac_in_str,
-            )
-        else:
-            _LOGGER.debug("Loading Circle node %s", self._mac_in_str)
+            # Get node info
+            if await self.node_info_update() is None:
+                _LOGGER.debug(
+                    "Failed to load Circle node %s because it is not responding to information request",
+                    self._mac_in_str,
+                )
+                return False
 
-        # Check if node is online
-        if not self._available and not await self.is_online():
-            _LOGGER.debug(
-                "Failed to load Circle node %s because it is not online",
-                self._mac_in_str,
-            )
-            return False
+            self._loaded = True
 
-        # Get node info
-        if (
-            self.skip_update(self._node_info, 30)
-            and await self.node_info_update() is None
-        ):
-            _LOGGER.debug(
-                "Failed to load Circle node %s because it is not responding to information request",
-                self._mac_in_str,
-            )
-            return False
-
-        self._loaded = True
         self._setup_protocol(
             CIRCLE_FIRMWARE_SUPPORT,
             (
@@ -937,10 +916,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 NodeFeature.POWER,
             ),
         )
-        if not await self.initialize():
-            return False
-
         await self._loaded_callback(NodeEvent.LOADED, self.mac)
+        await self.initialize()
         return True
 
     async def _load_from_cache(self) -> bool:

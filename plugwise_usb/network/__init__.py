@@ -72,6 +72,9 @@ class StickNetwork:
         self._unsubscribe_node_rejoin: Callable[[], None] | None = None
 
         self._discover_sed_tasks: dict[str, Task[bool]] = {}
+        self._registry_stragglers: dict[int, str] = {}
+        self._discover_stragglers_task: Task[None] | None = None
+        self._load_stragglers_task: Task[None] | None = None
 
     # region - Properties
 
@@ -338,7 +341,7 @@ class StickNetwork:
     # endregion
 
     # region - Nodes
-    def _create_node_object(
+    async def _create_node_object(
         self,
         mac: str,
         address: int,
@@ -363,7 +366,7 @@ class StickNetwork:
             return
         self._nodes[mac] = node
         _LOGGER.debug("%s node %s added", node.__class__.__name__, mac)
-        self._register.update_network_registration(address, mac, node_type)
+        await self._register.update_network_registration(address, mac, node_type)
 
         if self._cache_enabled:
             _LOGGER.debug(
@@ -404,22 +407,24 @@ class StickNetwork:
 
         Return True if discovery succeeded.
         """
-        _LOGGER.debug("Start discovery of node %s ", mac)
+        _LOGGER.debug(
+            "Start discovery of node %s with NodeType %s", mac, str(node_type)
+        )
         if self._nodes.get(mac) is not None:
             _LOGGER.debug("Skip discovery of already known node %s ", mac)
             return True
 
         if node_type is not None:
-            self._create_node_object(mac, address, node_type)
+            await self._create_node_object(mac, address, node_type)
             await self._notify_node_event_subscribers(NodeEvent.DISCOVERED, mac)
             return True
 
         # Node type is unknown, so we need to discover it first
-        _LOGGER.debug("Starting the discovery of node %s", mac)
+        _LOGGER.debug("Starting the discovery of node %s with unknown NodeType", mac)
         node_info, node_ping = await self._controller.get_node_details(mac, ping_first)
         if node_info is None:
             return False
-        self._create_node_object(mac, address, node_info.node_type)
+        await self._create_node_object(mac, address, node_info.node_type)
 
         # Forward received NodeInfoResponse message to node
         await self._nodes[mac].message_for_node(node_info)
@@ -431,15 +436,42 @@ class StickNetwork:
     async def _discover_registered_nodes(self) -> None:
         """Discover nodes."""
         _LOGGER.debug("Start discovery of registered nodes")
-        counter = 0
+        registered_counter = 0
         for address, registration in self._register.registry.items():
             mac, node_type = registration
             if mac != "":
                 if self._nodes.get(mac) is None:
-                    await self._discover_node(address, mac, node_type)
-                counter += 1
+                    if not await self._discover_node(address, mac, node_type):
+                        self._registry_stragglers[address] = mac
+                registered_counter += 1
                 await sleep(0)
-        _LOGGER.debug("Total %s registered node(s)", str(counter))
+        if len(self._registry_stragglers) > 0:
+            if (
+                self._discover_stragglers_task is None
+                or self._discover_stragglers_task.done()
+            ):
+                self._discover_stragglers_task = create_task(
+                    self._discover_stragglers()
+                )
+        _LOGGER.debug(
+            "Total %s online of %s registered node(s)",
+            str(len(self._nodes)),
+            str(registered_counter),
+        )
+
+    async def _discover_stragglers(self) -> None:
+        """Repeat Discovery of Nodes with unknown NodeType."""
+        while len(self._registry_stragglers) > 0:
+            await sleep(60)
+            stragglers: dict[int, str] = {}
+            for address, mac in self._registry_stragglers.items():
+                if not await self._discover_node(address, mac, None):
+                    stragglers[address] = mac
+            self._registry_stragglers = stragglers
+            _LOGGER.debug(
+                "Total %s nodes unreachable having unknown NodeType",
+                str(len(stragglers)),
+            )
 
     async def _load_node(self, mac: str) -> bool:
         """Load node."""
@@ -451,6 +483,12 @@ class StickNetwork:
             await self._notify_node_event_subscribers(NodeEvent.LOADED, mac)
             return True
         return False
+
+    async def _load_stragglers(self) -> None:
+        """Retry failed load operation."""
+        await sleep(60)
+        while not self._load_discovered_nodes():
+            await sleep(60)
 
     async def _load_discovered_nodes(self) -> bool:
         """Load all nodes currently discovered."""
@@ -499,10 +537,11 @@ class StickNetwork:
         await self.discover_network_coordinator(load=load)
         if not self._is_running:
             await self.start()
-
         await self._discover_registered_nodes()
         if load:
-            return await self._load_discovered_nodes()
+            if not await self._load_discovered_nodes():
+                self._load_stragglers_task = create_task(self._load_stragglers())
+                return False
 
         return True
 

@@ -229,6 +229,11 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         return self._node_info
 
     @property
+    def initialized(self) -> bool:
+        """Node is Initialized."""
+        return self._initialized
+
+    @property
     def mac(self) -> str:
         """Zigbee mac address of node."""
         return self._mac_in_str
@@ -583,6 +588,10 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         if await self.ping_update() is None:
             _LOGGER.debug("No response to ping for %s", self.mac)
             return False
+        if not self._initialized:
+            if not await self.initialize():
+                _LOGGER.debug("Node %s failed to initialize after ping", self.mac)
+                return False
         return True
 
     async def ping_update(

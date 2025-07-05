@@ -40,6 +40,9 @@ STICK_TIME_OUT: Final = 11
 # In bigger networks a response from a Node could take up a while, so lets use 15 seconds.
 NODE_TIME_OUT: Final = 15
 
+# Retry delay discover nodes
+NODE_DISCOVER_INTERVAL = 60
+
 MAX_RETRIES: Final = 3
 SUPPRESS_INITIALIZATION_WARNINGS: Final = 10  # Minutes to suppress (expected) communication warning messages after initialization
 
