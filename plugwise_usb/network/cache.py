@@ -45,9 +45,14 @@ class NetworkRegistrationCache(PlugwiseCache):
         for mac, node_value in data.items():
             node_type: NodeType | None = None
             if len(node_value) >= 10:
-                node_type = NodeType[node_value[9:]]
-            if node_type is not None:
-                self._nodetypes[mac] = node_type
+                try:
+                    node_type = NodeType[node_value[9:]]
+                except KeyError:
+                    node_type = None
+            if node_type is None:
+                _LOGGER.warning("Invalid NodeType in cache: %s", node_value)
+                continue
+            self._nodetypes[mac] = node_type
             _LOGGER.debug(
                 "Restore NodeType for mac %s with node type %s",
                 mac,
