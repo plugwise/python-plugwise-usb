@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.44.6 - 2025-07-06
+
+- PR [279](https://github.com/plugwise/python-plugwise-usb/pull/279): Improve registry cache and node load behaviour
+
 ## v0.44.5 - 2025-06-22
 
 - PR [274](https://github.com/plugwise/python-plugwise-usb/pull/274): Make the energy-reset function available to Plus devices
