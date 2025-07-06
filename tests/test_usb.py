@@ -2363,7 +2363,8 @@ class TestStick:
                 pw_api.NodeFeature.BATTERY,
                 pw_api.NodeFeature.INFO,
                 pw_api.NodeFeature.PING,
-                pw_api.NodeFeature.SWITCH,
+                pw_api.NodeFeature.SWITCH_GROUP_1,
+                pw_api.NodeFeature.SWITCH_GROUP_2,
             )
         )
 
@@ -2372,7 +2373,8 @@ class TestStick:
                 pw_api.NodeFeature.AVAILABLE,
                 pw_api.NodeFeature.BATTERY,
                 pw_api.NodeFeature.INFO,
-                pw_api.NodeFeature.SWITCH,
+                pw_api.NodeFeature.SWITCH_GROUP_1,
+                pw_api.NodeFeature.SWITCH_GROUP_2,
             )
         )
         assert not state[pw_api.NodeFeature.AVAILABLE].state
@@ -2633,7 +2635,8 @@ class TestStick:
                 pw_api.NodeFeature.BATTERY,
                 pw_api.NodeFeature.INFO,
                 pw_api.NodeFeature.PING,
-                pw_api.NodeFeature.SWITCH,
+                pw_api.NodeFeature.SWITCH_GROUP_1,
+                pw_api.NodeFeature.SWITCH_GROUP_2,
             )
         )
         state = await stick.nodes["8888888888888888"].get_state(
@@ -2641,7 +2644,8 @@ class TestStick:
                 pw_api.NodeFeature.AVAILABLE,
                 pw_api.NodeFeature.BATTERY,
                 pw_api.NodeFeature.INFO,
-                pw_api.NodeFeature.SWITCH,
+                pw_api.NodeFeature.SWITCH_GROUP_1,
+                pw_api.NodeFeature.SWITCH_GROUP_2,
             )
         )
         assert state[pw_api.NodeFeature.AVAILABLE].state

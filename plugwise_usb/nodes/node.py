@@ -315,7 +315,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
     @raise_not_loaded
     def switch(self) -> bool:
         """Switch button value."""
-        if NodeFeature.SWITCH not in self._features:
+        if NodeFeature.SWITCH_GROUP_1 not in self._features:
             raise FeatureError(f"Switch value is not supported for node {self.mac}")
         raise NotImplementedError()
 

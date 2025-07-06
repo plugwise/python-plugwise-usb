@@ -168,7 +168,8 @@ FEATURE_SUPPORTED_AT_FIRMWARE: Final = {
     NodeFeature.RELAY_LOCK: 2.0,
     NodeFeature.MOTION: 2.0,
     NodeFeature.MOTION_CONFIG: 2.0,
-    NodeFeature.SWITCH: 2.0,
+    NodeFeature.SWITCH_GROUP_1: 2.0,
+    NodeFeature.SWITCH_GROUP_2: 2.0,
 }
 
 # endregion

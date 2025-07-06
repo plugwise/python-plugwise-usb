@@ -53,7 +53,8 @@ class NodeFeature(str, Enum):
     RELAY = "relay"
     RELAY_INIT = "relay_init"
     RELAY_LOCK = "relay_lock"
-    SWITCH = "switch"
+    SWITCH_GROUP_1 = "switch_group_1"
+    SWITCH_GROUP_2 = "switch_group_2"
     SENSE = "sense"
     TEMPERATURE = "temperature"
 
@@ -86,7 +87,8 @@ PUSHING_FEATURES = (
     NodeFeature.MOTION_CONFIG,
     NodeFeature.TEMPERATURE,
     NodeFeature.SENSE,
-    NodeFeature.SWITCH,
+    NodeFeature.SWITCH_GROUP_1,
+    NodeFeature.SWITCH_GROUP_2,
 )
 
 
@@ -202,6 +204,15 @@ class RelayState:
     """Status of relay."""
 
     state: bool | None = None
+    timestamp: datetime | None = None
+
+
+@dataclass()
+class SwitchGroup:
+    """Status of Switch."""
+
+    state: bool | None = None
+    group: int | None = None
     timestamp: datetime | None = None
 
 
