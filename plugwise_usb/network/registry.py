@@ -278,6 +278,6 @@ class StickNetworkRegister:
             await self._network_cache.clear_cache()
             self._cache_restored = False
 
-    async def stop(self) -> None:
+    def stop(self) -> None:
         """Unload the network registry."""
         self._stop_registration_task()

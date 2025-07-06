@@ -540,10 +540,9 @@ class StickNetwork:
         if not self._is_running:
             await self.start()
         await self._discover_registered_nodes()
-        if load:
-            if not await self._load_discovered_nodes():
-                self._load_stragglers_task = create_task(self._load_stragglers())
-                return False
+        if load and not await self._load_discovered_nodes():
+            self._load_stragglers_task = create_task(self._load_stragglers())
+            return False
 
         return True
 
@@ -568,7 +567,7 @@ class StickNetwork:
         self._is_running = False
         self._unsubscribe_to_protocol_events()
         await self._unload_discovered_nodes()
-        await self._register.stop()
+        self._register.stop()
         _LOGGER.debug("Stopping finished")
 
     # endregion
