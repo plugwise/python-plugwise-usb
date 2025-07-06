@@ -553,6 +553,18 @@ class StickNetwork:
         for task in self._discover_sed_tasks.values():
             if not task.done():
                 task.cancel()
+        if (
+            hasattr(self, "_load_stragglers_task")
+            and self._load_stragglers_task
+            and not self._load_stragglers_task.done()
+        ):
+            self._load_stragglers_task.cancel()
+        if (
+            hasattr(self, "_discover_stragglers_task")
+            and self._discover_stragglers_task
+            and not self._discover_stragglers_task.done()
+        ):
+            self._discover_stragglers_task.cancel()
         self._is_running = False
         self._unsubscribe_to_protocol_events()
         await self._unload_discovered_nodes()
