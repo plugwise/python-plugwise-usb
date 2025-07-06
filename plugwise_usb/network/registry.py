@@ -163,9 +163,8 @@ class StickNetworkRegister:
                 node_type = self._network_cache.get_nodetype(mac)
 
         self._registry[address] = (mac, node_type)
-        if node_type is not None:
-            if self._network_cache is not None:
-                await self._network_cache.update_nodetypes(mac, node_type)
+        if node_type is not None and self._network_cache is not None:
+            await self._network_cache.update_nodetypes(mac, node_type)
 
     async def update_missing_registrations_full(self) -> None:
         """Full retrieval of all unknown network registrations from network controller."""

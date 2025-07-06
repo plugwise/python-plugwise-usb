@@ -12,7 +12,12 @@ from typing import Any
 
 from ..api import NodeEvent, NodeType, PlugwiseNode, StickEvent
 from ..connection import StickController
-from ..constants import ENERGY_NODE_TYPES, UTF8
+from ..constants import (
+    ENERGY_NODE_TYPES,
+    NODE_RETRY_DISCOVER_INTERVAL,
+    NODE_RETRY_LOAD_INTERVAL,
+    UTF8,
+)
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
 from ..helpers.util import validate_mac
 from ..messages.requests import CircleMeasureIntervalRequest, NodePingRequest
@@ -445,14 +450,11 @@ class StickNetwork:
                         self._registry_stragglers[address] = mac
                 registered_counter += 1
                 await sleep(0)
-        if len(self._registry_stragglers) > 0:
-            if (
-                self._discover_stragglers_task is None
-                or self._discover_stragglers_task.done()
-            ):
-                self._discover_stragglers_task = create_task(
-                    self._discover_stragglers()
-                )
+        if len(self._registry_stragglers) > 0 and (
+            self._discover_stragglers_task is None
+            or self._discover_stragglers_task.done()
+        ):
+            self._discover_stragglers_task = create_task(self._discover_stragglers())
         _LOGGER.debug(
             "Total %s online of %s registered node(s)",
             str(len(self._nodes)),
@@ -462,7 +464,7 @@ class StickNetwork:
     async def _discover_stragglers(self) -> None:
         """Repeat Discovery of Nodes with unknown NodeType."""
         while len(self._registry_stragglers) > 0:
-            await sleep(60)
+            await sleep(NODE_RETRY_DISCOVER_INTERVAL)
             stragglers: dict[int, str] = {}
             for address, mac in self._registry_stragglers.items():
                 if not await self._discover_node(address, mac, None):
@@ -486,9 +488,9 @@ class StickNetwork:
 
     async def _load_stragglers(self) -> None:
         """Retry failed load operation."""
-        await sleep(60)
+        await sleep(NODE_RETRY_LOAD_INTERVAL)
         while not self._load_discovered_nodes():
-            await sleep(60)
+            await sleep(NODE_RETRY_LOAD_INTERVAL)
 
     async def _load_discovered_nodes(self) -> bool:
         """Load all nodes currently discovered."""

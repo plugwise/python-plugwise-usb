@@ -207,17 +207,15 @@ class MockOsPath:
 
     async def exists(self, file_or_path: str) -> bool:  # noqa:  PLR0911
         """Exists folder."""
-        if file_or_path == "mock_folder_that_exists":
-            return True
-        if file_or_path == "mock_folder_that_exists/nodetype.cache":
-            return True
-        if file_or_path == "mock_folder_that_exists\\nodetype.cache":
-            return True
-        if file_or_path == "mock_folder_that_exists/0123456789ABCDEF.cache":
-            return True
-        if file_or_path == "mock_folder_that_exists\\0123456789ABCDEF.cache":
-            return True
-        if file_or_path == "mock_folder_that_exists\\file_that_exists.ext":
+        test_exists = [
+            "mock_folder_that_exists",
+            "mock_folder_that_exists/nodetype.cache",
+            "mock_folder_that_exists\\nodetype.cache",
+            "mock_folder_that_exists/0123456789ABCDEF.cache",
+            "mock_folder_that_exists\\0123456789ABCDEF.cache",
+            "mock_folder_that_exists\\file_that_exists.ext",
+        ]
+        if file_or_path in test_exists:
             return True
         return file_or_path == "mock_folder_that_exists/file_that_exists.ext"
 

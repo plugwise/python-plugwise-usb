@@ -19,3 +19,4 @@ fixtures/*
 tmp
 .cache
 appdata_folder
+mock_folder_that_exists/*

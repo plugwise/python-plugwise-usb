@@ -588,10 +588,9 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         if await self.ping_update() is None:
             _LOGGER.debug("No response to ping for %s", self.mac)
             return False
-        if not self._initialized:
-            if not await self.initialize():
-                _LOGGER.debug("Node %s failed to initialize after ping", self.mac)
-                return False
+        if not self._initialized and self._loaded and not await self.initialize():
+            _LOGGER.debug("Node %s failed to initialize after ping", self.mac)
+            return False
         return True
 
     async def ping_update(
