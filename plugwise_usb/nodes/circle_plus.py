@@ -29,6 +29,7 @@ FEATURES_CIRCLE_PLUS = (
     NodeFeature.CIRCLEPLUS,
 )
 
+
 class PlugwiseCirclePlus(PlugwiseCircle):
     """Plugwise Circle+ node."""
 

@@ -107,7 +107,6 @@ class StickNetworkRegister:
         """Initialize load the network registry."""
         if self._cache_enabled:
             await self.restore_network_cache()
-            await self.load_registry_from_cache()
         await self.update_missing_registrations_quick()
 
     async def restore_network_cache(self) -> None:
@@ -120,22 +119,6 @@ class StickNetworkRegister:
                 await self._network_cache.initialize_cache()
             await self._network_cache.restore_cache()
         self._cache_restored = True
-
-    async def load_registry_from_cache(self) -> None:
-        """Load network registry from cache."""
-        if self._network_cache is None:
-            _LOGGER.error(
-                "Unable to restore network registry because cache is not initialized"
-            )
-            return
-
-        if self._cache_restored:
-            return
-
-        for address, registration in self._network_cache.registrations.items():
-            mac, node_type = registration
-            if self._registry.get(address) is None:
-                self._registry[address] = (mac, node_type)
 
     async def retrieve_network_registration(
         self, address: int, retry: bool = True
@@ -167,17 +150,21 @@ class StickNetworkRegister:
             raise NodeError("Unable to return network controller details")
         return self.registry[-1]
 
-    def update_network_registration(
+    async def update_network_registration(
         self, address: int, mac: str, node_type: NodeType | None
     ) -> None:
         """Add a network registration."""
-        if self._registry.get(address) is not None:
-            _, current_type = self._registry[address]
-            if current_type is not None and node_type is None:
-                return
+        if node_type is None:
+            if self._registry.get(address) is not None:
+                _, current_type = self._registry[address]
+                if current_type is not None:
+                    return
+            if self._network_cache is not None:
+                node_type = self._network_cache.get_nodetype(mac)
+
         self._registry[address] = (mac, node_type)
-        if self._network_cache is not None:
-            self._network_cache.update_registration(address, mac, node_type)
+        if node_type is not None and self._network_cache is not None:
+            await self._network_cache.update_nodetypes(mac, node_type)
 
     async def update_missing_registrations_full(self) -> None:
         """Full retrieval of all unknown network registrations from network controller."""
@@ -199,14 +186,10 @@ class StickNetworkRegister:
                     str(nextaddress),
                     "'empty'" if mac == "" else f"set to {mac}",
                 )
-                self.update_network_registration(nextaddress, mac, None)
+                await self.update_network_registration(nextaddress, mac, None)
             await sleep(10)
         _LOGGER.debug("Full network registration finished")
         self._scan_completed = True
-        if self._cache_enabled:
-            _LOGGER.debug("Full network registration finished, save to cache")
-            await self.save_registry_to_cache()
-            _LOGGER.debug("Full network registration finished, post")
         _LOGGER.info("Full network discovery completed")
         if self._full_scan_finished is not None:
             await self._full_scan_finished()
@@ -228,7 +211,7 @@ class StickNetworkRegister:
                     str(nextaddress),
                     "'empty'" if mac == "" else f"set to {mac}",
                 )
-                self.update_network_registration(nextaddress, mac, None)
+                await self.update_network_registration(nextaddress, mac, None)
             await sleep(0.1)
         if self._registration_task is None or self._registration_task.done():
             self._registration_task = create_task(
@@ -239,9 +222,9 @@ class StickNetworkRegister:
                 self._quick_scan_finished = None
             _LOGGER.info("Quick network registration discovery finished")
 
-    def update_node_registration(self, mac: str) -> int:
+    async def update_node_registration(self, mac: str) -> int:
         """Register (re)joined node to Plugwise network and return network address."""
-        self.update_network_registration(self._first_free_address, mac, None)
+        await self.update_network_registration(self._first_free_address, mac, None)
         self._first_free_address += 1
         return self._first_free_address - 1
 
@@ -250,22 +233,6 @@ class StickNetworkRegister:
         if self._registration_task is None:
             return
         self._registration_task.cancel()
-
-    async def save_registry_to_cache(self) -> None:
-        """Save network registry to cache."""
-        if self._network_cache is None:
-            _LOGGER.error(
-                "Unable to save network registry because cache is not initialized"
-            )
-            return
-        _LOGGER.debug(
-            "save_registry_to_cache starting for %s items", str(len(self._registry))
-        )
-        for address, registration in self._registry.items():
-            mac, node_type = registration
-            self._network_cache.update_registration(address, mac, node_type)
-        await self._network_cache.save_cache()
-        _LOGGER.debug("save_registry_to_cache finished")
 
     async def register_node(self, mac: str) -> None:
         """Register node to Plugwise network and return network address."""
@@ -303,7 +270,7 @@ class StickNetworkRegister:
                 + f" failed to unregister node '{mac}'"
             )
         if (address := self.network_address(mac)) is not None:
-            self.update_network_registration(address, mac, None)
+            await self.update_network_registration(address, mac, None)
 
     async def clear_register_cache(self) -> None:
         """Clear current cache."""
@@ -311,12 +278,6 @@ class StickNetworkRegister:
             await self._network_cache.clear_cache()
             self._cache_restored = False
 
-    async def stop(self) -> None:
+    def stop(self) -> None:
         """Unload the network registry."""
         self._stop_registration_task()
-        if (
-            self._cache_enabled
-            and self._network_cache is not None
-            and self._network_cache.initialized
-        ):
-            await self.save_registry_to_cache()

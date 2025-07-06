@@ -207,17 +207,15 @@ class MockOsPath:
 
     async def exists(self, file_or_path: str) -> bool:  # noqa:  PLR0911
         """Exists folder."""
-        if file_or_path == "mock_folder_that_exists":
-            return True
-        if file_or_path == "mock_folder_that_exists/nodes.cache":
-            return True
-        if file_or_path == "mock_folder_that_exists\\nodes.cache":
-            return True
-        if file_or_path == "mock_folder_that_exists/0123456789ABCDEF.cache":
-            return True
-        if file_or_path == "mock_folder_that_exists\\0123456789ABCDEF.cache":
-            return True
-        if file_or_path == "mock_folder_that_exists\\file_that_exists.ext":
+        test_exists = [
+            "mock_folder_that_exists",
+            "mock_folder_that_exists/nodetype.cache",
+            "mock_folder_that_exists\\nodetype.cache",
+            "mock_folder_that_exists/0123456789ABCDEF.cache",
+            "mock_folder_that_exists\\0123456789ABCDEF.cache",
+            "mock_folder_that_exists\\file_that_exists.ext",
+        ]
+        if file_or_path in test_exists:
             return True
         return file_or_path == "mock_folder_that_exists/file_that_exists.ext"
 
@@ -1541,7 +1539,7 @@ class TestStick:
         async def aiofiles_os_remove(file: str) -> None:
             if file == "mock_folder_that_exists/file_that_exists.ext":
                 return
-            if file == "mock_folder_that_exists/nodes.cache":
+            if file == "mock_folder_that_exists/nodetype.cache":
                 return
             if file == "mock_folder_that_exists/0123456789ABCDEF.cache":
                 return
@@ -1644,7 +1642,7 @@ class TestStick:
         async def aiofiles_os_remove(file: str) -> None:
             if file == "mock_folder_that_exists/file_that_exists.ext":
                 return
-            if file == "mock_folder_that_exists/nodes.cache":
+            if file == "mock_folder_that_exists/nodetype.cache":
                 return
             if file == "mock_folder_that_exists/0123456789ABCDEF.cache":
                 return
@@ -1667,56 +1665,52 @@ class TestStick:
         await pw_nw_cache.initialize_cache()
         # test with invalid data
         mock_read_data = [
-            "-1;0123456789ABCDEF;NodeType.CIRCLE_PLUS",
-            "0;FEDCBA9876543210xxxNodeType.CIRCLE",
-            "invalid129834765AFBECD|NodeType.CIRCLE",
+            "0123456789ABCDEF;NodeType.CIRCLE_PLUS",
+            "FEDCBA9876543210;None",
         ]
         file_chunks_iter = iter(mock_read_data)
         mock_file_stream = MagicMock(readlines=lambda *args, **kwargs: file_chunks_iter)
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             await pw_nw_cache.restore_cache()
-            assert pw_nw_cache.registrations == {
-                -1: ("0123456789ABCDEF", pw_api.NodeType.CIRCLE_PLUS),
+            assert pw_nw_cache.nodetypes == {
+                "0123456789ABCDEF": pw_api.NodeType.CIRCLE_PLUS,
             }
 
         # test with valid data
         mock_read_data = [
-            "-1;0123456789ABCDEF;NodeType.CIRCLE_PLUS",
-            "0;FEDCBA9876543210;NodeType.CIRCLE",
-            "1;1298347650AFBECD;NodeType.SCAN",
-            "2;;",
+            "0123456789ABCDEF;NodeType.CIRCLE_PLUS",
+            "FEDCBA9876543210;NodeType.CIRCLE",
+            "1298347650AFBECD;NodeType.SCAN",
         ]
         file_chunks_iter = iter(mock_read_data)
         mock_file_stream = MagicMock(readlines=lambda *args, **kwargs: file_chunks_iter)
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             await pw_nw_cache.restore_cache()
-            assert pw_nw_cache.registrations == {
-                -1: ("0123456789ABCDEF", pw_api.NodeType.CIRCLE_PLUS),
-                0: ("FEDCBA9876543210", pw_api.NodeType.CIRCLE),
-                1: ("1298347650AFBECD", pw_api.NodeType.SCAN),
-                2: ("", None),
+            assert pw_nw_cache.nodetypes == {
+                "0123456789ABCDEF": pw_api.NodeType.CIRCLE_PLUS,
+                "FEDCBA9876543210": pw_api.NodeType.CIRCLE,
+                "1298347650AFBECD": pw_api.NodeType.SCAN,
             }
-        pw_nw_cache.update_registration(3, "1234ABCD4321FEDC", pw_api.NodeType.STEALTH)
+        pw_nw_cache.update_nodetypes("1234ABCD4321FEDC", pw_api.NodeType.STEALTH)
 
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
-            await pw_nw_cache.save_cache()
+            # await pw_nw_cache.save_cache()
+            await pw_nw_cache.update_nodetypes(
+                "1234ABCD4321FEDC", pw_api.NodeType.STEALTH
+            )
             mock_file_stream.writelines.assert_called_with(
                 [
-                    "-1;0123456789ABCDEF|NodeType.CIRCLE_PLUS\n",
-                    "0;FEDCBA9876543210|NodeType.CIRCLE\n",
-                    "1;1298347650AFBECD|NodeType.SCAN\n",
-                    "2;|\n",
-                    "3;1234ABCD4321FEDC|NodeType.STEALTH\n",
-                    "4;|\n",
+                    "0123456789ABCDEF;NodeType.CIRCLE_PLUS\n",
+                    "FEDCBA9876543210;NodeType.CIRCLE\n",
+                    "1298347650AFBECD;NodeType.SCAN\n",
+                    "1234ABCD4321FEDC;NodeType.STEALTH\n",
                 ]
-                + [f"{address};|\n" for address in range(5, 64)]
             )
-        assert pw_nw_cache.registrations == {
-            -1: ("0123456789ABCDEF", pw_api.NodeType.CIRCLE_PLUS),
-            0: ("FEDCBA9876543210", pw_api.NodeType.CIRCLE),
-            1: ("1298347650AFBECD", pw_api.NodeType.SCAN),
-            2: ("", None),
-            3: ("1234ABCD4321FEDC", pw_api.NodeType.STEALTH),
+        assert pw_nw_cache.nodetypes == {
+            "0123456789ABCDEF": pw_api.NodeType.CIRCLE_PLUS,
+            "FEDCBA9876543210": pw_api.NodeType.CIRCLE,
+            "1298347650AFBECD": pw_api.NodeType.SCAN,
+            "1234ABCD4321FEDC": pw_api.NodeType.STEALTH,
         }
 
     @pytest.mark.asyncio
