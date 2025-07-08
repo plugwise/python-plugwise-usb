@@ -205,7 +205,7 @@ class RelayState:
     timestamp: datetime | None = None
 
 
-@dataclass()
+@dataclass(frozen=True)
 class SwitchGroup:
     """Status of Switch."""
 

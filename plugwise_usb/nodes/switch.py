@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from asyncio import gather
 from collections.abc import Awaitable, Callable
+from dataclasses import replace
 from datetime import datetime
 import logging
 from typing import Any
@@ -116,9 +117,9 @@ class PlugwiseSwitch(NodeSED):
             self.name,
             switch_state,
         )
-        self._switch.state = switch_state
-        self._switch.group = switch_group
-        self._switch.timestampe = timestamp
+        self._switch = replace(
+            self._switch, state=switch_state, group=switch_group, timestamp=timestamp
+        )
 
         await self.publish_feature_update_to_subscribers(
             NodeFeature.SWITCH, self._switch
