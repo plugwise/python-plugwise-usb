@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.44.7 - 2025-07-08
+
+- PR [282](https://github.com/plugwise/python-plugwise-usb/pull/282): Finalize switch implementation
+
 ## v0.44.6 - 2025-07-06
 
 - PR [279](https://github.com/plugwise/python-plugwise-usb/pull/279): Improve registry cache and node load behaviour

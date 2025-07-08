@@ -206,6 +206,15 @@ class RelayState:
 
 
 @dataclass(frozen=True)
+class SwitchGroup:
+    """Status and Group of Switch."""
+
+    state: bool | None = None
+    group: int | None = None
+    timestamp: datetime | None = None
+
+
+@dataclass(frozen=True)
 class MotionState:
     """Status of motion sensor."""
 

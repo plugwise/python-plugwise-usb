@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from asyncio import gather
 from collections.abc import Awaitable, Callable
+from dataclasses import replace
 from datetime import datetime
 import logging
-from typing import Any, Final
+from typing import Any
 
-from ..api import NodeEvent, NodeFeature
+from ..api import NodeEvent, NodeFeature, SwitchGroup
 from ..connection import StickController
 from ..exceptions import MessageError, NodeError
 from ..messages.responses import (
@@ -21,9 +22,6 @@ from .helpers import raise_not_loaded
 from .helpers.firmware import SWITCH_FIRMWARE_SUPPORT
 
 _LOGGER = logging.getLogger(__name__)
-
-CACHE_SWITCH_STATE: Final = "switch_state"
-CACHE_SWITCH_TIMESTAMP: Final = "switch_timestamp"
 
 
 class PlugwiseSwitch(NodeSED):
@@ -39,7 +37,7 @@ class PlugwiseSwitch(NodeSED):
         """Initialize Scan Device."""
         super().__init__(mac, address, controller, loaded_callback)
         self._switch_subscription: Callable[[], None] | None = None
-        self._switch_state: bool | None = None
+        self._switch = SwitchGroup()
 
     async def load(self) -> bool:
         """Load and activate Switch node features."""
@@ -73,7 +71,7 @@ class PlugwiseSwitch(NodeSED):
             return True
 
         self._switch_subscription = await self._message_subscribe(
-            self._switch_group,
+            self._switch_response,
             self._mac_in_bytes,
             (NODE_SWITCH_GROUP_ID,),
         )
@@ -92,11 +90,11 @@ class PlugwiseSwitch(NodeSED):
     @raise_not_loaded
     def switch(self) -> bool:
         """Current state of switch."""
-        return bool(self._switch_state)
+        return bool(self._switch.state)
 
     # endregion
 
-    async def _switch_group(self, response: PlugwiseResponse) -> bool:
+    async def _switch_response(self, response: PlugwiseResponse) -> bool:
         """Switch group request from Switch."""
         if not isinstance(response, NodeSwitchGroupResponse):
             raise MessageError(
@@ -104,38 +102,28 @@ class PlugwiseSwitch(NodeSED):
             )
         await gather(
             self._available_update_state(True, response.timestamp),
-            self._switch_state_update(response.switch_state, response.timestamp),
+            self._switch_state_update(
+                response.switch_state, response.switch_group, response.timestamp
+            ),
         )
         return True
 
     async def _switch_state_update(
-        self, switch_state: bool, timestamp: datetime
+        self, switch_state: bool, switch_group: int, timestamp: datetime
     ) -> None:
         """Process switch state update."""
         _LOGGER.debug(
-            "_switch_state_update for %s: %s -> %s",
+            "_switch_state_update for %s: %s",
             self.name,
-            self._switch_state,
             switch_state,
         )
-        state_update = False
-        # Update cache
-        self._set_cache(CACHE_SWITCH_STATE, str(switch_state))
-        # Check for a state change
-        if self._switch_state != switch_state:
-            self._switch_state = switch_state
-            state_update = True
+        self._switch = replace(
+            self._switch, state=switch_state, group=switch_group, timestamp=timestamp
+        )
 
-        self._set_cache(CACHE_SWITCH_TIMESTAMP, timestamp)
-        if state_update:
-            await gather(
-                *[
-                    self.publish_feature_update_to_subscribers(
-                        NodeFeature.SWITCH, self._switch_state
-                    ),
-                    self.save_cache(),
-                ]
-            )
+        await self.publish_feature_update_to_subscribers(
+            NodeFeature.SWITCH, self._switch
+        )
 
     @raise_not_loaded
     async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
@@ -155,7 +143,7 @@ class PlugwiseSwitch(NodeSED):
 
             match feature:
                 case NodeFeature.SWITCH:
-                    states[NodeFeature.SWITCH] = self._switch_state
+                    states[NodeFeature.SWITCH] = self._switch
                 case _:
                     state_result = await super().get_state((feature,))
                     states[feature] = state_result[feature]

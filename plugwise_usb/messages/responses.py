@@ -858,6 +858,11 @@ class NodeSwitchGroupResponse(PlugwiseResponse):
         """Return state of switch (True = On, False = Off)."""
         return self._power_state.value != 0
 
+    @property
+    def switch_group(self) -> int:
+        """Return group number."""
+        return self.group.value
+
     def __repr__(self) -> str:
         """Convert request into writable str."""
         return f"{super().__repr__()[:-1]}, power_state={self._power_state.value}, group={self.group.value})"
