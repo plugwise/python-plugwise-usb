@@ -207,7 +207,7 @@ class RelayState:
 
 @dataclass(frozen=True)
 class SwitchGroup:
-    """Status of Switch."""
+    """Status and Group of Switch."""
 
     state: bool | None = None
     group: int | None = None
