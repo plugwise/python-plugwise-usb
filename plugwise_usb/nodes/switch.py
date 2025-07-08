@@ -36,8 +36,7 @@ class PlugwiseSwitch(NodeSED):
         """Initialize Scan Device."""
         super().__init__(mac, address, controller, loaded_callback)
         self._switch_subscription: Callable[[], None] | None = None
-        self._switch_group_1 = SwitchGroup()
-        self._switch_group_2 = SwitchGroup()
+        self._switch = SwitchGroup()
 
     async def load(self) -> bool:
         """Load and activate Switch node features."""
@@ -55,8 +54,7 @@ class PlugwiseSwitch(NodeSED):
                 NodeFeature.BATTERY,
                 NodeFeature.INFO,
                 NodeFeature.PING,
-                NodeFeature.SWITCH_GROUP_1,
-                NodeFeature.SWITCH_GROUP_2,
+                NodeFeature.SWITCH,
             ),
         )
         if await self.initialize():
@@ -91,7 +89,7 @@ class PlugwiseSwitch(NodeSED):
     @raise_not_loaded
     def switch(self) -> bool:
         """Current state of switch."""
-        return bool(self._switch_group_1.state)
+        return bool(self._switch.state)
 
     # endregion
 
@@ -118,22 +116,13 @@ class PlugwiseSwitch(NodeSED):
             self.name,
             switch_state,
         )
-        if switch_group == 1:
-            self._switch_group_1.state = switch_state
-            self._switch_group_1.group = switch_group
-            self._switch_group_1.timestampe = timestamp
+        self._switch.state = switch_state
+        self._switch.group = switch_group
+        self._switch.timestampe = timestamp
 
-            await self.publish_feature_update_to_subscribers(
-                NodeFeature.SWITCH_GROUP_1, self._switch_group_1
-            )
-        elif switch_group == 2:
-            self._switch_group_2.state = switch_state
-            self._switch_group_2.group = switch_group
-            self._switch_group_2.timestampe = timestamp
-
-            await self.publish_feature_update_to_subscribers(
-                NodeFeature.SWITCH_GROUP_2, self._switch_group_2
-            )
+        await self.publish_feature_update_to_subscribers(
+            NodeFeature.SWITCH, self._switch
+        )
 
     @raise_not_loaded
     async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
@@ -152,10 +141,8 @@ class PlugwiseSwitch(NodeSED):
                 )
 
             match feature:
-                case NodeFeature.SWITCH_GROUP_1:
-                    states[NodeFeature.SWITCH_GROUP_1] = self._switch_group_1
-                case NodeFeature.SWITCH_GROUP_2:
-                    states[NodeFeature.SWITCH_GROUP_2] = self._switch_group_2
+                case NodeFeature.SWITCH:
+                    states[NodeFeature.SWITCH] = self._switch
                 case _:
                     state_result = await super().get_state((feature,))
                     states[feature] = state_result[feature]
