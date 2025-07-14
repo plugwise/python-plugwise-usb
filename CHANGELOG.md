@@ -1,5 +1,9 @@
 # Changelog
 
+## Ongoing / v0.44.8a0
+
+- Chores move module publishing on (test)pypi to Trusted Publishing (and using uv) - released as alpha 0.44.8a0 to demonstrate functionality
+
 ## v0.44.7 - 2025-07-08
 
 - PR [282](https://github.com/plugwise/python-plugwise-usb/pull/282): Finalize switch implementation
