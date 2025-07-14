@@ -26,6 +26,7 @@ def get_plugwise_node(  # noqa: PLR0911
         return PlugwiseCirclePlus(
             mac,
             address,
+            node_type,
             controller,
             loaded_callback,
         )
@@ -33,6 +34,7 @@ def get_plugwise_node(  # noqa: PLR0911
         return PlugwiseCircle(
             mac,
             address,
+            node_type,
             controller,
             loaded_callback,
         )
@@ -40,6 +42,7 @@ def get_plugwise_node(  # noqa: PLR0911
         return PlugwiseSwitch(
             mac,
             address,
+            node_type,
             controller,
             loaded_callback,
         )
@@ -47,6 +50,7 @@ def get_plugwise_node(  # noqa: PLR0911
         return PlugwiseSense(
             mac,
             address,
+            node_type,
             controller,
             loaded_callback,
         )
@@ -54,6 +58,7 @@ def get_plugwise_node(  # noqa: PLR0911
         return PlugwiseScan(
             mac,
             address,
+            node_type,
             controller,
             loaded_callback,
         )
@@ -61,6 +66,7 @@ def get_plugwise_node(  # noqa: PLR0911
         return PlugwiseStealth(
             mac,
             address,
+            node_type,
             controller,
             loaded_callback,
         )

@@ -1789,7 +1789,11 @@ class TestStick:
             """Load callback for event."""
 
         test_node = pw_sed.PlugwiseBaseNode(
-            "1298347650AFBECD", 1, mock_stick_controller, load_callback
+            "1298347650AFBECD",
+            1,
+            pw_api.NodeType.CIRCLE,
+            mock_stick_controller,
+            load_callback,
         )
 
         # Validate base node properties which are always set
@@ -1928,7 +1932,11 @@ class TestStick:
             """Load callback for event."""
 
         test_sed = pw_sed.NodeSED(
-            "1298347650AFBECD", 1, mock_stick_controller, load_callback
+            "1298347650AFBECD",
+            1,
+            pw_api.NodeType.SCAN,
+            mock_stick_controller,
+            load_callback,
         )
         assert not test_sed.cache_enabled
 
@@ -1970,8 +1978,8 @@ class TestStick:
             assert await test_sed.set_awake_duration(0)
         with pytest.raises(ValueError):
             assert await test_sed.set_awake_duration(256)
-        assert not await test_sed.set_awake_duration(10)
-        assert not test_sed.sed_config_task_scheduled
+        assert await test_sed.set_awake_duration(10)
+        assert test_sed.sed_config_task_scheduled
         assert await test_sed.set_awake_duration(15)
         assert test_sed.sed_config_task_scheduled
         assert test_sed.battery_config.awake_duration == 15
@@ -2104,8 +2112,8 @@ class TestStick:
                 return "2011-6-27-8-55-44"
             if setting == pw_node.CACHE_HARDWARE:
                 return "080007"
-            if setting == pw_node.CACHE_NODE_TYPE:
-                return "6"
+            if setting == pw_node.CACHE_RELAY:
+                return "True"
             if setting == pw_node.CACHE_NODE_INFO_TIMESTAMP:
                 return "2024-12-7-1-0-0"
             if setting == pw_sed.CACHE_AWAKE_DURATION:
@@ -2146,7 +2154,11 @@ class TestStick:
             """Load callback for event."""
 
         test_scan = pw_scan.PlugwiseScan(
-            "1298347650AFBECD", 1, mock_stick_controller, load_callback
+            "1298347650AFBECD",
+            1,
+            pw_api.NodeType.SCAN,
+            mock_stick_controller,
+            load_callback,
         )
         assert not test_scan.cache_enabled
         node_info = pw_api.NodeInfoMessage(
@@ -2166,8 +2178,8 @@ class TestStick:
             assert await test_scan.set_motion_reset_timer(0)
         with pytest.raises(ValueError):
             assert await test_scan.set_motion_reset_timer(256)
-        assert not await test_scan.set_motion_reset_timer(10)
-        assert not test_scan.scan_config_task_scheduled
+        assert await test_scan.set_motion_reset_timer(10)
+        assert test_scan.scan_config_task_scheduled
         assert await test_scan.set_motion_reset_timer(15)
         assert test_scan.scan_config_task_scheduled
         assert test_scan.reset_timer == 15
@@ -2251,7 +2263,11 @@ class TestStick:
         # scan with cache enabled
         mock_stick_controller.send_response = None
         test_scan = pw_scan.PlugwiseScan(
-            "1298347650AFBECD", 1, mock_stick_controller, load_callback
+            "1298347650AFBECD",
+            1,
+            pw_api.NodeType.SCAN,
+            mock_stick_controller,
+            load_callback,
         )
         node_info = pw_api.NodeInfoMessage(
             current_logaddress_pointer=None,
@@ -2295,10 +2311,10 @@ class TestStick:
                 return "2011-5-13-7-26-54"
             if setting == pw_node.CACHE_HARDWARE:
                 return "080029"
-            if setting == pw_node.CACHE_NODE_TYPE:
-                return "3"
             if setting == pw_node.CACHE_NODE_INFO_TIMESTAMP:
                 return "2024-12-7-1-0-0"
+            if setting == pw_node.CACHE_RELAY:
+                return "True"
             if setting == pw_sed.CACHE_AWAKE_DURATION:
                 return "15"
             if setting == pw_sed.CACHE_CLOCK_INTERVAL:
@@ -2318,7 +2334,11 @@ class TestStick:
             """Load callback for event."""
 
         test_switch = pw_switch.PlugwiseSwitch(
-            "1298347650AFBECD", 1, mock_stick_controller, load_callback
+            "1298347650AFBECD",
+            1,
+            pw_api.NodeType.SWITCH,
+            mock_stick_controller,
+            load_callback,
         )
         assert not test_switch.cache_enabled
 
@@ -2344,7 +2364,11 @@ class TestStick:
 
         # switch with cache enabled
         test_switch = pw_switch.PlugwiseSwitch(
-            "1298347650AFBECD", 1, mock_stick_controller, load_callback
+            "1298347650AFBECD",
+            1,
+            pw_api.NodeType.SWITCH,
+            mock_stick_controller,
+            load_callback,
         )
         node_info = pw_api.NodeInfoMessage(
             current_logaddress_pointer=None,
@@ -2627,6 +2651,10 @@ class TestStick:
         assert stick.nodes["8888888888888888"].node_info.model_type is None
         assert stick.nodes["8888888888888888"].available
         assert stick.nodes["8888888888888888"].node_info.is_battery_powered
+        assert (
+            stick.nodes["8888888888888888"].node_info.node_type
+            == pw_api.NodeType.SWITCH
+        )
         assert sorted(stick.nodes["8888888888888888"].features) == sorted(
             (
                 pw_api.NodeFeature.AVAILABLE,

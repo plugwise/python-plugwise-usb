@@ -5,11 +5,11 @@ from __future__ import annotations
 from asyncio import gather
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
-from datetime import datetime
+from datetime import UTC, datetime
 import logging
-from typing import Any
+from typing import Any, Final
 
-from ..api import NodeEvent, NodeFeature, SwitchGroup
+from ..api import NodeEvent, NodeFeature, NodeType, SwitchGroup
 from ..connection import StickController
 from ..exceptions import MessageError, NodeError
 from ..messages.responses import (
@@ -23,6 +23,12 @@ from .helpers.firmware import SWITCH_FIRMWARE_SUPPORT
 
 _LOGGER = logging.getLogger(__name__)
 
+# Switch Features
+SWITCH_FEATURES: Final = (NodeFeature.SWITCH,)
+
+# Default firmware if not known
+DEFAULT_FIRMWARE: Final = datetime(2009, 9, 8, 14, 7, 4, tzinfo=UTC)
+
 
 class PlugwiseSwitch(NodeSED):
     """Plugwise Switch node."""
@@ -31,11 +37,12 @@ class PlugwiseSwitch(NodeSED):
         self,
         mac: str,
         address: int,
+        node_type: NodeType,
         controller: StickController,
         loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
     ):
         """Initialize Scan Device."""
-        super().__init__(mac, address, controller, loaded_callback)
+        super().__init__(mac, address, node_type, controller, loaded_callback)
         self._switch_subscription: Callable[[], None] | None = None
         self._switch = SwitchGroup()
 
@@ -43,25 +50,18 @@ class PlugwiseSwitch(NodeSED):
         """Load and activate Switch node features."""
         if self._loaded:
             return True
-        if self._cache_enabled:
-            _LOGGER.debug("Load Switch node %s from cache", self._node_info.mac)
-            await self._load_from_cache()
-        else:
-            self._load_defaults()
-        self._loaded = True
-        self._setup_protocol(
-            SWITCH_FIRMWARE_SUPPORT,
-            (
-                NodeFeature.BATTERY,
-                NodeFeature.INFO,
-                NodeFeature.PING,
-                NodeFeature.SWITCH,
-            ),
-        )
+
+        _LOGGER.debug("Loading Switch node %s", self._node_info.mac)
+        if not await super().load():
+            _LOGGER.warning("Load Switch base node failed")
+            return False
+
+        self._setup_protocol(SWITCH_FIRMWARE_SUPPORT, SWITCH_FEATURES)
         if await self.initialize():
             await self._loaded_callback(NodeEvent.LOADED, self.mac)
             return True
-        _LOGGER.debug("Load of Switch node %s failed", self._node_info.mac)
+
+        _LOGGER.warning("Load Switch node %s failed", self._node_info.mac)
         return False
 
     @raise_not_loaded
