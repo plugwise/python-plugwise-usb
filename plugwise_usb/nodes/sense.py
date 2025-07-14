@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 import logging
 from typing import Any, Final
 
-from ..api import NodeEvent, NodeFeature, SenseStatistics
+from ..api import NodeEvent, NodeFeature, NodeType, SenseStatistics
 from ..connection import StickController
 from ..exceptions import MessageError, NodeError
 from ..messages.responses import SENSE_REPORT_ID, PlugwiseResponse, SenseReportResponse
@@ -30,6 +31,9 @@ SENSE_FEATURES: Final = (
     NodeFeature.SENSE,
 )
 
+# Default firmware if not known
+DEFAULT_FIRMWARE: Final = datetime(2010, 12, 3, 10, 17, 7, tzinfo=UTC)
+
 
 class PlugwiseSense(NodeSED):
     """Plugwise Sense node."""
@@ -38,11 +42,12 @@ class PlugwiseSense(NodeSED):
         self,
         mac: str,
         address: int,
+        node_type: NodeType,
         controller: StickController,
         loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
     ):
         """Initialize Scan Device."""
-        super().__init__(mac, address, controller, loaded_callback)
+        super().__init__(mac, address, node_type, controller, loaded_callback)
 
         self._sense_statistics = SenseStatistics()
 
@@ -55,7 +60,7 @@ class PlugwiseSense(NodeSED):
 
         _LOGGER.debug("Loading Sense node %s", self._node_info.mac)
         if not await super().load():
-            _LOGGER.debug("Load Sense base node failed")
+            _LOGGER.warning("Load Sense base node failed")
             return False
 
         self._setup_protocol(SENSE_FIRMWARE_SUPPORT, SENSE_FEATURES)
@@ -63,7 +68,7 @@ class PlugwiseSense(NodeSED):
             await self._loaded_callback(NodeEvent.LOADED, self.mac)
             return True
 
-        _LOGGER.debug("Load Sense node %s failed", self._node_info.mac)
+        _LOGGER.warning("Load Sense node %s failed", self._node_info.mac)
         return False
 
     @raise_not_loaded
@@ -87,9 +92,9 @@ class PlugwiseSense(NodeSED):
             self._sense_subscription()
         await super().unload()
 
-    def _load_defaults(self) -> None:
+    async def _load_defaults(self) -> None:
         """Load default configuration settings."""
-        super()._load_defaults()
+        await super()._load_defaults()
         self._sense_statistics = SenseStatistics(
             temperature=0.0,
             humidity=0.0,
