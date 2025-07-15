@@ -154,16 +154,10 @@ class PlugwiseScan(NodeSED):
         )
         if self._node_info.model is None:
             self._node_info.model = "Scan"
-            self.node_info_default = True
         if self._node_info.name is None:
             self._node_info.name = f"Scan {self._node_info.mac[-5:]}"
-            self.node_info_default = True
-        if self._node_info.name is None:
-            self._node_info.name = f"Scan {self._node_info.mac[-5:]}"
-            self.node_info_default = True
         if self._node_info.firmware is None:
             self._node_info.firmware = DEFAULT_FIRMWARE
-            self.node_info_default = True
         self._new_reset_timer = SCAN_DEFAULT_MOTION_RESET_TIMER
         self._new_daylight_mode = SCAN_DEFAULT_DAYLIGHT_MODE
         self._new_sensitivity_level = SCAN_DEFAULT_SENSITIVITY
@@ -555,7 +549,7 @@ class PlugwiseScan(NodeSED):
             daylight_mode=daylight_mode,
         )
         self._set_cache(CACHE_MOTION_RESET_TIMER, str(motion_reset_timer))
-        self._set_cache(CACHE_SCAN_SENSITIVITY, sensitivity_level.value)
+        self._set_cache(CACHE_SCAN_SENSITIVITY, sensitivity_level)
         if daylight_mode:
             self._set_cache(CACHE_SCAN_DAYLIGHT_MODE, "True")
         else:
