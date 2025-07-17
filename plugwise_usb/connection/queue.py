@@ -27,6 +27,10 @@ class RequestState:
 
 
 class DroppingPriorityQueue(Queue):
+    """Define a queue that has a maximum size.
+
+    Older entries are dropped when the queue reaches its maximum size.
+    """
     def _init(self, maxsize):
         # called by asyncio.Queue.__init__
         self._queue = SortedList()
@@ -48,14 +52,16 @@ class DroppingPriorityQueue(Queue):
         self.task_done()
 
     def put_nowait(self, item):
+        """ Override method for queue.put."""
         if self.full():
             self.__drop()
         super().put_nowait(item)
 
     async def put(self, item):
-        # Queue.put blocks when full, so we must override it.
-        # Since our put_nowait never raises QueueFull, we can just
-        # call it directly
+        """Queue.put blocks when full, so we must override it.
+
+        Since our put_nowait never raises QueueFull, we can just call it directly.
+        """
         self.put_nowait(item)
 
 
