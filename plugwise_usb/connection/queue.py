@@ -5,8 +5,9 @@ from __future__ import annotations
 from asyncio import Queue, Task, get_running_loop, sleep
 from collections.abc import Callable
 from dataclasses import dataclass
-from sortedcontainers import SortedList
 import logging
+
+from sortedcontainers import SortedList
 
 from ..api import StickEvent
 from ..exceptions import MessageError, NodeTimeout, StickError, StickTimeout
@@ -31,6 +32,7 @@ class DroppingPriorityQueue(Queue):
 
     Older entries are dropped when the queue reaches its maximum size.
     """
+
     def _init(self, maxsize):
         # called by asyncio.Queue.__init__
         self._queue = SortedList()
@@ -52,7 +54,7 @@ class DroppingPriorityQueue(Queue):
         self.task_done()
 
     def put_nowait(self, item):
-        """ Override method for queue.put."""
+        """Override method for queue.put."""
         if self.full():
             self.__drop()
         super().put_nowait(item)
@@ -72,7 +74,9 @@ class StickQueue:
         """Initialize the message session controller."""
         self._stick: StickConnectionManager | None = None
         self._loop = get_running_loop()
-        self._submit_queue: DroppingPriorityQueue[PlugwiseRequest] = DroppingPriorityQueue(maxsize=56)
+        self._submit_queue: DroppingPriorityQueue[PlugwiseRequest] = (
+            DroppingPriorityQueue(maxsize=56)
+        )
         self._submit_worker_task: Task[None] | None = None
         self._unsubscribe_connection_events: Callable[[], None] | None = None
         self._running = False
@@ -187,7 +191,9 @@ class StickQueue:
                 return
 
             if self._stick.queue_depth > 3:
-                _LOGGER.warning("Awaiting plugwise responses %d", self._stick.queue_depth)
+                _LOGGER.warning(
+                    "Awaiting plugwise responses %d", self._stick.queue_depth
+                )
                 await sleep(0.125)
 
             await self._stick.write_to_stick(request)
