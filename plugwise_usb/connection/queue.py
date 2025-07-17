@@ -194,9 +194,7 @@ class StickQueue:
 
             queue_depth = self._stick.queue_depth - self._submit_queue.dropped_msgs
             if queue_depth > 3:
-                _LOGGER.warning(
-                    "Awaiting plugwise responses %d", queue_depth
-                )
+                _LOGGER.warning("Awaiting plugwise responses %d", queue_depth)
                 await sleep(0.125)
 
             await self._stick.write_to_stick(request)
