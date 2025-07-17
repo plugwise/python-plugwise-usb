@@ -36,6 +36,7 @@ class DroppingPriorityQueue(Queue):
 
     def _init(self, maxsize):
         # called by asyncio.Queue.__init__
+        self.dropped_msgs = 0
         self._queue = SortedList()
 
     def _put(self, item):
@@ -50,6 +51,7 @@ class DroppingPriorityQueue(Queue):
     def __drop(self):
         # drop the last (least important) item from the queue
         self._queue.pop()
+        self.dropped_msgs += 1
         # no consumer will get a chance to process this item, so
         # we must decrement the unfinished count ourselves
         self.task_done()
@@ -191,9 +193,10 @@ class StickQueue:
                 self._submit_queue.task_done()
                 return
 
-            if self._stick.queue_depth > 3:
+            queue_depth = self._stick.queue_depth - self._submit_queue.dropped_msgs
+            if queue_depth > 3:
                 _LOGGER.warning(
-                    "Awaiting plugwise responses %d", self._stick.queue_depth
+                    "Awaiting plugwise responses %d", queue_depth
                 )
                 await sleep(0.125)
 
