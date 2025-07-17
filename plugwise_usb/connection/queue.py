@@ -28,9 +28,10 @@ class RequestState:
 
 
 class DroppingPriorityQueue(Queue):
-    """Define a queue that has a maximum size.
+    """Define a priority queue that has a maximum size.
 
-    Older entries are dropped when the queue reaches its maximum size.
+    First lowest-priority items and then oldest items are dropped
+    when the queue reaches its maximum size.
     """
 
     def _init(self, maxsize):
