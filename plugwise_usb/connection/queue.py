@@ -66,7 +66,7 @@ class StickQueue:
         """Initialize the message session controller."""
         self._stick: StickConnectionManager | None = None
         self._loop = get_running_loop()
-        self._submit_queue: DroppingPriorityQueue[PlugwiseRequest] = DroppingPriorityQueue(maxsize=85)
+        self._submit_queue: DroppingPriorityQueue[PlugwiseRequest] = DroppingPriorityQueue(maxsize=56)
         self._submit_worker_task: Task[None] | None = None
         self._unsubscribe_connection_events: Callable[[], None] | None = None
         self._running = False
