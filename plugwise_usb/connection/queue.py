@@ -153,21 +153,17 @@ class StickQueue:
                         "%s, cancel because timeout is expected for NodePingRequests",
                         exc,
                     )
-                    self._stick.correct_received_messages(1)
                 elif request.resend:
                     _LOGGER.debug("%s, retrying", exc)
                 else:
                     _LOGGER.warning("%s, cancel request", exc)  # type: ignore[unreachable]
-                    self._stick.correct_received_messages(1)
             except StickError as exc:
                 _LOGGER.error(exc)
-                self._stick.correct_received_messages(1)
                 raise StickError(
                     f"No response received for {request.__class__.__name__} "
                     + f"to {request.mac_decoded}"
                 ) from exc
             except BaseException as exc:
-                self._stick.correct_received_messages(1)
                 raise StickError(
                     f"No response received for {request.__class__.__name__} "
                     + f"to {request.mac_decoded}"
