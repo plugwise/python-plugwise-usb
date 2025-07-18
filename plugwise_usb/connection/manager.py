@@ -36,11 +36,6 @@ class StickConnectionManager:
         ] = {}
         self._unsubscribe_stick_events: Callable[[], None] | None = None
 
-    @property
-    def queue_depth(self) -> int:
-        """Return estimated size of pending responses."""
-        return self._sender.processed_messages - self._receiver.processed_messages
-
     def correct_received_messages(self, correction: int) -> None:
         """Correct received messages count."""
         self._receiver.correct_processed_messages(correction)
