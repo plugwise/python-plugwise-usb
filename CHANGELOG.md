@@ -1,7 +1,8 @@
 # Changelog
 
-## Ongoing / v0.44.8a0
+## v0.44.8
 
+- Collect send-queue depth via PriorityQueue.qsize(), this provides a more accurate result
 - Fix for [#288](https://github.com/plugwise/plugwise_usb-beta/issues/288) via PR [293](https://github.com/plugwise/python-plugwise-usb/pull/293)
 - Chores move module publishing on (test)pypi to Trusted Publishing (and using uv) - released as alpha 0.44.8a0 to demonstrate functionality
 
