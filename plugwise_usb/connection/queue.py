@@ -112,13 +112,11 @@ class StickQueue:
                     _LOGGER.warning("%s, cancel request", exc)  # type: ignore[unreachable]
             except StickError as exc:
                 _LOGGER.error(exc)
-                self._stick.correct_received_messages(1)
                 raise StickError(
                     f"No response received for {request.__class__.__name__} "
                     + f"to {request.mac_decoded}"
                 ) from exc
             except BaseException as exc:
-                self._stick.correct_received_messages(1)
                 raise StickError(
                     f"No response received for {request.__class__.__name__} "
                     + f"to {request.mac_decoded}"
