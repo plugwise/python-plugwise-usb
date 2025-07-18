@@ -195,6 +195,7 @@ class StickQueue:
             queue_depth = self._stick.queue_depth - self._submit_queue.dropped_msgs
             if queue_depth > 3:
                 _LOGGER.warning("Awaiting responses %d", queue_depth)
+                _LOGGER.warning("Queue contents: %s", self._submit_queue._queue)
                 _LOGGER.warning("Requests dropped: %d", self._submit_queue.dropped_msgs)
                 await sleep(0.125)
 
