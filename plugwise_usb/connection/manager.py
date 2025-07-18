@@ -36,10 +36,6 @@ class StickConnectionManager:
         ] = {}
         self._unsubscribe_stick_events: Callable[[], None] | None = None
 
-    def correct_received_messages(self, correction: int) -> None:
-        """Correct received messages count."""
-        self._receiver.correct_processed_messages(correction)
-
     @property
     def serial_path(self) -> str:
         """Return current port."""
