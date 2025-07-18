@@ -145,6 +145,7 @@ class StickQueue:
 
             qsize = self._submit_queue.qsize()
             if qsize > 3:
+                # When the queue size grows, rate-limit the sending of requests to avoid overloading the network
                 await sleep(0.125)
                 if qsize > 3:
                     _LOGGER.warning("Awaiting plugwise responses %d", qsize)
