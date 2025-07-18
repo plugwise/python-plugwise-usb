@@ -198,6 +198,7 @@ class StickQueue:
                 )
                 _LOGGER.warning("Queue contents: %s", self._submit_queue._queue)
                 _LOGGER.warning("Requests dropped: %d", self._submit_queue.dropped_msgs)
+                # When the queue size grows, rate-limit the sending of requests to avoid overloading the network
                 await sleep(0.125)
 
             await self._stick.write_to_stick(request)
