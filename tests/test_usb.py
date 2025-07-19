@@ -575,7 +575,7 @@ class TestStick:
         assert mac_awake_node == "5555555555555555"
         unsub_awake()
 
-        assert await stick.nodes["5555555555555555"].load() is None
+        await stick.nodes["5555555555555555"].load()
         assert stick.nodes["5555555555555555"].node_info.firmware == dt(
             2011, 6, 27, 8, 55, 44, tzinfo=UTC
         )
@@ -771,7 +771,7 @@ class TestStick:
             await stick.nodes["0098765432101234"].set_relay_lock(True)
 
         # Manually load node
-        assert await stick.nodes["0098765432101234"].load()
+        await stick.nodes["0098765432101234"].load()
 
         # Check relay_lock is set to False when not in cache
         assert stick.nodes["0098765432101234"].relay_lock
@@ -849,7 +849,7 @@ class TestStick:
         with pytest.raises(pw_exceptions.NodeError):
             await stick.nodes["2222222222222222"].set_relay_init(True)
 
-        assert await stick.nodes["2222222222222222"].load()
+        await stick.nodes["2222222222222222"].load()
         self.test_init_relay_state_on = asyncio.Future()
         self.test_init_relay_state_off = asyncio.Future()
         unsub_inti_relay = stick.nodes["2222222222222222"].subscribe_to_feature_update(
@@ -904,7 +904,7 @@ class TestStick:
         assert not stick.nodes["0098765432101234"].calibrated
 
         # Manually load node
-        assert await stick.nodes["0098765432101234"].load()
+        await stick.nodes["0098765432101234"].load()
 
         # Check calibration in loaded state
         assert stick.nodes["0098765432101234"].calibrated
@@ -1951,7 +1951,7 @@ class TestStick:
 
         assert test_sed.node_info.is_battery_powered
         assert test_sed.is_battery_powered
-        assert await test_sed.load()
+        await test_sed.load()
         assert sorted(test_sed.features) == sorted(
             (
                 pw_api.NodeFeature.AVAILABLE,
@@ -2168,7 +2168,7 @@ class TestStick:
             relay_state=None,
         )
         await test_scan.update_node_details(node_info)
-        assert await test_scan.load() is None
+        await test_scan.load()
 
         # test motion reset timer
         assert test_scan.reset_timer == 10

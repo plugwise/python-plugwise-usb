@@ -924,7 +924,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
         self._setup_protocol(CIRCLE_FIRMWARE_SUPPORT, CIRCLE_FEATURES)
         await self._loaded_callback(NodeEvent.LOADED, self.mac)
         await self.initialize()
-        return True
 
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
