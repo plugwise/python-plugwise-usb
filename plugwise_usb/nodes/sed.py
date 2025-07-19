@@ -123,7 +123,7 @@ class NodeSED(PlugwiseBaseNode):
             self._loaded = True
         if not self._loaded:
             _LOGGER.debug("Load SED node %s defaults", self._node_info.mac)
-            self._load_defaults()
+            await self._load_defaults()
         self._loaded = True
         self._features += SED_FEATURES
 
