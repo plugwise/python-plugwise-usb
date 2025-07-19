@@ -46,27 +46,23 @@ class PlugwiseSwitch(NodeSED):
         self._switch_subscription: Callable[[], None] | None = None
         self._switch = SwitchGroup()
 
-    async def load(self) -> bool:
+    async def load(self) -> None:
         """Load and activate Switch node features."""
         if self._loaded:
-            return True
+            return
 
         _LOGGER.debug("Loading Switch node %s", self._node_info.mac)
         await super().load()
 
         self._setup_protocol(SWITCH_FIRMWARE_SUPPORT, SWITCH_FEATURES)
-        if await self.initialize():
-            await self._loaded_callback(NodeEvent.LOADED, self.mac)
-            return True
-
-        _LOGGER.warning("Load Switch node %s failed", self._node_info.mac)
-        return False
+        await self.initialize()
+        await self._loaded_callback(NodeEvent.LOADED, self.mac)
 
     @raise_not_loaded
-    async def initialize(self) -> bool:
+    async def initialize(self) -> None:
         """Initialize Switch node."""
         if self._initialized:
-            return True
+            return
 
         self._switch_subscription = await self._message_subscribe(
             self._switch_response,
@@ -74,7 +70,6 @@ class PlugwiseSwitch(NodeSED):
             (NODE_SWITCH_GROUP_ID,),
         )
         await super().initialize()
-        return True
 
     async def unload(self) -> None:
         """Unload node."""

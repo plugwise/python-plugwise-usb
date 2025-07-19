@@ -114,10 +114,11 @@ class NodeSED(PlugwiseBaseNode):
         self._maintenance_last_awake: datetime | None = None
         self._maintenance_interval_restored_from_cache = False
 
-    async def load(self) -> None:
+    async def load(self) -> bool:
         """Load and activate SED node features."""
         if self._loaded:
-            return
+            return True
+
         _LOGGER.debug("Load SED node %s from cache", self._node_info.mac)
         if await self._load_from_cache():
             self._loaded = True
@@ -126,6 +127,7 @@ class NodeSED(PlugwiseBaseNode):
             await self._load_defaults()
         self._loaded = True
         self._features += SED_FEATURES
+        return self._loaded
 
     async def unload(self) -> None:
         """Deactivate and unload node features."""
@@ -146,10 +148,10 @@ class NodeSED(PlugwiseBaseNode):
         await super().unload()
 
     @raise_not_loaded
-    async def initialize(self) -> bool:
+    async def initialize(self) -> None:
         """Initialize SED node."""
         if self._initialized:
-            return True
+            return
 
         self._awake_subscription = await self._message_subscribe(
             self._awake_response,
@@ -157,7 +159,6 @@ class NodeSED(PlugwiseBaseNode):
             (NODE_AWAKE_RESPONSE_ID,),
         )
         await super().initialize()
-        return True
 
     async def _load_defaults(self) -> None:
         """Load default configuration settings."""
