@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 import logging
 from typing import Any, Final
 
-from ..api import NodeEvent, NodeFeature, SenseStatistics
+from ..api import NodeEvent, NodeFeature, NodeType, SenseStatistics
 from ..connection import StickController
 from ..exceptions import MessageError, NodeError
 from ..messages.responses import SENSE_REPORT_ID, PlugwiseResponse, SenseReportResponse
@@ -30,6 +31,9 @@ SENSE_FEATURES: Final = (
     NodeFeature.SENSE,
 )
 
+# Default firmware if not known
+DEFAULT_FIRMWARE: Final = datetime(2010, 12, 3, 10, 17, 7, tzinfo=UTC)
+
 
 class PlugwiseSense(NodeSED):
     """Plugwise Sense node."""
@@ -38,39 +42,34 @@ class PlugwiseSense(NodeSED):
         self,
         mac: str,
         address: int,
+        node_type: NodeType,
         controller: StickController,
         loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
     ):
         """Initialize Scan Device."""
-        super().__init__(mac, address, controller, loaded_callback)
+        super().__init__(mac, address, node_type, controller, loaded_callback)
 
         self._sense_statistics = SenseStatistics()
 
         self._sense_subscription: Callable[[], None] | None = None
 
-    async def load(self) -> bool:
+    async def load(self) -> None:
         """Load and activate Sense node features."""
         if self._loaded:
-            return True
+            return
 
         _LOGGER.debug("Loading Sense node %s", self._node_info.mac)
-        if not await super().load():
-            _LOGGER.debug("Load Sense base node failed")
-            return False
+        await super().load()
 
         self._setup_protocol(SENSE_FIRMWARE_SUPPORT, SENSE_FEATURES)
-        if await self.initialize():
-            await self._loaded_callback(NodeEvent.LOADED, self.mac)
-            return True
-
-        _LOGGER.debug("Load Sense node %s failed", self._node_info.mac)
-        return False
+        await self.initialize()
+        await self._loaded_callback(NodeEvent.LOADED, self.mac)
 
     @raise_not_loaded
-    async def initialize(self) -> bool:
+    async def initialize(self) -> None:
         """Initialize Sense node."""
         if self._initialized:
-            return True
+            return
 
         self._sense_subscription = await self._message_subscribe(
             self._sense_report,
@@ -78,7 +77,6 @@ class PlugwiseSense(NodeSED):
             (SENSE_REPORT_ID,),
         )
         await super().initialize()
-        return True
 
     async def unload(self) -> None:
         """Unload node."""
@@ -87,13 +85,22 @@ class PlugwiseSense(NodeSED):
             self._sense_subscription()
         await super().unload()
 
-    def _load_defaults(self) -> None:
+    # region Caching
+    async def _load_defaults(self) -> None:
         """Load default configuration settings."""
-        super()._load_defaults()
+        await super()._load_defaults()
         self._sense_statistics = SenseStatistics(
             temperature=0.0,
             humidity=0.0,
         )
+        if self._node_info.model is None:
+            self._node_info.model = "Sense"
+        if self._node_info.name is None:
+            self._node_info.name = f"Sense {self._node_info.mac[-5:]}"
+        if self._node_info.firmware is None:
+            self._node_info.firmware = DEFAULT_FIRMWARE
+
+    # endregion
 
     # region properties
 

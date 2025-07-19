@@ -48,7 +48,6 @@ NODE_FEATURES = (
 )
 
 CACHE_FIRMWARE = "firmware"
-CACHE_NODE_TYPE = "node_type"
 CACHE_HARDWARE = "hardware"
 CACHE_NODE_INFO_TIMESTAMP = "node_info_timestamp"
 CACHE_RELAY = "relay"
@@ -61,16 +60,22 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         self,
         mac: str,
         address: int,
+        node_type: NodeType,
         controller: StickController,
         loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
     ):
         """Initialize Plugwise base node class."""
         super().__init__()
+        self.node_type = node_type
         self._loaded_callback = loaded_callback
         self._message_subscribe = controller.subscribe_to_messages
         self._features: tuple[NodeFeature, ...] = NODE_FEATURES
         self._last_seen = datetime.now(tz=UTC)
-        self._node_info = NodeInfo(mac, address)
+        self._node_info = NodeInfo(
+            mac=mac,
+            zigbee_address=address,
+            node_type=self.node_type,
+        )
         self._ping = NetworkStatistics()
         self._mac_in_bytes = bytes(mac, encoding=UTF8)
         self._mac_in_str = mac
@@ -462,7 +467,6 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             _LOGGER.debug("No response for node_info_update() for %s", self.mac)
             await self._available_update_state(False)
             return self._node_info
-
         await self._available_update_state(True, node_info.timestamp)
         await self.update_node_details(node_info)
         return self._node_info
@@ -475,16 +479,13 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
 
         firmware = self._get_cache_as_datetime(CACHE_FIRMWARE)
         hardware = self._get_cache(CACHE_HARDWARE)
-        node_type: NodeType | None = None
-        if (node_type_str := self._get_cache(CACHE_NODE_TYPE)) is not None:
-            node_type = NodeType(int(node_type_str))
         relay_state = self._get_cache(CACHE_RELAY) == "True"
         timestamp = self._get_cache_as_datetime(CACHE_NODE_INFO_TIMESTAMP)
         node_info = NodeInfoMessage(
             current_logaddress_pointer=None,
             firmware=firmware,
             hardware=hardware,
-            node_type=node_type,
+            node_type=self.node_type,
             relay_state=relay_state,
             timestamp=timestamp,
         )
@@ -509,9 +510,6 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         complete = True
         if node_info.node_type is None:
             complete = False
-        else:
-            self._node_info.node_type = NodeType(node_info.node_type)
-            self._set_cache(CACHE_NODE_TYPE, self._node_info.node_type.value)
 
         if node_info.firmware is None:
             complete = False

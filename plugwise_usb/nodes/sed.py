@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 import logging
 from typing import Any, Final
 
-from ..api import BatteryConfig, NodeEvent, NodeFeature, NodeInfo
+from ..api import BatteryConfig, NodeEvent, NodeFeature, NodeInfo, NodeType
 from ..connection import StickController
 from ..constants import MAX_UINT_2, MAX_UINT_4
 from ..exceptions import MessageError, NodeError
@@ -64,6 +64,12 @@ SED_MAX_MAINTENANCE_INTERVAL_OFFSET: Final = 30  # seconds
 # Time in minutes the SED will sleep
 SED_DEFAULT_SLEEP_DURATION: Final = 60
 
+# Default firmware if not known
+DEFAULT_FIRMWARE: Final = None
+
+# SED BaseNode Features
+SED_FEATURES: Final = (NodeFeature.BATTERY,)
+
 # Value limits
 MAX_MINUTE_INTERVAL: Final = 1440
 
@@ -83,11 +89,12 @@ class NodeSED(PlugwiseBaseNode):
         self,
         mac: str,
         address: int,
+        node_type: NodeType,
         controller: StickController,
         loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
     ):
         """Initialize base class for Sleeping End Device."""
-        super().__init__(mac, address, controller, loaded_callback)
+        super().__init__(mac, address, node_type, controller, loaded_callback)
         self._loop = get_running_loop()
         self._node_info.is_battery_powered = True
 
@@ -111,18 +118,16 @@ class NodeSED(PlugwiseBaseNode):
         """Load and activate SED node features."""
         if self._loaded:
             return True
-        if self._cache_enabled:
-            _LOGGER.debug("Load SED node %s from cache", self._node_info.mac)
-            await self._load_from_cache()
-        else:
-            self._load_defaults()
+
+        _LOGGER.debug("Load SED node %s from cache", self._node_info.mac)
+        if await self._load_from_cache():
+            self._loaded = True
+        if not self._loaded:
+            _LOGGER.debug("Load SED node %s defaults", self._node_info.mac)
+            await self._load_defaults()
         self._loaded = True
-        self._features += (NodeFeature.BATTERY,)
-        if await self.initialize():
-            await self._loaded_callback(NodeEvent.LOADED, self.mac)
-            return True
-        _LOGGER.debug("Load of SED node %s failed", self._node_info.mac)
-        return False
+        self._features += SED_FEATURES
+        return self._loaded
 
     async def unload(self) -> None:
         """Deactivate and unload node features."""
@@ -143,10 +148,10 @@ class NodeSED(PlugwiseBaseNode):
         await super().unload()
 
     @raise_not_loaded
-    async def initialize(self) -> bool:
+    async def initialize(self) -> None:
         """Initialize SED node."""
         if self._initialized:
-            return True
+            return
 
         self._awake_subscription = await self._message_subscribe(
             self._awake_response,
@@ -154,9 +159,8 @@ class NodeSED(PlugwiseBaseNode):
             (NODE_AWAKE_RESPONSE_ID,),
         )
         await super().initialize()
-        return True
 
-    def _load_defaults(self) -> None:
+    async def _load_defaults(self) -> None:
         """Load default configuration settings."""
         self._battery_config = BatteryConfig(
             awake_duration=SED_DEFAULT_AWAKE_DURATION,
@@ -165,11 +169,14 @@ class NodeSED(PlugwiseBaseNode):
             maintenance_interval=SED_DEFAULT_MAINTENANCE_INTERVAL,
             sleep_duration=SED_DEFAULT_SLEEP_DURATION,
         )
+        await self.schedule_task_when_awake(self.node_info_update(None))
+        self._sed_config_task_scheduled = True
+        self._new_battery_config = self._battery_config
+        await self.schedule_task_when_awake(self._configure_sed_task())
 
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
         if not await super()._load_from_cache():
-            self._load_defaults()
             return False
         self._battery_config = BatteryConfig(
             awake_duration=self._awake_duration_from_cache(),
@@ -239,9 +246,6 @@ class NodeSED(PlugwiseBaseNode):
             raise ValueError(
                 f"Invalid awake duration ({seconds}). It must be between 1 and 255 seconds."
             )
-
-        if self._battery_config.awake_duration == seconds:
-            return False
 
         self._new_battery_config = replace(
             self._new_battery_config, awake_duration=seconds
@@ -491,7 +495,7 @@ class NodeSED(PlugwiseBaseNode):
         self, node_info: NodeInfoResponse | None = None
     ) -> NodeInfo | None:
         """Update Node (hardware) information."""
-        if node_info is None and self.skip_update(self._node_info, 86400):
+        if node_info is not None and self.skip_update(self._node_info, 86400):
             return self._node_info
         return await super().node_info_update(node_info)
 
@@ -643,7 +647,6 @@ class NodeSED(PlugwiseBaseNode):
         """Send all tasks in queue."""
         if len(self._send_task_queue) == 0:
             return
-
         async with self._send_task_lock:
             task_result = await gather(*self._send_task_queue)
             if not all(task_result):
