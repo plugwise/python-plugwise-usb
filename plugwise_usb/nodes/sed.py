@@ -114,7 +114,7 @@ class NodeSED(PlugwiseBaseNode):
         self._maintenance_last_awake: datetime | None = None
         self._maintenance_interval_restored_from_cache = False
 
-    async def load(self) -> bool:
+    async def load(self) -> None:
         """Load and activate SED node features."""
         if self._loaded:
             return True
@@ -126,7 +126,6 @@ class NodeSED(PlugwiseBaseNode):
             self._load_defaults()
         self._loaded = True
         self._features += SED_FEATURES
-        return True
 
     async def unload(self) -> None:
         """Deactivate and unload node features."""

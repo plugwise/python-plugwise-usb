@@ -1951,7 +1951,7 @@ class TestStick:
 
         assert test_sed.node_info.is_battery_powered
         assert test_sed.is_battery_powered
-        assert await test_sed.load()
+        assert await test_sed.load() is None
         assert sorted(test_sed.features) == sorted(
             (
                 pw_api.NodeFeature.AVAILABLE,
