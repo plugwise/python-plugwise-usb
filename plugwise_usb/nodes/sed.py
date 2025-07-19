@@ -118,10 +118,11 @@ class NodeSED(PlugwiseBaseNode):
         """Load and activate SED node features."""
         if self._loaded:
             return True
-        if self._cache_enabled:
-            _LOGGER.debug("Load SED node %s from cache", self._node_info.mac)
-            await self._load_from_cache()
-        else:
+        _LOGGER.debug("Load SED node %s from cache", self._node_info.mac)
+        if await self._load_from_cache():
+            self._loaded = True
+        if not self._loaded:
+            _LOGGER.debug("Load SED node %s defaults", self._node_info.mac)
             self._load_defaults()
         self._loaded = True
         self._features += SED_FEATURES
@@ -176,7 +177,6 @@ class NodeSED(PlugwiseBaseNode):
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
         if not await super()._load_from_cache():
-            await self._load_defaults()
             return False
         self._battery_config = BatteryConfig(
             awake_duration=self._awake_duration_from_cache(),

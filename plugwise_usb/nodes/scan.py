@@ -167,7 +167,6 @@ class PlugwiseScan(NodeSED):
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
         if not await super()._load_from_cache():
-            await self._load_defaults()
             return False
         self._motion_state = MotionState(
             state=self._motion_from_cache(),
