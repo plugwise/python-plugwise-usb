@@ -84,6 +84,19 @@ class PlugwiseSwitch(NodeSED):
             self._switch_subscription()
         await super().unload()
 
+    # region Caching
+    async def _load_defaults(self) -> None:
+        """Load default configuration settings."""
+        await super()._load_defaults()
+        if self._node_info.model is None:
+            self._node_info.model = "Switch"
+        if self._node_info.name is None:
+            self._node_info.name = f"Switch {self._node_info.mac[-5:]}"
+        if self._node_info.firmware is None:
+            self._node_info.firmware = DEFAULT_FIRMWARE
+
+    # endregion
+
     # region Properties
 
     @property
