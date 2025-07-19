@@ -117,7 +117,7 @@ class NodeSED(PlugwiseBaseNode):
     async def load(self) -> None:
         """Load and activate SED node features."""
         if self._loaded:
-            return True
+            return
         _LOGGER.debug("Load SED node %s from cache", self._node_info.mac)
         if await self._load_from_cache():
             self._loaded = True
