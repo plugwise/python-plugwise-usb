@@ -575,7 +575,7 @@ class TestStick:
         assert mac_awake_node == "5555555555555555"
         unsub_awake()
 
-        assert await stick.nodes["5555555555555555"].load()
+        assert await stick.nodes["5555555555555555"].load() is None
         assert stick.nodes["5555555555555555"].node_info.firmware == dt(
             2011, 6, 27, 8, 55, 44, tzinfo=UTC
         )
@@ -1691,7 +1691,6 @@ class TestStick:
                 "FEDCBA9876543210": pw_api.NodeType.CIRCLE,
                 "1298347650AFBECD": pw_api.NodeType.SCAN,
             }
-        pw_nw_cache.update_nodetypes("1234ABCD4321FEDC", pw_api.NodeType.STEALTH)
 
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             # await pw_nw_cache.save_cache()
@@ -1952,7 +1951,7 @@ class TestStick:
 
         assert test_sed.node_info.is_battery_powered
         assert test_sed.is_battery_powered
-        assert await test_sed.load() is None
+        assert await test_sed.load()
         assert sorted(test_sed.features) == sorted(
             (
                 pw_api.NodeFeature.AVAILABLE,
@@ -2169,7 +2168,7 @@ class TestStick:
             relay_state=None,
         )
         await test_scan.update_node_details(node_info)
-        assert await test_scan.load()
+        assert await test_scan.load() is None
 
         # test motion reset timer
         assert test_scan.reset_timer == 10
@@ -2278,7 +2277,7 @@ class TestStick:
         )
         await test_scan.update_node_details(node_info)
         test_scan.cache_enabled = True
-        assert await test_scan.load()
+        await test_scan.load()
         assert sorted(test_scan.features) == sorted(
             (
                 pw_api.NodeFeature.AVAILABLE,
@@ -2357,7 +2356,7 @@ class TestStick:
             relay_state=None,
         )
         await test_switch.update_node_details(node_info)
-        assert await test_switch.load()
+        await test_switch.load()
 
         #  Switch specific defaults
         assert test_switch.switch is False
@@ -2380,7 +2379,7 @@ class TestStick:
         await test_switch.update_node_details(node_info)
         test_switch.cache_enabled = True
         assert test_switch.cache_enabled is True
-        assert await test_switch.load()
+        await test_switch.load()
         assert sorted(test_switch.features) == sorted(
             (
                 pw_api.NodeFeature.AVAILABLE,

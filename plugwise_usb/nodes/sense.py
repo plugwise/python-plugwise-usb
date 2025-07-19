@@ -53,27 +53,23 @@ class PlugwiseSense(NodeSED):
 
         self._sense_subscription: Callable[[], None] | None = None
 
-    async def load(self) -> bool:
+    async def load(self) -> None:
         """Load and activate Sense node features."""
         if self._loaded:
-            return True
+            return
 
         _LOGGER.debug("Loading Sense node %s", self._node_info.mac)
         await super().load()
 
         self._setup_protocol(SENSE_FIRMWARE_SUPPORT, SENSE_FEATURES)
-        if await self.initialize():
-            await self._loaded_callback(NodeEvent.LOADED, self.mac)
-            return True
-
-        _LOGGER.warning("Load Sense node %s failed", self._node_info.mac)
-        return False
+        await self.initialize()
+        await self._loaded_callback(NodeEvent.LOADED, self.mac)
 
     @raise_not_loaded
-    async def initialize(self) -> bool:
+    async def initialize(self) -> None:
         """Initialize Sense node."""
         if self._initialized:
-            return True
+            return
 
         self._sense_subscription = await self._message_subscribe(
             self._sense_report,
@@ -81,7 +77,6 @@ class PlugwiseSense(NodeSED):
             (SENSE_REPORT_ID,),
         )
         await super().initialize()
-        return True
 
     async def unload(self) -> None:
         """Unload node."""

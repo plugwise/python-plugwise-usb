@@ -102,26 +102,23 @@ class PlugwiseScan(NodeSED):
 
     # region Load & Initialize
 
-    async def load(self) -> bool:
+    async def load(self) -> None:
         """Load and activate Scan node features."""
         if self._loaded:
-            return True
+            return
 
         _LOGGER.debug("Loading Scan node %s", self._node_info.mac)
         await super().load()
 
         self._setup_protocol(SCAN_FIRMWARE_SUPPORT, SCAN_FEATURES)
-        if await self.initialize():
-            await self._loaded_callback(NodeEvent.LOADED, self.mac)
-            return True
-        _LOGGER.warning("Load Scan node %s failed", self._node_info.mac)
-        return False
+        await self.initialize()
+        await self._loaded_callback(NodeEvent.LOADED, self.mac)
 
     @raise_not_loaded
-    async def initialize(self) -> bool:
+    async def initialize(self) -> None:
         """Initialize Scan node."""
         if self._initialized:
-            return True
+            return
 
         self._unsubscribe_switch_group = await self._message_subscribe(
             self._switch_group,
@@ -129,7 +126,6 @@ class PlugwiseScan(NodeSED):
             (NODE_SWITCH_GROUP_ID,),
         )
         await super().initialize()
-        return True
 
     async def unload(self) -> None:
         """Unload node."""
