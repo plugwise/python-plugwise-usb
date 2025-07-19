@@ -52,9 +52,7 @@ class PlugwiseSwitch(NodeSED):
             return True
 
         _LOGGER.debug("Loading Switch node %s", self._node_info.mac)
-        if not await super().load():
-            _LOGGER.warning("Load Switch base node failed")
-            return False
+        await super().load()
 
         self._setup_protocol(SWITCH_FIRMWARE_SUPPORT, SWITCH_FEATURES)
         if await self.initialize():

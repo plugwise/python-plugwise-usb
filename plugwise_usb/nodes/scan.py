@@ -108,9 +108,7 @@ class PlugwiseScan(NodeSED):
             return True
 
         _LOGGER.debug("Loading Scan node %s", self._node_info.mac)
-        if not await super().load():
-            _LOGGER.warning("Load Scan base node failed")
-            return False
+        await super().load()
 
         self._setup_protocol(SCAN_FIRMWARE_SUPPORT, SCAN_FEATURES)
         if await self.initialize():
