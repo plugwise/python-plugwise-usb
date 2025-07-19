@@ -2177,7 +2177,7 @@ class TestStick:
             assert await test_scan.set_motion_reset_timer(0)
         with pytest.raises(ValueError):
             assert await test_scan.set_motion_reset_timer(256)
-        assert await test_scan.set_motion_reset_timer(10)
+        assert not await test_scan.set_motion_reset_timer(10)
         assert test_scan.scan_config_task_scheduled
         assert await test_scan.set_motion_reset_timer(15)
         assert test_scan.scan_config_task_scheduled
