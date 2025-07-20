@@ -18,6 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 
 REPORT_QUEUE_FILLING_UP: Final[int] = 8
 
+
 @dataclass
 class RequestState:
     """Node hardware information."""
