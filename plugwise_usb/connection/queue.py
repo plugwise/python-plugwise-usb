@@ -16,6 +16,7 @@ from .manager import StickConnectionManager
 
 _LOGGER = logging.getLogger(__name__)
 
+REPORT_QUEUE_FILLING_UP: Final[int] = 8
 
 @dataclass
 class RequestState:
@@ -144,10 +145,10 @@ class StickQueue:
                 return
 
             qsize = self._submit_queue.qsize()
-            if qsize > 3:
+            if qsize > REPORT_QUEUE_FILLING_UP:
                 # When the queue size grows, rate-limit the sending of requests to avoid overloading the network
                 await sleep(0.125)
-                if qsize > 3:
+                if qsize > REPORT_QUEUE_FILLING_UP:
                     _LOGGER.warning("Awaiting plugwise responses %d", qsize)
 
             await self._stick.write_to_stick(request)
