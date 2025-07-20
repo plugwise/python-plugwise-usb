@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import logging
 
 from ..api import StickEvent
+from ..constants import REPORT_QUEUE_FILLING_UP
 from ..exceptions import MessageError, NodeTimeout, StickError, StickTimeout
 from ..messages import Priority
 from ..messages.requests import NodePingRequest, PlugwiseCancelRequest, PlugwiseRequest
@@ -15,8 +16,6 @@ from ..messages.responses import PlugwiseResponse
 from .manager import StickConnectionManager
 
 _LOGGER = logging.getLogger(__name__)
-
-REPORT_QUEUE_FILLING_UP: Final[int] = 8
 
 
 @dataclass
