@@ -585,9 +585,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 "Saving energy record update to cache for %s", self._mac_in_str
             )
             await self.save_cache()
-            return True
 
-        return False
+        return True
 
     async def _energy_log_records_load_from_cache(self) -> bool:
         """Load energy_log_record from cache."""
