@@ -355,7 +355,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
 
         if self._energy_counters.log_rollover:
-            # Try updating node_info
+            # Try updating node_info to collect the updated energy log address
             if await self.node_info_update() is None:
                 _LOGGER.debug(
                     "async_energy_update | %s | Log rollover | node_info_update failed",
