@@ -2,6 +2,7 @@
 
 ## Ongoing / v0.44.8a0
 
+- Fix for [#288](https://github.com/plugwise/plugwise_usb-beta/issues/288) via PR [293](https://github.com/plugwise/python-plugwise-usb/pull/293)
 - Chores move module publishing on (test)pypi to Trusted Publishing (and using uv) - released as alpha 0.44.8a0 to demonstrate functionality
 
 ## v0.44.7 - 2025-07-08
