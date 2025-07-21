@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import logging
 
 from ..api import StickEvent
+from ..constants import REPORT_QUEUE_FILLING_UP
 from ..exceptions import MessageError, NodeTimeout, StickError, StickTimeout
 from ..messages import Priority
 from ..messages.requests import NodePingRequest, PlugwiseCancelRequest, PlugwiseRequest
@@ -112,13 +113,11 @@ class StickQueue:
                     _LOGGER.warning("%s, cancel request", exc)  # type: ignore[unreachable]
             except StickError as exc:
                 _LOGGER.error(exc)
-                self._stick.correct_received_messages(1)
                 raise StickError(
                     f"No response received for {request.__class__.__name__} "
                     + f"to {request.mac_decoded}"
                 ) from exc
             except BaseException as exc:
-                self._stick.correct_received_messages(1)
                 raise StickError(
                     f"No response received for {request.__class__.__name__} "
                     + f"to {request.mac_decoded}"
@@ -145,12 +144,12 @@ class StickQueue:
                 self._submit_queue.task_done()
                 return
 
-            if self._stick.queue_depth > 3:
+            qsize = self._submit_queue.qsize()
+            if qsize > REPORT_QUEUE_FILLING_UP:
+                # When the queue size grows, rate-limit the sending of requests to avoid overloading the network
                 await sleep(0.125)
-                if self._stick.queue_depth > 3:
-                    _LOGGER.warning(
-                        "Awaiting plugwise responses %d", self._stick.queue_depth
-                    )
+                if qsize > REPORT_QUEUE_FILLING_UP:
+                    _LOGGER.warning("Awaiting plugwise responses %d", qsize)
 
             await self._stick.write_to_stick(request)
             self._submit_queue.task_done()

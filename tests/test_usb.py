@@ -1691,7 +1691,6 @@ class TestStick:
                 "FEDCBA9876543210": pw_api.NodeType.CIRCLE,
                 "1298347650AFBECD": pw_api.NodeType.SCAN,
             }
-        pw_nw_cache.update_nodetypes("1234ABCD4321FEDC", pw_api.NodeType.STEALTH)
 
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             # await pw_nw_cache.save_cache()
