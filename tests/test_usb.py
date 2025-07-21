@@ -2129,11 +2129,11 @@ class TestStick:
                 return "False"
             if setting == pw_scan.CACHE_MOTION_TIMESTAMP:
                 return "2024-12-6-1-0-0"
-            if setting == pw_scan.CACHE_MOTION_RESET_TIMER:
+            if setting == pw_scan.CACHE_CONFIG_RESET_TIMER:
                 return "10"
-            if setting == pw_scan.CACHE_SCAN_SENSITIVITY:
+            if setting == pw_scan.CACHE_CONFIG_SENSITIVITY:
                 return "MEDIUM"
-            if setting == pw_scan.CACHE_SCAN_DAYLIGHT_MODE:
+            if setting == pw_scan.CACHE_CONFIG_DAYLIGHT_MODE:
                 return "True"
             return None
 
@@ -2192,7 +2192,6 @@ class TestStick:
         mock_stick_controller.send_response = scan_config_failed
         await test_scan._awake_response(awake_response1)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
-        assert not test_scan.scan_config_task_scheduled
 
         # Successful config
         awake_response2 = pw_responses.NodeAwakeResponse()

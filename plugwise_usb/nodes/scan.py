@@ -35,25 +35,26 @@ _LOGGER = logging.getLogger(__name__)
 
 CACHE_MOTION_STATE = "motion_state"
 CACHE_MOTION_TIMESTAMP = "motion_timestamp"
-CACHE_MOTION_RESET_TIMER = "motion_reset_timer"
 
-CACHE_SCAN_SENSITIVITY = "scan_sensitivity_level"
-CACHE_SCAN_DAYLIGHT_MODE = "scan_daylight_mode"
+CACHE_CONFIG_DAYLIGHT_MODE = "scan_daylight_mode"
+CACHE_CONFIG_DIRTY = "motion_dirty"
+CACHE_CONFIG_RESET_TIMER = "motion_reset_timer"
+CACHE_CONFIG_SENSITIVITY = "scan_sensitivity_level"
 
 
 # region Defaults for Scan Devices
 
-SCAN_DEFAULT_MOTION_STATE: Final = False
+DEFAULT_MOTION_STATE: Final = False
 
 # Time in minutes the motion sensor should not sense motion to
 # report "no motion" state [Source: 1min - 4uur]
-SCAN_DEFAULT_MOTION_RESET_TIMER: Final = 10
+DEFAULT_RESET_TIMER: Final = 10
 
 # Default sensitivity of the motion sensors
-SCAN_DEFAULT_SENSITIVITY: Final = MotionSensitivity.MEDIUM
+DEFAULT_SENSITIVITY: Final = MotionSensitivity.MEDIUM
 
 # Light override
-SCAN_DEFAULT_DAYLIGHT_MODE: Final = False
+DEFAULT_DAYLIGHT_MODE: Final = False
 
 # Default firmware if not known
 DEFAULT_FIRMWARE: Final = datetime(2010, 11, 4, 16, 58, 46, tzinfo=UTC)
@@ -91,9 +92,6 @@ class PlugwiseScan(NodeSED):
 
         self._motion_state = MotionState()
         self._motion_config = MotionConfig()
-        self._new_daylight_mode: bool | None = None
-        self._new_reset_timer: int | None = None
-        self._new_sensitivity_level: MotionSensitivity | None = None
 
         self._scan_config_task_scheduled = False
         self._configure_daylight_mode_task: Task[Coroutine[Any, Any, None]] | None = (
@@ -138,25 +136,24 @@ class PlugwiseScan(NodeSED):
         """Load default configuration settings."""
         await super()._load_defaults()
         self._motion_state = MotionState(
-            state=SCAN_DEFAULT_MOTION_STATE,
+            state=DEFAULT_MOTION_STATE,
             timestamp=None,
         )
         self._motion_config = MotionConfig(
-            reset_timer=SCAN_DEFAULT_MOTION_RESET_TIMER,
-            daylight_mode=SCAN_DEFAULT_DAYLIGHT_MODE,
-            sensitivity_level=SCAN_DEFAULT_SENSITIVITY,
+            reset_timer=DEFAULT_RESET_TIMER,
+            daylight_mode=DEFAULT_DAYLIGHT_MODE,
+            sensitivity_level=DEFAULT_SENSITIVITY,
+            dirty=True,
         )
+        await self._scan_configure_update()
+        await self.schedule_task_when_awake(self._configure_scan_task())
+        self._scan_config_task_scheduled = True
         if self._node_info.model is None:
             self._node_info.model = "Scan"
         if self._node_info.name is None:
             self._node_info.name = f"Scan {self._node_info.mac[-5:]}"
         if self._node_info.firmware is None:
             self._node_info.firmware = DEFAULT_FIRMWARE
-        self._new_reset_timer = SCAN_DEFAULT_MOTION_RESET_TIMER
-        self._new_daylight_mode = SCAN_DEFAULT_DAYLIGHT_MODE
-        self._new_sensitivity_level = SCAN_DEFAULT_SENSITIVITY
-        await self.schedule_task_when_awake(self._configure_scan_task())
-        self._scan_config_task_scheduled = True
 
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
@@ -166,20 +163,33 @@ class PlugwiseScan(NodeSED):
             state=self._motion_from_cache(),
             timestamp=self._motion_timestamp_from_cache(),
         )
+        dirty = False
+        if (daylight_mode := self._daylight_mode_from_cache()) is None:
+            dirty = True
+            daylight_mode = DEFAULT_DAYLIGHT_MODE
+        if (reset_timer := self._reset_timer_from_cache()) is None:
+            dirty = True
+            reset_timer = DEFAULT_RESET_TIMER
+        if (sensitivity_level := self._sensitivity_level_from_cache()) is None:
+            dirty = True
+            sensitivity_level = DEFAULT_SENSITIVITY
+        dirty &= self._motion_config_dirty_from_cache()
+
         self._motion_config = MotionConfig(
-            daylight_mode=self._daylight_mode_from_cache(),
-            reset_timer=self._reset_timer_from_cache(),
-            sensitivity_level=self._sensitivity_level_from_cache(),
+            daylight_mode=daylight_mode,
+            reset_timer=reset_timer,
+            sensitivity_level=sensitivity_level,
+            dirty=dirty,
         )
         return True
 
-    def _daylight_mode_from_cache(self) -> bool:
+    def _daylight_mode_from_cache(self) -> bool | None:
         """Load awake duration from cache."""
-        if (daylight_mode := self._get_cache(CACHE_SCAN_DAYLIGHT_MODE)) is not None:
+        if (daylight_mode := self._get_cache(CACHE_CONFIG_DAYLIGHT_MODE)) is not None:
             if daylight_mode == "True":
                 return True
             return False
-        return SCAN_DEFAULT_DAYLIGHT_MODE
+        return None
 
     def _motion_from_cache(self) -> bool:
         """Load motion state from cache."""
@@ -193,19 +203,25 @@ class PlugwiseScan(NodeSED):
             ):
                 return True
             return False
-        return SCAN_DEFAULT_MOTION_STATE
+        return DEFAULT_MOTION_STATE
 
-    def _reset_timer_from_cache(self) -> int:
+    def _reset_timer_from_cache(self) -> int | None:
         """Load reset timer from cache."""
-        if (reset_timer := self._get_cache(CACHE_MOTION_RESET_TIMER)) is not None:
+        if (reset_timer := self._get_cache(CACHE_CONFIG_RESET_TIMER)) is not None:
             return int(reset_timer)
-        return SCAN_DEFAULT_MOTION_RESET_TIMER
+        return None
 
-    def _sensitivity_level_from_cache(self) -> MotionSensitivity:
+    def _sensitivity_level_from_cache(self) -> MotionSensitivity | None:
         """Load sensitivity level from cache."""
-        if (sensitivity_level := self._get_cache(CACHE_SCAN_SENSITIVITY)) is not None:
+        if (sensitivity_level := self._get_cache(CACHE_CONFIG_SENSITIVITY)) is not None:
             return MotionSensitivity[sensitivity_level]
-        return SCAN_DEFAULT_SENSITIVITY
+        return None
+
+    def _motion_config_dirty_from_cache(self) -> bool:
+        """Load dirty  from cache."""
+        if (dirty := self._get_cache(CACHE_CONFIG_DIRTY)) is not None:
+            return dirty
+        return True
 
     def _motion_timestamp_from_cache(self) -> datetime | None:
         """Load motion timestamp from cache."""
@@ -223,11 +239,9 @@ class PlugwiseScan(NodeSED):
     @raise_not_loaded
     def daylight_mode(self) -> bool:
         """Daylight mode of motion sensor."""
-        if self._new_daylight_mode is not None:
-            return self._new_daylight_mode
         if self._motion_config.daylight_mode is not None:
             return self._motion_config.daylight_mode
-        return SCAN_DEFAULT_DAYLIGHT_MODE
+        return DEFAULT_DAYLIGHT_MODE
 
     @property
     @raise_not_loaded
@@ -265,11 +279,9 @@ class PlugwiseScan(NodeSED):
     @raise_not_loaded
     def reset_timer(self) -> int:
         """Total minutes without motion before no motion is reported."""
-        if self._new_reset_timer is not None:
-            return self._new_reset_timer
         if self._motion_config.reset_timer is not None:
             return self._motion_config.reset_timer
-        return SCAN_DEFAULT_MOTION_RESET_TIMER
+        return DEFAULT_RESET_TIMER
 
     @property
     def scan_config_task_scheduled(self) -> bool:
@@ -279,11 +291,9 @@ class PlugwiseScan(NodeSED):
     @property
     def sensitivity_level(self) -> MotionSensitivity:
         """Sensitivity level of motion sensor."""
-        if self._new_sensitivity_level is not None:
-            return self._new_sensitivity_level
         if self._motion_config.sensitivity_level is not None:
             return self._motion_config.sensitivity_level
-        return SCAN_DEFAULT_SENSITIVITY
+        return DEFAULT_SENSITIVITY
 
     # endregion
     # region Configuration actions
@@ -300,9 +310,14 @@ class PlugwiseScan(NodeSED):
             self._motion_config.daylight_mode,
             state,
         )
-        self._new_daylight_mode = state
         if self._motion_config.daylight_mode == state:
             return False
+        self._motion_config = replace(
+            self._motion_config,
+            daylight_mode=state,
+            dirty=True,
+        )
+        await self._scan_configure_update()
         if not self._scan_config_task_scheduled:
             await self.schedule_task_when_awake(self._configure_scan_task())
             self._scan_config_task_scheduled = True
@@ -325,9 +340,14 @@ class PlugwiseScan(NodeSED):
             raise ValueError(
                 f"Invalid motion reset timer ({minutes}). It must be between 1 and 255 minutes."
             )
-        self._new_reset_timer = minutes
         if self._motion_config.reset_timer == minutes:
             return False
+        self._motion_config = replace(
+            self._motion_config,
+            reset_timer=minutes,
+            dirty=True,
+        )
+        await self._scan_configure_update()
         if not self._scan_config_task_scheduled:
             await self.schedule_task_when_awake(self._configure_scan_task())
             self._scan_config_task_scheduled = True
@@ -346,9 +366,14 @@ class PlugwiseScan(NodeSED):
             self._motion_config.sensitivity_level,
             level,
         )
-        self._new_sensitivity_level = level
         if self._motion_config.sensitivity_level == level:
             return False
+        self._motion_config = replace(
+            self._motion_config,
+            sensitivity_level=level,
+            dirty=True,
+        )
+        await self._scan_configure_update()
         if not self._scan_config_task_scheduled:
             await self.schedule_task_when_awake(self._configure_scan_task())
             self._scan_config_task_scheduled = True
@@ -403,9 +428,9 @@ class PlugwiseScan(NodeSED):
                     )
                     if self._motion_config.reset_timer is None:
                         self._motion_config = replace(
-                            self._motion_config,
-                            reset_timer=reset_timer,
+                            self._motion_config, reset_timer=reset_timer, dirty=True
                         )
+                        await self._scan_configure_update()
                     elif reset_timer < self._motion_config.reset_timer:
                         _LOGGER.warning(
                             "Adjust reset timer for %s from %s -> %s",
@@ -414,9 +439,9 @@ class PlugwiseScan(NodeSED):
                             reset_timer,
                         )
                         self._motion_config = replace(
-                            self._motion_config,
-                            reset_timer=reset_timer,
+                            self._motion_config, reset_timer=reset_timer, dirty=True
                         )
+                        await self._scan_configure_update()
                 state_update = True
         self._set_cache(CACHE_MOTION_TIMESTAMP, timestamp)
         if state_update:
@@ -438,53 +463,16 @@ class PlugwiseScan(NodeSED):
     async def _configure_scan_task(self) -> bool:
         """Configure Scan device settings. Returns True if successful."""
         self._scan_config_task_scheduled = False
-        change_required = False
-        if self._new_reset_timer is not None:
-            change_required = True
-        if self._new_sensitivity_level is not None:
-            change_required = True
-        if self._new_daylight_mode is not None:
-            change_required = True
-        if not change_required:
+        if not self._motion_config.dirty:
             return True
-        if not await self.scan_configure(
-            motion_reset_timer=self.reset_timer,
-            sensitivity_level=self.sensitivity_level,
-            daylight_mode=self.daylight_mode,
-        ):
+        if not await self.scan_configure():
+            _LOGGER.debug("Motion Configuration for %s failed", self._mac_in_str)
+            await self.schedule_task_when_awake(self._configure_scan_task())
+            self._scan_config_task_scheduled = True
             return False
-        if self._new_reset_timer is not None:
-            _LOGGER.info(
-                "Change of motion reset timer from %s to %s minutes has been accepted by %s",
-                self._motion_config.reset_timer,
-                self._new_reset_timer,
-                self.name,
-            )
-            self._new_reset_timer = None
-        if self._new_sensitivity_level is not None:
-            _LOGGER.info(
-                "Change of sensitivity level from %s to %s has been accepted by %s",
-                self._motion_config.sensitivity_level,
-                self._new_sensitivity_level,
-                self.name,
-            )
-            self._new_sensitivity_level = None
-        if self._new_daylight_mode is not None:
-            _LOGGER.info(
-                "Change of daylight mode from %s to %s has been accepted by %s",
-                "On" if self._motion_config.daylight_mode else "Off",
-                "On" if self._new_daylight_mode else "Off",
-                self.name,
-            )
-            self._new_daylight_mode = None
         return True
 
-    async def scan_configure(
-        self,
-        motion_reset_timer: int,
-        sensitivity_level: MotionSensitivity,
-        daylight_mode: bool,
-    ) -> bool:
+    async def scan_configure(self) -> bool:
         """Configure Scan device settings. Returns True if successful."""
         sensitivity_map = {
             MotionSensitivity.HIGH: SENSITIVITY_HIGH_VALUE,
@@ -493,27 +481,24 @@ class PlugwiseScan(NodeSED):
         }
         # Default to medium
         sensitivity_value = sensitivity_map.get(
-            sensitivity_level, SENSITIVITY_MEDIUM_VALUE
+            self._motion_config.sensitivity_level, SENSITIVITY_MEDIUM_VALUE
         )
         request = ScanConfigureRequest(
             self._send,
             self._mac_in_bytes,
-            motion_reset_timer,
+            self._motion_config.reset_timer,
             sensitivity_value,
-            daylight_mode,
+            self._motion_config.daylight_mode,
         )
         if (response := await request.send()) is not None:
             if response.node_ack_type == NodeAckResponseType.SCAN_CONFIG_FAILED:
-                self._new_reset_timer = None
-                self._new_sensitivity_level = None
-                self._new_daylight_mode = None
                 _LOGGER.warning("Failed to configure scan settings for %s", self.name)
                 return False
 
             if response.node_ack_type == NodeAckResponseType.SCAN_CONFIG_ACCEPTED:
-                await self._scan_configure_update(
-                    motion_reset_timer, sensitivity_level, daylight_mode
-                )
+                _LOGGER.debug("Successful configure scan settings for %s", self.name)
+                self._motion_config = replace(self._motion_config, dirty=False)
+                await self._scan_configure_update()
                 return True
 
             _LOGGER.warning(
@@ -522,31 +507,16 @@ class PlugwiseScan(NodeSED):
                 self.name,
             )
             return False
-
-        self._new_reset_timer = None
-        self._new_sensitivity_level = None
-        self._new_daylight_mode = None
         return False
 
-    async def _scan_configure_update(
-        self,
-        motion_reset_timer: int,
-        sensitivity_level: MotionSensitivity,
-        daylight_mode: bool,
-    ) -> None:
-        """Process result of scan configuration update."""
-        self._motion_config = replace(
-            self._motion_config,
-            reset_timer=motion_reset_timer,
-            sensitivity_level=sensitivity_level,
-            daylight_mode=daylight_mode,
+    async def _scan_configure_update(self) -> None:
+        """Push scan configuration update to cache."""
+        self._set_cache(CACHE_CONFIG_RESET_TIMER, str(self._motion_config.reset_timer))
+        self._set_cache(CACHE_CONFIG_SENSITIVITY, self._motion_config.sensitivity_level)
+        self._set_cache(
+            CACHE_CONFIG_DAYLIGHT_MODE, str(self._motion_config.daylight_mode)
         )
-        self._set_cache(CACHE_MOTION_RESET_TIMER, str(motion_reset_timer))
-        self._set_cache(CACHE_SCAN_SENSITIVITY, sensitivity_level.name)
-        if daylight_mode:
-            self._set_cache(CACHE_SCAN_DAYLIGHT_MODE, "True")
-        else:
-            self._set_cache(CACHE_SCAN_DAYLIGHT_MODE, "False")
+        self._set_cache(CACHE_CONFIG_DIRTY, str(self._motion_config.dirty))
         await gather(
             self.publish_feature_update_to_subscribers(
                 NodeFeature.MOTION_CONFIG,
