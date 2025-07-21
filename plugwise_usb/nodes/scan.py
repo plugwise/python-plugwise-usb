@@ -107,6 +107,12 @@ class PlugwiseScan(NodeSED):
 
         _LOGGER.debug("Loading Scan node %s", self._node_info.mac)
         await super().load()
+        if (
+            await self._load_scan_from_cache()
+            and not self._scan_config_task_scheduled
+        ):
+            await self.schedule_task_when_awake(self._configure_scan_task())
+            self._scan_config_task_scheduled = True
 
         self._setup_protocol(SCAN_FIRMWARE_SUPPORT, SCAN_FEATURES)
         await self.initialize()
@@ -134,20 +140,6 @@ class PlugwiseScan(NodeSED):
     # region Caching
     async def _load_defaults(self) -> None:
         """Load default configuration settings."""
-        await super()._load_defaults()
-        self._motion_state = MotionState(
-            state=DEFAULT_MOTION_STATE,
-            timestamp=None,
-        )
-        self._motion_config = MotionConfig(
-            reset_timer=DEFAULT_RESET_TIMER,
-            daylight_mode=DEFAULT_DAYLIGHT_MODE,
-            sensitivity_level=DEFAULT_SENSITIVITY,
-            dirty=True,
-        )
-        await self._scan_configure_update()
-        await self.schedule_task_when_awake(self._configure_scan_task())
-        self._scan_config_task_scheduled = True
         if self._node_info.model is None:
             self._node_info.model = "Scan"
         if self._node_info.name is None:
@@ -155,10 +147,8 @@ class PlugwiseScan(NodeSED):
         if self._node_info.firmware is None:
             self._node_info.firmware = DEFAULT_FIRMWARE
 
-    async def _load_from_cache(self) -> bool:
+    async def _load_scan_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
-        if not await super()._load_from_cache():
-            return False
         self._motion_state = MotionState(
             state=self._motion_from_cache(),
             timestamp=self._motion_timestamp_from_cache(),
@@ -173,7 +163,7 @@ class PlugwiseScan(NodeSED):
         if (sensitivity_level := self._sensitivity_level_from_cache()) is None:
             dirty = True
             sensitivity_level = DEFAULT_SENSITIVITY
-        dirty &= self._motion_config_dirty_from_cache()
+        dirty |= self._motion_config_dirty_from_cache()
 
         self._motion_config = MotionConfig(
             daylight_mode=daylight_mode,
@@ -181,21 +171,23 @@ class PlugwiseScan(NodeSED):
             sensitivity_level=sensitivity_level,
             dirty=dirty,
         )
-        return True
+        return dirty
 
     def _daylight_mode_from_cache(self) -> bool | None:
         """Load awake duration from cache."""
-        if (daylight_mode := self._get_cache(CACHE_CONFIG_DAYLIGHT_MODE)) is not None:
-            if daylight_mode == "True":
-                return True
-            return False
+        if (
+            daylight_mode := self._get_cache_as_bool(CACHE_CONFIG_DAYLIGHT_MODE)
+        ) is not None:
+            return daylight_mode
         return None
 
     def _motion_from_cache(self) -> bool:
         """Load motion state from cache."""
-        if (cached_motion_state := self._get_cache(CACHE_MOTION_STATE)) is not None:
+        if (
+            cached_motion_state := self._get_cache_as_bool(CACHE_MOTION_STATE)
+        ) is not None:
             if (
-                cached_motion_state == "True"
+                cached_motion_state
                 and (motion_timestamp := self._motion_timestamp_from_cache())
                 is not None
                 and int((datetime.now(tz=UTC) - motion_timestamp).total_seconds())
@@ -219,7 +211,7 @@ class PlugwiseScan(NodeSED):
 
     def _motion_config_dirty_from_cache(self) -> bool:
         """Load dirty  from cache."""
-        if (dirty := self._get_cache(CACHE_CONFIG_DIRTY)) is not None:
+        if (dirty := self._get_cache_as_bool(CACHE_CONFIG_DIRTY)) is not None:
             return dirty
         return True
 
