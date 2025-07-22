@@ -1256,8 +1256,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 case NodeFeature.RELAY_INIT:
                     states[feature] = self._relay_config
                 case NodeFeature.POWER:
-                    # power_update() is called as part of energy_update()
-                    states[feature] = self._power
+                    states[feature] = await self.power_update()
                     _LOGGER.debug(
                         "async_get_state %s - power: %s",
                         self._mac_in_str,
