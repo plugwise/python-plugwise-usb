@@ -1237,14 +1237,13 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 )
 
             match feature:
-                # Disable, getting NodeFeature.POWER will trigger an energy_update
-                # case NodeFeature.ENERGY:
-                #     states[feature] = await self.energy_update()
-                #     _LOGGER.debug(
-                #         "async_get_state %s - energy: %s",
-                #         self._mac_in_str,
-                #         states[feature],
-                #     )
+                case NodeFeature.ENERGY:
+                    states[feature] = await self.energy_update()
+                    _LOGGER.debug(
+                        "async_get_state %s - energy: %s",
+                        self._mac_in_str,
+                        states[feature],
+                    )
                 case NodeFeature.RELAY:
                     states[feature] = self._relay_state
                     _LOGGER.debug(
