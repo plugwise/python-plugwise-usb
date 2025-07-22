@@ -1,5 +1,9 @@
 # Changelog
 
+## ONGOING
+
+- PR [295](https://github.com/plugwise/python-plugwise-usb/pull/295): Streamline of loading function, to allow nodes to load even if temporarily offline, especially for SED nodes.
+
 ## v0.44.8
 
 - PR [291](https://github.com/plugwise/python-plugwise-usb/pull/291): Collect send-queue depth via PriorityQueue.qsize(), this provides a more accurate result
