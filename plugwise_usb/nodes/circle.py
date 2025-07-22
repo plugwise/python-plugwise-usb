@@ -1238,6 +1238,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     f"Update of feature '{feature}' is not supported for {self.name}"
                 )
 
+        features, states = await self._check_for_energy_and_power_features(
+            features, states
+        )
+
+        for feature in features:
             match feature:
                 case NodeFeature.ENERGY:
                     states[feature] = await self.energy_update()
@@ -1272,6 +1277,38 @@ class PlugwiseCircle(PlugwiseBaseNode):
             states[NodeFeature.AVAILABLE] = self.available_state
 
         return states
+
+    async def _check_for_energy_and_power_features(
+        self, features: tuple[NodeFeature], states: dict[NodeFeature, Any]
+    ) -> tuple[tuple[NodeFeature], dict[NodeFeature, Any]]:
+        """Check for presence of both NodeFeature.ENERGY and NodeFeature.POWER.
+
+        If both are present, execute the related functions in a specific order
+        to assure a proper response to the hourly pulses-rollovers.
+        """
+        if NodeFeature.ENERGY in features and NodeFeature.POWER in features:
+            states[NodeFeature.POWER] = await self.power_update()
+            _LOGGER.debug(
+                "async_get_state %s - power: %s",
+                self._mac_in_str,
+                states[NodeFeature.POWER],
+            )
+            states[NodeFeature.ENERGY] = await self.energy_update()
+            _LOGGER.debug(
+                "async_get_state %s - energy: %s",
+                self._mac_in_str,
+                states[NodeFeature.ENERGY],
+            )
+
+            remaining_features: tuple[NodeFeature, ...] = ()
+            for feature in features:
+                if feature in [NodeFeature.ENERGY, NodeFeature.POWER]:
+                    continue
+                remaining_features += (feature,)
+
+            return remaining_features, states
+
+        return features, states
 
     async def energy_reset_request(self) -> None:
         """Send an energy-reset to a Node."""
