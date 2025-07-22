@@ -429,6 +429,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     )
                     return self._energy_counters.energy_statistics
 
+            # Perform a power_update() when there are more missing logs
+            # Required because calling power_update() in get_state() has been removed
+            await self.power_update()
+
         # Create task to request remaining missing logs
         if (
             self._retrieve_energy_logs_task is None
