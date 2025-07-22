@@ -294,6 +294,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         Return power usage or None if retrieval failed
         """
+        _LOGGER.debug("Requesting a PowerStatistics update for %s", self._mac_in_str)
         # Debounce power
         if self.skip_update(self._power, MINIMAL_POWER_UPDATE):
             return self._power
@@ -349,6 +350,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
     @raise_calibration_missing
     async def energy_update(self) -> EnergyStatistics | None:  # noqa: PLR0911 PLR0912
         """Return updated energy usage statistics."""
+        _LOGGER.debug("Requesting an EnergyStatistics update for %s", self._mac_in_str)
         if self._current_log_address is None:
             _LOGGER.debug(
                 "Unable to update energy logs for node %s because the current log address is unknown.",
@@ -369,6 +371,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._current_log_address
             )
 
+        _LOGGER.debug(
+            "Rollover status for %s: %s", self._mac_in_str, self._energy_counters.log_rollover
+        )
         if self._energy_counters.log_rollover:
             # Try updating node_info to collect the updated energy log address
             if await self.node_info_update() is None:
