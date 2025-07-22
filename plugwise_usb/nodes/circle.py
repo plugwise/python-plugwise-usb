@@ -372,7 +372,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
 
         _LOGGER.debug(
-            "Rollover status for %s: %s", self._mac_in_str, self._energy_counters.log_rollover
+            "Rollover status for %s: %s",
+            self._mac_in_str,
+            self._energy_counters.log_rollover,
         )
         if self._energy_counters.log_rollover:
             # Try updating node_info to collect the updated energy log address
