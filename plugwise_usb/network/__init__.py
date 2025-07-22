@@ -488,7 +488,7 @@ class StickNetwork:
     async def _load_stragglers(self) -> None:
         """Retry failed load operation."""
         await sleep(NODE_RETRY_LOAD_INTERVAL)
-        while not self._load_discovered_nodes():
+        while not await self._load_discovered_nodes():
             await sleep(NODE_RETRY_LOAD_INTERVAL)
 
     async def _load_discovered_nodes(self) -> bool:
