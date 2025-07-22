@@ -542,7 +542,7 @@ class PlugwiseScan(NodeSED):
             daylight_mode=daylight_mode,
         )
         self._set_cache(CACHE_MOTION_RESET_TIMER, str(motion_reset_timer))
-        self._set_cache(CACHE_SCAN_SENSITIVITY, sensitivity_level)
+        self._set_cache(CACHE_SCAN_SENSITIVITY, sensitivity_level.name)
         if daylight_mode:
             self._set_cache(CACHE_SCAN_DAYLIGHT_MODE, "True")
         else:
