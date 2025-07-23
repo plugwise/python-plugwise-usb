@@ -481,15 +481,14 @@ class StickNetwork:
             return False
         if self._nodes[mac].is_loaded:
             return True
-        if await self._nodes[mac].load():
-            await self._notify_node_event_subscribers(NodeEvent.LOADED, mac)
-            return True
-        return False
+        await self._nodes[mac].load()
+        await self._notify_node_event_subscribers(NodeEvent.LOADED, mac)
+        return True
 
     async def _load_stragglers(self) -> None:
         """Retry failed load operation."""
         await sleep(NODE_RETRY_LOAD_INTERVAL)
-        while not self._load_discovered_nodes():
+        while not await self._load_discovered_nodes():
             await sleep(NODE_RETRY_LOAD_INTERVAL)
 
     async def _load_discovered_nodes(self) -> bool:

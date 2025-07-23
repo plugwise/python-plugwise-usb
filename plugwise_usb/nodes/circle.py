@@ -8,7 +8,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from functools import wraps
 import logging
-from typing import Any, TypeVar, cast
+from typing import Any, Final, TypeVar, cast
 
 from ..api import (
     EnergyStatistics,
@@ -16,6 +16,7 @@ from ..api import (
     NodeFeature,
     NodeInfo,
     NodeInfoMessage,
+    NodeType,
     PowerStatistics,
     RelayConfig,
     RelayLock,
@@ -58,6 +59,19 @@ CACHE_RELAY = "relay"
 CACHE_RELAY_INIT = "relay_init"
 CACHE_RELAY_LOCK = "relay_lock"
 
+CIRCLE_FEATURES: Final = (
+    NodeFeature.CIRCLE,
+    NodeFeature.RELAY,
+    NodeFeature.RELAY_INIT,
+    NodeFeature.RELAY_LOCK,
+    NodeFeature.ENERGY,
+    NodeFeature.POWER,
+)
+
+
+# Default firmware if not known
+DEFAULT_FIRMWARE: Final = datetime(2008, 8, 26, 15, 46, tzinfo=UTC)
+
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 _LOGGER = logging.getLogger(__name__)
 
@@ -81,11 +95,12 @@ class PlugwiseCircle(PlugwiseBaseNode):
         self,
         mac: str,
         address: int,
+        node_type: NodeType,
         controller: StickController,
         loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
     ):
         """Initialize base class for Sleeping End Device."""
-        super().__init__(mac, address, controller, loaded_callback)
+        super().__init__(mac, address, node_type, controller, loaded_callback)
 
         # Relay
         self._relay_lock: RelayLock = RelayLock()
@@ -882,10 +897,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
             return True
         return False
 
-    async def load(self) -> bool:
+    async def load(self) -> None:
         """Load and activate Circle node features."""
         if self._loaded:
-            return True
+            return
 
         if self._cache_enabled:
             _LOGGER.debug("Loading Circle node %s from cache", self._mac_in_str)
@@ -895,37 +910,20 @@ class PlugwiseCircle(PlugwiseBaseNode):
             _LOGGER.debug("Retrieving Info For Circle node %s", self._mac_in_str)
 
             # Check if node is online
-            if not self._available and not await self.is_online():
+            if (
+                not self._available and not await self.is_online()
+            ) or await self.node_info_update() is None:
                 _LOGGER.debug(
-                    "Failed to load Circle node %s because it is not online",
+                    "Failed to retrieve NodeInfo for %s, loading defaults",
                     self._mac_in_str,
                 )
-                return False
+                await self._load_defaults()
 
-            # Get node info
-            if await self.node_info_update() is None:
-                _LOGGER.debug(
-                    "Failed to load Circle node %s because it is not responding to information request",
-                    self._mac_in_str,
-                )
-                return False
+        self._loaded = True
 
-            self._loaded = True
-
-        self._setup_protocol(
-            CIRCLE_FIRMWARE_SUPPORT,
-            (
-                NodeFeature.CIRCLE,
-                NodeFeature.RELAY,
-                NodeFeature.RELAY_INIT,
-                NodeFeature.RELAY_LOCK,
-                NodeFeature.ENERGY,
-                NodeFeature.POWER,
-            ),
-        )
+        self._setup_protocol(CIRCLE_FIRMWARE_SUPPORT, CIRCLE_FEATURES)
         await self._loaded_callback(NodeEvent.LOADED, self.mac)
         await self.initialize()
-        return True
 
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
@@ -971,6 +969,15 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 result = False
 
         return result
+
+    async def _load_defaults(self) -> None:
+        """Load default configuration settings."""
+        if self._node_info.model is None:
+            self._node_info.model = "Circle"
+        if self._node_info.name is None:
+            self._node_info.name = f"Circle {self._node_info.mac[-5:]}"
+        if self._node_info.firmware is None:
+            self._node_info.firmware = DEFAULT_FIRMWARE
 
     @raise_not_loaded
     async def initialize(self) -> bool:

@@ -9,7 +9,14 @@ from datetime import UTC, datetime
 import logging
 from typing import Any, Final
 
-from ..api import MotionConfig, MotionSensitivity, MotionState, NodeEvent, NodeFeature
+from ..api import (
+    MotionConfig,
+    MotionSensitivity,
+    MotionState,
+    NodeEvent,
+    NodeFeature,
+    NodeType,
+)
 from ..connection import StickController
 from ..constants import MAX_UINT_2
 from ..exceptions import MessageError, NodeError, NodeTimeout
@@ -48,10 +55,19 @@ SCAN_DEFAULT_SENSITIVITY: Final = MotionSensitivity.MEDIUM
 # Light override
 SCAN_DEFAULT_DAYLIGHT_MODE: Final = False
 
+# Default firmware if not known
+DEFAULT_FIRMWARE: Final = datetime(2010, 11, 4, 16, 58, 46, tzinfo=UTC)
+
 # Sensitivity values for motion sensor configuration
 SENSITIVITY_HIGH_VALUE = 20  # 0x14
 SENSITIVITY_MEDIUM_VALUE = 30  # 0x1E
 SENSITIVITY_OFF_VALUE = 255  # 0xFF
+
+# Scan Features
+SCAN_FEATURES: Final = (
+    NodeFeature.MOTION,
+    NodeFeature.MOTION_CONFIG,
+)
 
 # endregion
 
@@ -63,11 +79,12 @@ class PlugwiseScan(NodeSED):
         self,
         mac: str,
         address: int,
+        node_type: NodeType,
         controller: StickController,
         loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
     ):
         """Initialize Scan Device."""
-        super().__init__(mac, address, controller, loaded_callback)
+        super().__init__(mac, address, node_type, controller, loaded_callback)
         self._unsubscribe_switch_group: Callable[[], None] | None = None
         self._reset_timer_motion_on: datetime | None = None
         self._scan_subscription: Callable[[], None] | None = None
@@ -85,37 +102,23 @@ class PlugwiseScan(NodeSED):
 
     # region Load & Initialize
 
-    async def load(self) -> bool:
+    async def load(self) -> None:
         """Load and activate Scan node features."""
         if self._loaded:
-            return True
-        if self._cache_enabled:
-            _LOGGER.debug("Load Scan node %s from cache", self._node_info.mac)
-            await self._load_from_cache()
-        else:
-            self._load_defaults()
-        self._loaded = True
-        self._setup_protocol(
-            SCAN_FIRMWARE_SUPPORT,
-            (
-                NodeFeature.BATTERY,
-                NodeFeature.INFO,
-                NodeFeature.PING,
-                NodeFeature.MOTION,
-                NodeFeature.MOTION_CONFIG,
-            ),
-        )
-        if await self.initialize():
-            await self._loaded_callback(NodeEvent.LOADED, self.mac)
-            return True
-        _LOGGER.debug("Load of Scan node %s failed", self._node_info.mac)
-        return False
+            return
+
+        _LOGGER.debug("Loading Scan node %s", self._node_info.mac)
+        await super().load()
+
+        self._setup_protocol(SCAN_FIRMWARE_SUPPORT, SCAN_FEATURES)
+        await self.initialize()
+        await self._loaded_callback(NodeEvent.LOADED, self.mac)
 
     @raise_not_loaded
-    async def initialize(self) -> bool:
+    async def initialize(self) -> None:
         """Initialize Scan node."""
         if self._initialized:
-            return True
+            return
 
         self._unsubscribe_switch_group = await self._message_subscribe(
             self._switch_group,
@@ -123,7 +126,6 @@ class PlugwiseScan(NodeSED):
             (NODE_SWITCH_GROUP_ID,),
         )
         await super().initialize()
-        return True
 
     async def unload(self) -> None:
         """Unload node."""
@@ -132,9 +134,9 @@ class PlugwiseScan(NodeSED):
         await super().unload()
 
     # region Caching
-    def _load_defaults(self) -> None:
+    async def _load_defaults(self) -> None:
         """Load default configuration settings."""
-        super()._load_defaults()
+        await super()._load_defaults()
         self._motion_state = MotionState(
             state=SCAN_DEFAULT_MOTION_STATE,
             timestamp=None,
@@ -144,11 +146,21 @@ class PlugwiseScan(NodeSED):
             daylight_mode=SCAN_DEFAULT_DAYLIGHT_MODE,
             sensitivity_level=SCAN_DEFAULT_SENSITIVITY,
         )
+        if self._node_info.model is None:
+            self._node_info.model = "Scan"
+        if self._node_info.name is None:
+            self._node_info.name = f"Scan {self._node_info.mac[-5:]}"
+        if self._node_info.firmware is None:
+            self._node_info.firmware = DEFAULT_FIRMWARE
+        self._new_reset_timer = SCAN_DEFAULT_MOTION_RESET_TIMER
+        self._new_daylight_mode = SCAN_DEFAULT_DAYLIGHT_MODE
+        self._new_sensitivity_level = SCAN_DEFAULT_SENSITIVITY
+        await self.schedule_task_when_awake(self._configure_scan_task())
+        self._scan_config_task_scheduled = True
 
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
         if not await super()._load_from_cache():
-            self._load_defaults()
             return False
         self._motion_state = MotionState(
             state=self._motion_from_cache(),
@@ -530,7 +542,7 @@ class PlugwiseScan(NodeSED):
             daylight_mode=daylight_mode,
         )
         self._set_cache(CACHE_MOTION_RESET_TIMER, str(motion_reset_timer))
-        self._set_cache(CACHE_SCAN_SENSITIVITY, sensitivity_level.value)
+        self._set_cache(CACHE_SCAN_SENSITIVITY, sensitivity_level.name)
         if daylight_mode:
             self._set_cache(CACHE_SCAN_DAYLIGHT_MODE, "True")
         else:
