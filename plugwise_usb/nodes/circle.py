@@ -1299,13 +1299,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._mac_in_str,
                 states[NodeFeature.ENERGY],
             )
-
-            remaining_features: tuple[NodeFeature, ...] = ()
-            for feature in features:
-                if feature in [NodeFeature.ENERGY, NodeFeature.POWER]:
-                    continue
-                remaining_features += (feature,)
-
+            remaining_features = tuple(
+                f for f in features if f not in {NodeFeature.ENERGY, NodeFeature.POWER}
+            )
             return remaining_features, states
 
         return features, states
