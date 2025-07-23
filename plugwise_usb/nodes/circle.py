@@ -1279,7 +1279,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         If both are present, execute the related functions in a specific order
         to assure a proper response to the hourly pulses-rollovers.
         """
-        if {NodeFeature.ENERGY, NodeFeature.POWER} <= features:
+        if {NodeFeature.ENERGY, NodeFeature.POWER} <= set(features):
             states[NodeFeature.POWER] = await self.power_update()
             _LOGGER.debug(
                 "async_get_state %s - power: %s",
@@ -1292,10 +1292,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._mac_in_str,
                 states[NodeFeature.ENERGY],
             )
-            remaining_features = tuple(
-                f for f in features if f not in {NodeFeature.ENERGY, NodeFeature.POWER}
-            )
-            return remaining_features, states
+            return tuple(
+                set(features).difference({NodeFeature.ENERGY, NodeFeature.POWER})
+            ), states
 
         return features, states
 
