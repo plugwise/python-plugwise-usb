@@ -2,6 +2,7 @@
 
 ## ONGOING
 
+- Fix for [#291](https://github.com/plugwise/plugwise_usb-beta/issues/291) via PR [297](https://github.com/plugwise/python-plugwise-usb/pull/297)
 - PR [295](https://github.com/plugwise/python-plugwise-usb/pull/295): Streamline of loading function, to allow nodes to load even if temporarily offline, especially for SED nodes.
 
 ## v0.44.8
