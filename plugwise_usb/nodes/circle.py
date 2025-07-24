@@ -1078,7 +1078,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
             and not self._retrieve_energy_logs_task.done()
         ):
             self._retrieve_energy_logs_task.cancel()
-            await self._retrieve_energy_logs_task
 
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
