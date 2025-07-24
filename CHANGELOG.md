@@ -1,12 +1,12 @@
 # Changelog
 
-## ONGOING
+## v0.44.9 - 2025-07-24
 
 - Fix for [#293](https://github.com/plugwise/plugwise_usb-beta/issues/293) via PR [299](https://github.com/plugwise/python-plugwise-usb/pull/299)
 - Fix for [#291](https://github.com/plugwise/plugwise_usb-beta/issues/291) via PR [297](https://github.com/plugwise/python-plugwise-usb/pull/297)
 - PR [295](https://github.com/plugwise/python-plugwise-usb/pull/295): Streamline of loading function, to allow nodes to load even if temporarily offline, especially for SED nodes.
 
-## v0.44.8
+## v0.44.8 - 2025-07-21
 
 - PR [291](https://github.com/plugwise/python-plugwise-usb/pull/291): Collect send-queue depth via PriorityQueue.qsize(), this provides a more accurate result
 - Fix for [#288](https://github.com/plugwise/plugwise_usb-beta/issues/288) via PR [293](https://github.com/plugwise/python-plugwise-usb/pull/293)
