@@ -155,7 +155,8 @@ class PlugwiseScan(NodeSED):
         self._new_reset_timer = SCAN_DEFAULT_MOTION_RESET_TIMER
         self._new_daylight_mode = SCAN_DEFAULT_DAYLIGHT_MODE
         self._new_sensitivity_level = SCAN_DEFAULT_SENSITIVITY
-        await self.schedule_task_when_awake(self._configure_scan_task())
+        task = await self._configure_scan_task()
+        await self.schedule_task_when_awake(task)
         self._scan_config_task_scheduled = True
 
     async def _load_from_cache(self) -> bool:
@@ -304,7 +305,8 @@ class PlugwiseScan(NodeSED):
         if self._motion_config.daylight_mode == state:
             return False
         if not self._scan_config_task_scheduled:
-            await self.schedule_task_when_awake(self._configure_scan_task())
+            task = await self._configure_scan_task()
+            await self.schedule_task_when_awake(task)
             self._scan_config_task_scheduled = True
             _LOGGER.debug(
                 "set_motion_daylight_mode | Device %s | config scheduled",
@@ -329,7 +331,8 @@ class PlugwiseScan(NodeSED):
         if self._motion_config.reset_timer == minutes:
             return False
         if not self._scan_config_task_scheduled:
-            await self.schedule_task_when_awake(self._configure_scan_task())
+            task = await self._configure_scan_task()
+            await self.schedule_task_when_awake(task)
             self._scan_config_task_scheduled = True
             _LOGGER.debug(
                 "set_motion_reset_timer | Device %s | config scheduled",
@@ -350,7 +353,8 @@ class PlugwiseScan(NodeSED):
         if self._motion_config.sensitivity_level == level:
             return False
         if not self._scan_config_task_scheduled:
-            await self.schedule_task_when_awake(self._configure_scan_task())
+            task = await self._configure_scan_task()
+            await self.schedule_task_when_awake(task)
             self._scan_config_task_scheduled = True
             _LOGGER.debug(
                 "set_motion_sensitivity_level | Device %s | config scheduled",

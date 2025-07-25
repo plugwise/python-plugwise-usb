@@ -169,10 +169,12 @@ class NodeSED(PlugwiseBaseNode):
             maintenance_interval=SED_DEFAULT_MAINTENANCE_INTERVAL,
             sleep_duration=SED_DEFAULT_SLEEP_DURATION,
         )
-        await self.schedule_task_when_awake(self.node_info_update(None))
+        task = await self.node_info_update(None)
+        await self.schedule_task_when_awake(task)
         self._sed_config_task_scheduled = True
         self._new_battery_config = self._battery_config
-        await self.schedule_task_when_awake(self._configure_sed_task())
+        task = await self._configure_sed_task()
+        await self.schedule_task_when_awake(task)
 
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
@@ -251,7 +253,8 @@ class NodeSED(PlugwiseBaseNode):
             self._new_battery_config, awake_duration=seconds
         )
         if not self._sed_config_task_scheduled:
-            await self.schedule_task_when_awake(self._configure_sed_task())
+            task = await self._configure_sed_task()
+            await self.schedule_task_when_awake(task)
             self._sed_config_task_scheduled = True
             _LOGGER.debug(
                 "set_awake_duration | Device %s | config scheduled",
@@ -281,7 +284,8 @@ class NodeSED(PlugwiseBaseNode):
             self._new_battery_config, clock_interval=minutes
         )
         if not self._sed_config_task_scheduled:
-            await self.schedule_task_when_awake(self._configure_sed_task())
+            task = await self._configure_sed_task()
+            await self.schedule_task_when_awake(task)
             self._sed_config_task_scheduled = True
             _LOGGER.debug(
                 "set_clock_interval | Device %s | config scheduled",
@@ -304,7 +308,8 @@ class NodeSED(PlugwiseBaseNode):
 
         self._new_battery_config = replace(self._new_battery_config, clock_sync=sync)
         if not self._sed_config_task_scheduled:
-            await self.schedule_task_when_awake(self._configure_sed_task())
+            task = await self._configure_sed_task()
+            await self.schedule_task_when_awake(task)
             self._sed_config_task_scheduled = True
             _LOGGER.debug(
                 "set_clock_sync | Device %s | config scheduled",
@@ -334,7 +339,8 @@ class NodeSED(PlugwiseBaseNode):
             self._new_battery_config, maintenance_interval=minutes
         )
         if not self._sed_config_task_scheduled:
-            await self.schedule_task_when_awake(self._configure_sed_task())
+            task = await self._configure_sed_task()
+            await self.schedule_task_when_awake(task)
             self._sed_config_task_scheduled = True
             _LOGGER.debug(
                 "set_maintenance_interval | Device %s | config scheduled",
@@ -367,7 +373,8 @@ class NodeSED(PlugwiseBaseNode):
             self._new_battery_config, sleep_duration=minutes
         )
         if not self._sed_config_task_scheduled:
-            await self.schedule_task_when_awake(self._configure_sed_task())
+            task = await self._configure_sed_task()
+            await self.schedule_task_when_awake(task)
             self._sed_config_task_scheduled = True
             _LOGGER.debug(
                 "set_sleep_duration | Device %s | config scheduled",
