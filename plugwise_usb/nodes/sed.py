@@ -693,7 +693,12 @@ class NodeSED(PlugwiseBaseNode):
             maintenance_interval,
             sleep_duration,
         )
-        if (response := await request.send()) is None:
+        try:
+            response = await request.send()
+        except MessageError as exc:
+            return False
+
+        if response is None:
             self._new_battery_config = BatteryConfig()
             _LOGGER.warning(
                 "No response from %s to configure sleep settings request", self.name
