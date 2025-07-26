@@ -221,7 +221,6 @@ class PlugwiseScan(NodeSED):
     # region Properties
 
     @property
-    @raise_not_loaded
     def daylight_mode(self) -> bool:
         """Daylight mode of motion sensor."""
         if self._new_daylight_mode is not None:
@@ -263,7 +262,6 @@ class PlugwiseScan(NodeSED):
         )
 
     @property
-    @raise_not_loaded
     def reset_timer(self) -> int:
         """Total minutes without motion before no motion is reported."""
         if self._new_reset_timer is not None:
