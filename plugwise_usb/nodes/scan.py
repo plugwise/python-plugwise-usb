@@ -19,7 +19,7 @@ from ..api import (
 )
 from ..connection import StickController
 from ..constants import MAX_UINT_2
-from ..exceptions import MessageError, NodeError, NodeTimeout
+from ..exceptions import MessageError, NodeError, NodeTimeout, StickError
 from ..messages.requests import ScanConfigureRequest, ScanLightCalibrateRequest
 from ..messages.responses import (
     NODE_SWITCH_GROUP_ID,
@@ -504,7 +504,12 @@ class PlugwiseScan(NodeSED):
             sensitivity_value,
             daylight_mode,
         )
-        if (response := await request.send()) is not None:
+        try:
+            response = await request.send()
+        except StickError as exc:
+            return False
+
+        if response is not None:
             if response.node_ack_type == NodeAckResponseType.SCAN_CONFIG_FAILED:
                 self._new_reset_timer = None
                 self._new_sensitivity_level = None
