@@ -1941,10 +1941,10 @@ class TestStick:
 
         # Validate SED properties raise exception when node is not yet loaded
         # 2025-07-26: no NodeError raised anymore because the SED node is always loaded now.
-        #with pytest.raises(pw_exceptions.NodeError):
+        # with pytest.raises(pw_exceptions.NodeError):
         assert test_sed.battery_config is not None
 
-        #with pytest.raises(pw_exceptions.NodeError):
+        # with pytest.raises(pw_exceptions.NodeError):
         #    assert test_sed.battery_config is not None
 
         with pytest.raises(pw_exceptions.NodeError):
