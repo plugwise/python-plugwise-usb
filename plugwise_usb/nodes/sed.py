@@ -379,7 +379,7 @@ class NodeSED(PlugwiseBaseNode):
     # endregion
     # region Properties
     @property
-    @raise_not_loaded
+    # @raise_not_loaded
     def awake_duration(self) -> int:
         """Duration in seconds a battery powered devices is awake."""
         if self._new_battery_config.awake_duration is not None:
@@ -389,7 +389,7 @@ class NodeSED(PlugwiseBaseNode):
         return SED_DEFAULT_AWAKE_DURATION
 
     @property
-    @raise_not_loaded
+    # @raise_not_loaded
     def battery_config(self) -> BatteryConfig:
         """Battery related configuration settings."""
         return BatteryConfig(
@@ -401,7 +401,7 @@ class NodeSED(PlugwiseBaseNode):
         )
 
     @property
-    @raise_not_loaded
+    # @raise_not_loaded
     def clock_interval(self) -> int:
         """Return the clock interval value."""
         if self._new_battery_config.clock_interval is not None:
@@ -411,7 +411,7 @@ class NodeSED(PlugwiseBaseNode):
         return SED_DEFAULT_CLOCK_INTERVAL
 
     @property
-    @raise_not_loaded
+    # @raise_not_loaded
     def clock_sync(self) -> bool:
         """Indicate if the internal clock must be synced."""
         if self._new_battery_config.clock_sync is not None:
@@ -421,7 +421,7 @@ class NodeSED(PlugwiseBaseNode):
         return SED_DEFAULT_CLOCK_SYNC
 
     @property
-    @raise_not_loaded
+    # @raise_not_loaded
     def maintenance_interval(self) -> int:
         """Return the maintenance interval value.
 
@@ -439,7 +439,7 @@ class NodeSED(PlugwiseBaseNode):
         return self._sed_config_task_scheduled
 
     @property
-    @raise_not_loaded
+    # @raise_not_loaded
     def sleep_duration(self) -> int:
         """Return the sleep duration value in minutes.
 
