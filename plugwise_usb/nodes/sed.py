@@ -480,6 +480,7 @@ class NodeSED(PlugwiseBaseNode):
             "_configure_sed_task | Device %s | request change",
             self.name,
         )
+        _LOGGER.debug("HOI awake_duration=%s", self.awake_duration)
         if not await self.sed_configure(
             awake_duration=self.awake_duration,
             clock_interval=self.clock_interval,
