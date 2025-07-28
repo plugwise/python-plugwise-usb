@@ -2207,7 +2207,7 @@ class TestStick:
         assert test_scan.scan_config_task_scheduled
         await test_scan._awake_response(awake_response2)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
-        assert not test_scan.scan_config_task_scheduled
+        assert not test_scan._scan_config_task_scheduled # _ added
         assert test_scan.reset_timer == 25
         assert test_scan.motion_config.reset_timer == 25
 
