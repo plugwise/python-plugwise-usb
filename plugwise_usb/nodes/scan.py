@@ -110,6 +110,9 @@ class PlugwiseScan(NodeSED):
         _LOGGER.debug("Loading Scan node %s", self._node_info.mac)
         await super().load()
 
+        _LOGGER.debug("Loading Scan %s defaults", self._node_info.mac)
+        await self._load_defaults()
+
         self._setup_protocol(SCAN_FIRMWARE_SUPPORT, SCAN_FEATURES)
         await self.initialize()
         await self._loaded_callback(NodeEvent.LOADED, self.mac)
