@@ -171,8 +171,8 @@ class NodeSED(PlugwiseBaseNode):
         )
         await self.schedule_task_when_awake(await self.node_info_update(None))
         self._sed_config_task_scheduled = True
-        self._new_battery_config = self._battery_config
-        await self.schedule_task_when_awake(await self._configure_sed_task())
+        # self._new_battery_config = self._battery_config
+        # await self.schedule_task_when_awake(await self._configure_sed_task())
 
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""

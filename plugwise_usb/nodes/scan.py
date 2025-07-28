@@ -155,8 +155,8 @@ class PlugwiseScan(NodeSED):
         self._new_reset_timer = SCAN_DEFAULT_MOTION_RESET_TIMER
         self._new_daylight_mode = SCAN_DEFAULT_DAYLIGHT_MODE
         self._new_sensitivity_level = SCAN_DEFAULT_SENSITIVITY
-        await self.schedule_task_when_awake(await self._configure_scan_task())
-        self._scan_config_task_scheduled = True
+        # await self.schedule_task_when_awake(await self._configure_scan_task())
+        # self._scan_config_task_scheduled = True
 
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
