@@ -527,9 +527,8 @@ class PlugwiseScan(NodeSED):
             )
             return False
 
-        self._new_reset_timer = None
-        self._new_sensitivity_level = None
-        self._new_daylight_mode = None
+        # Don't reset self._new_* when response is None
+        # Response None happens only in testing
         return False
 
     async def _scan_configure_update(
