@@ -663,6 +663,7 @@ class NodeSED(PlugwiseBaseNode):
         self, task_fn: Coroutine[Any, Any, bool]
     ) -> None:
         """Add task to queue to be executed when node is awake."""
+        _LOGGER.debug("HOI tasktype: %s", type(task_fn))
         async with self._send_task_lock:
             self._send_task_queue.append(task_fn)
 
