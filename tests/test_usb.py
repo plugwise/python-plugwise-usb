@@ -1991,7 +1991,7 @@ class TestStick:
         )
         mock_stick_controller.send_response = sed_config_failed
         await test_sed._awake_response(awake_response1)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        await asyncio.sleep(1)  # Ensure time for task to be executed
         assert not test_sed.sed_config_task_scheduled
         assert test_sed.battery_config.awake_duration == 10
         assert test_sed.awake_duration == 10
