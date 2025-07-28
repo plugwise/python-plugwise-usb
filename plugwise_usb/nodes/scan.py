@@ -442,6 +442,7 @@ class PlugwiseScan(NodeSED):
     async def _configure_scan_task(self) -> bool:
         """Configure Scan device settings. Returns True if successful."""
         self._scan_config_task_scheduled = False
+        _LOGGER.debug("HOI _configure_scan_task | starting... ")
         change_required = False
         if self._new_reset_timer is not None:
             change_required = True
