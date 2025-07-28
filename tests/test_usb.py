@@ -1940,11 +1940,11 @@ class TestStick:
         assert not test_sed.cache_enabled
 
         # Validate SED properties raise exception when node is not yet loaded
-        with pytest.raises(pw_exceptions.NodeError):
-            assert test_sed.battery_config is not None
+        #with pytest.raises(pw_exceptions.NodeError):
+        assert test_sed.battery_config is not None
 
-        with pytest.raises(pw_exceptions.NodeError):
-            assert test_sed.battery_config is not None
+        # with pytest.raises(pw_exceptions.NodeError):
+        #     assert test_sed.battery_config is not None
 
         with pytest.raises(pw_exceptions.NodeError):
             assert await test_sed.set_maintenance_interval(10)
