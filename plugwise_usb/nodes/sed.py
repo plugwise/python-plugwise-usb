@@ -9,6 +9,7 @@ from asyncio import (
     Task,
     gather,
     get_running_loop,
+    iscoroutine,
     wait_for,
 )
 from collections.abc import Awaitable, Callable, Coroutine
@@ -663,9 +664,9 @@ class NodeSED(PlugwiseBaseNode):
         self, task_fn: Coroutine[Any, Any, bool]
     ) -> None:
         """Add task to queue to be executed when node is awake."""
-        _LOGGER.debug("HOI tasktype: %s", type(task_fn))
-        async with self._send_task_lock:
-            self._send_task_queue.append(task_fn)
+        if iscoroutine(task_fn):
+            async with self._send_task_lock:
+                self._send_task_queue.append(task_fn)
 
     async def sed_configure(  # pylint: disable=too-many-arguments
         self,
