@@ -303,9 +303,10 @@ class PlugwiseScan(NodeSED):
             self._motion_config.daylight_mode,
             state,
         )
-        self._new_daylight_mode = state
         if self._motion_config.daylight_mode == state:
             return False
+
+        self._new_daylight_mode = state
         if not self._scan_config_task_scheduled:
             await self.schedule_task_when_awake(self._configure_scan_task())
             self._scan_config_task_scheduled = True
@@ -328,9 +329,10 @@ class PlugwiseScan(NodeSED):
             raise ValueError(
                 f"Invalid motion reset timer ({minutes}). It must be between 1 and 255 minutes."
             )
-        self._new_reset_timer = minutes
         if self._motion_config.reset_timer == minutes:
             return False
+
+        self._new_reset_timer = minutes
         if not self._scan_config_task_scheduled:
             await self.schedule_task_when_awake(self._configure_scan_task())
             self._scan_config_task_scheduled = True
@@ -349,9 +351,10 @@ class PlugwiseScan(NodeSED):
             self._motion_config.sensitivity_level,
             level,
         )
-        self._new_sensitivity_level = level
         if self._motion_config.sensitivity_level == level:
             return False
+
+        self._new_sensitivity_level = level
         if not self._scan_config_task_scheduled:
             await self.schedule_task_when_awake(self._configure_scan_task())
             self._scan_config_task_scheduled = True
