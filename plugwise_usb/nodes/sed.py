@@ -170,7 +170,7 @@ class NodeSED(PlugwiseBaseNode):
             sleep_duration=SED_DEFAULT_SLEEP_DURATION,
         )
         await self.schedule_task_when_awake(await self.node_info_update(None))
-        self._sed_config_task_scheduled = True
+        # self._sed_config_task_scheduled = True
         # self._new_battery_config = self._battery_config
         # await self.schedule_task_when_awake(await self._configure_sed_task())
 
