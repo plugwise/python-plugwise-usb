@@ -2142,11 +2142,11 @@ class TestStick:
 
         scan_config_accepted = pw_responses.NodeAckResponse()
         scan_config_accepted.deserialize(
-            construct_message(b"0100555555555555555500BE", b"0000")
+            construct_message(b"01001298347650AFBECD00BE", b"0000")
         )
         scan_config_failed = pw_responses.NodeAckResponse()
         scan_config_failed.deserialize(
-            construct_message(b"0100555555555555555500BF", b"0000")
+            construct_message(b"01001298347650AFBECD00BF", b"0000")
         )
 
         async def load_callback(event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
@@ -2187,7 +2187,7 @@ class TestStick:
         # Restore to original settings after failed config
         awake_response1 = pw_responses.NodeAwakeResponse()
         awake_response1.deserialize(
-            construct_message(b"004F555555555555555500", b"FFFE")
+            construct_message(b"004F1298347650AFBECD00", b"FFFE")
         )
         mock_stick_controller.send_response = scan_config_failed
         await test_scan._awake_response(awake_response1)  # pylint: disable=protected-access
@@ -2197,7 +2197,7 @@ class TestStick:
         # Successful config
         awake_response2 = pw_responses.NodeAwakeResponse()
         awake_response2.deserialize(
-            construct_message(b"004F555555555555555500", b"FFFE")
+            construct_message(b"004F1298347650AFBECD00", b"FFFE")
         )
         awake_response2.timestamp = awake_response1.timestamp + td(
             seconds=pw_sed.AWAKE_RETRY
@@ -2220,7 +2220,7 @@ class TestStick:
         assert test_scan.scan_config_task_scheduled
         awake_response3 = pw_responses.NodeAwakeResponse()
         awake_response3.deserialize(
-            construct_message(b"004F555555555555555500", b"FFFE")
+            construct_message(b"004F1298347650AFBECD00", b"FFFE")
         )
         awake_response3.timestamp = awake_response2.timestamp + td(
             seconds=pw_sed.AWAKE_RETRY
@@ -2246,7 +2246,7 @@ class TestStick:
         assert test_scan.scan_config_task_scheduled
         awake_response4 = pw_responses.NodeAwakeResponse()
         awake_response4.deserialize(
-            construct_message(b"004F555555555555555500", b"FFFE")
+            construct_message(b"004F1298347650AFBECD00", b"FFFE")
         )
         awake_response4.timestamp = awake_response3.timestamp + td(
             seconds=pw_sed.AWAKE_RETRY
