@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
-from asyncio import PriorityQueue, Task, get_running_loop, sleep
+from asyncio import (
+    PriorityQueue,
+    Task,
+    TimeoutError,
+    get_running_loop,
+    sleep,
+    wait_for,
+)
 from collections.abc import Callable
 from dataclasses import dataclass
 import logging
@@ -138,7 +145,11 @@ class StickQueue:
         """Send messages from queue at the order of priority."""
         _LOGGER.debug("Send_queue_worker started")
         while self._running and self._stick is not None:
-            request = await self._submit_queue.get()
+            try:
+                request = await wait_for(self._submit_queue.get(), timeout = 0.5)
+            except TimeoutError:
+                _LOGGER.debug("No queue-item after 0.5s, doing other work")
+            
             _LOGGER.debug("Sending from send queue %s", request)
             if request.priority == Priority.CANCEL:
                 self._submit_queue.task_done()
