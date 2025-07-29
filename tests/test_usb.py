@@ -1977,8 +1977,8 @@ class TestStick:
             assert await test_sed.set_awake_duration(0)
         with pytest.raises(ValueError):
             assert await test_sed.set_awake_duration(256)
-        assert await test_sed.set_awake_duration(10)
-        assert test_sed.sed_config_task_scheduled
+        assert not await test_sed.set_awake_duration(10)
+        assert not test_sed.sed_config_task_scheduled
         assert await test_sed.set_awake_duration(15)
         assert test_sed.sed_config_task_scheduled
         assert test_sed.battery_config.awake_duration == 15
