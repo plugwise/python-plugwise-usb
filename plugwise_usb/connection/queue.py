@@ -146,10 +146,10 @@ class StickQueue:
         _LOGGER.debug("Send_queue_worker started")
         while self._running and self._stick is not None:
             try:
-                request = await wait_for(self._submit_queue.get(), timeout = 0.5)
+                request = await wait_for(self._submit_queue.get(), timeout=0.5)
             except TimeoutError:
                 _LOGGER.debug("No queue-item after 0.5s, doing other work")
-            
+
             _LOGGER.debug("Sending from send queue %s", request)
             if request.priority == Priority.CANCEL:
                 self._submit_queue.task_done()
