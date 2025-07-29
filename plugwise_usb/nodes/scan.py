@@ -444,20 +444,22 @@ class PlugwiseScan(NodeSED):
         self._scan_config_task_scheduled = False
         _LOGGER.debug("HOI _configure_scan_task | starting... ")
         change_required = False
-        if self._new_reset_timer is not None:
-            change_required = True
-        if self._new_sensitivity_level is not None:
-            change_required = True
-        if self._new_daylight_mode is not None:
+        if (
+            self._new_reset_timer is not None
+            or self._new_sensitivity_level is not None
+            or self._new_daylight_mode is not None
+        ):
             change_required = True
         if not change_required:
             return True
+        
         if not await self.scan_configure(
             motion_reset_timer=self.reset_timer,
             sensitivity_level=self.sensitivity_level,
             daylight_mode=self.daylight_mode,
         ):
             return False
+
         if self._new_reset_timer is not None:
             _LOGGER.info(
                 "Change of motion reset timer from %s to %s minutes has been accepted by %s",
@@ -465,7 +467,7 @@ class PlugwiseScan(NodeSED):
                 self._new_reset_timer,
                 self.name,
             )
-            self._new_reset_timer = None
+            # self._new_reset_timer = None
         if self._new_sensitivity_level is not None:
             _LOGGER.info(
                 "Change of sensitivity level from %s to %s has been accepted by %s",
@@ -473,7 +475,7 @@ class PlugwiseScan(NodeSED):
                 self._new_sensitivity_level,
                 self.name,
             )
-            self._new_sensitivity_level = None
+            # self._new_sensitivity_level = None
         if self._new_daylight_mode is not None:
             _LOGGER.info(
                 "Change of daylight mode from %s to %s has been accepted by %s",
@@ -481,7 +483,7 @@ class PlugwiseScan(NodeSED):
                 "On" if self._new_daylight_mode else "Off",
                 self.name,
             )
-            self._new_daylight_mode = None
+            # self._new_daylight_mode = None
         return True
 
     async def scan_configure(
