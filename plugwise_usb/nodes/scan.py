@@ -510,9 +510,9 @@ class PlugwiseScan(NodeSED):
             daylight_mode,
         )
         if (response := await request.send()) is None:
-            self._new_reset_timer = None
-            self._new_sensitivity_level = None
-            self._new_daylight_mode = None
+            # self._new_reset_timer = None
+            # self._new_sensitivity_level = None
+            # self._new_daylight_mode = None
             return False
 
         if response.node_ack_type == NodeAckResponseType.SCAN_CONFIG_FAILED:
