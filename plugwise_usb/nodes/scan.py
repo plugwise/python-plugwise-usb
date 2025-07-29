@@ -519,6 +519,9 @@ class PlugwiseScan(NodeSED):
                 await self._scan_configure_update(
                     motion_reset_timer, sensitivity_level, daylight_mode
                 )
+                self._new_reset_timer = None
+                self._new_sensitivity_level = None
+                self._new_daylight_mode = None
                 return True
 
             _LOGGER.warning(
