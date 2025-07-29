@@ -247,6 +247,8 @@ class NodeSED(PlugwiseBaseNode):
             raise ValueError(
                 f"Invalid awake duration ({seconds}). It must be between 1 and 255 seconds."
             )
+        if self.battery_config.awake_duration == seconds:
+            return False
 
         self._new_battery_config = replace(
             self._new_battery_config, awake_duration=seconds
@@ -274,7 +276,6 @@ class NodeSED(PlugwiseBaseNode):
             raise ValueError(
                 f"Invalid clock interval ({minutes}). It must be between 1 and 65535 minutes."
             )
-
         if self.battery_config.clock_interval == minutes:
             return False
 
@@ -327,7 +328,6 @@ class NodeSED(PlugwiseBaseNode):
             raise ValueError(
                 f"Invalid maintenance interval ({minutes}). It must be between 1 and 1440 minutes."
             )
-
         if self.battery_config.maintenance_interval == minutes:
             return False
 
