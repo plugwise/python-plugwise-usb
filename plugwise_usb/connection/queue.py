@@ -2,14 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import (
-    PriorityQueue,
-    Task,
-    TimeoutError,
-    get_running_loop,
-    sleep,
-    wait_for,
-)
+from asyncio import PriorityQueue, Task, get_running_loop, sleep, wait_for
 from collections.abc import Callable
 from dataclasses import dataclass
 import logging
