@@ -509,32 +509,33 @@ class PlugwiseScan(NodeSED):
             sensitivity_value,
             daylight_mode,
         )
-        if (response := await request.send()) is not None:
-            if response.node_ack_type == NodeAckResponseType.SCAN_CONFIG_FAILED:
-                self._new_reset_timer = None
-                self._new_sensitivity_level = None
-                self._new_daylight_mode = None
-                _LOGGER.warning("Failed to configure scan settings for %s", self.name)
-                return False
-
-            if response.node_ack_type == NodeAckResponseType.SCAN_CONFIG_ACCEPTED:
-                await self._scan_configure_update(
-                    motion_reset_timer, sensitivity_level, daylight_mode
-                )
-                self._new_reset_timer = None
-                self._new_sensitivity_level = None
-                self._new_daylight_mode = None
-                return True
-
-            _LOGGER.warning(
-                "Unexpected response ack type %s for %s",
-                response.node_ack_type,
-                self.name,
-            )
+        if (response := await request.send()) is None:
+            self._new_reset_timer = None
+            self._new_sensitivity_level = None
+            self._new_daylight_mode = None
             return False
 
-        # Don't reset self._new_* when response is None
-        # Response None happens only in testing
+        if response.node_ack_type == NodeAckResponseType.SCAN_CONFIG_FAILED:
+            self._new_reset_timer = None
+            self._new_sensitivity_level = None
+            self._new_daylight_mode = None
+            _LOGGER.warning("Failed to configure scan settings for %s", self.name)
+            return False
+
+        if response.node_ack_type == NodeAckResponseType.SCAN_CONFIG_ACCEPTED:
+            await self._scan_configure_update(
+                motion_reset_timer, sensitivity_level, daylight_mode
+            )
+            self._new_reset_timer = None
+            self._new_sensitivity_level = None
+            self._new_daylight_mode = None
+            return True
+
+        _LOGGER.warning(
+            "Unexpected response ack type %s for %s",
+            response.node_ack_type,
+            self.name,
+        )
         return False
 
     async def _scan_configure_update(
@@ -557,11 +558,13 @@ class PlugwiseScan(NodeSED):
         else:
             self._set_cache(CACHE_SCAN_DAYLIGHT_MODE, "False")
         await gather(
-            self.publish_feature_update_to_subscribers(
-                NodeFeature.MOTION_CONFIG,
-                self._motion_config,
-            ),
-            self.save_cache(),
+            *[
+                self.save_cache(),
+                self.publish_feature_update_to_subscribers(
+                    NodeFeature.MOTION_CONFIG,
+                    self._motion_config,
+                ),
+            ]
         )
 
     async def scan_calibrate_light(self) -> bool:
