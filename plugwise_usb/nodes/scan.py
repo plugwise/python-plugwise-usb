@@ -91,9 +91,7 @@ class PlugwiseScan(NodeSED):
 
         self._motion_state = MotionState()
         self._motion_config = MotionConfig()
-        self._new_daylight_mode: bool | None = None
-        self._new_reset_timer: int | None = None
-        self._new_sensitivity_level: MotionSensitivity | None = None
+        self._new_motion_config = MotionConfig()
 
         self._scan_config_task_scheduled = False
         self._configure_daylight_mode_task: Task[Coroutine[Any, Any, None]] | None = (
@@ -225,8 +223,8 @@ class PlugwiseScan(NodeSED):
     @property
     def daylight_mode(self) -> bool:
         """Daylight mode of motion sensor."""
-        if self._new_daylight_mode is not None:
-            return self._new_daylight_mode
+        if self._new_motion_config.daylight_mode is not None:
+            return self._new_motion_config.daylight_mode
         if self._motion_config.daylight_mode is not None:
             return self._motion_config.daylight_mode
         return SCAN_DEFAULT_DAYLIGHT_MODE
@@ -266,8 +264,8 @@ class PlugwiseScan(NodeSED):
     @property
     def reset_timer(self) -> int:
         """Total minutes without motion before no motion is reported."""
-        if self._new_reset_timer is not None:
-            return self._new_reset_timer
+        if self._new_motion_config.reset_timer is not None:
+            return self._new_motion_config.reset_timer
         if self._motion_config.reset_timer is not None:
             return self._motion_config.reset_timer
         return SCAN_DEFAULT_MOTION_RESET_TIMER
@@ -280,8 +278,8 @@ class PlugwiseScan(NodeSED):
     @property
     def sensitivity_level(self) -> MotionSensitivity:
         """Sensitivity level of motion sensor."""
-        if self._new_sensitivity_level is not None:
-            return self._new_sensitivity_level
+        if self._new_motion_config.sensitivity_level is not None:
+            return self._new_motion_config.sensitivity_level
         if self._motion_config.sensitivity_level is not None:
             return self._motion_config.sensitivity_level
         return SCAN_DEFAULT_SENSITIVITY
@@ -304,7 +302,9 @@ class PlugwiseScan(NodeSED):
         if self._motion_config.daylight_mode == state:
             return False
 
-        self._new_daylight_mode = state
+        self._new_motion_config = replace(
+            self._new_motion_config, daylight_mode=state
+        )
         if not self._scan_config_task_scheduled:
             await self.schedule_task_when_awake(await self._configure_scan_task())
             self._scan_config_task_scheduled = True
@@ -330,7 +330,9 @@ class PlugwiseScan(NodeSED):
         if self._motion_config.reset_timer == minutes:
             return False
 
-        self._new_reset_timer = minutes
+        self._new_motion_config = replace(
+            self._new_motion_config, reset_timer=minutes
+        )
         if not self._scan_config_task_scheduled:
             await self.schedule_task_when_awake(await self._configure_scan_task())
             self._scan_config_task_scheduled = True
@@ -352,7 +354,9 @@ class PlugwiseScan(NodeSED):
         if self._motion_config.sensitivity_level == level:
             return False
 
-        self._new_sensitivity_level = level
+        self._new_motion_config = replace(
+            self._new_motion_config, sensitivity_level=level
+        )
         if not self._scan_config_task_scheduled:
             await self.schedule_task_when_awake(await self._configure_scan_task())
             self._scan_config_task_scheduled = True
@@ -445,9 +449,9 @@ class PlugwiseScan(NodeSED):
         _LOGGER.debug("HOI _configure_scan_task | starting... ")
         change_required = False
         if (
-            self._new_reset_timer is not None
-            or self._new_sensitivity_level is not None
-            or self._new_daylight_mode is not None
+            self._new_motion_config.reset_timer is not None
+            or self._new_motion_config.sensitivity_level is not None
+            or self._new_motion_config.daylight_mode is not None
         ):
             change_required = True
         if not change_required:
@@ -460,30 +464,30 @@ class PlugwiseScan(NodeSED):
         ):
             return False
 
-        if self._new_reset_timer is not None:
+        if self._new_motion_config.reset_timer is not None:
             _LOGGER.info(
                 "Change of motion reset timer from %s to %s minutes has been accepted by %s",
                 self._motion_config.reset_timer,
-                self._new_reset_timer,
+                self._new_motion_config.reset_timer,
                 self.name,
             )
-            # self._new_reset_timer = None
-        if self._new_sensitivity_level is not None:
+            # self._new_motion_config.reset_timer = None
+        if self._new_motion_config.sensitivity_level is not None:
             _LOGGER.info(
                 "Change of sensitivity level from %s to %s has been accepted by %s",
                 self._motion_config.sensitivity_level,
-                self._new_sensitivity_level,
+                self._new_motion_config.sensitivity_level,
                 self.name,
             )
-            # self._new_sensitivity_level = None
-        if self._new_daylight_mode is not None:
+            # self._new_motion_config.sensitivity_level = None
+        if self._new_motion_config.daylight_mode is not None:
             _LOGGER.info(
                 "Change of daylight mode from %s to %s has been accepted by %s",
                 "On" if self._motion_config.daylight_mode else "Off",
-                "On" if self._new_daylight_mode else "Off",
+                "On" if self._new_motion_config.daylight_mode else "Off",
                 self.name,
             )
-            # self._new_daylight_mode = None
+            # self._new_motion_config.daylight_mode = None
         return True
 
     async def scan_configure(
@@ -510,19 +514,15 @@ class PlugwiseScan(NodeSED):
             daylight_mode,
         )
         if (response := await request.send()) is None:
+            self._new_motion_config = MotionConfig()
             _LOGGER.warning(
                 "No response from %s to configure scan device settings request",
                 self.name,
             )
-            # self._new_reset_timer = None
-            # self._new_sensitivity_level = None
-            # self._new_daylight_mode = None
             return False
 
         if response.node_ack_type == NodeAckResponseType.SCAN_CONFIG_FAILED:
-            self._new_reset_timer = None
-            self._new_sensitivity_level = None
-            self._new_daylight_mode = None
+            self._new_motion_config = MotionConfig()
             _LOGGER.warning("Failed to configure scan settings for %s", self.name)
             return False
 
@@ -530,9 +530,7 @@ class PlugwiseScan(NodeSED):
             await self._scan_configure_update(
                 motion_reset_timer, sensitivity_level, daylight_mode
             )
-            self._new_reset_timer = None
-            self._new_sensitivity_level = None
-            self._new_daylight_mode = None
+            self._new_motion_config = MotionConfig()
             return True
 
         _LOGGER.warning(
