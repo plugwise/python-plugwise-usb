@@ -540,9 +540,9 @@ class PlugwiseScan(NodeSED):
 
     async def _scan_configure_update(
         self,
-        motion_reset_timer: int,
-        sensitivity_level: MotionSensitivity,
-        daylight_mode: bool,
+        motion_reset_timer: int = SCAN_DEFAULT_MOTION_RESET_TIMER,
+        sensitivity_level: MotionSensitivity = SCAN_DEFAULT_SENSITIVITY,
+        daylight_mode: bool = SCAN_DEFAULT_DAYLIGHT_MODE,
     ) -> None:
         """Process result of scan configuration update."""
         self._motion_config = replace(
