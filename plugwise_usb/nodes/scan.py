@@ -155,9 +155,9 @@ class PlugwiseScan(NodeSED):
             self._node_info.name = f"Scan {self._node_info.mac[-5:]}"
         if self._node_info.firmware is None:
             self._node_info.firmware = DEFAULT_FIRMWARE
-        self._new_reset_timer = SCAN_DEFAULT_MOTION_RESET_TIMER
-        self._new_daylight_mode = SCAN_DEFAULT_DAYLIGHT_MODE
-        self._new_sensitivity_level = SCAN_DEFAULT_SENSITIVITY
+        # self._new_reset_timer = SCAN_DEFAULT_MOTION_RESET_TIMER
+        # self._new_daylight_mode = SCAN_DEFAULT_DAYLIGHT_MODE
+        # self._new_sensitivity_level = SCAN_DEFAULT_SENSITIVITY
         # await self.schedule_task_when_awake(await self._configure_scan_task())
         # self._scan_config_task_scheduled = True
 
