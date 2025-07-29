@@ -510,6 +510,9 @@ class PlugwiseScan(NodeSED):
             daylight_mode,
         )
         if (response := await request.send()) is None:
+            _LOGGER.warning(
+                "No response from %s to configure scan device settings request", self.name
+            )
             # self._new_reset_timer = None
             # self._new_sensitivity_level = None
             # self._new_daylight_mode = None
