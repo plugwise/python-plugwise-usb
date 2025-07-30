@@ -2192,10 +2192,14 @@ class TestStick:
         assert not test_scan.scan_config_task_scheduled
         assert await test_scan.set_motion_reset_timer(15)
         assert test_scan.scan_config_task_scheduled
+        # Requested update
         assert test_scan.motion_config.reset_timer == 15
         assert test_scan.reset_timer == 15
+        # Present value
+        assert test_scan._motion_config.reset_timer == 10
 
         # Restore to original settings after failed config
+        await test_scan.set_motion_reset_timer(15)
         awake_response1 = pw_responses.NodeAwakeResponse()
         awake_response1.deserialize(
             construct_message(b"004F1298347650AFBECD00", b"FFFE")
@@ -2204,8 +2208,8 @@ class TestStick:
         await test_scan._awake_response(awake_response1)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
         assert test_scan.scan_config_task_scheduled # not
-        assert test_scan.motion_config.reset_timer == 15
-        assert test_scan.reset_timer == 15
+        assert test_scan.motion_config.reset_timer == 10
+        assert test_scan.reset_timer == 10
 
         # Successful config
         awake_response2 = pw_responses.NodeAwakeResponse()
