@@ -265,9 +265,12 @@ class PlugwiseScan(NodeSED):
     def reset_timer(self) -> int:
         """Total minutes without motion before no motion is reported."""
         if self._new_motion_config.reset_timer is not None:
+            _LOGGER.debug("HOI reset_timer new")
             return self._new_motion_config.reset_timer
         if self._motion_config.reset_timer is not None:
+            _LOGGER.debug("HOI reset_timer")
             return self._motion_config.reset_timer
+        _LOGGER.debug("HOI reset_timer default")
         return SCAN_DEFAULT_MOTION_RESET_TIMER
 
     @property
