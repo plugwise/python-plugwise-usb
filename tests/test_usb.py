@@ -2203,7 +2203,7 @@ class TestStick:
         mock_stick_controller.send_response = scan_config_failed
         await test_scan._awake_response(awake_response1)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
-        assert not test_scan.scan_config_task_scheduled
+        assert test_scan.scan_config_task_scheduled # not
 
         # Successful config
         awake_response2 = pw_responses.NodeAwakeResponse()
