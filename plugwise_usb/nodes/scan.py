@@ -516,6 +516,13 @@ class PlugwiseScan(NodeSED):
             sensitivity_value,
             daylight_mode,
         )
+        _LOGGER.debug(
+            "scan_configure | Device %s | motion_reset_timer=%s | sensitivity_value=%s | daylight_mode=%s",
+            self.name,
+            motion_reset_timer,
+            sensitivity_value,
+            daylight_mode,
+        )
         if (response := await request.send()) is None:
             self._new_motion_config = MotionConfig()
             _LOGGER.warning(
