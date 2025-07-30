@@ -2151,6 +2151,7 @@ class TestStick:
             load_callback,
         )
         assert not test_scan.cache_enabled
+
         node_info = pw_api.NodeInfoMessage(
             current_logaddress_pointer=None,
             firmware=dt(2011, 6, 27, 8, 55, 44, tzinfo=UTC),
@@ -2160,6 +2161,16 @@ class TestStick:
         )
         await test_scan.update_node_details(node_info)
         await test_scan.load()
+        assert sorted(test_scan.features) == sorted(
+            (
+                pw_api.NodeFeature.AVAILABLE,
+                pw_api.NodeFeature.BATTERY,
+                pw_api.NodeFeature.INFO,
+                pw_api.NodeFeature.MOTION,
+                pw_api.NodeFeature.MOTION_CONFIG,
+                pw_api.NodeFeature.PING,
+            )
+        )
 
         scan_config_accepted = pw_responses.NodeAckResponse()
         scan_config_accepted.deserialize(
