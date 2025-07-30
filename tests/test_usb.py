@@ -2191,7 +2191,8 @@ class TestStick:
         assert not await test_scan.set_motion_reset_timer(10)
         assert not test_scan.scan_config_task_scheduled
         assert await test_scan.set_motion_reset_timer(15)
-        assert test_scan.scan_config_task_scheduled
+        # scan_config_task_scheduled already set back to False due to task already executed
+        assert not test_scan.scan_config_task_scheduled
         # Update failed due to None response
         assert test_scan.motion_config.reset_timer == 10
         assert test_scan.reset_timer == 10
@@ -2219,7 +2220,8 @@ class TestStick:
         )
         mock_stick_controller.send_response = scan_config_accepted
         assert await test_scan.set_motion_reset_timer(25)
-        assert test_scan.scan_config_task_scheduled
+
+        assert not test_scan.scan_config_task_scheduled
         await test_scan._awake_response(awake_response2)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
         # assert not test_scan._scan_config_task_scheduled  # _ added
@@ -2230,9 +2232,10 @@ class TestStick:
         assert not test_scan.daylight_mode
         assert not test_scan.motion_config.daylight_mode
         assert not await test_scan.set_motion_daylight_mode(False)
+        # scan_config_task_scheduled already set back to False due to task already executed
         assert not test_scan.scan_config_task_scheduled
         assert await test_scan.set_motion_daylight_mode(True)
-        assert test_scan.scan_config_task_scheduled
+        assert not test_scan.scan_config_task_scheduled
         awake_response3 = pw_responses.NodeAwakeResponse()
         awake_response3.deserialize(
             construct_message(b"004F1298347650AFBECD00", b"FFFE")
@@ -2258,7 +2261,7 @@ class TestStick:
         assert await test_scan.set_motion_sensitivity_level(
             pw_api.MotionSensitivity.HIGH
         )
-        assert test_scan.scan_config_task_scheduled
+        assert not test_scan.scan_config_task_scheduled
         awake_response4 = pw_responses.NodeAwakeResponse()
         awake_response4.deserialize(
             construct_message(b"004F1298347650AFBECD00", b"FFFE")
