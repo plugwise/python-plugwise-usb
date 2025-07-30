@@ -309,8 +309,8 @@ class PlugwiseScan(NodeSED):
             self._new_motion_config, daylight_mode=state
         )
         if not self._scan_config_task_scheduled:
-            await self.schedule_task_when_awake(await self._configure_scan_task())
             self._scan_config_task_scheduled = True
+            await self.schedule_task_when_awake(await self._configure_scan_task())
             _LOGGER.debug(
                 "set_motion_daylight_mode | Device %s | config scheduled",
                 self.name,
@@ -337,12 +337,12 @@ class PlugwiseScan(NodeSED):
             self._new_motion_config, reset_timer=minutes
         )
         if not self._scan_config_task_scheduled:
-            await self.schedule_task_when_awake(await self._configure_scan_task())
-            self._scan_config_task_scheduled = True
             _LOGGER.debug(
-                "set_motion_reset_timer | Device %s | config scheduled",
+                "set_motion_reset_timer | Device %s | schedule config",
                 self.name,
             )
+            self._scan_config_task_scheduled = True
+            await self.schedule_task_when_awake(await self._configure_scan_task())
         return True
 
     @raise_not_loaded
@@ -361,8 +361,8 @@ class PlugwiseScan(NodeSED):
             self._new_motion_config, sensitivity_level=level
         )
         if not self._scan_config_task_scheduled:
-            await self.schedule_task_when_awake(await self._configure_scan_task())
             self._scan_config_task_scheduled = True
+            await self.schedule_task_when_awake(await self._configure_scan_task())
             _LOGGER.debug(
                 "set_motion_sensitivity_level | Device %s | config scheduled",
                 self.name,
