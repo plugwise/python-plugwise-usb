@@ -383,9 +383,12 @@ class NodeSED(PlugwiseBaseNode):
     def awake_duration(self) -> int:
         """Duration in seconds a battery powered devices is awake."""
         if self._new_battery_config.awake_duration is not None:
+            _LOGGER.debug("HOI new duration")
             return self._new_battery_config.awake_duration
         if self._battery_config.awake_duration is not None:
+            _LOGGER.debug("HOI duration")
             return self._battery_config.awake_duration
+        _LOGGER.debug("HOI default duration")
         return SED_DEFAULT_AWAKE_DURATION
 
     @property
