@@ -2140,15 +2140,6 @@ class TestStick:
         monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache", fake_cache)
         mock_stick_controller = MockStickController()
 
-        scan_config_accepted = pw_responses.NodeAckResponse()
-        scan_config_accepted.deserialize(
-            construct_message(b"01001298347650AFBECD00BE", b"0000")
-        )
-        scan_config_failed = pw_responses.NodeAckResponse()
-        scan_config_failed.deserialize(
-            construct_message(b"01001298347650AFBECD00BF", b"0000")
-        )
-
         async def load_callback(event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
             """Load callback for event."""
 
@@ -2170,6 +2161,15 @@ class TestStick:
         await test_scan.update_node_details(node_info)
         await test_scan.load()
 
+        scan_config_accepted = pw_responses.NodeAckResponse()
+        scan_config_accepted.deserialize(
+            construct_message(b"01001298347650AFBECD00BE", b"0000")
+        )
+        scan_config_failed = pw_responses.NodeAckResponse()
+        scan_config_failed.deserialize(
+            construct_message(b"01001298347650AFBECD00BF", b"0000")
+        )
+
         # test motion reset timer
         assert test_scan.reset_timer == 10
         assert test_scan.motion_config.reset_timer == 10
@@ -2181,8 +2181,8 @@ class TestStick:
         assert not test_scan.scan_config_task_scheduled
         assert await test_scan.set_motion_reset_timer(15)
         assert test_scan.scan_config_task_scheduled
-        assert test_scan.reset_timer == 15
         assert test_scan.motion_config.reset_timer == 15
+        assert test_scan.reset_timer == 15
 
         # Restore to original settings after failed config
         awake_response1 = pw_responses.NodeAwakeResponse()
