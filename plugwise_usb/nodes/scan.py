@@ -524,7 +524,7 @@ class PlugwiseScan(NodeSED):
             daylight_mode,
         )
         if (response := await request.send()) is None:
-           # self._new_motion_config = MotionConfig()
+            self._new_motion_config = MotionConfig()
             _LOGGER.warning(
                 "No response from %s to configure scan device settings request",
                 self.name,
