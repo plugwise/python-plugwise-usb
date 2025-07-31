@@ -2198,7 +2198,7 @@ class TestStick:
         assert test_scan.reset_timer == 10
 
         # Restore to original settings after failed config
-        #await test_scan.set_motion_reset_timer(15)
+        # await test_scan.set_motion_reset_timer(15)
         awake_response1 = pw_responses.NodeAwakeResponse()
         awake_response1.deserialize(
             construct_message(b"004F1298347650AFBECD00", b"FFFE")
