@@ -647,6 +647,7 @@ class NodeSED(PlugwiseBaseNode):
         if len(self._send_task_queue) == 0:
             return
         async with self._send_task_lock:
+            _LOGGER.debug("SED awake, send tasks for execution")
             task_result = await gather(*self._send_task_queue)
             if not all(task_result):
                 _LOGGER.warning(
@@ -662,6 +663,7 @@ class NodeSED(PlugwiseBaseNode):
     ) -> None:
         """Add task to queue to be executed when node is awake."""
         if iscoroutine(task_fn):
+            _LOGGER.debug("Add task %s to queue waiting for awake", task_fn)
             async with self._send_task_lock:
                 self._send_task_queue.append(task_fn)
 
