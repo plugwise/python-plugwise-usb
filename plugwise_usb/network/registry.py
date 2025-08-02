@@ -217,7 +217,9 @@ class StickNetworkRegister:
 
     async def update_node_registration(self, mac: str) -> bool:
         """Register (re)joined node to Plugwise network and return network address."""
-        return self.update_network_registration(mac)
+        self.update_network_registration(mac)
+        self._first_free_address += 1
+        return self._first_free_address - 1
 
     def _stop_registration_task(self) -> None:
         """Stop the background registration task."""
