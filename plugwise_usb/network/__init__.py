@@ -77,7 +77,7 @@ class StickNetwork:
         self._unsubscribe_node_rejoin: Callable[[], None] | None = None
 
         self._discover_sed_tasks: dict[str, Task[bool]] = {}
-        self._registry_stragglers: dict[int, str] = {}
+        self._registry_stragglers: list[str] = []
         self._discover_stragglers_task: Task[None] | None = None
         self._load_stragglers_task: Task[None] | None = None
 
@@ -232,10 +232,7 @@ class StickNetwork:
             self._awake_discovery[mac] = response.timestamp
             return
 
-        if (address := self._register.network_address(mac)) is None:
-            if self._register.scan_completed:
-                return
-
+        if not self._register.node_is_registered(mac):
             _LOGGER.debug(
                 "Skip node awake message for %s because network registry address is unknown",
                 mac,
@@ -248,7 +245,7 @@ class StickNetwork:
                 or self._discover_sed_tasks[mac].done()
             ):
                 self._discover_sed_tasks[mac] = create_task(
-                    self._discover_battery_powered_node(address, mac)
+                    self._discover_battery_powered_node(mac)
                 )
             else:
                 _LOGGER.debug("duplicate maintenance awake discovery for %s", mac)
@@ -280,15 +277,14 @@ class StickNetwork:
                 f"Invalid response message type ({response.__class__.__name__}) received, expected NodeRejoinResponse"
             )
         mac = response.mac_decoded
-        if (address := self._register.network_address(mac)) is None:
-            if (address := self._register.update_node_registration(mac)) is None:
-                raise NodeError(f"Failed to obtain address for node {mac}")
-
-        if self._nodes.get(mac) is None:
+        if ( 
+             self._register.update_node_registration(mac)
+             and self._nodes.get(mac) is None
+        ):
             task = self._discover_sed_tasks.get(mac)
             if task is None or task.done():
                 self._discover_sed_tasks[mac] = create_task(
-                    self._discover_battery_powered_node(address, mac)
+                    self._discover_battery_powered_node(mac)
                 )
             else:
                 _LOGGER.debug("duplicate awake discovery for %s", mac)
@@ -335,7 +331,7 @@ class StickNetwork:
             return False
 
         if await self._discover_node(
-            -1, self._controller.mac_coordinator, None, ping_first=False
+            self._controller.mac_coordinator, None, ping_first=False
         ):
             if load:
                 return await self._load_node(self._controller.mac_coordinator)
@@ -349,7 +345,6 @@ class StickNetwork:
     async def _create_node_object(
         self,
         mac: str,
-        address: int,
         node_type: NodeType,
     ) -> None:
         """Create node object and update network registry."""
@@ -361,7 +356,6 @@ class StickNetwork:
             return
         node = get_plugwise_node(
             mac,
-            address,
             self._controller,
             self._notify_node_event_subscribers,
             node_type,
@@ -371,7 +365,7 @@ class StickNetwork:
             return
         self._nodes[mac] = node
         _LOGGER.debug("%s node %s added", node.__class__.__name__, mac)
-        await self._register.update_network_registration(address, mac, node_type)
+        await self._register.update_network_nodetype(mac, node_type)
 
         if self._cache_enabled:
             _LOGGER.debug(
@@ -385,16 +379,13 @@ class StickNetwork:
 
     async def _discover_battery_powered_node(
         self,
-        address: int,
         mac: str,
     ) -> bool:
         """Discover a battery powered node and add it to list of nodes.
 
         Return True if discovery succeeded.
         """
-        if not await self._discover_node(
-            address, mac, node_type=None, ping_first=False
-        ):
+        if not await self._discover_node(mac, node_type=None, ping_first=False):
             return False
         if await self._load_node(mac):
             await self._notify_node_event_subscribers(NodeEvent.AWAKE, mac)
@@ -403,7 +394,6 @@ class StickNetwork:
 
     async def _discover_node(
         self,
-        address: int,
         mac: str,
         node_type: NodeType | None,
         ping_first: bool = True,
@@ -420,7 +410,7 @@ class StickNetwork:
             return True
 
         if node_type is not None:
-            await self._create_node_object(mac, address, node_type)
+            await self._create_node_object(mac, node_type)
             await self._notify_node_event_subscribers(NodeEvent.DISCOVERED, mac)
             return True
 
@@ -428,8 +418,10 @@ class StickNetwork:
         _LOGGER.debug("Starting the discovery of node %s with unknown NodeType", mac)
         node_info, node_ping = await self._controller.get_node_details(mac, ping_first)
         if node_info is None:
+            _LOGGER.debug("Node %s with unknown NodeType not responding", mac)
+            self._registry_stragglers.append(mac)
             return False
-        await self._create_node_object(mac, address, node_info.node_type)
+        await self._create_node_object(mac, node_info.node_type)
 
         # Forward received NodeInfoResponse message to node
         await self._nodes[mac].message_for_node(node_info)
@@ -438,41 +430,16 @@ class StickNetwork:
         await self._notify_node_event_subscribers(NodeEvent.DISCOVERED, mac)
         return True
 
-    async def _discover_registered_nodes(self) -> None:
-        """Discover nodes."""
-        _LOGGER.debug("Start discovery of registered nodes")
-        registered_counter = 0
-        for address, registration in self._register.registry.items():
-            mac, node_type = registration
-            if mac != "":
-                if self._nodes.get(mac) is None:
-                    if not await self._discover_node(address, mac, node_type):
-                        self._registry_stragglers[address] = mac
-                registered_counter += 1
-                await sleep(0)
-        if len(self._registry_stragglers) > 0 and (
-            self._discover_stragglers_task is None
-            or self._discover_stragglers_task.done()
-        ):
-            self._discover_stragglers_task = create_task(self._discover_stragglers())
-        _LOGGER.debug(
-            "Total %s online of %s registered node(s)",
-            str(len(self._nodes)),
-            str(registered_counter),
-        )
-
     async def _discover_stragglers(self) -> None:
         """Repeat Discovery of Nodes with unknown NodeType."""
         while len(self._registry_stragglers) > 0:
             await sleep(NODE_RETRY_DISCOVER_INTERVAL)
-            stragglers: dict[int, str] = {}
-            for address, mac in self._registry_stragglers.items():
-                if not await self._discover_node(address, mac, None):
-                    stragglers[address] = mac
-            self._registry_stragglers = stragglers
+            for mac in self._registry_stragglers:
+                if not await self._discover_node(mac, None):
+                    self._registry_stragglers.remove(mac)
             _LOGGER.debug(
                 "Total %s nodes unreachable having unknown NodeType",
-                str(len(stragglers)),
+                str(len(self._registry_stragglers)),
             )
 
     async def _load_node(self, mac: str) -> bool:
@@ -526,19 +493,22 @@ class StickNetwork:
     # region - Network instance
     async def start(self) -> None:
         """Start and activate network."""
-        self._register.quick_scan_finished(self._discover_registered_nodes)
-        self._register.full_scan_finished(self._discover_registered_nodes)
+        self._register.start_node_discover(self._discover_node)
         await self._register.start()
         self._subscribe_to_protocol_events()
         await self._subscribe_to_node_events()
         self._is_running = True
+        if len(self._registry_stragglers) > 0 and (
+            self._discover_stragglers_task is None
+            or self._discover_stragglers_task.done()
+        ):
+            self._discover_stragglers_task = create_task(self._discover_stragglers())
 
     async def discover_nodes(self, load: bool = True) -> bool:
         """Discover nodes."""
         await self.discover_network_coordinator(load=load)
         if not self._is_running:
             await self.start()
-        await self._discover_registered_nodes()
         if load and not await self._load_discovered_nodes():
             self._load_stragglers_task = create_task(self._load_stragglers())
             return False
