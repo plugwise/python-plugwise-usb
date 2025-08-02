@@ -59,7 +59,6 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
     def __init__(
         self,
         mac: str,
-        address: int,
         node_type: NodeType,
         controller: StickController,
         loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
@@ -73,7 +72,6 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         self._last_seen = datetime.now(tz=UTC)
         self._node_info = NodeInfo(
             mac=mac,
-            zigbee_address=address,
             node_type=self.node_type,
         )
         self._ping = NetworkStatistics()
@@ -222,11 +220,6 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         if self._node_info.name is not None:
             return self._node_info.name
         return self._mac_in_str
-
-    @property
-    def network_address(self) -> int:
-        """Zigbee network registration address."""
-        return self._node_info.zigbee_address
 
     @property
     def node_info(self) -> NodeInfo:
