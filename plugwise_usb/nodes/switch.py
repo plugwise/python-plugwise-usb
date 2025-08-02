@@ -36,13 +36,12 @@ class PlugwiseSwitch(NodeSED):
     def __init__(
         self,
         mac: str,
-        address: int,
         node_type: NodeType,
         controller: StickController,
         loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
     ):
         """Initialize Scan Device."""
-        super().__init__(mac, address, node_type, controller, loaded_callback)
+        super().__init__(mac, node_type, controller, loaded_callback)
         self._switch_subscription: Callable[[], None] | None = None
         self._switch = SwitchGroup()
 

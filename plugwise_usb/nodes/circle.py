@@ -94,13 +94,12 @@ class PlugwiseCircle(PlugwiseBaseNode):
     def __init__(
         self,
         mac: str,
-        address: int,
         node_type: NodeType,
         controller: StickController,
         loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
     ):
         """Initialize base class for Sleeping End Device."""
-        super().__init__(mac, address, node_type, controller, loaded_callback)
+        super().__init__(mac, node_type, controller, loaded_callback)
 
         # Relay
         self._relay_lock: RelayLock = RelayLock()

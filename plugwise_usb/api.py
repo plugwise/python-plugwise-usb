@@ -145,7 +145,6 @@ class NodeInfo:
     """Node hardware information."""
 
     mac: str
-    zigbee_address: int
     is_battery_powered: bool = False
     features: tuple[NodeFeature, ...] = (NodeFeature.INFO,)
     firmware: datetime | None = None
