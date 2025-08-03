@@ -433,10 +433,7 @@ class PlugwiseScan(NodeSED):
     async def _run_awake_tasks(self) -> None:
         """Execute all awake tasks."""
         await super()._run_awake_tasks()
-        if (
-                self._scan_config_task_scheduled
-                and await self._configure_scan_task()
-        ):
+        if self._scan_config_task_scheduled and await self._configure_scan_task():
             self._scan_config_task_scheduled = False
 
     async def _configure_scan_task(self) -> bool:
