@@ -172,7 +172,8 @@ class StickNetworkRegister:
         """Remove a mac to the network registration list."""
         if mac in self._registry:
             self._registry.remove(mac)
-            await self._network_cache.prune_cache(self._registry)
+            if self._network_cache is not None:
+                await self._network_cache.prune_cache(self._registry)
 
     async def update_missing_registrations_circleplus(self) -> None:
         """Full retrieval of all (unknown) network registrations from network controller."""
@@ -197,7 +198,8 @@ class StickNetworkRegister:
             await sleep(self._registration_scan_delay)
         _LOGGER.debug("CirclePlus registry scan finished")
         self._scan_completed = True
-        await self._network_cache.prune_cache(_maintenance_registry)
+        if self._network_cache is not None:
+            await self._network_cache.prune_cache(_maintenance_registry)
 
     async def load_registrations_from_cache(self) -> None:
         """Quick retrieval of all unknown network registrations from cache."""
