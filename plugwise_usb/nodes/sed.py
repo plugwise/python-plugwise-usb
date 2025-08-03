@@ -2,21 +2,14 @@
 
 from __future__ import annotations
 
-from asyncio import (
-    CancelledError,
-    Future,
-    Task,
-    gather,
-    get_running_loop,
-    wait_for,
-)
+from asyncio import CancelledError, Future, Task, gather, get_running_loop, wait_for
 from collections.abc import Awaitable, Callable, Coroutine
 from dataclasses import replace
 from datetime import datetime, timedelta
 import logging
 from typing import Any, Final
 
-from ..api import BatteryConfig, NodeEvent, NodeFeature, NodeInfo, NodeType
+from ..api import BatteryConfig, NodeEvent, NodeFeature, NodeType
 from ..connection import StickController
 from ..constants import MAX_UINT_2, MAX_UINT_4
 from ..exceptions import MessageError, NodeError
@@ -25,7 +18,6 @@ from ..messages.responses import (
     NODE_AWAKE_RESPONSE_ID,
     NodeAwakeResponse,
     NodeAwakeResponseType,
-    NodeInfoResponse,
     NodeResponseType,
     PlugwiseResponse,
 )
@@ -100,7 +92,7 @@ class NodeSED(PlugwiseBaseNode):
         self._battery_config = BatteryConfig()
         self._new_battery_config = BatteryConfig()
         self._sed_config_task_scheduled = False
-        self._sed_node_info_update_task_scheduled = False 
+        self._sed_node_info_update_task_scheduled = False
 
         self._last_awake: dict[NodeAwakeResponseType, datetime] = {}
         self._last_awake_reason: str = "Unknown"
@@ -618,15 +610,12 @@ class NodeSED(PlugwiseBaseNode):
     async def _run_awake_tasks(self) -> None:
         """Execute all awake tasks."""
         if (
-                self._sed_node_info_update_task_scheduled
-                and await self.node_info_update(None) is not None
+            self._sed_node_info_update_task_scheduled
+            and await self.node_info_update(None) is not None
         ):
             self._sed_node_info_update_task_scheduled = False
 
-        if (
-                self._sed_config_task_scheduled
-                and await self._configure_sed_task()
-        ):
+        if self._sed_config_task_scheduled and await self._configure_sed_task():
             self._sed_config_task_scheduled = False
 
     async def sed_configure(  # pylint: disable=too-many-arguments
