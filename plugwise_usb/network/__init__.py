@@ -277,9 +277,9 @@ class StickNetwork:
                 f"Invalid response message type ({response.__class__.__name__}) received, expected NodeRejoinResponse"
             )
         mac = response.mac_decoded
-        if ( 
-             self._register.update_node_registration(mac)
-             and self._nodes.get(mac) is None
+        if (
+            self._register.update_node_registration(mac)
+            and self._nodes.get(mac) is None
         ):
             task = self._discover_sed_tasks.get(mac)
             if task is None or task.done():
