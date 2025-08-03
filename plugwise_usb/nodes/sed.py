@@ -5,7 +5,6 @@ from __future__ import annotations
 from asyncio import (
     CancelledError,
     Future,
-    Lock,
     Task,
     gather,
     get_running_loop,
@@ -101,9 +100,7 @@ class NodeSED(PlugwiseBaseNode):
         self._battery_config = BatteryConfig()
         self._new_battery_config = BatteryConfig()
         self._sed_config_task_scheduled = False
-        self._send_task_queue: list[Coroutine[Any, Any, bool]] = []
-        self._send_task_lock = Lock()
-        self._delayed_task: Task[None] | None = None
+        self._sed_node_info_update_task_scheduled = False 
 
         self._last_awake: dict[NodeAwakeResponseType, datetime] = {}
         self._last_awake_reason: str = "Unknown"
@@ -136,14 +133,6 @@ class NodeSED(PlugwiseBaseNode):
             await self._awake_timer_task
         if self._awake_subscription is not None:
             self._awake_subscription()
-        if self._delayed_task is not None and not self._delayed_task.done():
-            await self._delayed_task
-        if len(self._send_task_queue) > 0:
-            _LOGGER.warning(
-                "Unable to execute %s open tasks for %s",
-                len(self._send_task_queue),
-                self.name,
-            )
         await super().unload()
 
     @raise_not_loaded
@@ -168,10 +157,9 @@ class NodeSED(PlugwiseBaseNode):
             maintenance_interval=SED_DEFAULT_MAINTENANCE_INTERVAL,
             sleep_duration=SED_DEFAULT_SLEEP_DURATION,
         )
-        await self.schedule_task_when_awake(self.node_info_update(None))
-        self._sed_config_task_scheduled = True
+        self._sed_node_info_update_task_scheduled = True
         self._new_battery_config = self._battery_config
-        await self.schedule_task_when_awake(self._configure_sed_task())
+        self._sed_config_task_scheduled = True
 
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
@@ -250,7 +238,6 @@ class NodeSED(PlugwiseBaseNode):
             self._new_battery_config, awake_duration=seconds
         )
         if not self._sed_config_task_scheduled:
-            await self.schedule_task_when_awake(self._configure_sed_task())
             self._sed_config_task_scheduled = True
             _LOGGER.debug(
                 "set_awake_duration | Device %s | config scheduled",
@@ -280,7 +267,6 @@ class NodeSED(PlugwiseBaseNode):
             self._new_battery_config, clock_interval=minutes
         )
         if not self._sed_config_task_scheduled:
-            await self.schedule_task_when_awake(self._configure_sed_task())
             self._sed_config_task_scheduled = True
             _LOGGER.debug(
                 "set_clock_interval | Device %s | config scheduled",
@@ -303,7 +289,6 @@ class NodeSED(PlugwiseBaseNode):
 
         self._new_battery_config = replace(self._new_battery_config, clock_sync=sync)
         if not self._sed_config_task_scheduled:
-            await self.schedule_task_when_awake(self._configure_sed_task())
             self._sed_config_task_scheduled = True
             _LOGGER.debug(
                 "set_clock_sync | Device %s | config scheduled",
@@ -333,7 +318,6 @@ class NodeSED(PlugwiseBaseNode):
             self._new_battery_config, maintenance_interval=minutes
         )
         if not self._sed_config_task_scheduled:
-            await self.schedule_task_when_awake(self._configure_sed_task())
             self._sed_config_task_scheduled = True
             _LOGGER.debug(
                 "set_maintenance_interval | Device %s | config scheduled",
@@ -366,7 +350,6 @@ class NodeSED(PlugwiseBaseNode):
             self._new_battery_config, sleep_duration=minutes
         )
         if not self._sed_config_task_scheduled:
-            await self.schedule_task_when_awake(self._configure_sed_task())
             self._sed_config_task_scheduled = True
             _LOGGER.debug(
                 "set_sleep_duration | Device %s | config scheduled",
@@ -490,14 +473,6 @@ class NodeSED(PlugwiseBaseNode):
 
         return True
 
-    async def node_info_update(
-        self, node_info: NodeInfoResponse | None = None
-    ) -> NodeInfo | None:
-        """Update Node (hardware) information."""
-        if node_info is not None and self.skip_update(self._node_info, 86400):
-            return self._node_info
-        return await super().node_info_update(node_info)
-
     async def _awake_response(self, response: PlugwiseResponse) -> bool:
         """Process awake message."""
         if not isinstance(response, NodeAwakeResponse):
@@ -522,16 +497,14 @@ class NodeSED(PlugwiseBaseNode):
         self._last_awake[response.awake_type] = response.timestamp
 
         tasks: list[Coroutine[Any, Any, None]] = [
-            self._reset_awake(response.timestamp),
+            await self._reset_awake(response.timestamp),
             self.publish_feature_update_to_subscribers(
                 NodeFeature.BATTERY,
                 self._battery_config,
             ),
-            self.save_cache(),
+            await self.save_cache(),
         ]
-        self._delayed_task = self._loop.create_task(
-            self._send_tasks(), name=f"Delayed update for {self._mac_in_str}"
-        )
+        await self._run_awake_tasks()
         if response.awake_type == NodeAwakeResponseType.MAINTENANCE:
             self._last_awake_reason = "Maintenance"
             self._set_cache(CACHE_AWAKE_REASON, "Maintenance")
@@ -642,27 +615,19 @@ class NodeSED(PlugwiseBaseNode):
             pass
         self._awake_future = None
 
-    async def _send_tasks(self) -> None:
-        """Send all tasks in queue."""
-        if len(self._send_task_queue) == 0:
-            return
-        async with self._send_task_lock:
-            task_result = await gather(*self._send_task_queue)
-            if not all(task_result):
-                _LOGGER.warning(
-                    "Executed %s tasks (result=%s) for %s",
-                    len(self._send_task_queue),
-                    task_result,
-                    self.name,
-                )
-            self._send_task_queue = []
+    async def _run_awake_tasks(self) -> None:
+        """Execute all awake tasks."""
+        if (
+                self._sed_node_info_update_task_scheduled
+                and await self.node_info_update(None) is not None
+        ):
+            self._sed_node_info_update_task_scheduled = False
 
-    async def schedule_task_when_awake(
-        self, task_fn: Coroutine[Any, Any, bool]
-    ) -> None:
-        """Add task to queue to be executed when node is awake."""
-        async with self._send_task_lock:
-            self._send_task_queue.append(task_fn)
+        if (
+                self._sed_config_task_scheduled
+                and await self._configure_sed_task()
+        ):
+            self._sed_config_task_scheduled = False
 
     async def sed_configure(  # pylint: disable=too-many-arguments
         self,
