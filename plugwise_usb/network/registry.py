@@ -50,6 +50,7 @@ class StickNetworkRegister:
         self._full_scan_finished: Callable[[], Awaitable[None]] | None = None
         self._registration_scan_delay: float = CIRCLEPLUS_SCANREQUEST_MAINTENANCE
         self._scan_completed = False
+        self._scan_completed_callback: Callable[[], Awaitable[None]] | None = None
 
     # region Properties
 
@@ -101,6 +102,10 @@ class StickNetworkRegister:
     def start_node_discover(self, callback: Callable[[], Awaitable[None]]) -> None:
         """Register method to be called when a node is found."""
         self._start_node_discover = callback
+
+    def scan_completed_callback(self, callback: Callable[[], Awaitable[None]]) -> None:
+        """Register method to be called when a node is found."""
+        self._scan_completed_callback = callback
 
     def full_scan_finished(self, callback: Callable[[], Awaitable[None]]) -> None:
         """Register method to be called when full scan is finished."""
@@ -200,6 +205,8 @@ class StickNetworkRegister:
         self._scan_completed = True
         if self._network_cache is not None:
             await self._network_cache.prune_cache(_maintenance_registry)
+        if self._scan_completed_callback is not None:
+            await self._scan_completed_callback()
 
     async def load_registrations_from_cache(self) -> None:
         """Quick retrieval of all unknown network registrations from cache."""
@@ -216,6 +223,8 @@ class StickNetworkRegister:
             await self._start_node_discover(mac, nodetype, True)
             await sleep(0.1)
         _LOGGER.info("Cache network registration discovery finished")
+        if self._scan_completed_callback is not None:
+            await self._scan_completed_callback()
 
     async def update_node_registration(self, mac: str) -> bool:
         """Register (re)joined node to Plugwise network and return network address."""

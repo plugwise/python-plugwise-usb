@@ -482,6 +482,10 @@ class StickNetwork:
                 )
             result_index += 1
         _LOGGER.debug("_load_discovered_nodes | END")
+        if not all(load_result) and (
+            self._load_stragglers_task is None or self._load_stragglers_task.done()
+        ):
+            self._load_stragglers_task = create_task(self._load_stragglers())
         return all(load_result)
 
     async def _unload_discovered_nodes(self) -> None:
@@ -491,9 +495,11 @@ class StickNetwork:
     # endregion
 
     # region - Network instance
-    async def start(self) -> None:
+    async def start(self, load: bool = True) -> None:
         """Start and activate network."""
         self._register.start_node_discover(self._discover_node)
+        if load:
+            self._register.scan_completed_callback(self._load_discovered_nodes)
         await self._register.start()
         self._subscribe_to_protocol_events()
         await self._subscribe_to_node_events()
@@ -508,10 +514,8 @@ class StickNetwork:
         """Discover nodes."""
         await self.discover_network_coordinator(load=load)
         if not self._is_running:
-            await self.start()
-        if load and not await self._load_discovered_nodes():
-            self._load_stragglers_task = create_task(self._load_stragglers())
-            return False
+            await self.start(load=load)
+        return True
 
         return True
 
