@@ -99,7 +99,9 @@ class StickNetworkRegister:
         """Indicate if scan is completed."""
         return self._scan_completed
 
-    def start_node_discover(self, callback: Callable[[], Awaitable[None]]) -> None:
+    def start_node_discover(
+        self, callback: Callable[[str, NodeType | None, bool], Awaitable[None]]
+    ) -> None:
         """Register method to be called when a node is found."""
         self._start_node_discover = callback
 
