@@ -21,16 +21,16 @@ from ..messages.responses import (
     NodeResponseType,
     PlugwiseResponse,
 )
-from .helpers import raise_not_loaded
 from .node import PlugwiseBaseNode
 
-CACHE_AWAKE_DURATION = "awake_duration"
-CACHE_CLOCK_INTERVAL = "clock_interval"
-CACHE_SLEEP_DURATION = "sleep_duration"
-CACHE_CLOCK_SYNC = "clock_sync"
-CACHE_MAINTENANCE_INTERVAL = "maintenance_interval"
-CACHE_AWAKE_TIMESTAMP = "awake_timestamp"
-CACHE_AWAKE_REASON = "awake_reason"
+CACHE_SED_AWAKE_DURATION = "awake_duration"
+CACHE_SED_CLOCK_INTERVAL = "clock_interval"
+CACHE_SED_SLEEP_DURATION = "sleep_duration"
+CACHE_SED_DIRTY = "sed_dirty"
+CACHE_SED_CLOCK_SYNC = "clock_sync"
+CACHE_SED_MAINTENANCE_INTERVAL = "maintenance_interval"
+CACHE_SED_AWAKE_TIMESTAMP = "awake_timestamp"
+CACHE_SED_AWAKE_REASON = "awake_reason"
 
 # Number of seconds to ignore duplicate awake messages
 AWAKE_RETRY: Final = 5
@@ -90,8 +90,6 @@ class NodeSED(PlugwiseBaseNode):
 
         # Configure SED
         self._battery_config = BatteryConfig()
-        self._new_battery_config = BatteryConfig()
-        self._sed_config_task_scheduled = False
         self._sed_node_info_update_task_scheduled = False
 
         self._last_awake: dict[NodeAwakeResponseType, datetime] = {}
@@ -127,7 +125,6 @@ class NodeSED(PlugwiseBaseNode):
             self._awake_subscription()
         await super().unload()
 
-    @raise_not_loaded
     async def initialize(self) -> None:
         """Initialize SED node."""
         if self._initialized:
@@ -142,77 +139,94 @@ class NodeSED(PlugwiseBaseNode):
 
     async def _load_defaults(self) -> None:
         """Load default configuration settings."""
-        self._battery_config = BatteryConfig(
-            awake_duration=SED_DEFAULT_AWAKE_DURATION,
-            clock_interval=SED_DEFAULT_CLOCK_INTERVAL,
-            clock_sync=SED_DEFAULT_CLOCK_SYNC,
-            maintenance_interval=SED_DEFAULT_MAINTENANCE_INTERVAL,
-            sleep_duration=SED_DEFAULT_SLEEP_DURATION,
-        )
-        self._sed_node_info_update_task_scheduled = True
-        self._new_battery_config = self._battery_config
-        self._sed_config_task_scheduled = True
 
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
+        LoadSuccess = True
         if not await super()._load_from_cache():
-            return False
+            LoadSuccess = False
+        dirty = False
+        if (awake_duration := self._awake_duration_from_cache()) is None:
+            dirty = True
+            awake_duration = SED_DEFAULT_AWAKE_DURATION
+        if (clock_interval := self._clock_interval_from_cache()) is None:
+            dirty = True
+            clock_interval = SED_DEFAULT_CLOCK_INTERVAL
+        if (clock_sync := self._clock_sync_from_cache()) is None:
+            dirty = True
+            clock_sync = SED_DEFAULT_CLOCK_SYNC
+        if (maintenance_interval := self._maintenance_interval_from_cache()) is None:
+            dirty = True
+            maintenance_interval = SED_DEFAULT_MAINTENANCE_INTERVAL
+        if (sleep_duration := self._sleep_duration_from_cache()) is None:
+            dirty = True
+            sleep_duration = SED_DEFAULT_SLEEP_DURATION
+        dirty &= self._sed_config_dirty_from_cache()
+
         self._battery_config = BatteryConfig(
-            awake_duration=self._awake_duration_from_cache(),
-            clock_interval=self._clock_interval_from_cache(),
-            clock_sync=self._clock_sync_from_cache(),
-            maintenance_interval=self._maintenance_interval_from_cache(),
-            sleep_duration=self._sleep_duration_from_cache(),
+            awake_duration=awake_duration,
+            clock_interval=clock_interval,
+            clock_sync=clock_sync,
+            maintenance_interval=maintenance_interval,
+            sleep_duration=sleep_duration,
+            dirty=dirty,
         )
+        if dirty:
+            await self._sed_configure_update()
         self._awake_timestamp_from_cache()
         self._awake_reason_from_cache()
-        return True
+        return LoadSuccess
 
-    def _awake_duration_from_cache(self) -> int:
+    def _awake_duration_from_cache(self) -> int | None:
         """Load awake duration from cache."""
-        if (awake_duration := self._get_cache(CACHE_AWAKE_DURATION)) is not None:
+        if (awake_duration := self._get_cache(CACHE_SED_AWAKE_DURATION)) is not None:
             return int(awake_duration)
-        return SED_DEFAULT_AWAKE_DURATION
+        return None
 
-    def _clock_interval_from_cache(self) -> int:
+    def _clock_interval_from_cache(self) -> int | None:
         """Load clock interval from cache."""
-        if (clock_interval := self._get_cache(CACHE_CLOCK_INTERVAL)) is not None:
+        if (clock_interval := self._get_cache(CACHE_SED_CLOCK_INTERVAL)) is not None:
             return int(clock_interval)
-        return SED_DEFAULT_CLOCK_INTERVAL
+        return None
 
-    def _clock_sync_from_cache(self) -> bool:
+    def _clock_sync_from_cache(self) -> bool | None:
         """Load clock sync state from cache."""
-        if (clock_sync := self._get_cache(CACHE_CLOCK_SYNC)) is not None:
+        if (clock_sync := self._get_cache(CACHE_SED_CLOCK_SYNC)) is not None:
             if clock_sync == "True":
                 return True
             return False
-        return SED_DEFAULT_CLOCK_SYNC
+        return None
 
-    def _maintenance_interval_from_cache(self) -> int:
+    def _maintenance_interval_from_cache(self) -> int | None:
         """Load maintenance interval from cache."""
         if (
-            maintenance_interval := self._get_cache(CACHE_MAINTENANCE_INTERVAL)
+            maintenance_interval := self._get_cache(CACHE_SED_MAINTENANCE_INTERVAL)
         ) is not None:
             self._maintenance_interval_restored_from_cache = True
             return int(maintenance_interval)
-        return SED_DEFAULT_MAINTENANCE_INTERVAL
+        return None
 
-    def _sleep_duration_from_cache(self) -> int:
+    def _sleep_duration_from_cache(self) -> int | None:
         """Load sleep duration from cache."""
-        if (sleep_duration := self._get_cache(CACHE_SLEEP_DURATION)) is not None:
+        if (sleep_duration := self._get_cache(CACHE_SED_SLEEP_DURATION)) is not None:
             return int(sleep_duration)
-        return SED_DEFAULT_SLEEP_DURATION
+        return None
 
     def _awake_timestamp_from_cache(self) -> datetime | None:
         """Load last awake timestamp from cache."""
-        return self._get_cache_as_datetime(CACHE_AWAKE_TIMESTAMP)
+        return self._get_cache_as_datetime(CACHE_SED_AWAKE_TIMESTAMP)
 
     def _awake_reason_from_cache(self) -> str | None:
         """Load last awake state from cache."""
-        return self._get_cache(CACHE_AWAKE_REASON)
+        return self._get_cache(CACHE_SED_AWAKE_REASON)
+
+    def _sed_config_dirty_from_cache(self) -> bool:
+        """Load battery config dirty  from cache."""
+        if (dirty := self._get_cache(CACHE_SED_DIRTY)) is not None:
+            return dirty
+        return True
 
     # region Configuration actions
-    @raise_not_loaded
     async def set_awake_duration(self, seconds: int) -> bool:
         """Change the awake duration."""
         _LOGGER.debug(
@@ -226,19 +240,11 @@ class NodeSED(PlugwiseBaseNode):
                 f"Invalid awake duration ({seconds}). It must be between 1 and 255 seconds."
             )
 
-        self._new_battery_config = replace(
-            self._new_battery_config, awake_duration=seconds
+        self._battery_config = replace(
+            self._battery_config, awake_duration=seconds, dirty=True
         )
-        if not self._sed_config_task_scheduled:
-            self._sed_config_task_scheduled = True
-            _LOGGER.debug(
-                "set_awake_duration | Device %s | config scheduled",
-                self.name,
-            )
-
         return True
 
-    @raise_not_loaded
     async def set_clock_interval(self, minutes: int) -> bool:
         """Change the clock interval."""
         _LOGGER.debug(
@@ -255,19 +261,11 @@ class NodeSED(PlugwiseBaseNode):
         if self.battery_config.clock_interval == minutes:
             return False
 
-        self._new_battery_config = replace(
-            self._new_battery_config, clock_interval=minutes
+        self._battery_config = replace(
+            self._battery_config, clock_interval=minutes, dirty=True
         )
-        if not self._sed_config_task_scheduled:
-            self._sed_config_task_scheduled = True
-            _LOGGER.debug(
-                "set_clock_interval | Device %s | config scheduled",
-                self.name,
-            )
-
         return True
 
-    @raise_not_loaded
     async def set_clock_sync(self, sync: bool) -> bool:
         """Change the clock synchronization setting."""
         _LOGGER.debug(
@@ -279,17 +277,11 @@ class NodeSED(PlugwiseBaseNode):
         if self._battery_config.clock_sync == sync:
             return False
 
-        self._new_battery_config = replace(self._new_battery_config, clock_sync=sync)
-        if not self._sed_config_task_scheduled:
-            self._sed_config_task_scheduled = True
-            _LOGGER.debug(
-                "set_clock_sync | Device %s | config scheduled",
-                self.name,
-            )
-
+        self._battery_config = replace(
+            self._battery_config, clock_sync=sync, dirty=True
+        )
         return True
 
-    @raise_not_loaded
     async def set_maintenance_interval(self, minutes: int) -> bool:
         """Change the maintenance interval."""
         _LOGGER.debug(
@@ -306,19 +298,11 @@ class NodeSED(PlugwiseBaseNode):
         if self.battery_config.maintenance_interval == minutes:
             return False
 
-        self._new_battery_config = replace(
-            self._new_battery_config, maintenance_interval=minutes
+        self._battery_config = replace(
+            self._battery_config, maintenance_interval=minutes, dirty=True
         )
-        if not self._sed_config_task_scheduled:
-            self._sed_config_task_scheduled = True
-            _LOGGER.debug(
-                "set_maintenance_interval | Device %s | config scheduled",
-                self.name,
-            )
-
         return True
 
-    @raise_not_loaded
     async def set_sleep_duration(self, minutes: int) -> bool:
         """Reconfigure the sleep duration in minutes for a Sleeping Endpoint Device.
 
@@ -338,32 +322,21 @@ class NodeSED(PlugwiseBaseNode):
         if self._battery_config.sleep_duration == minutes:
             return False
 
-        self._new_battery_config = replace(
-            self._new_battery_config, sleep_duration=minutes
+        self._battery_config = replace(
+            self._battery_config, sleep_duration=minutes, dirty=True
         )
-        if not self._sed_config_task_scheduled:
-            self._sed_config_task_scheduled = True
-            _LOGGER.debug(
-                "set_sleep_duration | Device %s | config scheduled",
-                self.name,
-            )
-
         return True
 
     # endregion
     # region Properties
     @property
-    @raise_not_loaded
     def awake_duration(self) -> int:
         """Duration in seconds a battery powered devices is awake."""
-        if self._new_battery_config.awake_duration is not None:
-            return self._new_battery_config.awake_duration
         if self._battery_config.awake_duration is not None:
             return self._battery_config.awake_duration
         return SED_DEFAULT_AWAKE_DURATION
 
     @property
-    @raise_not_loaded
     def battery_config(self) -> BatteryConfig:
         """Battery related configuration settings."""
         return BatteryConfig(
@@ -375,52 +348,35 @@ class NodeSED(PlugwiseBaseNode):
         )
 
     @property
-    @raise_not_loaded
     def clock_interval(self) -> int:
         """Return the clock interval value."""
-        if self._new_battery_config.clock_interval is not None:
-            return self._new_battery_config.clock_interval
         if self._battery_config.clock_interval is not None:
             return self._battery_config.clock_interval
         return SED_DEFAULT_CLOCK_INTERVAL
 
     @property
-    @raise_not_loaded
     def clock_sync(self) -> bool:
         """Indicate if the internal clock must be synced."""
-        if self._new_battery_config.clock_sync is not None:
-            return self._new_battery_config.clock_sync
         if self._battery_config.clock_sync is not None:
             return self._battery_config.clock_sync
         return SED_DEFAULT_CLOCK_SYNC
 
     @property
-    @raise_not_loaded
     def maintenance_interval(self) -> int:
         """Return the maintenance interval value.
 
         When value is scheduled to be changed the return value is the optimistic value.
         """
-        if self._new_battery_config.maintenance_interval is not None:
-            return self._new_battery_config.maintenance_interval
         if self._battery_config.maintenance_interval is not None:
             return self._battery_config.maintenance_interval
         return SED_DEFAULT_MAINTENANCE_INTERVAL
 
     @property
-    def sed_config_task_scheduled(self) -> bool:
-        """Check if a configuration task is scheduled."""
-        return self._sed_config_task_scheduled
-
-    @property
-    @raise_not_loaded
     def sleep_duration(self) -> int:
         """Return the sleep duration value in minutes.
 
         When value is scheduled to be changed the return value is the optimistic value.
         """
-        if self._new_battery_config.sleep_duration is not None:
-            return self._new_battery_config.sleep_duration
         if self._battery_config.sleep_duration is not None:
             return self._battery_config.sleep_duration
         return SED_DEFAULT_SLEEP_DURATION
@@ -428,39 +384,14 @@ class NodeSED(PlugwiseBaseNode):
     # endregion
     async def _configure_sed_task(self) -> bool:
         """Configure SED settings. Returns True if successful."""
-        _LOGGER.debug(
-            "_configure_sed_task | Device %s | start",
-            self.name,
-        )
-        self._sed_config_task_scheduled = False
-        change_required = False
-        if (
-            self._new_battery_config.awake_duration is not None
-            or self._new_battery_config.clock_interval is not None
-            or self._new_battery_config.clock_sync is not None
-            or self._new_battery_config.maintenance_interval is not None
-            or self._new_battery_config.sleep_duration is not None
-        ):
-            change_required = True
-
-        if not change_required:
-            _LOGGER.debug(
-                "_configure_sed_task | Device %s | no change",
-                self.name,
-            )
+        if not self._battery_config.dirty:
             return True
-
         _LOGGER.debug(
-            "_configure_sed_task | Device %s | request change",
-            self.name,
+            "_configure_sed_task | Node %s | request change",
+            self._mac_in_str,
         )
-        if not await self.sed_configure(
-            awake_duration=self.awake_duration,
-            clock_interval=self.clock_interval,
-            clock_sync=self.clock_sync,
-            maintenance_interval=self.maintenance_interval,
-            sleep_duration=self.sleep_duration,
-        ):
+        if not await self.sed_configure():
+            _LOGGER.debug("Battery Configuration for %s failed", self._mac_in_str)
             return False
 
         return True
@@ -473,7 +404,7 @@ class NodeSED(PlugwiseBaseNode):
             )
 
         _LOGGER.debug("Device %s is awake for %s", self.name, response.awake_type)
-        self._set_cache(CACHE_AWAKE_TIMESTAMP, response.timestamp)
+        self._set_cache(CACHE_SED_AWAKE_TIMESTAMP, response.timestamp)
         await self._available_update_state(True, response.timestamp)
 
         # Pre populate the last awake timestamp
@@ -499,7 +430,7 @@ class NodeSED(PlugwiseBaseNode):
         await self._run_awake_tasks()
         if response.awake_type == NodeAwakeResponseType.MAINTENANCE:
             self._last_awake_reason = "Maintenance"
-            self._set_cache(CACHE_AWAKE_REASON, "Maintenance")
+            self._set_cache(CACHE_SED_AWAKE_REASON, "Maintenance")
 
             if not self._maintenance_interval_restored_from_cache:
                 self._detect_maintenance_interval(response.timestamp)
@@ -507,16 +438,16 @@ class NodeSED(PlugwiseBaseNode):
                 tasks.append(self.update_ping_at_awake())
         elif response.awake_type == NodeAwakeResponseType.FIRST:
             self._last_awake_reason = "First"
-            self._set_cache(CACHE_AWAKE_REASON, "First")
+            self._set_cache(CACHE_SED_AWAKE_REASON, "First")
         elif response.awake_type == NodeAwakeResponseType.STARTUP:
             self._last_awake_reason = "Startup"
-            self._set_cache(CACHE_AWAKE_REASON, "Startup")
+            self._set_cache(CACHE_SED_AWAKE_REASON, "Startup")
         elif response.awake_type == NodeAwakeResponseType.STATE:
             self._last_awake_reason = "State update"
-            self._set_cache(CACHE_AWAKE_REASON, "State update")
+            self._set_cache(CACHE_SED_AWAKE_REASON, "State update")
         elif response.awake_type == NodeAwakeResponseType.BUTTON:
             self._last_awake_reason = "Button press"
-            self._set_cache(CACHE_AWAKE_REASON, "Button press")
+            self._set_cache(CACHE_SED_AWAKE_REASON, "Button press")
             if self._ping_at_awake:
                 tasks.append(self.update_ping_at_awake())
 
@@ -549,14 +480,14 @@ class NodeSED(PlugwiseBaseNode):
             self._battery_config = replace(
                 self._battery_config, maintenance_interval=new_interval_in_min
             )
-            self._set_cache(CACHE_MAINTENANCE_INTERVAL, new_interval_in_min)
+            self._set_cache(CACHE_SED_MAINTENANCE_INTERVAL, new_interval_in_min)
         elif (new_interval_in_sec - SED_MAX_MAINTENANCE_INTERVAL_OFFSET) > (
             SED_DEFAULT_MAINTENANCE_INTERVAL * 60
         ):
             self._battery_config = replace(
                 self._battery_config, maintenance_interval=new_interval_in_min
             )
-            self._set_cache(CACHE_MAINTENANCE_INTERVAL, new_interval_in_min)
+            self._set_cache(CACHE_SED_MAINTENANCE_INTERVAL, new_interval_in_min)
         else:
             # Within off-set margin of default, so use the default
             self._battery_config = replace(
@@ -564,7 +495,7 @@ class NodeSED(PlugwiseBaseNode):
                 maintenance_interval=SED_DEFAULT_MAINTENANCE_INTERVAL,
             )
             self._set_cache(
-                CACHE_MAINTENANCE_INTERVAL, SED_DEFAULT_MAINTENANCE_INTERVAL
+                CACHE_SED_MAINTENANCE_INTERVAL, SED_DEFAULT_MAINTENANCE_INTERVAL
             )
 
         self._maintenance_interval_restored_from_cache = True
@@ -615,55 +546,40 @@ class NodeSED(PlugwiseBaseNode):
         ):
             self._sed_node_info_update_task_scheduled = False
 
-        if self._sed_config_task_scheduled and await self._configure_sed_task():
-            self._sed_config_task_scheduled = False
+        if self._battery_config.dirty:
+            await self._configure_sed_task()
 
-    async def sed_configure(  # pylint: disable=too-many-arguments
-        self,
-        awake_duration: int,
-        sleep_duration: int,
-        maintenance_interval: int,
-        clock_sync: bool,
-        clock_interval: int,
-    ) -> bool:
+    async def sed_configure(self) -> bool:
         """Reconfigure the sleep/awake settings for a SED send at next awake of SED."""
         request = NodeSleepConfigRequest(
             self._send,
             self._mac_in_bytes,
-            awake_duration,
-            maintenance_interval,
-            sleep_duration,
-            clock_sync,
-            clock_interval,
+            self._battery_config.awake_duration,
+            self._battery_config.maintenance_interval,
+            self._battery_config.sleep_duration,
+            self._battery_config.clock_sync,
+            self._battery_config.clock_interval,
         )
         _LOGGER.debug(
             "sed_configure | Device %s | awake_duration=%s | clock_interval=%s | clock_sync=%s | maintenance_interval=%s | sleep_duration=%s",
             self.name,
-            awake_duration,
-            clock_interval,
-            clock_sync,
-            maintenance_interval,
-            sleep_duration,
+            self._battery_config.awake_duration,
+            self._battery_config.clock_interval,
+            self._battery_config.clock_sync,
+            self._battery_config.maintenance_interval,
+            self._battery_config.sleep_duration,
         )
         if (response := await request.send()) is None:
-            self._new_battery_config = BatteryConfig()
             _LOGGER.warning(
                 "No response from %s to configure sleep settings request", self.name
             )
             return False
         if response.response_type == NodeResponseType.SED_CONFIG_FAILED:
-            self._new_battery_config = BatteryConfig()
             _LOGGER.warning("Failed to configure sleep settings for %s", self.name)
             return False
         if response.response_type == NodeResponseType.SED_CONFIG_ACCEPTED:
-            await self._sed_configure_update(
-                awake_duration,
-                clock_interval,
-                clock_sync,
-                maintenance_interval,
-                sleep_duration,
-            )
-            self._new_battery_config = BatteryConfig()
+            self._battery_config = replace(self._battery_config, dirty=False)
+            await self._sed_configure_update()
             return True
         _LOGGER.warning(
             "Unexpected response type %s for %s",
@@ -672,31 +588,23 @@ class NodeSED(PlugwiseBaseNode):
         )
         return False
 
-    # pylint: disable=too-many-arguments
-    async def _sed_configure_update(
-        self,
-        awake_duration: int = SED_DEFAULT_AWAKE_DURATION,
-        clock_interval: int = SED_DEFAULT_CLOCK_INTERVAL,
-        clock_sync: bool = SED_DEFAULT_CLOCK_SYNC,
-        maintenance_interval: int = SED_DEFAULT_MAINTENANCE_INTERVAL,
-        sleep_duration: int = SED_DEFAULT_SLEEP_DURATION,
-    ) -> None:
+    async def _sed_configure_update(self) -> None:
         """Process result of SED configuration update."""
-        self._battery_config = BatteryConfig(
-            awake_duration=awake_duration,
-            clock_interval=clock_interval,
-            clock_sync=clock_sync,
-            maintenance_interval=maintenance_interval,
-            sleep_duration=sleep_duration,
+        self._set_cache(
+            CACHE_SED_MAINTENANCE_INTERVAL,
+            str(self._battery_config.maintenance_interval),
         )
-        self._set_cache(CACHE_MAINTENANCE_INTERVAL, str(maintenance_interval))
-        self._set_cache(CACHE_AWAKE_DURATION, str(awake_duration))
-        self._set_cache(CACHE_CLOCK_INTERVAL, str(clock_interval))
-        self._set_cache(CACHE_SLEEP_DURATION, str(sleep_duration))
-        if clock_sync:
-            self._set_cache(CACHE_CLOCK_SYNC, "True")
-        else:
-            self._set_cache(CACHE_CLOCK_SYNC, "False")
+        self._set_cache(
+            CACHE_SED_AWAKE_DURATION, str(self._battery_config.awake_duration)
+        )
+        self._set_cache(
+            CACHE_SED_CLOCK_INTERVAL, str(self._battery_config.clock_interval)
+        )
+        self._set_cache(
+            CACHE_SED_SLEEP_DURATION, str(self._battery_config.sleep_duration)
+        )
+        self._set_cache(CACHE_SED_CLOCK_SYNC, str(self._battery_config.clock_sync))
+        self._set_cache(CACHE_SED_DIRTY, str(self._battery_config.dirty))
         await gather(
             *[
                 self.save_cache(),
@@ -707,7 +615,6 @@ class NodeSED(PlugwiseBaseNode):
             ]
         )
 
-    @raise_not_loaded
     async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
         """Update latest state for given feature."""
         states: dict[NodeFeature, Any] = {}

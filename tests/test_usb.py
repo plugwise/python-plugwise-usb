@@ -1912,7 +1912,7 @@ class TestStick:
                 return "6"
             if setting == pw_node.CACHE_NODE_INFO_TIMESTAMP:
                 return "2024-12-7-1-0-0"
-            if setting == pw_sed.CACHE_AWAKE_DURATION:
+            if setting == pw_sed.CACHE_SED_AWAKE_DURATION:
                 return "20"
             if setting == pw_sed.CACHE_CLOCK_INTERVAL:
                 return "12600"
@@ -2115,7 +2115,7 @@ class TestStick:
                 return "True"
             if setting == pw_node.CACHE_NODE_INFO_TIMESTAMP:
                 return "2024-12-7-1-0-0"
-            if setting == pw_sed.CACHE_AWAKE_DURATION:
+            if setting == pw_sed.CACHE_SED_AWAKE_DURATION:
                 return "20"
             if setting == pw_sed.CACHE_CLOCK_INTERVAL:
                 return "12600"
@@ -2125,16 +2125,18 @@ class TestStick:
                 return "43200"
             if setting == pw_sed.CACHE_SLEEP_DURATION:
                 return "120"
-            if setting == pw_scan.CACHE_MOTION_STATE:
+            if setting == pw_scan.CACHE_SCAN_MOTION_STATE:
                 return "False"
-            if setting == pw_scan.CACHE_MOTION_TIMESTAMP:
+            if setting == pw_scan.CACHE_SCAN_MOTION_TIMESTAMP:
                 return "2024-12-6-1-0-0"
-            if setting == pw_scan.CACHE_MOTION_RESET_TIMER:
+            if setting == pw_scan.CACHE_SCAN_CONFIG_RESET_TIMER:
                 return "10"
-            if setting == pw_scan.CACHE_SCAN_SENSITIVITY:
+            if setting == pw_scan.CACHE_SCAN_CONFIG_SENSITIVITY:
                 return "MEDIUM"
-            if setting == pw_scan.CACHE_SCAN_DAYLIGHT_MODE:
+            if setting == pw_scan.CACHE_SCAN_CONFIG_DAYLIGHT_MODE:
                 return "True"
+            if setting == pw_scan.CACHE_SCAN_CONFIG_DIRTY:
+                return "False"
             return None
 
         monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache", fake_cache)
@@ -2192,7 +2194,6 @@ class TestStick:
         mock_stick_controller.send_response = scan_config_failed
         await test_scan._awake_response(awake_response1)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
-        assert not test_scan.scan_config_task_scheduled
 
         # Successful config
         awake_response2 = pw_responses.NodeAwakeResponse()
@@ -2314,16 +2315,18 @@ class TestStick:
                 return "2024-12-7-1-0-0"
             if setting == pw_node.CACHE_RELAY:
                 return "True"
-            if setting == pw_sed.CACHE_AWAKE_DURATION:
+            if setting == pw_sed.CACHE_SED_AWAKE_DURATION:
                 return "15"
-            if setting == pw_sed.CACHE_CLOCK_INTERVAL:
+            if setting == pw_sed.CACHE_SED_CLOCK_INTERVAL:
                 return "14600"
-            if setting == pw_sed.CACHE_CLOCK_SYNC:
+            if setting == pw_sed.CACHE_SED_CLOCK_SYNC:
                 return "False"
-            if setting == pw_sed.CACHE_MAINTENANCE_INTERVAL:
+            if setting == pw_sed.CACHE_SED_MAINTENANCE_INTERVAL:
                 return "900"
-            if setting == pw_sed.CACHE_SLEEP_DURATION:
+            if setting == pw_sed.CACHE_SED_SLEEP_DURATION:
                 return "180"
+            if setting == pw_sed.CACHE_SED_DIRTY:
+                return "False"
             return None
 
         monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache", fake_cache)
