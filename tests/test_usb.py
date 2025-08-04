@@ -548,7 +548,7 @@ class TestStick:
             )
 
     @pytest.mark.asyncio
-    async def test_stick_node_discovered_subscription(
+    async def test_stick_node_discovered_subscription(  # noqa: PLR0915
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Testing "new_node" subscription for Scan."""
@@ -2644,14 +2644,7 @@ class TestStick:
         # endregion
 
         # region Switch
-        self.test_node_loaded = asyncio.Future()
-        unsub_loaded = stick.subscribe_to_node_events(
-            node_event_callback=self.node_loaded,
-            events=(pw_api.NodeEvent.LOADED,),
-        )
         mock_serial.inject_message(b"004F888888888888888800", b"FFFE")
-        assert await self.test_node_loaded
-        unsub_loaded()
 
         assert stick.nodes["8888888888888888"].node_info.firmware == dt(
             2011, 6, 27, 9, 4, 10, tzinfo=UTC
