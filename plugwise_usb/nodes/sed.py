@@ -161,7 +161,7 @@ class NodeSED(PlugwiseBaseNode):
         if (sleep_duration := self._sleep_duration_from_cache()) is None:
             dirty = True
             sleep_duration = SED_DEFAULT_SLEEP_DURATION
-        dirty &= self._sed_config_dirty_from_cache()
+        dirty |= self._sed_config_dirty_from_cache()
         self._battery_config = BatteryConfig(
             awake_duration=awake_duration,
             clock_interval=clock_interval,
@@ -331,7 +331,7 @@ class NodeSED(PlugwiseBaseNode):
     # region Properties
     @property
     def dirty(self) -> int:
-        """Battry configuration dirty flag."""
+        """Battery configuration dirty flag."""
         return self._battery_config.dirty
 
     @property
