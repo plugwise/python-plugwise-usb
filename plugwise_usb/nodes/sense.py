@@ -94,10 +94,13 @@ class PlugwiseSense(NodeSED):
         )
         if self._node_info.model is None:
             self._node_info.model = "Sense"
+            self._sed_node_info_update_task_scheduled = True
         if self._node_info.name is None:
             self._node_info.name = f"Sense {self._node_info.mac[-5:]}"
+            self._sed_node_info_update_task_scheduled = True
         if self._node_info.firmware is None:
             self._node_info.firmware = DEFAULT_FIRMWARE
+            self._sed_node_info_update_task_scheduled = True
 
     # endregion
 
