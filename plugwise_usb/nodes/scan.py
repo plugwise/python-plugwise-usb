@@ -178,13 +178,7 @@ class PlugwiseScan(NodeSED):
 
     def _daylight_mode_from_cache(self) -> bool | None:
         """Load awake duration from cache."""
-        if (
-            daylight_mode := self._get_cache(CACHE_SCAN_CONFIG_DAYLIGHT_MODE)
-        ) is not None:
-            if daylight_mode == "True":
-                return True
-            return False
-        return None
+        return self._get_cache_as_bool(CACHE_SCAN_CONFIG_DAYLIGHT_MODE)
 
     def _motion_from_cache(self) -> bool:
         """Load motion state from cache."""
@@ -218,7 +212,7 @@ class PlugwiseScan(NodeSED):
 
     def _motion_config_dirty_from_cache(self) -> bool:
         """Load dirty  from cache."""
-        if (dirty := self._get_cache(CACHE_SCAN_CONFIG_DIRTY)) is not None:
+        if (dirty := self._get_cache_as_bool(CACHE_SCAN_CONFIG_DIRTY)) is not None:
             return dirty
         return True
 

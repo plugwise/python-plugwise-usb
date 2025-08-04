@@ -191,11 +191,7 @@ class NodeSED(PlugwiseBaseNode):
 
     def _clock_sync_from_cache(self) -> bool | None:
         """Load clock sync state from cache."""
-        if (clock_sync := self._get_cache(CACHE_SED_CLOCK_SYNC)) is not None:
-            if clock_sync == "True":
-                return True
-            return False
-        return None
+        return self._get_cache_as_bool(CACHE_SED_CLOCK_SYNC)
 
     def _maintenance_interval_from_cache(self) -> int | None:
         """Load maintenance interval from cache."""
@@ -222,7 +218,7 @@ class NodeSED(PlugwiseBaseNode):
 
     def _sed_config_dirty_from_cache(self) -> bool:
         """Load battery config dirty  from cache."""
-        if (dirty := self._get_cache(CACHE_SED_DIRTY)) is not None:
+        if (dirty := self._get_cache_as_bool(CACHE_SED_DIRTY)) is not None:
             return dirty
         return True
 
