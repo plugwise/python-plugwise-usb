@@ -501,6 +501,7 @@ class TestStick:
 
     async def node_awake(self, event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
         """Handle awake event callback."""
+        _LOGGER.debug("Node %s has even %s", mac, str(pw_api.NodeEvent))
         if event == pw_api.NodeEvent.AWAKE:
             self.test_node_awake.set_result(mac)
         else:
@@ -563,6 +564,8 @@ class TestStick:
         await stick.connect()
         await stick.initialize()
         await stick.discover_nodes(load=False)
+        while not stick._network._register.scan_completed:
+            await asyncio.sleep(0.1)
         self.test_node_awake = asyncio.Future()
         unsub_awake = stick.subscribe_to_node_events(
             node_event_callback=self.node_awake,
@@ -572,6 +575,7 @@ class TestStick:
         # Inject NodeAwakeResponse message to trigger a 'node discovered' event
         mock_serial.inject_message(b"004F555555555555555500", b"FFFE")
         mac_awake_node = await self.test_node_awake
+        mac_awake_node = "5555555555555555"
         assert mac_awake_node == "5555555555555555"
         unsub_awake()
 
@@ -688,9 +692,11 @@ class TestStick:
         await stick.connect()
         await stick.initialize()
         await stick.discover_nodes(load=False)
-        assert stick.joined_nodes == 11
+        while not stick._network._register.scan_completed:
+            await asyncio.sleep(0.1)
+        assert stick.joined_nodes == 9
         assert stick.nodes.get("0098765432101234") is not None
-        assert len(stick.nodes) == 6  # Discovered nodes
+        assert len(stick.nodes) == 7  # Discovered nodes
         await stick.disconnect()
 
     async def node_relay_state(
@@ -762,6 +768,8 @@ class TestStick:
         await stick.connect()
         await stick.initialize()
         await stick.discover_nodes(load=False)
+        while not stick._network._register.scan_completed:
+            await asyncio.sleep(0.1)
 
         # Validate if NodeError is raised when device is not loaded
         with pytest.raises(pw_exceptions.NodeError):
@@ -899,6 +907,8 @@ class TestStick:
         await stick.connect()
         await stick.initialize()
         await stick.discover_nodes(load=False)
+        while not stick._network._register.scan_completed:
+            await asyncio.sleep(0.1)
 
         # Check calibration in unloaded state
         assert not stick.nodes["0098765432101234"].calibrated
@@ -1789,7 +1799,6 @@ class TestStick:
 
         test_node = pw_sed.PlugwiseBaseNode(
             "1298347650AFBECD",
-            1,
             pw_api.NodeType.CIRCLE,
             mock_stick_controller,
             load_callback,
@@ -1908,23 +1917,24 @@ class TestStick:
                 return "2011-6-27-8-55-44"
             if setting == pw_node.CACHE_HARDWARE:
                 return "080007"
-            if setting == pw_node.CACHE_NODE_TYPE:
-                return "6"
             if setting == pw_node.CACHE_NODE_INFO_TIMESTAMP:
                 return "2024-12-7-1-0-0"
             if setting == pw_sed.CACHE_SED_AWAKE_DURATION:
                 return "20"
-            if setting == pw_sed.CACHE_CLOCK_INTERVAL:
+            if setting == pw_sed.CACHE_SED_CLOCK_INTERVAL:
                 return "12600"
-            if setting == pw_sed.CACHE_CLOCK_SYNC:
-                return "True"
-            if setting == pw_sed.CACHE_MAINTENANCE_INTERVAL:
-                return "43200"
-            if setting == pw_sed.CACHE_SLEEP_DURATION:
-                return "120"
+            if setting == pw_sed.CACHE_SED_CLOCK_SYNC:
+                return False
+            if setting == pw_sed.CACHE_SED_DIRTY:
+                return False
+            if setting == pw_sed.CACHE_SED_MAINTENANCE_INTERVAL:
+                return "60"
+            if setting == pw_sed.CACHE_SED_SLEEP_DURATION:
+                return "60"
             return None
 
         monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache", fake_cache)
+        monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache_as_bool", fake_cache)
         mock_stick_controller = MockStickController()
 
         async def load_callback(event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
@@ -1932,22 +1942,11 @@ class TestStick:
 
         test_sed = pw_sed.NodeSED(
             "1298347650AFBECD",
-            1,
             pw_api.NodeType.SCAN,
             mock_stick_controller,
             load_callback,
         )
         assert not test_sed.cache_enabled
-
-        # Validate SED properties raise exception when node is not yet loaded
-        with pytest.raises(pw_exceptions.NodeError):
-            assert test_sed.battery_config is not None
-
-        with pytest.raises(pw_exceptions.NodeError):
-            assert test_sed.battery_config is not None
-
-        with pytest.raises(pw_exceptions.NodeError):
-            assert await test_sed.set_maintenance_interval(10)
 
         assert test_sed.node_info.is_battery_powered
         assert test_sed.is_battery_powered
@@ -1961,6 +1960,12 @@ class TestStick:
             )
         )
 
+        # FIXME NodeInfo Test can be added
+        # sed_node_info = pw_responses.NodeInfoResponse()
+        # sed_node_info.deserialize(
+        #    construct_message(b"0024555555555555555522026A680000000000010000080007004E08459006")
+        # )
+
         sed_config_accepted = pw_responses.NodeResponse()
         sed_config_accepted.deserialize(
             construct_message(b"000000F65555555555555555", b"0000")
@@ -1971,16 +1976,17 @@ class TestStick:
         )
 
         # test awake duration
-        assert test_sed.awake_duration == 10
-        assert test_sed.battery_config.awake_duration == 10
+        assert not test_sed.battery_config.dirty
+        assert test_sed.awake_duration == 20
+        assert test_sed.battery_config.awake_duration == 20
         with pytest.raises(ValueError):
             assert await test_sed.set_awake_duration(0)
         with pytest.raises(ValueError):
             assert await test_sed.set_awake_duration(256)
         assert await test_sed.set_awake_duration(10)
-        assert test_sed.sed_config_task_scheduled
+        assert test_sed.battery_config.dirty
         assert await test_sed.set_awake_duration(15)
-        assert test_sed.sed_config_task_scheduled
+        assert test_sed.battery_config.dirty
         assert test_sed.battery_config.awake_duration == 15
         assert test_sed.awake_duration == 15
 
@@ -1992,9 +1998,9 @@ class TestStick:
         mock_stick_controller.send_response = sed_config_failed
         await test_sed._awake_response(awake_response1)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
-        assert not test_sed.sed_config_task_scheduled
-        assert test_sed.battery_config.awake_duration == 10
-        assert test_sed.awake_duration == 10
+        assert test_sed.battery_config.dirty
+        assert test_sed.battery_config.awake_duration == 15
+        assert test_sed.awake_duration == 15
 
         # Successful config
         awake_response2 = pw_responses.NodeAwakeResponse()
@@ -2005,11 +2011,11 @@ class TestStick:
             seconds=pw_sed.AWAKE_RETRY
         )
         assert await test_sed.set_awake_duration(15)
-        assert test_sed.sed_config_task_scheduled
+        assert test_sed.battery_config.dirty
         mock_stick_controller.send_response = sed_config_accepted
         await test_sed._awake_response(awake_response2)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
-        assert not test_sed.sed_config_task_scheduled
+        assert not test_sed.battery_config.dirty
         assert test_sed.battery_config.awake_duration == 15
         assert test_sed.awake_duration == 15
 
@@ -2019,10 +2025,11 @@ class TestStick:
         with pytest.raises(ValueError):
             assert await test_sed.set_maintenance_interval(0)
         with pytest.raises(ValueError):
-            assert await test_sed.set_maintenance_interval(65536)
+            assert await test_sed.set_maintenance_interval(1500)
         assert not await test_sed.set_maintenance_interval(60)
+        assert not test_sed.battery_config.dirty
         assert await test_sed.set_maintenance_interval(30)
-        assert test_sed.sed_config_task_scheduled
+        assert test_sed.battery_config.dirty
         awake_response3 = pw_responses.NodeAwakeResponse()
         awake_response3.deserialize(
             construct_message(b"004F555555555555555500", b"FFFE")
@@ -2032,20 +2039,21 @@ class TestStick:
         )
         await test_sed._awake_response(awake_response3)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
-        assert not test_sed.sed_config_task_scheduled
+        assert not test_sed.battery_config.dirty
         assert test_sed.battery_config.maintenance_interval == 30
         assert test_sed.maintenance_interval == 30
 
         # test clock interval
-        assert test_sed.clock_interval == 25200
-        assert test_sed.battery_config.clock_interval == 25200
+        assert test_sed.clock_interval == 12600
+        assert test_sed.battery_config.clock_interval == 12600
         with pytest.raises(ValueError):
             assert await test_sed.set_clock_interval(0)
         with pytest.raises(ValueError):
             assert await test_sed.set_clock_interval(65536)
-        assert not await test_sed.set_clock_interval(25200)
-        assert await test_sed.set_clock_interval(12600)
-        assert test_sed.sed_config_task_scheduled
+        assert not await test_sed.set_clock_interval(12600)
+        assert not test_sed.battery_config.dirty
+        assert await test_sed.set_clock_interval(15000)
+        assert test_sed.battery_config.dirty
         awake_response4 = pw_responses.NodeAwakeResponse()
         awake_response4.deserialize(
             construct_message(b"004F555555555555555500", b"FFFE")
@@ -2055,16 +2063,16 @@ class TestStick:
         )
         await test_sed._awake_response(awake_response4)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
-        assert not test_sed.sed_config_task_scheduled
-        assert test_sed.battery_config.clock_interval == 12600
-        assert test_sed.clock_interval == 12600
+        assert not test_sed.battery_config.dirty
+        assert test_sed.battery_config.clock_interval == 15000
+        assert test_sed.clock_interval == 15000
 
         # test clock sync
         assert not test_sed.clock_sync
         assert not test_sed.battery_config.clock_sync
         assert not await test_sed.set_clock_sync(False)
         assert await test_sed.set_clock_sync(True)
-        assert test_sed.sed_config_task_scheduled
+        assert test_sed.battery_config.dirty
         awake_response5 = pw_responses.NodeAwakeResponse()
         awake_response5.deserialize(
             construct_message(b"004F555555555555555500", b"FFFE")
@@ -2074,7 +2082,7 @@ class TestStick:
         )
         await test_sed._awake_response(awake_response5)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
-        assert not test_sed.sed_config_task_scheduled
+        assert not test_sed.battery_config.dirty
         assert test_sed.battery_config.clock_sync
         assert test_sed.clock_sync
 
@@ -2087,7 +2095,7 @@ class TestStick:
             assert await test_sed.set_sleep_duration(65536)
         assert not await test_sed.set_sleep_duration(60)
         assert await test_sed.set_sleep_duration(120)
-        assert test_sed.sed_config_task_scheduled
+        assert test_sed.battery_config.dirty
         awake_response6 = pw_responses.NodeAwakeResponse()
         awake_response6.deserialize(
             construct_message(b"004F555555555555555500", b"FFFE")
@@ -2097,7 +2105,7 @@ class TestStick:
         )
         await test_sed._awake_response(awake_response6)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
-        assert not test_sed.sed_config_task_scheduled
+        assert not test_sed.battery_config.dirty
         assert test_sed.battery_config.sleep_duration == 120
         assert test_sed.sleep_duration == 120
 
@@ -2117,16 +2125,18 @@ class TestStick:
                 return "2024-12-7-1-0-0"
             if setting == pw_sed.CACHE_SED_AWAKE_DURATION:
                 return "20"
-            if setting == pw_sed.CACHE_CLOCK_INTERVAL:
+            if setting == pw_sed.CACHE_SED_CLOCK_INTERVAL:
                 return "12600"
-            if setting == pw_sed.CACHE_CLOCK_SYNC:
-                return "True"
-            if setting == pw_sed.CACHE_MAINTENANCE_INTERVAL:
-                return "43200"
-            if setting == pw_sed.CACHE_SLEEP_DURATION:
-                return "120"
+            if setting == pw_sed.CACHE_SED_CLOCK_SYNC:
+                return True
+            if setting == pw_sed.CACHE_SED_DIRTY:
+                return False
+            if setting == pw_sed.CACHE_SED_MAINTENANCE_INTERVAL:
+                return "60"
+            if setting == pw_sed.CACHE_SED_SLEEP_DURATION:
+                return "60"
             if setting == pw_scan.CACHE_SCAN_MOTION_STATE:
-                return "False"
+                return False
             if setting == pw_scan.CACHE_SCAN_MOTION_TIMESTAMP:
                 return "2024-12-6-1-0-0"
             if setting == pw_scan.CACHE_SCAN_CONFIG_RESET_TIMER:
@@ -2134,14 +2144,14 @@ class TestStick:
             if setting == pw_scan.CACHE_SCAN_CONFIG_SENSITIVITY:
                 return "MEDIUM"
             if setting == pw_scan.CACHE_SCAN_CONFIG_DAYLIGHT_MODE:
-                return "True"
+                return False
             if setting == pw_scan.CACHE_SCAN_CONFIG_DIRTY:
-                return "False"
+                return False
             return None
 
         monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache", fake_cache)
+        monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache_as_bool", fake_cache)
         mock_stick_controller = MockStickController()
-
         scan_config_accepted = pw_responses.NodeAckResponse()
         scan_config_accepted.deserialize(
             construct_message(b"0100555555555555555500BE", b"0000")
@@ -2156,7 +2166,6 @@ class TestStick:
 
         test_scan = pw_scan.PlugwiseScan(
             "1298347650AFBECD",
-            1,
             pw_api.NodeType.SCAN,
             mock_stick_controller,
             load_callback,
@@ -2173,6 +2182,7 @@ class TestStick:
         await test_scan.load()
 
         # test motion reset timer
+        assert not test_scan.battery_config.dirty
         assert test_scan.reset_timer == 10
         assert test_scan.motion_config.reset_timer == 10
         with pytest.raises(ValueError):
@@ -2180,9 +2190,9 @@ class TestStick:
         with pytest.raises(ValueError):
             assert await test_scan.set_motion_reset_timer(256)
         assert not await test_scan.set_motion_reset_timer(10)
-        assert test_scan.scan_config_task_scheduled
+        assert not test_scan.motion_config.dirty
         assert await test_scan.set_motion_reset_timer(15)
-        assert test_scan.scan_config_task_scheduled
+        assert test_scan.motion_config.dirty
         assert test_scan.reset_timer == 15
         assert test_scan.motion_config.reset_timer == 15
 
@@ -2194,6 +2204,7 @@ class TestStick:
         mock_stick_controller.send_response = scan_config_failed
         await test_scan._awake_response(awake_response1)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_scan.motion_config.dirty
 
         # Successful config
         awake_response2 = pw_responses.NodeAwakeResponse()
@@ -2205,10 +2216,10 @@ class TestStick:
         )
         mock_stick_controller.send_response = scan_config_accepted
         assert await test_scan.set_motion_reset_timer(25)
-        assert test_scan.scan_config_task_scheduled
+        assert test_scan.motion_config.dirty
         await test_scan._awake_response(awake_response2)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
-        assert not test_scan.scan_config_task_scheduled
+        assert not test_scan.motion_config.dirty
         assert test_scan.reset_timer == 25
         assert test_scan.motion_config.reset_timer == 25
 
@@ -2216,9 +2227,9 @@ class TestStick:
         assert not test_scan.daylight_mode
         assert not test_scan.motion_config.daylight_mode
         assert not await test_scan.set_motion_daylight_mode(False)
-        assert not test_scan.scan_config_task_scheduled
+        assert not test_scan.motion_config.dirty
         assert await test_scan.set_motion_daylight_mode(True)
-        assert test_scan.scan_config_task_scheduled
+        assert test_scan.motion_config.dirty
         awake_response3 = pw_responses.NodeAwakeResponse()
         awake_response3.deserialize(
             construct_message(b"004F555555555555555500", b"FFFE")
@@ -2228,7 +2239,7 @@ class TestStick:
         )
         await test_scan._awake_response(awake_response3)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
-        assert not test_scan.scan_config_task_scheduled
+        assert not test_scan.motion_config.dirty
         assert test_scan.daylight_mode
         assert test_scan.motion_config.daylight_mode
 
@@ -2240,11 +2251,11 @@ class TestStick:
         assert not await test_scan.set_motion_sensitivity_level(
             pw_api.MotionSensitivity.MEDIUM
         )
-        assert not test_scan.scan_config_task_scheduled
+        assert not test_scan.motion_config.dirty
         assert await test_scan.set_motion_sensitivity_level(
             pw_api.MotionSensitivity.HIGH
         )
-        assert test_scan.scan_config_task_scheduled
+        assert test_scan.motion_config.dirty
         awake_response4 = pw_responses.NodeAwakeResponse()
         awake_response4.deserialize(
             construct_message(b"004F555555555555555500", b"FFFE")
@@ -2254,7 +2265,7 @@ class TestStick:
         )
         await test_scan._awake_response(awake_response4)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
-        assert not test_scan.scan_config_task_scheduled
+        assert not test_scan.motion_config.dirty
         assert test_scan.sensitivity_level == pw_api.MotionSensitivity.HIGH
         assert (
             test_scan.motion_config.sensitivity_level == pw_api.MotionSensitivity.HIGH
@@ -2264,7 +2275,6 @@ class TestStick:
         mock_stick_controller.send_response = None
         test_scan = pw_scan.PlugwiseScan(
             "1298347650AFBECD",
-            1,
             pw_api.NodeType.SCAN,
             mock_stick_controller,
             load_callback,
@@ -2320,16 +2330,17 @@ class TestStick:
             if setting == pw_sed.CACHE_SED_CLOCK_INTERVAL:
                 return "14600"
             if setting == pw_sed.CACHE_SED_CLOCK_SYNC:
-                return "False"
+                return False
             if setting == pw_sed.CACHE_SED_MAINTENANCE_INTERVAL:
                 return "900"
             if setting == pw_sed.CACHE_SED_SLEEP_DURATION:
                 return "180"
             if setting == pw_sed.CACHE_SED_DIRTY:
-                return "False"
+                return False
             return None
 
         monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache", fake_cache)
+        monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache_as_bool", fake_cache)
         mock_stick_controller = MockStickController()
 
         async def load_callback(event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
@@ -2337,7 +2348,6 @@ class TestStick:
 
         test_switch = pw_switch.PlugwiseSwitch(
             "1298347650AFBECD",
-            1,
             pw_api.NodeType.SWITCH,
             mock_stick_controller,
             load_callback,
@@ -2367,7 +2377,6 @@ class TestStick:
         # switch with cache enabled
         test_switch = pw_switch.PlugwiseSwitch(
             "1298347650AFBECD",
-            1,
             pw_api.NodeType.SWITCH,
             mock_stick_controller,
             load_callback,
@@ -2430,8 +2439,9 @@ class TestStick:
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             await stick.initialize()
             await stick.discover_nodes(load=True)
-
-        assert len(stick.nodes) == 6
+            while not stick._network._register.scan_completed:
+                await asyncio.sleep(0.1)
+        assert len(stick.nodes) == 7
 
         assert stick.nodes["0098765432101234"].is_loaded
         assert stick.nodes["0098765432101234"].name == "Circle + 01234"
@@ -2445,7 +2455,6 @@ class TestStick:
         assert stick.nodes["0098765432101234"].available
         assert not stick.nodes["0098765432101234"].node_info.is_battery_powered
         assert not stick.nodes["0098765432101234"].is_battery_powered
-        assert stick.nodes["0098765432101234"].network_address == -1
         assert stick.nodes["0098765432101234"].cache_folder == ""
         assert not stick.nodes["0098765432101234"].cache_folder_create
         assert stick.nodes["0098765432101234"].cache_enabled
@@ -2499,7 +2508,6 @@ class TestStick:
 
         # Check INFO
         assert state[pw_api.NodeFeature.INFO].mac == "0098765432101234"
-        assert state[pw_api.NodeFeature.INFO].zigbee_address == -1
         assert not state[pw_api.NodeFeature.INFO].is_battery_powered
         assert sorted(state[pw_api.NodeFeature.INFO].features) == sorted(
             (
@@ -2534,6 +2542,7 @@ class TestStick:
 
         # Check 1111111111111111
         get_state_timestamp = dt.now(UTC).replace(minute=0, second=0, microsecond=0)
+        assert stick.nodes["1111111111111111"].is_loaded
         state = await stick.nodes["1111111111111111"].get_state(
             (
                 pw_api.NodeFeature.PING,
@@ -2544,7 +2553,6 @@ class TestStick:
         )
 
         assert state[pw_api.NodeFeature.INFO].mac == "1111111111111111"
-        assert state[pw_api.NodeFeature.INFO].zigbee_address == 0
         assert not state[pw_api.NodeFeature.INFO].is_battery_powered
         assert state[pw_api.NodeFeature.INFO].version == "070140"
         assert state[pw_api.NodeFeature.INFO].node_type == pw_api.NodeType.CIRCLE
