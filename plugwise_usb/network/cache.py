@@ -78,7 +78,7 @@ class NetworkRegistrationCache(PlugwiseCache):
         """Return NodeType from cache."""
         return self._nodetypes.get(mac)
 
-    async def prune_cache(self, registry: list(str)) -> None:
+    async def prune_cache(self, registry: list[str]) -> None:
         """Remove items from cache which are not found in registry scan."""
         _new_nodetypes: dict[str, NodeType] = {}
         for mac in registry:
