@@ -164,7 +164,7 @@ class PlugwiseScan(NodeSED):
         if (sensitivity_level := self._sensitivity_level_from_cache()) is None:
             dirty = True
             sensitivity_level = DEFAULT_SENSITIVITY
-        dirty &= self._motion_config_dirty_from_cache()
+        dirty |= self._motion_config_dirty_from_cache()
 
         self._motion_config = MotionConfig(
             daylight_mode=daylight_mode,

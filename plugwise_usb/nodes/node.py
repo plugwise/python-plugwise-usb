@@ -659,9 +659,9 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Retrieve bool of specified setting from cache memory."""
         if not self._cache_enabled:
             return None
-        if self._node_cache.get_state(setting) == "True":
-            return True
-        return False
+        if (bool_value := self._node_cache.get_state(setting)) is None:
+            return None
+        return bool_value == "True"
 
     def _get_cache_as_datetime(self, setting: str) -> datetime | None:
         """Retrieve value of specified setting from cache memory and return it as datetime object."""
