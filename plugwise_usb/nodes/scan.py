@@ -227,6 +227,10 @@ class PlugwiseScan(NodeSED):
     # endregion
 
     # region Properties
+    @property
+    def dirty(self) -> bool:
+        """Motion configuration dirty flag."""
+        return self._motion_config.dirty
 
     @property
     def daylight_mode(self) -> bool:
@@ -261,6 +265,7 @@ class PlugwiseScan(NodeSED):
             reset_timer=self.reset_timer,
             daylight_mode=self.daylight_mode,
             sensitivity_level=self.sensitivity_level,
+            dirty=self.dirty,
         )
 
     @property

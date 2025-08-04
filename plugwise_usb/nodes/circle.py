@@ -910,8 +910,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
             # Check if node is online
             if (
-                not self._available and not await self.is_online()
-            ) or await self.node_info_update() is None:
+                not self._available
+                and not await self.is_online()
+                or await self.node_info_update() is None
+            ):
                 _LOGGER.debug(
                     "Failed to retrieve NodeInfo for %s, loading defaults",
                     self._mac_in_str,
