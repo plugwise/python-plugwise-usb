@@ -162,7 +162,6 @@ class NodeSED(PlugwiseBaseNode):
             dirty = True
             sleep_duration = SED_DEFAULT_SLEEP_DURATION
         dirty &= self._sed_config_dirty_from_cache()
-
         self._battery_config = BatteryConfig(
             awake_duration=awake_duration,
             clock_interval=clock_interval,
@@ -191,6 +190,9 @@ class NodeSED(PlugwiseBaseNode):
 
     def _clock_sync_from_cache(self) -> bool | None:
         """Load clock sync state from cache."""
+        _LOGGER.debug(
+            "MDI: Bool: %s", str(self._get_cache_as_bool(CACHE_SED_CLOCK_SYNC))
+        )
         return self._get_cache_as_bool(CACHE_SED_CLOCK_SYNC)
 
     def _maintenance_interval_from_cache(self) -> int | None:
@@ -237,7 +239,9 @@ class NodeSED(PlugwiseBaseNode):
             )
 
         self._battery_config = replace(
-            self._battery_config, awake_duration=seconds, dirty=True
+            self._battery_config,
+            awake_duration=seconds,
+            dirty=True,
         )
         return True
 
@@ -326,6 +330,11 @@ class NodeSED(PlugwiseBaseNode):
     # endregion
     # region Properties
     @property
+    def dirty(self) -> int:
+        """Battry configuration dirty flag."""
+        return self._battery_config.dirty
+
+    @property
     def awake_duration(self) -> int:
         """Duration in seconds a battery powered devices is awake."""
         if self._battery_config.awake_duration is not None:
@@ -341,6 +350,7 @@ class NodeSED(PlugwiseBaseNode):
             clock_sync=self.clock_sync,
             maintenance_interval=self.maintenance_interval,
             sleep_duration=self.sleep_duration,
+            dirty=self.dirty,
         )
 
     @property
@@ -413,17 +423,17 @@ class NodeSED(PlugwiseBaseNode):
         ):
             return True
 
+        await self._run_awake_tasks()
         self._last_awake[response.awake_type] = response.timestamp
 
         tasks: list[Coroutine[Any, Any, None]] = [
-            await self._reset_awake(response.timestamp),
+            self._reset_awake(response.timestamp),
             self.publish_feature_update_to_subscribers(
                 NodeFeature.BATTERY,
                 self._battery_config,
             ),
-            await self.save_cache(),
+            self.save_cache(),
         ]
-        await self._run_awake_tasks()
         if response.awake_type == NodeAwakeResponseType.MAINTENANCE:
             self._last_awake_reason = "Maintenance"
             self._set_cache(CACHE_SED_AWAKE_REASON, "Maintenance")
