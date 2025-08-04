@@ -520,8 +520,6 @@ class StickNetwork:
             await self.start(load=load)
         return True
 
-        return True
-
     async def stop(self) -> None:
         """Stop network discovery."""
         _LOGGER.debug("Stopping")
