@@ -332,7 +332,7 @@ class TestStick:
         )
         assert unix_timestamp.serialize() == b"4E08478A"
         with pytest.raises(pw_exceptions.MessageError):
-            unix_timestamp.value == dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC)
+            unix_timestamp.value
         unix_timestamp.deserialize(b"4E08478A")
         assert unix_timestamp.value == dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC)
 
@@ -501,7 +501,7 @@ class TestStick:
 
     async def node_awake(self, event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
         """Handle awake event callback."""
-        _LOGGER.debug("Node %s has even %s", mac, str(pw_api.NodeEvent))
+        _LOGGER.debug("Node %s has event %s", mac, str(pw_api.NodeEvent))
         if event == pw_api.NodeEvent.AWAKE:
             self.test_node_awake.set_result(mac)
         else:
