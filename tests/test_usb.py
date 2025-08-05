@@ -1959,12 +1959,6 @@ class TestStick:
             )
         )
 
-        # FIXME NodeInfo Test can be added
-        # sed_node_info = pw_responses.NodeInfoResponse()
-        # sed_node_info.deserialize(
-        #    construct_message(b"0024555555555555555522026A680000000000010000080007004E08459006")
-        # )
-
         sed_config_accepted = pw_responses.NodeResponse()
         sed_config_accepted.deserialize(
             construct_message(b"000000F65555555555555555", b"0000")
