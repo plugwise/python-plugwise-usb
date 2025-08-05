@@ -46,7 +46,9 @@ class StickNetworkRegister:
         self._registry: list[str] = []
         self._first_free_address: int = 65
         self._registration_task: Task[None] | None = None
-        self._start_node_discover: Callable[[], Awaitable[None]] | None = None
+        self._start_node_discover: (
+            Callable[[str, NodeType | None, bool], Awaitable[None]] | None
+        ) = None
         self._full_scan_finished: Callable[[], Awaitable[None]] | None = None
         self._registration_scan_delay: float = CIRCLEPLUS_SCANREQUEST_MAINTENANCE
         self._scan_completed = False
