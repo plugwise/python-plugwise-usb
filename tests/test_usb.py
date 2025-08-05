@@ -575,7 +575,6 @@ class TestStick:
         # Inject NodeAwakeResponse message to trigger a 'node discovered' event
         mock_serial.inject_message(b"004F555555555555555500", b"FFFE")
         mac_awake_node = await self.test_node_awake
-        mac_awake_node = "5555555555555555"
         assert mac_awake_node == "5555555555555555"
         unsub_awake()
 
