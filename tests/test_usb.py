@@ -2417,6 +2417,33 @@ class TestStick:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Testing discovery of nodes."""
+
+        def fake_cache(dummy: object, setting: str) -> str | None:  # noqa: PLR0911
+            """Fake cache retrieval."""
+            if setting == pw_node.CACHE_FIRMWARE:
+                return "2011-5-13-7-26-54"
+            if setting == pw_node.CACHE_HARDWARE:
+                return "080029"
+            if setting == pw_node.CACHE_NODE_INFO_TIMESTAMP:
+                return "2024-12-7-1-0-0"
+            if setting == pw_node.CACHE_RELAY:
+                return "True"
+            if setting == pw_sed.CACHE_SED_AWAKE_DURATION:
+                return "10"
+            if setting == pw_sed.CACHE_SED_CLOCK_INTERVAL:
+                return "25200"
+            if setting == pw_sed.CACHE_SED_CLOCK_SYNC:
+                return False
+            if setting == pw_sed.CACHE_SED_MAINTENANCE_INTERVAL:
+                return "60"
+            if setting == pw_sed.CACHE_SED_SLEEP_DURATION:
+                return "60"
+            if setting == pw_sed.CACHE_SED_DIRTY:
+                return False
+            return None
+
+        monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache", fake_cache)
+        monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache_as_bool", fake_cache)
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
             pw_connection_manager,
