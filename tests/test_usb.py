@@ -332,7 +332,7 @@ class TestStick:
         )
         assert unix_timestamp.serialize() == b"4E08478A"
         with pytest.raises(pw_exceptions.MessageError):
-            assert unix_timestamp.value == dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC)
+            unix_timestamp.value == dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC)
         unix_timestamp.deserialize(b"4E08478A")
         assert unix_timestamp.value == dt(2011, 6, 27, 9, 4, 10, tzinfo=UTC)
 
@@ -343,11 +343,11 @@ class TestStick:
         assert stick.nodes == {}
         assert stick.joined_nodes is None
         with pytest.raises(pw_exceptions.StickError):
-            assert stick.mac_stick
+            stick.mac_stick
         with pytest.raises(pw_exceptions.StickError):
-            assert stick.mac_coordinator
+            stick.mac_coordinator
         with pytest.raises(pw_exceptions.StickError):
-            assert stick.network_id
+            stick.network_id
         assert not stick.network_discovered
         assert not stick.network_state
 
@@ -1910,7 +1910,7 @@ class TestStick:
     async def test_sed_node(self, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa:  PLR0915
         """Testing properties of SED."""
 
-        def fake_cache(dummy: object, setting: str) -> str | None:  # noqa: PLR0911
+        def fake_cache(dummy: object, setting: str) -> str | bool | None:  # noqa: PLR0911
             """Fake cache retrieval."""
             if setting == pw_node.CACHE_FIRMWARE:
                 return "2011-6-27-8-55-44"
@@ -1973,9 +1973,9 @@ class TestStick:
         assert test_sed.awake_duration == 20
         assert test_sed.battery_config.awake_duration == 20
         with pytest.raises(ValueError):
-            assert await test_sed.set_awake_duration(0)
+            await test_sed.set_awake_duration(0)
         with pytest.raises(ValueError):
-            assert await test_sed.set_awake_duration(256)
+            await test_sed.set_awake_duration(256)
         assert await test_sed.set_awake_duration(10)
         assert test_sed.battery_config.dirty
         assert await test_sed.set_awake_duration(15)
@@ -2016,9 +2016,9 @@ class TestStick:
         assert test_sed.maintenance_interval == 60
         assert test_sed.battery_config.maintenance_interval == 60
         with pytest.raises(ValueError):
-            assert await test_sed.set_maintenance_interval(0)
+            await test_sed.set_maintenance_interval(0)
         with pytest.raises(ValueError):
-            assert await test_sed.set_maintenance_interval(1500)
+            await test_sed.set_maintenance_interval(1500)
         assert not await test_sed.set_maintenance_interval(60)
         assert not test_sed.battery_config.dirty
         assert await test_sed.set_maintenance_interval(30)
@@ -2040,9 +2040,9 @@ class TestStick:
         assert test_sed.clock_interval == 12600
         assert test_sed.battery_config.clock_interval == 12600
         with pytest.raises(ValueError):
-            assert await test_sed.set_clock_interval(0)
+            await test_sed.set_clock_interval(0)
         with pytest.raises(ValueError):
-            assert await test_sed.set_clock_interval(65536)
+            await test_sed.set_clock_interval(65536)
         assert not await test_sed.set_clock_interval(12600)
         assert not test_sed.battery_config.dirty
         assert await test_sed.set_clock_interval(15000)
@@ -2083,9 +2083,9 @@ class TestStick:
         assert test_sed.sleep_duration == 60
         assert test_sed.battery_config.sleep_duration == 60
         with pytest.raises(ValueError):
-            assert await test_sed.set_sleep_duration(0)
+            await test_sed.set_sleep_duration(0)
         with pytest.raises(ValueError):
-            assert await test_sed.set_sleep_duration(65536)
+            await test_sed.set_sleep_duration(65536)
         assert not await test_sed.set_sleep_duration(60)
         assert await test_sed.set_sleep_duration(120)
         assert test_sed.battery_config.dirty
@@ -2106,7 +2106,7 @@ class TestStick:
     async def test_scan_node(self, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: PLR0915
         """Testing properties of scan."""
 
-        def fake_cache(dummy: object, setting: str) -> str | None:  # noqa: PLR0911 PLR0912
+        def fake_cache(dummy: object, setting: str) -> str | bool | None:  # noqa: PLR0911 PLR0912
             """Fake cache retrieval."""
             if setting == pw_node.CACHE_FIRMWARE:
                 return "2011-6-27-8-55-44"
@@ -2179,9 +2179,9 @@ class TestStick:
         assert test_scan.reset_timer == 10
         assert test_scan.motion_config.reset_timer == 10
         with pytest.raises(ValueError):
-            assert await test_scan.set_motion_reset_timer(0)
+            await test_scan.set_motion_reset_timer(0)
         with pytest.raises(ValueError):
-            assert await test_scan.set_motion_reset_timer(256)
+            await test_scan.set_motion_reset_timer(256)
         assert not await test_scan.set_motion_reset_timer(10)
         assert not test_scan.motion_config.dirty
         assert await test_scan.set_motion_reset_timer(15)
@@ -2308,7 +2308,7 @@ class TestStick:
     async def test_switch_node(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Testing properties of switch."""
 
-        def fake_cache(dummy: object, setting: str) -> str | None:  # noqa: PLR0911
+        def fake_cache(dummy: object, setting: str) -> str | bool | None:  # noqa: PLR0911
             """Fake cache retrieval."""
             if setting == pw_node.CACHE_FIRMWARE:
                 return "2011-5-13-7-26-54"
@@ -2411,7 +2411,7 @@ class TestStick:
     ) -> None:
         """Testing discovery of nodes."""
 
-        def fake_cache(dummy: object, setting: str) -> str | None:  # noqa: PLR0911
+        def fake_cache(dummy: object, setting: str) -> str | bool | None:  # noqa: PLR0911
             """Fake cache retrieval."""
             if setting == pw_node.CACHE_FIRMWARE:
                 return "2011-5-13-7-26-54"

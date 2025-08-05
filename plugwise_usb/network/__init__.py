@@ -437,7 +437,7 @@ class StickNetwork:
         """Repeat Discovery of Nodes with unknown NodeType."""
         while len(self._registry_stragglers) > 0:
             await sleep(NODE_RETRY_DISCOVER_INTERVAL)
-            for mac in list(self._registry_stragglers):
+            for mac in self._registry_stragglers.copy():
                 if await self._discover_node(mac, None):
                     self._registry_stragglers.remove(mac)
             _LOGGER.debug(

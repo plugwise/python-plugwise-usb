@@ -142,9 +142,9 @@ class NodeSED(PlugwiseBaseNode):
 
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
-        LoadSuccess = True
+        super_load_success = True
         if not await super()._load_from_cache():
-            LoadSuccess = False
+            super_load_success = False
         dirty = False
         if (awake_duration := self._awake_duration_from_cache()) is None:
             dirty = True
@@ -174,7 +174,7 @@ class NodeSED(PlugwiseBaseNode):
             await self._sed_configure_update()
         self._awake_timestamp_from_cache()
         self._awake_reason_from_cache()
-        return LoadSuccess
+        return super_load_success
 
     def _awake_duration_from_cache(self) -> int | None:
         """Load awake duration from cache."""
