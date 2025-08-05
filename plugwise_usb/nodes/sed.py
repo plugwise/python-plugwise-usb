@@ -327,7 +327,7 @@ class NodeSED(PlugwiseBaseNode):
     # endregion
     # region Properties
     @property
-    def dirty(self) -> int:
+    def dirty(self) -> bool:
         """Battery configuration dirty flag."""
         return self._battery_config.dirty
 
