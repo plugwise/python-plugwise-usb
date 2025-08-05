@@ -190,9 +190,6 @@ class NodeSED(PlugwiseBaseNode):
 
     def _clock_sync_from_cache(self) -> bool | None:
         """Load clock sync state from cache."""
-        _LOGGER.debug(
-            "MDI: Bool: %s", str(self._get_cache_as_bool(CACHE_SED_CLOCK_SYNC))
-        )
         return self._get_cache_as_bool(CACHE_SED_CLOCK_SYNC)
 
     def _maintenance_interval_from_cache(self) -> int | None:
