@@ -163,7 +163,7 @@ class StickNetworkRegister:
         return self.registry[-1]
 
     async def update_network_nodetype(self, mac: str, node_type: NodeType) -> None:
-        """Update NodeType Inside Registry and Cache."""
+        """Update NodeType inside registry and cache."""
         if self._network_cache is None or mac == "":
             return
         await self._network_cache.update_nodetypes(mac, node_type)
@@ -228,7 +228,7 @@ class StickNetworkRegister:
         if self._scan_completed_callback is not None:
             await self._scan_completed_callback()
 
-    async def update_node_registration(self, mac: str) -> bool:
+    def update_node_registration(self, mac: str) -> bool:
         """Register (re)joined node to Plugwise network and return network address."""
         return self.update_network_registration(mac)
 

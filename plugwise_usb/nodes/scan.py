@@ -147,9 +147,9 @@ class PlugwiseScan(NodeSED):
 
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
-        LoadSuccess = True
+        super_load_success = True
         if not await super()._load_from_cache():
-            LoadSuccess = False
+            super_load_success = False
         self._motion_state = MotionState(
             state=self._motion_from_cache(),
             timestamp=self._motion_timestamp_from_cache(),
@@ -174,7 +174,7 @@ class PlugwiseScan(NodeSED):
         )
         if dirty:
             await self._scan_configure_update()
-        return LoadSuccess
+        return super_load_success
 
     def _daylight_mode_from_cache(self) -> bool | None:
         """Load awake duration from cache."""
