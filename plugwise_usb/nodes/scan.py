@@ -207,7 +207,7 @@ class PlugwiseScan(NodeSED):
         if (
             sensitivity_level := self._get_cache(CACHE_SCAN_CONFIG_SENSITIVITY)
         ) is not None:
-            return MotionSensitivity[sensitivity_level]
+            return MotionSensitivity(int(sensitivity_level))
         return None
 
     def _motion_config_dirty_from_cache(self) -> bool:
@@ -483,7 +483,7 @@ class PlugwiseScan(NodeSED):
             CACHE_SCAN_CONFIG_RESET_TIMER, str(self._motion_config.reset_timer)
         )
         self._set_cache(
-            CACHE_SCAN_CONFIG_SENSITIVITY, self._motion_config.sensitivity_level
+            CACHE_SCAN_CONFIG_SENSITIVITY, self._motion_config.sensitivity_level.value
         )
         self._set_cache(
             CACHE_SCAN_CONFIG_DAYLIGHT_MODE, str(self._motion_config.daylight_mode)
