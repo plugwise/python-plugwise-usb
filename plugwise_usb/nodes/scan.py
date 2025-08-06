@@ -446,7 +446,7 @@ class PlugwiseScan(NodeSED):
         """Configure Scan device settings. Returns True if successful."""
         # Default to medium
         sensitivity_value = SENSITIVITY_MAP.get(
-            self._motion_config.sensitivity_level, SENSITIVITY_MEDIUM_VALUE
+            self._motion_config.sensitivity_level, MotionSensitivity.MEDIUM
         )
         request = ScanConfigureRequest(
             self._send,
