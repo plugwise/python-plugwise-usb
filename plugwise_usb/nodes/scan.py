@@ -9,14 +9,7 @@ from datetime import UTC, datetime
 import logging
 from typing import Any, Final
 
-from ..api import (
-    MotionConfig,
-    MotionSensitivity,
-    MotionState,
-    NodeEvent,
-    NodeFeature,
-    NodeType,
-)
+from ..api import MotionConfig, MotionState, NodeEvent, NodeFeature, NodeType
 from ..connection import StickController
 from ..constants import MAX_UINT_2
 from ..exceptions import MessageError, NodeError, NodeTimeout
@@ -43,6 +36,16 @@ CACHE_SCAN_CONFIG_SENSITIVITY = "scan_sensitivity_level"
 
 # region Defaults for Scan Devices
 
+# Sensitivity values for motion sensor configuration
+HIGH: Final[str] = "HIGH"
+MEDIUM: Final[str] = "MEDIUM"
+OFF: Final[str] = "OFF"
+MOTION_SENSITIVITY: Final[dict] = {
+    HIGH: 20,  # 0x14
+    MEDIUM: 30,  # 0x1E
+    OFF: 255,  # 0xFF
+}
+
 DEFAULT_MOTION_STATE: Final = False
 
 # Time in minutes the motion sensor should not sense motion to
@@ -50,7 +53,7 @@ DEFAULT_MOTION_STATE: Final = False
 DEFAULT_RESET_TIMER: Final = 10
 
 # Default sensitivity of the motion sensors
-DEFAULT_SENSITIVITY: Final = MotionSensitivity.MEDIUM
+DEFAULT_SENSITIVITY = MOTION_SENSITIVITY[MEDIUM]
 
 # Light override
 DEFAULT_DAYLIGHT_MODE: Final = False
@@ -58,12 +61,7 @@ DEFAULT_DAYLIGHT_MODE: Final = False
 # Default firmware if not known
 DEFAULT_FIRMWARE: Final = datetime(2010, 11, 4, 16, 58, 46, tzinfo=UTC)
 
-# Sensitivity values for motion sensor configuration
-SENSITIVITY_MAP: Final = {
-    MotionSensitivity.HIGH: 20,  # 0x14
-    MotionSensitivity.MEDIUM: 30,  # 0x1E
-    MotionSensitivity.OFF: 255,  # 0xFF
-}
+
 
 # Scan Features
 SCAN_FEATURES: Final = (
@@ -204,12 +202,12 @@ class PlugwiseScan(NodeSED):
             return int(reset_timer)
         return None
 
-    def _sensitivity_level_from_cache(self) -> MotionSensitivity | None:
+    def _sensitivity_level_from_cache(self) -> str | None:
         """Load sensitivity level from cache."""
         if (
             sensitivity_level := self._get_cache(CACHE_SCAN_CONFIG_SENSITIVITY)
         ) is not None:
-            return MotionSensitivity[sensitivity_level]
+            return MOTION_SENSITIVITY[sensitivity_level]
         return None
 
     def _motion_config_dirty_from_cache(self) -> bool:
@@ -278,7 +276,7 @@ class PlugwiseScan(NodeSED):
         return DEFAULT_RESET_TIMER
 
     @property
-    def sensitivity_level(self) -> MotionSensitivity:
+    def sensitivity_level(self) -> int:
         """Sensitivity level of motion sensor."""
         if self._motion_config.sensitivity_level is not None:
             return self._motion_config.sensitivity_level
@@ -330,7 +328,7 @@ class PlugwiseScan(NodeSED):
         await self._scan_configure_update()
         return True
 
-    async def set_motion_sensitivity_level(self, level: MotionSensitivity) -> bool:
+    async def set_motion_sensitivity_level(self, level: int) -> bool:
         """Configure the motion sensitivity level."""
         _LOGGER.debug(
             "set_motion_sensitivity_level | Device %s | %s -> %s",
@@ -445,14 +443,11 @@ class PlugwiseScan(NodeSED):
     async def scan_configure(self) -> bool:
         """Configure Scan device settings. Returns True if successful."""
         # Default to medium
-        sensitivity_value = SENSITIVITY_MAP.get(
-            self._motion_config.sensitivity_level, MotionSensitivity.MEDIUM
-        )
         request = ScanConfigureRequest(
             self._send,
             self._mac_in_bytes,
             self._motion_config.reset_timer,
-            sensitivity_value,
+            self._motion_config.sensitivity_value,
             self._motion_config.daylight_mode,
         )
         if (response := await request.send()) is None:
@@ -482,7 +477,7 @@ class PlugwiseScan(NodeSED):
             CACHE_SCAN_CONFIG_RESET_TIMER, str(self._motion_config.reset_timer)
         )
         self._set_cache(
-            CACHE_SCAN_CONFIG_SENSITIVITY, self._motion_config.sensitivity_level.name
+            CACHE_SCAN_CONFIG_SENSITIVITY, self._motion_config.sensitivity_level
         )
         self._set_cache(
             CACHE_SCAN_CONFIG_DAYLIGHT_MODE, str(self._motion_config.daylight_mode)
