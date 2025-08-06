@@ -60,9 +60,9 @@ DEFAULT_FIRMWARE: Final = datetime(2010, 11, 4, 16, 58, 46, tzinfo=UTC)
 
 # Sensitivity values for motion sensor configuration
 SENSITIVITY_MAP: Final = {
-    MotionSensitivity.HIGH: 20, # 0x14
-    MotionSensitivity.MEDIUM: 30, # 0x1E
-    MotionSensitivity.OFF: 255, # 0xFF
+    MotionSensitivity.HIGH: 20,  # 0x14
+    MotionSensitivity.MEDIUM: 30,  # 0x1E
+    MotionSensitivity.OFF: 255,  # 0xFF
 }
 
 # Scan Features
