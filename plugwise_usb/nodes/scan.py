@@ -209,7 +209,7 @@ class PlugwiseScan(NodeSED):
         if (
             sensitivity_level := self._get_cache(CACHE_SCAN_CONFIG_SENSITIVITY)
         ) is not None:
-            return MotionSensitivity([sensitivity_level])
+            return MotionSensitivity[sensitivity_level]
         return None
 
     def _motion_config_dirty_from_cache(self) -> bool:
