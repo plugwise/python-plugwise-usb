@@ -1827,10 +1827,7 @@ class TestStick:
 
         with pytest.raises(pw_exceptions.NodeError):
             assert (
-                await test_node.set_motion_sensitivity_level(
-                    pw_api.MotionSensitivity.HIGH
-                )
-                is not None
+                await test_node.set_motion_sensitivity_level(20) is not None
             )
 
         with pytest.raises(pw_exceptions.NodeError):
@@ -1863,10 +1860,7 @@ class TestStick:
 
         with pytest.raises(pw_exceptions.FeatureError):
             assert (
-                await test_node.set_motion_sensitivity_level(
-                    pw_api.MotionSensitivity.HIGH
-                )
-                is not None
+                await test_node.set_motion_sensitivity_level(20) is not None
             )
 
         with pytest.raises(pw_exceptions.FeatureError):
@@ -1895,10 +1889,7 @@ class TestStick:
             assert await test_node.set_motion_daylight_mode(True) is not None
         with pytest.raises(NotImplementedError):
             assert (
-                await test_node.set_motion_sensitivity_level(
-                    pw_api.MotionSensitivity.HIGH
-                )
-                is not None
+                await test_node.set_motion_sensitivity_level(20) is not None
             )
         with pytest.raises(NotImplementedError):
             assert await test_node.set_motion_reset_timer(5) is not None
@@ -2117,25 +2108,25 @@ class TestStick:
             if setting == pw_node.CACHE_NODE_INFO_TIMESTAMP:
                 return "2024-12-7-1-0-0"
             if setting == pw_sed.CACHE_SED_AWAKE_DURATION:
-                return "20"
+                return 20
             if setting == pw_sed.CACHE_SED_CLOCK_INTERVAL:
-                return "12600"
+                return 12600
             if setting == pw_sed.CACHE_SED_CLOCK_SYNC:
                 return True
             if setting == pw_sed.CACHE_SED_DIRTY:
                 return False
             if setting == pw_sed.CACHE_SED_MAINTENANCE_INTERVAL:
-                return "60"
+                return 60
             if setting == pw_sed.CACHE_SED_SLEEP_DURATION:
-                return "60"
+                return 60
             if setting == pw_scan.CACHE_SCAN_MOTION_STATE:
                 return False
             if setting == pw_scan.CACHE_SCAN_MOTION_TIMESTAMP:
                 return "2024-12-6-1-0-0"
             if setting == pw_scan.CACHE_SCAN_CONFIG_RESET_TIMER:
-                return "10"
+                return 10
             if setting == pw_scan.CACHE_SCAN_CONFIG_SENSITIVITY:
-                return "MEDIUM"
+                return 30
             if setting == pw_scan.CACHE_SCAN_CONFIG_DAYLIGHT_MODE:
                 return False
             if setting == pw_scan.CACHE_SCAN_CONFIG_DIRTY:
@@ -2237,17 +2228,14 @@ class TestStick:
         assert test_scan.motion_config.daylight_mode
 
         # test motion sensitivity level
-        assert test_scan.sensitivity_level == pw_api.MotionSensitivity.MEDIUM
+        assert test_scan.sensitivity_level == 30
         assert (
-            test_scan.motion_config.sensitivity_level == pw_api.MotionSensitivity.MEDIUM
+            test_scan.motion_config.sensitivity_level == 30
         )
-        assert not await test_scan.set_motion_sensitivity_level(
-            pw_api.MotionSensitivity.MEDIUM
-        )
+        assert not await test_scan.set_motion_sensitivity_level(30)
+
         assert not test_scan.motion_config.dirty
-        assert await test_scan.set_motion_sensitivity_level(
-            pw_api.MotionSensitivity.HIGH
-        )
+        assert await test_scan.set_motion_sensitivity_level(20)
         assert test_scan.motion_config.dirty
         awake_response4 = pw_responses.NodeAwakeResponse()
         awake_response4.deserialize(
@@ -2259,10 +2247,8 @@ class TestStick:
         await test_scan._awake_response(awake_response4)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
         assert not test_scan.motion_config.dirty
-        assert test_scan.sensitivity_level == pw_api.MotionSensitivity.HIGH
-        assert (
-            test_scan.motion_config.sensitivity_level == pw_api.MotionSensitivity.HIGH
-        )
+        assert test_scan.sensitivity_level == 20
+        assert test_scan.motion_config.sensitivity_level == 20
 
         # scan with cache enabled
         mock_stick_controller.send_response = None
