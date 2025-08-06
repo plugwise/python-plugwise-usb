@@ -59,9 +59,11 @@ DEFAULT_DAYLIGHT_MODE: Final = False
 DEFAULT_FIRMWARE: Final = datetime(2010, 11, 4, 16, 58, 46, tzinfo=UTC)
 
 # Sensitivity values for motion sensor configuration
-SENSITIVITY_HIGH_VALUE = 20  # 0x14
-SENSITIVITY_MEDIUM_VALUE = 30  # 0x1E
-SENSITIVITY_OFF_VALUE = 255  # 0xFF
+SENSITIVITY_MAP: Final = {
+    MotionSensitivity.HIGH: 20, # 0x14
+    MotionSensitivity.MEDIUM: 30, # 0x1E
+    MotionSensitivity.OFF: 255, # 0xFF
+}
 
 # Scan Features
 SCAN_FEATURES: Final = (
@@ -207,7 +209,7 @@ class PlugwiseScan(NodeSED):
         if (
             sensitivity_level := self._get_cache(CACHE_SCAN_CONFIG_SENSITIVITY)
         ) is not None:
-            return MotionSensitivity(int(sensitivity_level))
+            return MotionSensitivity([sensitivity_level])
         return None
 
     def _motion_config_dirty_from_cache(self) -> bool:
@@ -423,11 +425,13 @@ class PlugwiseScan(NodeSED):
                 ]
             )
 
-    async def _run_awake_tasks(self) -> None:
+    async def _run_awake_tasks(self) -> bool:
         """Execute all awake tasks."""
-        await super()._run_awake_tasks()
+        if not await super()._run_awake_tasks():
+            return False
         if self._motion_config.dirty:
             await self._configure_scan_task()
+        return True
 
     async def _configure_scan_task(self) -> bool:
         """Configure Scan device settings. Returns True if successful."""
@@ -440,13 +444,8 @@ class PlugwiseScan(NodeSED):
 
     async def scan_configure(self) -> bool:
         """Configure Scan device settings. Returns True if successful."""
-        sensitivity_map = {
-            MotionSensitivity.HIGH: SENSITIVITY_HIGH_VALUE,
-            MotionSensitivity.MEDIUM: SENSITIVITY_MEDIUM_VALUE,
-            MotionSensitivity.OFF: SENSITIVITY_OFF_VALUE,
-        }
         # Default to medium
-        sensitivity_value = sensitivity_map.get(
+        sensitivity_value = SENSITIVITY_MAP.get(
             self._motion_config.sensitivity_level, SENSITIVITY_MEDIUM_VALUE
         )
         request = ScanConfigureRequest(
@@ -483,7 +482,7 @@ class PlugwiseScan(NodeSED):
             CACHE_SCAN_CONFIG_RESET_TIMER, str(self._motion_config.reset_timer)
         )
         self._set_cache(
-            CACHE_SCAN_CONFIG_SENSITIVITY, self._motion_config.sensitivity_level.value
+            CACHE_SCAN_CONFIG_SENSITIVITY, self._motion_config.sensitivity_level.name
         )
         self._set_cache(
             CACHE_SCAN_CONFIG_DAYLIGHT_MODE, str(self._motion_config.daylight_mode)
