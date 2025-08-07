@@ -547,7 +547,7 @@ class NodeSED(PlugwiseBaseNode):
 
     async def _run_awake_tasks(self) -> None:
         """Execute all awake tasks."""
-        _LOGGER.debug("_run_awake_tasks | Device %s",self.name)
+        _LOGGER.debug("_run_awake_tasks | Device %s", self.name)
         if (
             self._sed_node_info_update_task_scheduled
             and await self.node_info_update(None) is not None
