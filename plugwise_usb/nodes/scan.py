@@ -423,13 +423,11 @@ class PlugwiseScan(NodeSED):
                 ]
             )
 
-    async def _run_awake_tasks(self) -> bool:
+    async def _run_awake_tasks(self) -> None:
         """Execute all awake tasks."""
-        if not await super()._run_awake_tasks():
-            return False
+        await super()._run_awake_tasks()
         if self._motion_config.dirty:
             await self._configure_scan_task()
-        return True
 
     async def _configure_scan_task(self) -> bool:
         """Configure Scan device settings. Returns True if successful."""
