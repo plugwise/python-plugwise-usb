@@ -1826,9 +1826,7 @@ class TestStick:
             assert await test_node.set_motion_daylight_mode(True) is not None
 
         with pytest.raises(pw_exceptions.NodeError):
-            assert (
-                await test_node.set_motion_sensitivity_level(20) is not None
-            )
+            assert await test_node.set_motion_sensitivity_level(20) is not None
 
         with pytest.raises(pw_exceptions.NodeError):
             assert await test_node.set_motion_reset_timer(5) is not None
@@ -1859,9 +1857,7 @@ class TestStick:
             assert await test_node.set_motion_daylight_mode(True) is not None
 
         with pytest.raises(pw_exceptions.FeatureError):
-            assert (
-                await test_node.set_motion_sensitivity_level(20) is not None
-            )
+            assert await test_node.set_motion_sensitivity_level(20) is not None
 
         with pytest.raises(pw_exceptions.FeatureError):
             assert await test_node.set_motion_reset_timer(5) is not None
@@ -1888,9 +1884,7 @@ class TestStick:
         with pytest.raises(NotImplementedError):
             assert await test_node.set_motion_daylight_mode(True) is not None
         with pytest.raises(NotImplementedError):
-            assert (
-                await test_node.set_motion_sensitivity_level(20) is not None
-            )
+            assert await test_node.set_motion_sensitivity_level(20) is not None
         with pytest.raises(NotImplementedError):
             assert await test_node.set_motion_reset_timer(5) is not None
 
@@ -2229,9 +2223,7 @@ class TestStick:
 
         # test motion sensitivity level
         assert test_scan.sensitivity_level == 30
-        assert (
-            test_scan.motion_config.sensitivity_level == 30
-        )
+        assert test_scan.motion_config.sensitivity_level == 30
         assert not await test_scan.set_motion_sensitivity_level(30)
 
         assert not test_scan.motion_config.dirty
