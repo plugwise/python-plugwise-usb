@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum, auto
+from enum import Enum, IntEnum, auto
 import logging
 from typing import Any, Protocol
 
@@ -19,12 +19,12 @@ class StickEvent(Enum):
     NETWORK_ONLINE = auto()
 
 
-class MotionSensitivity(Enum):
+class MotionSensitivity(IntEnumEnum):
     """Motion sensitivity levels for Scan devices."""
 
-    HIGH = auto()
-    MEDIUM = auto()
-    OFF = auto()
+    HIGH = 20
+    MEDIUM = 30
+    OFF = 255
 
 
 class NodeEvent(Enum):
