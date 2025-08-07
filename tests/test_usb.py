@@ -2126,7 +2126,7 @@ class TestStick:
             if setting == pw_scan.CACHE_SCAN_CONFIG_RESET_TIMER:
                 return 10
             if setting == pw_scan.CACHE_SCAN_CONFIG_SENSITIVITY:
-                return 30
+                return "MEDIUM"
             if setting == pw_scan.CACHE_SCAN_CONFIG_DAYLIGHT_MODE:
                 return False
             if setting == pw_scan.CACHE_SCAN_CONFIG_DIRTY:
