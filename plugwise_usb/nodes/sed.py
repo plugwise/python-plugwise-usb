@@ -91,6 +91,7 @@ class NodeSED(PlugwiseBaseNode):
         # Configure SED
         self._battery_config = BatteryConfig()
         self._sed_node_info_update_task_scheduled = False
+        self._delayed_task: Task[None] | None = None
 
         self._last_awake: dict[NodeAwakeResponseType, datetime] = {}
         self._last_awake_reason: str = "Unknown"
@@ -123,6 +124,8 @@ class NodeSED(PlugwiseBaseNode):
             await self._awake_timer_task
         if self._awake_subscription is not None:
             self._awake_subscription()
+        if self._delayed_task is not None and not self._delayed_task.done():
+            await self._delayed_task
         await super().unload()
 
     async def initialize(self) -> None:
@@ -420,7 +423,6 @@ class NodeSED(PlugwiseBaseNode):
         ):
             return True
 
-        await self._run_awake_tasks()
         self._last_awake[response.awake_type] = response.timestamp
 
         tasks: list[Coroutine[Any, Any, None]] = [
@@ -431,10 +433,12 @@ class NodeSED(PlugwiseBaseNode):
             ),
             self.save_cache(),
         ]
+        self._delayed_task = self._loop.create_task(
+            self._run_awake_tasks(), name=f"Delayed update for {self._mac_in_str}"
+        )
         if response.awake_type == NodeAwakeResponseType.MAINTENANCE:
             self._last_awake_reason = "Maintenance"
             self._set_cache(CACHE_SED_AWAKE_REASON, "Maintenance")
-
             if not self._maintenance_interval_restored_from_cache:
                 self._detect_maintenance_interval(response.timestamp)
             if self._ping_at_awake:
@@ -543,6 +547,7 @@ class NodeSED(PlugwiseBaseNode):
 
     async def _run_awake_tasks(self) -> None:
         """Execute all awake tasks."""
+        _LOGGER.debug("_run_awake_tasks | Device %s",self.name)
         if (
             self._sed_node_info_update_task_scheduled
             and await self.node_info_update(None) is not None
