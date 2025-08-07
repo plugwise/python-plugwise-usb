@@ -19,7 +19,7 @@ class StickEvent(Enum):
     NETWORK_ONLINE = auto()
 
 
-class MotionSensitivity(IntEnumEnum):
+class MotionSensitivity(IntEnum):
     """Motion sensitivity levels for Scan devices."""
 
     HIGH = 20
