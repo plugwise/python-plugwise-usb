@@ -62,7 +62,6 @@ DEFAULT_DAYLIGHT_MODE: Final = False
 DEFAULT_FIRMWARE: Final = datetime(2010, 11, 4, 16, 58, 46, tzinfo=UTC)
 
 
-
 # Scan Features
 SCAN_FEATURES: Final = (
     NodeFeature.MOTION,
@@ -445,7 +444,7 @@ class PlugwiseScan(NodeSED):
             self._send,
             self._mac_in_bytes,
             self._motion_config.reset_timer,
-            self._motion_config.sensitivity_value,
+            self._motion_config.sensitivity_level,
             self._motion_config.daylight_mode,
         )
         if (response := await request.send()) is None:
