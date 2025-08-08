@@ -402,6 +402,13 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     )
                     return None
 
+            if self._cache_enabled:
+                _LOGGER.debug(
+                    "Saving initial energy_logs to cache for %s", self._mac_in_str
+                )
+                await self._energy_log_records_save_to_cache()
+                await self.save_cache()
+
         if (
             missing_addresses := self._energy_counters.log_addresses_missing
         ) is not None:
@@ -515,7 +522,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
             total_addresses -= 1
 
         if self._cache_enabled:
+            _LOGGER.debug(
+                "Saving initial energy_logs to cache for %s", self._mac_in_str
+            )
             await self._energy_log_records_save_to_cache()
+            await self.save_cache()
 
     async def get_missing_energy_logs(self) -> None:
         """Task to retrieve missing energy logs."""
@@ -543,7 +554,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
             await task
 
         if self._cache_enabled:
+            _LOGGER.debug(
+                "Saving missing energy_logs to cache for %s", self._mac_in_str
+            )
             await self._energy_log_records_save_to_cache()
+            await self.save_cache()
 
     async def energy_log_update(self, address: int | None) -> tuple[bool, bool]:
         """Request energy log statistics from node. Returns true if successful."""
@@ -568,7 +583,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         _LOGGER.debug("EnergyLogs data from %s, address=%s", self._mac_in_str, address)
         await self._available_update_state(True, response.timestamp)
-        energy_record_update = False
 
         # Forward historical energy log information to energy counters
         # Each response message contains 4 log counters (slots) of the
@@ -582,14 +596,14 @@ class PlugwiseCircle(PlugwiseBaseNode):
             if log_timestamp is None or log_pulses is None:
                 self._energy_counters.add_empty_log(response.log_address, _slot)
                 empty_log = True
-            elif await self._energy_log_record_update_state(
-                response.log_address,
-                _slot,
-                log_timestamp.replace(tzinfo=UTC),
-                log_pulses,
-                import_only=True,
-            ):
-                energy_record_update = True
+            else:
+                self._energy_counters.add_pulse_log(
+                    response.log_address,
+                    _slot,
+                    log_timestamp.replace(tzinfo=UTC),
+                    log_pulses,
+                    import_only=True,
+                )
                 if not last_energy_timestamp_collected:
                     # Collect the timestamp of the most recent response
                     self._last_collected_energy_timestamp = log_timestamp.replace(
@@ -603,12 +617,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         result = True
         self._energy_counters.update()
-        if energy_record_update:
-            _LOGGER.debug(
-                "Saving energy record update to cache for %s", self._mac_in_str
-            )
-            await self.save_cache()
-
         return result, empty_log
 
     async def _energy_log_records_load_from_cache(self) -> bool:
@@ -688,54 +696,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 cached_logs += f"-{log.timestamp.hour}-{log.timestamp.minute}"
                 cached_logs += f"-{log.timestamp.second}:{log.pulses}"
 
-        _LOGGER.debug("Saving energy logrecords to cache for %s", self._mac_in_str)
         self._set_cache(CACHE_ENERGY_COLLECTION, cached_logs)
-
-    async def _energy_log_record_update_state(
-        self,
-        address: int,
-        slot: int,
-        timestamp: datetime,
-        pulses: int,
-        import_only: bool = False,
-    ) -> bool:
-        """Process new energy log record. Returns true if record is new or changed."""
-        self._energy_counters.add_pulse_log(
-            address, slot, timestamp, pulses, import_only=import_only
-        )
-        if not self._cache_enabled:
-            return False
-
-        log_cache_record = f"{address}:{slot}:{timestamp.year}"
-        log_cache_record += f"-{timestamp.month}-{timestamp.day}"
-        log_cache_record += f"-{timestamp.hour}-{timestamp.minute}"
-        log_cache_record += f"-{timestamp.second}:{pulses}"
-        if (cached_logs := self._get_cache(CACHE_ENERGY_COLLECTION)) is not None:
-            if log_cache_record not in cached_logs:
-                _LOGGER.debug(
-                    "Adding logrecord (%s, %s) to cache of %s",
-                    str(address),
-                    str(slot),
-                    self._mac_in_str,
-                )
-                self._set_cache(
-                    CACHE_ENERGY_COLLECTION, cached_logs + "|" + log_cache_record
-                )
-                return True
-
-            _LOGGER.debug(
-                "Energy logrecord already present for %s, ignoring", self._mac_in_str
-            )
-            return False
-
-        _LOGGER.debug(
-            "Cache is empty, adding new logrecord (%s, %s) for %s",
-            str(address),
-            str(slot),
-            self._mac_in_str,
-        )
-        self._set_cache(CACHE_ENERGY_COLLECTION, log_cache_record)
-        return True
 
     @raise_not_loaded
     async def set_relay(self, state: bool) -> bool:
@@ -1081,6 +1042,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
+            await self.save_cache()
 
         await super().unload()
 
