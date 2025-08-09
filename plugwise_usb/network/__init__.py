@@ -146,7 +146,7 @@ class StickNetwork:
         return self._nodes
 
     @property
-    def registry(self) -> dict[int, tuple[str, NodeType | None]]:
+    def registry(self) -> list[str]:
         """Return dictionary with all registered (joined) nodes."""
         return self._register.registry
 

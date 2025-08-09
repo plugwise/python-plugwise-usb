@@ -158,12 +158,6 @@ class StickNetworkRegister:
             return True
         return False
 
-    def network_controller(self) -> tuple[str, NodeType | None]:
-        """Return the registration for the network controller."""
-        if self._registry.get(-1) is None:
-            raise NodeError("Unable to return network controller details")
-        return self.registry[-1]
-
     async def update_network_nodetype(self, mac: str, node_type: NodeType) -> None:
         """Update NodeType inside registry and cache."""
         if self._network_cache is None or mac == "":
