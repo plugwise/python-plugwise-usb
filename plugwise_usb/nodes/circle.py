@@ -468,7 +468,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             if not result:
                 # Handle case with None-data in all address slots
                 _LOGGER.debug(
-                    "Energy None-data of outdated data collected from log address %s, stopping collection",
+                    "All slots at log address %s are empty or outdated – stopping initial collection",
                     log_address,
                 )
                 break
@@ -508,15 +508,15 @@ class PlugwiseCircle(PlugwiseBaseNode):
             await self._energy_log_records_save_to_cache()
 
     async def energy_log_update(self, address: int | None) -> bool:
-        """Request energy log statistics from node. Returns true if successful."""
-        result = False
+        """Request energy logs and return True only when at least one recent, non-empty record was stored; otherwise return False."""
+        any_record_stored = False
         if address is None:
-            return result
+            return False
 
         _LOGGER.debug(
             "Requesting EnergyLogs from node %s address %s",
-            str(address),
-            self.name,
+            self._mac_in_str,
+            address,
         )
         request = CircleEnergyLogsRequest(self._send, self._mac_in_bytes, address)
         if (response := await request.send()) is None:
@@ -524,13 +524,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 "Retrieving EnergyLogs data from node %s failed",
                 self._mac_in_str,
             )
-            return result
+            return False
 
-        _LOGGER.debug(
-            "EnergyLogs data from node %s, address=%s", self._mac_in_str, address
-        )
+        _LOGGER.debug("EnergyLogs from node %s, address=%s:", self._mac_in_str, address)
         await self._available_update_state(True, response.timestamp)
-        energy_record_update = False
 
         # Forward historical energy log information to energy counters
         # Each response message contains 4 log counters (slots) of the
@@ -541,11 +538,12 @@ class PlugwiseCircle(PlugwiseBaseNode):
             _LOGGER.debug(
                 "In slot=%s: pulses=%s, timestamp=%s", _slot, log_pulses, log_timestamp
             )
-            if log_timestamp is None or log_pulses is None:
-                self._energy_counters.add_empty_log(response.log_address, _slot)
-                continue
-            elif not self._check_timestamp_is_recent(address, _slot, log_timestamp):
+            if (
+                log_timestamp is None
+                or log_pulses is None
                 # Don't store an old log-record, store am empty record instead
+                or not self._check_timestamp_is_recent(address, _slot, log_timestamp)
+            ):
                 self._energy_counters.add_empty_log(response.log_address, _slot)
                 continue
 
@@ -556,7 +554,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 log_pulses,
                 import_only=True,
             ):
-                energy_record_update = True
+                any_record_stored = True
                 if not last_energy_timestamp_collected:
                     # Collect the timestamp of the most recent response
                     self._last_collected_energy_timestamp = log_timestamp.replace(
@@ -568,25 +566,26 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     )
                     last_energy_timestamp_collected = True
 
-        result = True
         self._energy_counters.update()
-        if energy_record_update:
+        if any_record_stored:
             _LOGGER.debug(
                 "Saving energy record update to cache for %s", self._mac_in_str
             )
             await self.save_cache()
 
-        return result
+        return any_record_stored
 
-    def _check_timestamp_is_recent(self, address, slot, timestamp) -> bool:
+    def _check_timestamp_is_recent(
+        self, address: int, slot: int, timestamp: datetime
+    ) -> bool:
         """Check if the timestamp of the received log-record is recent.
 
         A timestamp from within the last 24 hours is considered recent.
         """
-        if (
-            (datetime.now(tz=UTC) - timestamp.replace(tzinfo=UTC)).total_seconds()
-            // 3600
-        ) > DAY_IN_HOURS:
+        age_seconds = (
+            datetime.now(tz=UTC) - timestamp.replace(tzinfo=UTC)
+        ).total_seconds()
+        if age_seconds > DAY_IN_HOURS * 3600:
             _LOGGER.warning(
                 "EnergyLog from Node %s | address %s | slot %s | timestamp %s is outdated, ignoring...",
                 self._mac_in_str,
