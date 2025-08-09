@@ -365,7 +365,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         # Always request last energy log records at initial startup
         if not self._last_energy_log_requested:
-            self._last_energy_log_requested, _ = await self.energy_log_update(
+            self._last_energy_log_requested = await self.energy_log_update(
                 self._current_log_address
             )
 
@@ -379,7 +379,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 return None
 
             # Try collecting energy-stats for _current_log_address
-            result, _ = await self.energy_log_update(self._current_log_address)
+            result = await self.energy_log_update(self._current_log_address)
             if not result:
                 _LOGGER.debug(
                     "async_energy_update | %s | Log rollover | energy_log_update failed",
@@ -393,7 +393,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 _prev_log_address, _ = calc_log_address(
                     self._current_log_address, 1, -4
                 )
-                result, _ = await self.energy_log_update(_prev_log_address)
+                result = await self.energy_log_update(_prev_log_address)
                 if not result:
                     _LOGGER.debug(
                         "async_energy_update | %s | Log rollover | energy_log_update %s failed",
@@ -414,7 +414,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 return self._energy_counters.energy_statistics
 
             if len(missing_addresses) == 1:
-                result, _ = await self.energy_log_update(missing_addresses[0])
+                result = await self.energy_log_update(missing_addresses[0])
                 if result:
                     await self.power_update()
                     _LOGGER.debug(
@@ -464,11 +464,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
         total_addresses = 11
         log_address = self._current_log_address
         while total_addresses > 0:
-            result, empty_log = await self.energy_log_update(log_address)
-            if result and empty_log:
+            result = await self.energy_log_update(log_address)
+            if not result:
                 # Handle case with None-data in all address slots
                 _LOGGER.debug(
-                    "Energy None-data collected from log address %s, stopping collection",
+                    "Energy None-data of outdated data collected from log address %s, stopping collection",
                     log_address,
                 )
                 break
@@ -507,28 +507,28 @@ class PlugwiseCircle(PlugwiseBaseNode):
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
 
-    async def energy_log_update(self, address: int | None) -> tuple[bool, bool]:
+    async def energy_log_update(self, address: int | None) -> bool:
         """Request energy log statistics from node. Returns true if successful."""
-        empty_log = False
         result = False
         if address is None:
-            return result, empty_log
+            return result
 
         _LOGGER.debug(
-            "Request of energy log at address %s for node %s",
+            "Requesting EnergyLogs from node %s address %s",
             str(address),
             self.name,
         )
         request = CircleEnergyLogsRequest(self._send, self._mac_in_bytes, address)
         if (response := await request.send()) is None:
             _LOGGER.debug(
-                "Retrieving of energy log at address %s for node %s failed",
-                str(address),
+                "Retrieving EnergyLogs data from node %s failed",
                 self._mac_in_str,
             )
-            return result, empty_log
+            return result
 
-        _LOGGER.debug("EnergyLogs data from %s, address=%s", self._mac_in_str, address)
+        _LOGGER.debug(
+            "EnergyLogs data from node %s, address=%s", self._mac_in_str, address
+        )
         await self._available_update_state(True, response.timestamp)
         energy_record_update = False
 
@@ -543,12 +543,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             if log_timestamp is None or log_pulses is None:
                 self._energy_counters.add_empty_log(response.log_address, _slot)
-                empty_log = True
                 continue
             elif not self._check_timestamp_is_recent(address, _slot, log_timestamp):
                 # Don't store an old log-record, store am empty record instead
                 self._energy_counters.add_empty_log(response.log_address, _slot)
-                empty_log = True
                 continue
 
             if await self._energy_log_record_update_state(
@@ -578,7 +576,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             await self.save_cache()
 
-        return result, empty_log
+        return result
 
     def _check_timestamp_is_recent(self, address, slot, timestamp) -> bool:
         """Check if the timestamp of the received log-record is recent.
