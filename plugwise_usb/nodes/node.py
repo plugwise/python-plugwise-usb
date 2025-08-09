@@ -59,7 +59,6 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
     def __init__(
         self,
         mac: str,
-        address: int,
         node_type: NodeType,
         controller: StickController,
         loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
@@ -73,7 +72,6 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         self._last_seen = datetime.now(tz=UTC)
         self._node_info = NodeInfo(
             mac=mac,
-            zigbee_address=address,
             node_type=self.node_type,
         )
         self._ping = NetworkStatistics()
@@ -222,11 +220,6 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         if self._node_info.name is not None:
             return self._node_info.name
         return self._mac_in_str
-
-    @property
-    def network_address(self) -> int:
-        """Zigbee network registration address."""
-        return self._node_info.zigbee_address
 
     @property
     def node_info(self) -> NodeInfo:
@@ -661,6 +654,14 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         if not self._cache_enabled:
             return None
         return self._node_cache.get_state(setting)
+
+    def _get_cache_as_bool(self, setting: str) -> bool | None:
+        """Retrieve bool of specified setting from cache memory."""
+        if not self._cache_enabled:
+            return None
+        if (bool_value := self._node_cache.get_state(setting)) is None:
+            return None
+        return bool_value == "True"
 
     def _get_cache_as_datetime(self, setting: str) -> datetime | None:
         """Retrieve value of specified setting from cache memory and return it as datetime object."""

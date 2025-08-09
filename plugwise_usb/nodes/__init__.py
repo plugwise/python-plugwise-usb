@@ -16,7 +16,6 @@ from .switch import PlugwiseSwitch
 
 def get_plugwise_node(  # noqa: PLR0911
     mac: str,
-    address: int,
     controller: StickController,
     loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
     node_type: NodeType,
@@ -25,7 +24,6 @@ def get_plugwise_node(  # noqa: PLR0911
     if node_type == NodeType.CIRCLE_PLUS:
         return PlugwiseCirclePlus(
             mac,
-            address,
             node_type,
             controller,
             loaded_callback,
@@ -33,7 +31,6 @@ def get_plugwise_node(  # noqa: PLR0911
     if node_type == NodeType.CIRCLE:
         return PlugwiseCircle(
             mac,
-            address,
             node_type,
             controller,
             loaded_callback,
@@ -41,7 +38,6 @@ def get_plugwise_node(  # noqa: PLR0911
     if node_type == NodeType.SWITCH:
         return PlugwiseSwitch(
             mac,
-            address,
             node_type,
             controller,
             loaded_callback,
@@ -49,7 +45,6 @@ def get_plugwise_node(  # noqa: PLR0911
     if node_type == NodeType.SENSE:
         return PlugwiseSense(
             mac,
-            address,
             node_type,
             controller,
             loaded_callback,
@@ -57,7 +52,6 @@ def get_plugwise_node(  # noqa: PLR0911
     if node_type == NodeType.SCAN:
         return PlugwiseScan(
             mac,
-            address,
             node_type,
             controller,
             loaded_callback,
@@ -65,7 +59,6 @@ def get_plugwise_node(  # noqa: PLR0911
     if node_type == NodeType.STEALTH:
         return PlugwiseStealth(
             mac,
-            address,
             node_type,
             controller,
             loaded_callback,

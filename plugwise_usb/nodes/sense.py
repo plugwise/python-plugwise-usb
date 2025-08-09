@@ -41,13 +41,12 @@ class PlugwiseSense(NodeSED):
     def __init__(
         self,
         mac: str,
-        address: int,
         node_type: NodeType,
         controller: StickController,
         loaded_callback: Callable[[NodeEvent, str], Awaitable[None]],
     ):
         """Initialize Scan Device."""
-        super().__init__(mac, address, node_type, controller, loaded_callback)
+        super().__init__(mac, node_type, controller, loaded_callback)
 
         self._sense_statistics = SenseStatistics()
 
@@ -95,10 +94,13 @@ class PlugwiseSense(NodeSED):
         )
         if self._node_info.model is None:
             self._node_info.model = "Sense"
+            self._sed_node_info_update_task_scheduled = True
         if self._node_info.name is None:
             self._node_info.name = f"Sense {self._node_info.mac[-5:]}"
+            self._sed_node_info_update_task_scheduled = True
         if self._node_info.firmware is None:
             self._node_info.firmware = DEFAULT_FIRMWARE
+            self._sed_node_info_update_task_scheduled = True
 
     # endregion
 
