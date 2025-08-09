@@ -24,6 +24,7 @@ from ..api import (
 )
 from ..connection import StickController
 from ..constants import (
+    DAY_IN_HOURS,
     DEFAULT_CONS_INTERVAL,
     MAX_TIME_DRIFT,
     MINIMAL_POWER_UPDATE,
@@ -581,7 +582,14 @@ class PlugwiseCircle(PlugwiseBaseNode):
             if log_timestamp is None or log_pulses is None:
                 self._energy_counters.add_empty_log(response.log_address, _slot)
                 empty_log = True
-            elif await self._energy_log_record_update_state(
+                continue
+            elif not self._check_timestamp_is_recent(address, _slot, log_timestamp):
+                # Don't store an old log-record, store am empty record instead
+                self._energy_counters.add_empty_log(response.log_address, _slot)
+                empty_log = True
+                continue
+
+            if await self._energy_log_record_update_state(
                 response.log_address,
                 _slot,
                 log_timestamp.replace(tzinfo=UTC),
@@ -609,6 +617,25 @@ class PlugwiseCircle(PlugwiseBaseNode):
             await self.save_cache()
 
         return result, empty_log
+
+    def _check_timestamp_is_recent(self, address, slot, timestamp) -> bool:
+        """Check if the timestamp of the received log-record is recent.
+
+        A timestamp from within the last 24 hours is considered recent.
+        """
+        if (
+            (datetime.now(tz=UTC) - timestamp.replace(tzinfo=UTC)).total_seconds()
+            // 3600
+        ) > DAY_IN_HOURS:
+            _LOGGER.warning(
+                "EnergyLog from Node %s | address %s | slot %s | timestamp %s is outdated, ignoring...",
+                self._mac_in_str,
+                address,
+                slot,
+                timestamp,
+            )
+            return False
+        return True
 
     async def _energy_log_records_load_from_cache(self) -> bool:
         """Load energy_log_record from cache."""
