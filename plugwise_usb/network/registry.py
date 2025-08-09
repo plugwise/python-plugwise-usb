@@ -252,7 +252,7 @@ class StickNetworkRegister:
         if not validate_mac(mac):
             raise NodeError(f"MAC {mac} invalid")
 
-        if mac not in self._registry():
+        if mac not in self._registry:
             raise NodeError(f"No existing Node ({mac}) found to unregister")
 
         request = NodeRemoveRequest(self._send_to_controller, self._mac_nc, mac)
