@@ -501,7 +501,7 @@ class TestStick:
 
     async def node_awake(self, event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
         """Handle awake event callback."""
-        _LOGGER.debug("Node %s has event %s", mac, str(pw_api.NodeEvent))
+        _LOGGER.debug("Node %s has event %s", mac, str(event))
         if event == pw_api.NodeEvent.AWAKE:
             self.test_node_awake.set_result(mac)
         else:
