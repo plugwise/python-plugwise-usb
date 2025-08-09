@@ -1808,28 +1808,28 @@ class TestStick:
 
         # Validate to raise exception when node is not yet loaded
         with pytest.raises(pw_exceptions.NodeError):
-            assert await test_node.set_awake_duration(5) is not None
+            await test_node.set_awake_duration(5) is not None
 
         with pytest.raises(pw_exceptions.NodeError):
-            assert test_node.battery_config is not None
+            test_node.battery_config is not None
 
         with pytest.raises(pw_exceptions.NodeError):
-            assert await test_node.set_clock_interval(5) is not None
+            await test_node.set_clock_interval(5) is not None
 
         with pytest.raises(pw_exceptions.NodeError):
-            assert await test_node.set_clock_sync(False) is not None
+            await test_node.set_clock_sync(False) is not None
 
         with pytest.raises(pw_exceptions.NodeError):
-            assert await test_node.set_sleep_duration(5) is not None
+            await test_node.set_sleep_duration(5) is not None
 
         with pytest.raises(pw_exceptions.NodeError):
-            assert await test_node.set_motion_daylight_mode(True) is not None
+            await test_node.set_motion_daylight_mode(True) is not None
 
         with pytest.raises(pw_exceptions.NodeError):
-            assert await test_node.set_motion_sensitivity_level(20) is not None
+            test_node.set_motion_sensitivity_level(20) is not None
 
         with pytest.raises(pw_exceptions.NodeError):
-            assert await test_node.set_motion_reset_timer(5) is not None
+            await test_node.set_motion_reset_timer(5) is not None
 
         # Validate to raise NotImplementedError calling load() at basenode
         with pytest.raises(NotImplementedError):
@@ -1839,54 +1839,54 @@ class TestStick:
 
         # Validate to raise exception when feature is not supported
         with pytest.raises(pw_exceptions.FeatureError):
-            assert await test_node.set_awake_duration(5) is not None
+            await test_node.set_awake_duration(5) is not None
 
         with pytest.raises(pw_exceptions.FeatureError):
-            assert test_node.battery_config is not None
+            test_node.battery_config is not None
 
         with pytest.raises(pw_exceptions.FeatureError):
-            assert await test_node.set_clock_interval(5) is not None
+            await test_node.set_clock_interval(5) is not None
 
         with pytest.raises(pw_exceptions.FeatureError):
-            assert await test_node.set_clock_sync(False) is not None
+            await test_node.set_clock_sync(False) is not None
 
         with pytest.raises(pw_exceptions.FeatureError):
-            assert await test_node.set_sleep_duration(5) is not None
+            await test_node.set_sleep_duration(5) is not None
 
         with pytest.raises(pw_exceptions.FeatureError):
-            assert await test_node.set_motion_daylight_mode(True) is not None
+            await test_node.set_motion_daylight_mode(True) is not None
 
         with pytest.raises(pw_exceptions.FeatureError):
-            assert await test_node.set_motion_sensitivity_level(20) is not None
+            await test_node.set_motion_sensitivity_level(20) is not None
 
         with pytest.raises(pw_exceptions.FeatureError):
-            assert await test_node.set_motion_reset_timer(5) is not None
+            await test_node.set_motion_reset_timer(5) is not None
 
         # Add battery feature to test raising not implemented
         # for battery related properties
         test_node._features += (pw_api.NodeFeature.BATTERY,)  # pylint: disable=protected-access
         with pytest.raises(NotImplementedError):
-            assert await test_node.set_awake_duration(5) is not None
+            await test_node.set_awake_duration(5) is not None
 
         with pytest.raises(NotImplementedError):
-            assert test_node.battery_config is not None
+            test_node.battery_config is not None
 
         with pytest.raises(NotImplementedError):
-            assert await test_node.set_clock_interval(5) is not None
+            await test_node.set_clock_interval(5) is not None
 
         with pytest.raises(NotImplementedError):
-            assert await test_node.set_clock_sync(False) is not None
+            await test_node.set_clock_sync(False) is not None
 
         with pytest.raises(NotImplementedError):
-            assert await test_node.set_sleep_duration(5) is not None
+            await test_node.set_sleep_duration(5) is not None
 
         test_node._features += (pw_api.NodeFeature.MOTION,)  # pylint: disable=protected-access
         with pytest.raises(NotImplementedError):
-            assert await test_node.set_motion_daylight_mode(True) is not None
+            await test_node.set_motion_daylight_mode(True) is not None
         with pytest.raises(NotImplementedError):
-            assert await test_node.set_motion_sensitivity_level(20) is not None
+            await test_node.set_motion_sensitivity_level(20) is not None
         with pytest.raises(NotImplementedError):
-            assert await test_node.set_motion_reset_timer(5) is not None
+            await test_node.set_motion_reset_timer(5) is not None
 
         assert not test_node.cache_enabled
         assert test_node.mac == "1298347650AFBECD"
