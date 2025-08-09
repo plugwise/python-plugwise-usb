@@ -718,7 +718,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     self._mac_in_str,
                 )
                 self._set_cache(
-                    CACHE_ENERGY_COLLECTION, cached_logs + "|" + log_cache_record
+                    CACHE_ENERGY_COLLECTION, log_cache_record + "|" + cached_logs
                 )
                 return True
 
