@@ -92,7 +92,7 @@ class StickNetworkRegister:
             self._network_cache.cache_root_directory = cache_folder
 
     @property
-    def registry(self) -> dict[int, tuple[str, NodeType | None]]:
+    def registry(self) -> list[str]:
         """Return dictionary with all joined nodes."""
         return deepcopy(self._registry)
 
