@@ -677,9 +677,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
             self._energy_counters.get_pulse_logs()
         )
         cached_logs = ""
-        for address in sorted(logs.keys(), reverse=True):
-            for slot in sorted(logs[address].keys(), reverse=True):
-                log = logs[address][slot]
+        # logs is already sorted in reverse
+        for address, record in logs.items():
+            for slot in record:
+                log = record[slot]
                 if cached_logs != "":
                     cached_logs += "|"
                 cached_logs += f"{address}:{slot}:{log.timestamp.year}"
