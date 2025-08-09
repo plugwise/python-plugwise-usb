@@ -463,7 +463,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
         total_addresses = 11
         log_address = self._current_log_address
-        prev_address_timestamp: datetime | None = None
         while total_addresses > 0:
             result, empty_log = await self.energy_log_update(log_address)
             if result and empty_log:
@@ -473,43 +472,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     log_address,
                 )
                 break
-
-            # Check if the most recent timestamp of an earlier address is recent
-            # (within 2/4 * log_interval plus 5 mins margin)
-            log_interval = self.energy_consumption_interval
-            factor = 2 if self.energy_production_interval is not None else 4
-
-            if log_interval is not None:
-                max_gap_minutes = (factor * log_interval) + 5
-                if log_address == self._current_log_address:
-                    if (
-                        self._last_collected_energy_timestamp is not None
-                        and (
-                            datetime.now(tz=UTC) - self._last_collected_energy_timestamp
-                        ).total_seconds()
-                        // 60
-                        > max_gap_minutes
-                    ):
-                        _LOGGER.debug(
-                            "Energy data collected from the current log address is outdated, stopping collection"
-                        )
-                        break
-                elif (
-                    prev_address_timestamp is not None
-                    and self._last_collected_energy_timestamp is not None
-                    and (
-                        prev_address_timestamp - self._last_collected_energy_timestamp
-                    ).total_seconds()
-                    // 60
-                    > max_gap_minutes
-                ):
-                    _LOGGER.debug(
-                        "Collected energy data is outdated, stopping collection"
-                    )
-                    break
-
-            if self._last_collected_energy_timestamp is not None:
-                prev_address_timestamp = self._last_collected_energy_timestamp
 
             log_address, _ = calc_log_address(log_address, 1, -4)
             total_addresses -= 1
