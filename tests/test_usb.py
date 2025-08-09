@@ -2110,23 +2110,23 @@ class TestStick:
             if setting == pw_node.CACHE_NODE_INFO_TIMESTAMP:
                 return "2024-12-7-1-0-0"
             if setting == pw_sed.CACHE_SED_AWAKE_DURATION:
-                return 20
+                return "20"
             if setting == pw_sed.CACHE_SED_CLOCK_INTERVAL:
-                return 12600
+                return "12600"
             if setting == pw_sed.CACHE_SED_CLOCK_SYNC:
                 return True
             if setting == pw_sed.CACHE_SED_DIRTY:
                 return False
             if setting == pw_sed.CACHE_SED_MAINTENANCE_INTERVAL:
-                return 60
+                return "60"
             if setting == pw_sed.CACHE_SED_SLEEP_DURATION:
-                return 60
+                return "60"
             if setting == pw_scan.CACHE_SCAN_MOTION_STATE:
                 return False
             if setting == pw_scan.CACHE_SCAN_MOTION_TIMESTAMP:
                 return "2024-12-6-1-0-0"
             if setting == pw_scan.CACHE_SCAN_CONFIG_RESET_TIMER:
-                return 10
+                return "10"
             if setting == pw_scan.CACHE_SCAN_CONFIG_SENSITIVITY:
                 return "MEDIUM"
             if setting == pw_scan.CACHE_SCAN_CONFIG_DAYLIGHT_MODE:
