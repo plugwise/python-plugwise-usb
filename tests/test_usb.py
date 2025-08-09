@@ -547,6 +547,18 @@ class TestStick:
                 )
             )
 
+    async def _wait_for_scan(self, stick, timeout: float = 10.0) -> None:
+        """Wait for scan completion with timeout."""
+
+        async def wait_scan_completed():
+            while not stick._network._register.scan_completed:
+                await asyncio.sleep(0.1)
+
+        try:
+            await asyncio.wait_for(wait_scan_completed(), timeout=timeout)
+        except TimeoutError:
+            pytest.fail(f"Scan did not complete within {timeout} seconds")
+
     @pytest.mark.asyncio
     async def test_stick_node_discovered_subscription(  # noqa: PLR0915
         self, monkeypatch: pytest.MonkeyPatch
@@ -564,8 +576,7 @@ class TestStick:
         await stick.connect()
         await stick.initialize()
         await stick.discover_nodes(load=False)
-        while not stick._network._register.scan_completed:
-            await asyncio.sleep(0.1)
+        await self._wait_for_scan(stick)
         self.test_node_awake = asyncio.Future()
         unsub_awake = stick.subscribe_to_node_events(
             node_event_callback=self.node_awake,
@@ -691,8 +702,7 @@ class TestStick:
         await stick.connect()
         await stick.initialize()
         await stick.discover_nodes(load=False)
-        while not stick._network._register.scan_completed:
-            await asyncio.sleep(0.1)
+        await self._wait_for_scan(stick)
         assert stick.joined_nodes == 9
         assert stick.nodes.get("0098765432101234") is not None
         assert len(stick.nodes) == 7  # Discovered nodes
@@ -767,8 +777,7 @@ class TestStick:
         await stick.connect()
         await stick.initialize()
         await stick.discover_nodes(load=False)
-        while not stick._network._register.scan_completed:
-            await asyncio.sleep(0.1)
+        await self._wait_for_scan(stick)
 
         # Validate if NodeError is raised when device is not loaded
         with pytest.raises(pw_exceptions.NodeError):
@@ -906,8 +915,7 @@ class TestStick:
         await stick.connect()
         await stick.initialize()
         await stick.discover_nodes(load=False)
-        while not stick._network._register.scan_completed:
-            await asyncio.sleep(0.1)
+        await self._wait_for_scan(stick)
 
         # Check calibration in unloaded state
         assert not stick.nodes["0098765432101234"].calibrated
@@ -2437,8 +2445,7 @@ class TestStick:
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             await stick.initialize()
             await stick.discover_nodes(load=True)
-            while not stick._network._register.scan_completed:
-                await asyncio.sleep(0.1)
+            await self._wait_for_scan(stick)
         assert len(stick.nodes) == 7
 
         assert stick.nodes["0098765432101234"].is_loaded
