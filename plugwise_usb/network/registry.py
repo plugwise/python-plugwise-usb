@@ -165,14 +165,14 @@ class StickNetworkRegister:
         await self._network_cache.update_nodetypes(mac, node_type)
 
     def update_network_registration(self, mac: str) -> bool:
-        """Add a mac to the network registration list return True new."""
+        """Add a mac to the network registration list return True if it was newly added."""
         if mac == "" or mac in self._registry:
             return False
         self._registry.append(mac)
         return True
 
     async def remove_network_registration(self, mac: str) -> None:
-        """Remove a mac to the network registration list."""
+        """Remove a mac from the network registration list."""
         if mac in self._registry:
             self._registry.remove(mac)
             if self._network_cache is not None:
@@ -225,7 +225,7 @@ class StickNetworkRegister:
             await self._scan_completed_callback()
 
     def update_node_registration(self, mac: str) -> bool:
-        """Register (re)joined node to Plugwise network and return network address."""
+        """Register (re)joined node to Plugwise network and return True if newly added."""
         return self.update_network_registration(mac)
 
     def _stop_registration_task(self) -> None:
