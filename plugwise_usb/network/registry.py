@@ -92,8 +92,8 @@ class StickNetworkRegister:
             self._network_cache.cache_root_directory = cache_folder
 
     @property
-    def registry(self) -> dict[int, tuple[str, NodeType | None]]:
-        """Return dictionary with all joined nodes."""
+    def registry(self) -> list[str]:
+        """Return list with mac's of all joined nodes."""
         return deepcopy(self._registry)
 
     @property
@@ -252,13 +252,8 @@ class StickNetworkRegister:
         if not validate_mac(mac):
             raise NodeError(f"MAC {mac} invalid")
 
-        mac_registered = False
-        for registration in self._registry.values():
-            if mac == registration[0]:
-                mac_registered = True
-                break
-        if not mac_registered:
-            raise NodeError(f"No existing registration '{mac}' found to unregister")
+        if mac not in self._registry():
+            raise NodeError(f"No existing Node ({mac}) found to unregister")
 
         request = NodeRemoveRequest(self._send_to_controller, self._mac_nc, mac)
         if (response := await request.send()) is None:
