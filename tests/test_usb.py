@@ -1834,7 +1834,7 @@ class TestStick:
             await test_node.set_motion_daylight_mode(True)
 
         with pytest.raises(pw_exceptions.NodeError):
-            test_node.set_motion_sensitivity_level(20)
+            await test_node.set_motion_sensitivity_level(20)
 
         with pytest.raises(pw_exceptions.NodeError):
             await test_node.set_motion_reset_timer(5)
