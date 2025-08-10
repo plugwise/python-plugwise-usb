@@ -106,7 +106,7 @@ class StickNetworkRegister:
         self._start_node_discover = callback
 
     def scan_completed_callback(self, callback: Callable[[], Awaitable[None]]) -> None:
-        """Register method to be called when a node is found."""
+        """Register method to be called when a registry scan has completed."""
         self._scan_completed_callback = callback
 
     # endregion
@@ -257,8 +257,8 @@ class StickNetworkRegister:
                 f"The Zigbee network coordinator '{self._mac_nc!r}'"
                 + f" failed to unregister node '{mac}'"
             )
-        if self.node_is_registered(mac):
-            await self.remove_network_registration(mac)
+
+        await self.remove_network_registration(mac)
 
     async def clear_register_cache(self) -> None:
         """Clear current cache."""
