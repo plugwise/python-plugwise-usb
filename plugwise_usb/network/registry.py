@@ -108,8 +108,10 @@ class StickNetworkRegister:
             mac: Node MAC address.
             node_type: NodeType if known (from cache), else None.
             ping_first: True when invoked from cache phase, False during Circle+ scan or manual register.
+
         Returns:
             bool: True when discovery succeeded; False to allow caller to fallback (e.g., SED path).
+
         """
         self._start_node_discover = callback
 
