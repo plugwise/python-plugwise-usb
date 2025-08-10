@@ -843,7 +843,7 @@ class TestStick:
 
         # Test non-support relay configuration
         with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["0098765432101234"].relay_config
+            stick.nodes["0098765432101234"].relay_config
         with pytest.raises(pw_exceptions.FeatureError):
             await stick.nodes["0098765432101234"].set_relay_init(True)
         with pytest.raises(pw_exceptions.FeatureError):
@@ -1903,7 +1903,7 @@ class TestStick:
     async def test_sed_node(self, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa:  PLR0915
         """Testing properties of SED."""
 
-        def fake_cache(dummy: object, setting: str) -> str | bool | None:  # noqa: PLR0911
+        def fake_cache(dummy: object, setting: str) -> str | None:  # noqa: PLR0911
             """Fake cache retrieval."""
             if setting == pw_node.CACHE_FIRMWARE:
                 return "2011-6-27-8-55-44"
@@ -1915,18 +1915,22 @@ class TestStick:
                 return "20"
             if setting == pw_sed.CACHE_SED_CLOCK_INTERVAL:
                 return "12600"
-            if setting == pw_sed.CACHE_SED_CLOCK_SYNC:
-                return False
-            if setting == pw_sed.CACHE_SED_DIRTY:
-                return False
             if setting == pw_sed.CACHE_SED_MAINTENANCE_INTERVAL:
                 return "60"
             if setting == pw_sed.CACHE_SED_SLEEP_DURATION:
                 return "60"
             return None
 
+        def fake_cache_bool(dummy: object, setting: str) -> bool | None:
+            """Fake cache_bool retrieval."""
+            if setting in (pw_sed.CACHE_SED_CLOCK_SYNC, pw_sed.CACHE_SED_DIRTY):
+                return False
+            return None
+
         monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache", fake_cache)
-        monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache_as_bool", fake_cache)
+        monkeypatch.setattr(
+            pw_node.PlugwiseBaseNode, "_get_cache_as_bool", fake_cache_bool
+        )
         mock_stick_controller = MockStickController()
 
         async def load_callback(event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
@@ -2099,7 +2103,7 @@ class TestStick:
     async def test_scan_node(self, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: PLR0915
         """Testing properties of scan."""
 
-        def fake_cache(dummy: object, setting: str) -> str | bool | None:  # noqa: PLR0911 PLR0912
+        def fake_cache(dummy: object, setting: str) -> str | None:  # noqa: PLR0911 PLR0912
             """Fake cache retrieval."""
             if setting == pw_node.CACHE_FIRMWARE:
                 return "2011-6-27-8-55-44"
@@ -2113,30 +2117,36 @@ class TestStick:
                 return "20"
             if setting == pw_sed.CACHE_SED_CLOCK_INTERVAL:
                 return "12600"
-            if setting == pw_sed.CACHE_SED_CLOCK_SYNC:
-                return True
-            if setting == pw_sed.CACHE_SED_DIRTY:
-                return False
             if setting == pw_sed.CACHE_SED_MAINTENANCE_INTERVAL:
                 return "60"
             if setting == pw_sed.CACHE_SED_SLEEP_DURATION:
                 return "60"
-            if setting == pw_scan.CACHE_SCAN_MOTION_STATE:
-                return False
             if setting == pw_scan.CACHE_SCAN_MOTION_TIMESTAMP:
                 return "2024-12-6-1-0-0"
             if setting == pw_scan.CACHE_SCAN_CONFIG_RESET_TIMER:
                 return "10"
             if setting == pw_scan.CACHE_SCAN_CONFIG_SENSITIVITY:
                 return "MEDIUM"
-            if setting == pw_scan.CACHE_SCAN_CONFIG_DAYLIGHT_MODE:
+            return None
+
+        def fake_cache_bool(dummy: object, setting: str) -> bool | None:
+            """Fake cache_bool retrieval."""
+            if setting == pw_sed.CACHE_SED_CLOCK_SYNC:
+                return True
+            if setting == pw_sed.CACHE_SED_DIRTY:
                 return False
-            if setting == pw_scan.CACHE_SCAN_CONFIG_DIRTY:
+            if setting in (
+                pw_scan.CACHE_SCAN_MOTION_STATE,
+                pw_scan.CACHE_SCAN_CONFIG_DAYLIGHT_MODE,
+                pw_scan.CACHE_SCAN_CONFIG_DIRTY,
+            ):
                 return False
             return None
 
         monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache", fake_cache)
-        monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache_as_bool", fake_cache)
+        monkeypatch.setattr(
+            pw_node.PlugwiseBaseNode, "_get_cache_as_bool", fake_cache_bool
+        )
         mock_stick_controller = MockStickController()
         scan_config_accepted = pw_responses.NodeAckResponse()
         scan_config_accepted.deserialize(
@@ -2294,7 +2304,7 @@ class TestStick:
     async def test_switch_node(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Testing properties of switch."""
 
-        def fake_cache(dummy: object, setting: str) -> str | bool | None:  # noqa: PLR0911
+        def fake_cache(dummy: object, setting: str) -> str | None:  # noqa: PLR0911
             """Fake cache retrieval."""
             if setting == pw_node.CACHE_FIRMWARE:
                 return "2011-5-13-7-26-54"
@@ -2308,18 +2318,22 @@ class TestStick:
                 return "15"
             if setting == pw_sed.CACHE_SED_CLOCK_INTERVAL:
                 return "14600"
-            if setting == pw_sed.CACHE_SED_CLOCK_SYNC:
-                return False
             if setting == pw_sed.CACHE_SED_MAINTENANCE_INTERVAL:
                 return "900"
             if setting == pw_sed.CACHE_SED_SLEEP_DURATION:
                 return "180"
-            if setting == pw_sed.CACHE_SED_DIRTY:
+            return None
+
+        def fake_cache_bool(dummy: object, setting: str) -> bool | None:
+            """Fake cache_bool retrieval."""
+            if setting in (pw_sed.CACHE_SED_CLOCK_SYNC, pw_sed.CACHE_SED_DIRTY):
                 return False
             return None
 
         monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache", fake_cache)
-        monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache_as_bool", fake_cache)
+        monkeypatch.setattr(
+            pw_node.PlugwiseBaseNode, "_get_cache_as_bool", fake_cache_bool
+        )
         mock_stick_controller = MockStickController()
 
         async def load_callback(event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
@@ -2397,7 +2411,7 @@ class TestStick:
     ) -> None:
         """Testing discovery of nodes."""
 
-        def fake_cache(dummy: object, setting: str) -> str | bool | None:  # noqa: PLR0911
+        def fake_cache(dummy: object, setting: str) -> str | None:  # noqa: PLR0911
             """Fake cache retrieval."""
             if setting == pw_node.CACHE_FIRMWARE:
                 return "2011-5-13-7-26-54"
@@ -2411,18 +2425,22 @@ class TestStick:
                 return "10"
             if setting == pw_sed.CACHE_SED_CLOCK_INTERVAL:
                 return "25200"
-            if setting == pw_sed.CACHE_SED_CLOCK_SYNC:
-                return False
             if setting == pw_sed.CACHE_SED_MAINTENANCE_INTERVAL:
                 return "60"
             if setting == pw_sed.CACHE_SED_SLEEP_DURATION:
                 return "60"
-            if setting == pw_sed.CACHE_SED_DIRTY:
+            return None
+
+        def fake_cache_bool(dummy: object, setting: str) -> bool | None:
+            """Fake cache_bool retrieval."""
+            if setting in (pw_sed.CACHE_SED_CLOCK_SYNC, pw_sed.CACHE_SED_DIRTY):
                 return False
             return None
 
         monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache", fake_cache)
-        monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache_as_bool", fake_cache)
+        monkeypatch.setattr(
+            pw_node.PlugwiseBaseNode, "_get_cache_as_bool", fake_cache_bool
+        )
         mock_serial = MockSerial(None)
         monkeypatch.setattr(
             pw_connection_manager,
