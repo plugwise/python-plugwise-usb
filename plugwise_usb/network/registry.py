@@ -118,7 +118,10 @@ class StickNetworkRegister:
         self._scan_completed_callback = callback
 
     async def _exec_node_discover_callback(
-        self, mac: str, node_type: NodeType | None, ping_first: bool,
+        self,
+        mac: str,
+        node_type: NodeType | None,
+        ping_first: bool,
     ) -> None:
         """Protect _start_node_discover() callback execution."""
         if self._start_node_discover is not None:
@@ -127,13 +130,9 @@ class StickNetworkRegister:
             except CancelledError:
                 raise
             except Exception:
-                _LOGGER.exception(
-                    "start_node_discover callback failed for %s", mac
-                )
+                _LOGGER.exception("start_node_discover callback failed for %s", mac)
         else:
-            _LOGGER.debug(
-                "No start_node_discover callback set; skipping for %s", mac
-            )
+            _LOGGER.debug("No start_node_discover callback set; skipping for %s", mac)
 
     # endregion
 
