@@ -102,17 +102,7 @@ class StickNetworkRegister:
     def start_node_discover(
         self, callback: Callable[[str, NodeType | None, bool], Awaitable[bool]]
     ) -> None:
-        """Register async callback invoked when a node is found.
-
-        Args:
-            mac: Node MAC address.
-            node_type: NodeType if known (from cache), else None.
-            ping_first: True when invoked from cache phase, False during Circle+ scan or manual register.
-
-        Returns:
-            bool: True when discovery succeeded; False to allow caller to fallback (e.g., SED path).
-
-        """
+        """Register async callback invoked when a node is found."""
         self._start_node_discover = callback
 
     def scan_completed_callback(self, callback: Callable[[], Awaitable[None]]) -> None:
