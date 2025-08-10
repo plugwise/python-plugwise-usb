@@ -44,12 +44,10 @@ class StickNetworkRegister:
         self._network_cache: NetworkRegistrationCache | None = None
         self._loaded: bool = False
         self._registry: list[str] = []
-        self._first_free_address: int = 65
         self._registration_task: Task[None] | None = None
         self._start_node_discover: (
             Callable[[str, NodeType | None, bool], Awaitable[bool]] | None
         ) = None
-        self._full_scan_finished: Callable[[], Awaitable[None]] | None = None
         self._registration_scan_delay: float = CIRCLEPLUS_SCANREQUEST_MAINTENANCE
         self._scan_completed = False
         self._scan_completed_callback: Callable[[], Awaitable[None]] | None = None
@@ -110,10 +108,6 @@ class StickNetworkRegister:
     def scan_completed_callback(self, callback: Callable[[], Awaitable[None]]) -> None:
         """Register method to be called when a node is found."""
         self._scan_completed_callback = callback
-
-    def full_scan_finished(self, callback: Callable[[], Awaitable[None]]) -> None:
-        """Register method to be called when full scan is finished."""
-        self._full_scan_finished = callback
 
     # endregion
 
@@ -191,9 +185,6 @@ class StickNetworkRegister:
                     "'empty'" if mac == "" else f"set to {mac}",
                 )
                 if mac == "":
-                    self._first_free_address = min(
-                        self._first_free_address, currentaddress
-                    )
                     continue
                 _maintenance_registry.append(mac)
                 if self.update_network_registration(mac):
