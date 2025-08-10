@@ -547,7 +547,7 @@ class TestStick:
                 )
             )
 
-    async def _wait_for_scan(self, stick, timeout: float = 10.0) -> None:
+    async def _wait_for_scan(self, stick) -> None:
         """Wait for scan completion with timeout."""
 
         async def wait_scan_completed():
@@ -555,9 +555,9 @@ class TestStick:
                 await asyncio.sleep(0.1)
 
         try:
-            await asyncio.wait_for(wait_scan_completed(), timeout=timeout)
+            await asyncio.wait_for(wait_scan_completed(), timeout=10)
         except TimeoutError:
-            pytest.fail(f"Scan did not complete within {timeout} seconds")
+            pytest.fail("Scan did not complete within 10 seconds")
 
     @pytest.mark.asyncio
     async def test_stick_node_discovered_subscription(  # noqa: PLR0915
