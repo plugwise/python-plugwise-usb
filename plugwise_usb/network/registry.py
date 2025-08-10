@@ -106,7 +106,19 @@ class StickNetworkRegister:
         self._start_node_discover = callback
 
     def scan_completed_callback(self, callback: Callable[[], Awaitable[None]]) -> None:
-        """Register method to be called when a registry scan has completed."""
+        """Register async callback invoked when a node is found.
+
+            Args:
+                callback: Async callable with signature
+                    (mac: str, node_type: NodeType | None, ping_first: bool) -> bool.
+                    It must return True when discovery succeeded; return False to allow the caller
+                    to fall back (e.g., SED discovery path).
+
+            Returns:
+                None
+
+            """
+
         self._scan_completed_callback = callback
 
     async def _exec_node_discover_callback(
