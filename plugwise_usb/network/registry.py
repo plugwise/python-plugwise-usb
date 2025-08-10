@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import Task, create_task, sleep
+from asyncio import CancelledError, Task, create_task, sleep
 from collections.abc import Awaitable, Callable
 from copy import deepcopy
 import logging
@@ -109,6 +109,24 @@ class StickNetworkRegister:
         """Register method to be called when a registry scan has completed."""
         self._scan_completed_callback = callback
 
+    async def _exec_node_discover_callback(
+        self, mac: str, node_type: NodeType | None, output: bool,
+    ) -> None:
+        """Protect _start_node_discover() callback execution."""
+        if self._start_node_discover is not None:
+            try:
+                await self._start_node_discover(mac, node_type, output)
+            except CancelledError:
+                raise
+            except Exception:
+                _LOGGER.exception(
+                    "start_node_discover callback failed for %s", mac
+                )
+        else:
+            _LOGGER.debug(
+                "No start_node_discover callback set; skipping for %s", mac
+            )
+
     # endregion
 
     async def start(self) -> None:
@@ -188,7 +206,7 @@ class StickNetworkRegister:
                     continue
                 _maintenance_registry.append(mac)
                 if self.update_network_registration(mac):
-                    await self._start_node_discover(mac, None, False)
+                    await self._exec_node_discover_callback(mac, None, False)
             await sleep(self._registration_scan_delay)
         _LOGGER.debug("CirclePlus registry scan finished")
         self._scan_completed = True
@@ -209,7 +227,7 @@ class StickNetworkRegister:
             )
         for mac, nodetype in self._network_cache.nodetypes.items():
             self.update_network_registration(mac)
-            await self._start_node_discover(mac, nodetype, True)
+            await self._exec_node_discover_callback(mac, nodetype, True)
             await sleep(0.1)
         _LOGGER.info("Cache network registration discovery finished")
         if self._scan_completed_callback is not None:
@@ -236,7 +254,7 @@ class StickNetworkRegister:
         except StickError as exc:
             raise NodeError(f"{exc}") from exc
         if self.update_network_registration(mac):
-            await self._start_node_discover(mac, None, False)
+            await self._exec_node_discover_callback(mac, None, False)
 
     async def unregister_node(self, mac: str) -> None:
         """Unregister node from current Plugwise network."""
