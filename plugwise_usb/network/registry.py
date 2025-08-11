@@ -118,7 +118,6 @@ class StickNetworkRegister:
             None
 
         """
-
         self._scan_completed_callback = callback
 
     async def _exec_node_discover_callback(
