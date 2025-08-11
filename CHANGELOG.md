@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.44.10 - 2025-08-11
+
+- PR [302](https://github.com/plugwise/python-plugwise-usb/pull/302) Improve registry discovery and SED/SCAN configuration management
+- Fix for [#296](https://github.com/plugwise/plugwise_usb-beta/issues/296) Improve C+ registry collection and node discovery
+- Improve SED and SCAN configuration handling, include dirty bool to indicate that the configuration has changed but the node configuration has not yet.
+
 ## v0.44.9 - 2025-07-24
 
 - Fix for [#293](https://github.com/plugwise/plugwise_usb-beta/issues/293) via PR [299](https://github.com/plugwise/python-plugwise-usb/pull/299)

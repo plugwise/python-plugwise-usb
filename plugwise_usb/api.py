@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum, auto
+from enum import Enum, IntEnum, auto
 import logging
 from typing import Any, Protocol
 
@@ -19,12 +19,12 @@ class StickEvent(Enum):
     NETWORK_ONLINE = auto()
 
 
-class MotionSensitivity(Enum):
+class MotionSensitivity(IntEnum):
     """Motion sensitivity levels for Scan devices."""
 
-    HIGH = auto()
-    MEDIUM = auto()
-    OFF = auto()
+    HIGH = 20
+    MEDIUM = 30
+    OFF = 255
 
 
 class NodeEvent(Enum):
@@ -118,6 +118,7 @@ class BatteryConfig:
         clock_sync: bool | None: Indicate if the internal clock must be synced.
         maintenance_interval: int | None: Interval in minutes a battery powered devices is awake for maintenance purposes.
         sleep_duration: int | None: Interval in minutes a battery powered devices is sleeping.
+        dirty: bool: Settings changed, device update pending
 
     """
 
@@ -126,6 +127,7 @@ class BatteryConfig:
     clock_sync: bool | None = None
     maintenance_interval: int | None = None
     sleep_duration: int | None = None
+    dirty: bool = False
 
 
 @dataclass
@@ -145,7 +147,6 @@ class NodeInfo:
     """Node hardware information."""
 
     mac: str
-    zigbee_address: int
     is_battery_powered: bool = False
     features: tuple[NodeFeature, ...] = (NodeFeature.INFO,)
     firmware: datetime | None = None
@@ -232,13 +233,15 @@ class MotionConfig:
     Attributes:
         reset_timer: int | None: Motion reset timer in minutes before the motion detection is switched off.
         daylight_mode: bool | None: Motion detection when light level is below threshold.
-        sensitivity_level: MotionSensitivity | None: Motion sensitivity level.
+        sensitivity_level: int | None: Motion sensitivity level.
+        dirty: bool: Settings changed, device update pending
 
     """
 
     daylight_mode: bool | None = None
     reset_timer: int | None = None
-    sensitivity_level: MotionSensitivity | None = None
+    sensitivity_level: int | None = None
+    dirty: bool = False
 
 
 @dataclass
