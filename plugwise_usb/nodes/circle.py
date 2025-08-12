@@ -8,7 +8,6 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from functools import wraps
 import logging
-from math import floor
 from typing import Any, Final, TypeVar, cast
 
 from ..api import (
@@ -462,7 +461,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             "Start collecting today's energy logs for node %s.",
             self._mac_in_str,
         )
-        total_addresses = int(floor(datetime.now(tz=UTC).hour / 4) + 1)
+        total_addresses = min(MAX_LOG_HOURS / 2, datetime.now(tz=UTC).hour + 1)
         log_address = self._current_log_address
         while total_addresses > 0:
             result = await self.energy_log_update(log_address)
