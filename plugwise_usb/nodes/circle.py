@@ -469,7 +469,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
         while total_addresses > 0:
             result = await self.energy_log_update(log_address)
             if not result:
-                # Handle case with None-data in all address slots
+                # Stop initial log collection when an address contains no (None) or outdated data
+                # Outdated data can indicate a EnergyLog address rollover: from address 6014 to 0
                 _LOGGER.debug(
                     "All slots at log address %s are empty or outdated – stopping initial collection",
                     log_address,
