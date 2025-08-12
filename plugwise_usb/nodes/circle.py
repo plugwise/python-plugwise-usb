@@ -647,7 +647,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     if sorted_log.get(address) is None:
                         sorted_log[address] = {}
                     sorted_log[address][slot] = restored_logs[address][slot]
-        
+
         restored_logs = sorted_logs
 
         self._energy_counters.update()
