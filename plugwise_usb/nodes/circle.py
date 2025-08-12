@@ -453,7 +453,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         return None
 
     async def _get_initial_energy_logs(self) -> None:
-        """Collect initial energy logs for recent hours up to MAX_LOG_HOURS/2 (or hours elapsed today)."""
+        """Collect initial energy logs for up to 10 last log addresses or from the hours elapsed today."""
         if self._current_log_address is None:
             return
 
@@ -461,7 +461,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             "Start collecting today's energy logs for node %s.",
             self._mac_in_str,
         )
-        total_addresses = min(int(MAX_LOG_HOURS / 2), datetime.now(tz=UTC).hour + 1)
+        total_addresses = min(11, datetime.now(tz=UTC).hour + 1)
         log_address = self._current_log_address
         while total_addresses > 0:
             result = await self.energy_log_update(log_address)
