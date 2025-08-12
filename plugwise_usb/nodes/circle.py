@@ -26,6 +26,7 @@ from ..connection import StickController
 from ..constants import (
     DAY_IN_HOURS,
     DEFAULT_CONS_INTERVAL,
+    MAX_LOG_HOURS,
     MAX_TIME_DRIFT,
     MINIMAL_POWER_UPDATE,
     NO_PRODUCTION_INTERVAL,
@@ -634,6 +635,20 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     if restored_logs.get(address) is None:
                         restored_logs[address] = []
                     restored_logs[address].append(slot)
+
+        # Sort and prune the records loaded from cache
+        sorted_logs: dict[int, dict[int, PulseLogRecord]] = {}
+        skip_before = datetime.now(tz=UTC) - timedelta(hours=MAX_LOG_HOURS)
+        sorted_address = sorted(restored_logs.keys(), reverse=True)
+        for address in sorted_address:
+            sorted_slots = sorted(restored_logs[address].keys(), reverse=True)
+            for slot in sorted_slots:
+                if restored_logs[address][slot].timestamp > skip_before:
+                    if sorted_log.get(address) is None:
+                        sorted_log[address] = {}
+                    sorted_log[address][slot] = restored_logs[address][slot]
+        
+        restored_logs = sorted_logs
 
         self._energy_counters.update()
 
