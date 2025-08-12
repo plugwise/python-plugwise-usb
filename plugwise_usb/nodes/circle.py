@@ -461,7 +461,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             "Start collecting today's energy logs for node %s.",
             self._mac_in_str,
         )
-        total_addresses = min(MAX_LOG_HOURS / 2, datetime.now(tz=UTC).hour + 1)
+        total_addresses = min(int(MAX_LOG_HOURS / 2), datetime.now(tz=UTC).hour + 1)
         log_address = self._current_log_address
         while total_addresses > 0:
             result = await self.energy_log_update(log_address)
