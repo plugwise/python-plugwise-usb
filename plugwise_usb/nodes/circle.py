@@ -629,7 +629,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     if restored_logs.get(address) is None:
                         restored_logs[address] = {}
                     restored_logs[address][slot] = (timestamp, pulses)
-                    _LOGGER.debug("HOI restored_logs=%s", restored_logs)
 
         # Sort and prune the records loaded from cache
         sorted_logs: dict[int, dict[int, tuple[datetime, int]]] = {}
