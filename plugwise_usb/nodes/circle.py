@@ -506,8 +506,12 @@ class PlugwiseCircle(PlugwiseBaseNode):
             result = await task
             # When an energy log collection task returns False, stop and cancel the remaining tasks
             if not result:
-                for t in tasks[idx + 1 :]:
+                to_cancel = tasks[idx + 1 :]
+                for t in to_cancel:
                     t.cancel()
+                # Drain cancellations to avoid "Task exception was never retrieved"
+                from asyncio import gather as _gather
+                await _gather(*to_cancel, return_exceptions=True)
                 break
 
         if self._cache_enabled:
