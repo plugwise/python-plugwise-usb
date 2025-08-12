@@ -603,7 +603,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 "Failed to restore energy log records from cache for node %s", self.name
             )
             return False
-        restored_logs: dict[int, dict[int, tuple[int, datetime]]] = {}
+        restored_logs: dict[int, dict[int, tuple[datetime, int]]] = {}
         if cache_data == "":
             _LOGGER.debug("Cache-record is empty")
             return False
@@ -628,17 +628,17 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     )
                     if restored_logs.get(address) is None:
                         restored_logs[address] = {}
-                    restored_logs[address][slot] = (pulses, timestamp)
+                    restored_logs[address][slot] = (timestamp, pulses)
                     _LOGGER.debug("HOI restored_logs=%s", restored_logs)
 
         # Sort and prune the records loaded from cache
-        sorted_logs: dict[int, dict[int, tuple[int, datetime]]] = {}
+        sorted_logs: dict[int, dict[int, tuple[datetime, int]]] = {}
         skip_before = datetime.now(tz=UTC) - timedelta(hours=DAY_IN_HOURS)
         sorted_addresses = sorted(restored_logs.keys(), reverse=True)
         for address in sorted_addresses:
             sorted_slots = sorted(restored_logs[address].keys(), reverse=True)
             for slot in sorted_slots:
-                if restored_logs[address][slot][1] > skip_before:
+                if restored_logs[address][slot][0] > skip_before:
                     if sorted_logs.get(address) is None:
                         sorted_logs[address] = {}
                     sorted_logs[address][slot] = restored_logs[address][slot]
@@ -648,8 +648,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._energy_counters.add_pulse_log(
                     address=address,
                     slot=slot,
-                    pulses=pulse_data[0],
-                    timestamp=pulse_data[1],
+                    pulses=pulse_data[1],
+                    timestamp=pulse_data[0],
                     import_only=True,
                 )
 
