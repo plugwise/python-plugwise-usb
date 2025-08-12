@@ -596,7 +596,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             return False
         return True
 
-    async def _energy_log_records_load_from_cache(self) -> bool:
+    async def _energy_log_records_load_from_cache(self) -> bool:  # noqa: PLR0912
         """Load energy_log_record from cache."""
         if (cache_data := self._get_cache(CACHE_ENERGY_COLLECTION)) is None:
             _LOGGER.warning(
