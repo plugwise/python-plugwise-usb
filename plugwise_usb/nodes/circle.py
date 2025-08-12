@@ -364,7 +364,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         # Always request last energy log records at initial startup
         if not self._last_energy_log_requested:
-            self._last_energy_log_requested, _ = await self.energy_log_update(
+            self._last_energy_log_requested = await self.energy_log_update(
                 self._current_log_address
             )
 
@@ -378,7 +378,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 return None
 
             # Try collecting energy-stats for _current_log_address
-            result, _ = await self.energy_log_update(self._current_log_address)
+            result = await self.energy_log_update(self._current_log_address)
             if not result:
                 _LOGGER.debug(
                     "async_energy_update | %s | Log rollover | energy_log_update failed",
@@ -392,7 +392,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 _prev_log_address, _ = calc_log_address(
                     self._current_log_address, 1, -4
                 )
-                result, _ = await self.energy_log_update(_prev_log_address)
+                result = await self.energy_log_update(_prev_log_address)
                 if not result:
                     _LOGGER.debug(
                         "async_energy_update | %s | Log rollover | energy_log_update %s failed",
@@ -413,7 +413,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 return self._energy_counters.energy_statistics
 
             if len(missing_addresses) == 1:
-                result, _ = await self.energy_log_update(missing_addresses[0])
+                result = await self.energy_log_update(missing_addresses[0])
                 if result:
                     await self.power_update()
                     _LOGGER.debug(
@@ -464,51 +464,14 @@ class PlugwiseCircle(PlugwiseBaseNode):
         log_address = self._current_log_address
         prev_address_timestamp: datetime | None = None
         while total_addresses > 0:
-            result, empty_log = await self.energy_log_update(log_address)
-            if result and empty_log:
+            result = await self.energy_log_update(log_address)
+            if not result:
                 # Handle case with None-data in all address slots
                 _LOGGER.debug(
-                    "Energy None-data collected from log address %s, stopping collection",
+                     "All slots at log address %s are empty or outdated – stopping initial collection",
                     log_address,
                 )
                 break
-
-            # Check if the most recent timestamp of an earlier address is recent
-            # (within 2/4 * log_interval plus 5 mins margin)
-            log_interval = self.energy_consumption_interval
-            factor = 2 if self.energy_production_interval is not None else 4
-
-            if log_interval is not None:
-                max_gap_minutes = (factor * log_interval) + 5
-                if log_address == self._current_log_address:
-                    if (
-                        self._last_collected_energy_timestamp is not None
-                        and (
-                            datetime.now(tz=UTC) - self._last_collected_energy_timestamp
-                        ).total_seconds()
-                        // 60
-                        > max_gap_minutes
-                    ):
-                        _LOGGER.debug(
-                            "Energy data collected from the current log address is outdated, stopping collection"
-                        )
-                        break
-                elif (
-                    prev_address_timestamp is not None
-                    and self._last_collected_energy_timestamp is not None
-                    and (
-                        prev_address_timestamp - self._last_collected_energy_timestamp
-                    ).total_seconds()
-                    // 60
-                    > max_gap_minutes
-                ):
-                    _LOGGER.debug(
-                        "Collected energy data is outdated, stopping collection"
-                    )
-                    break
-
-            if self._last_collected_energy_timestamp is not None:
-                prev_address_timestamp = self._last_collected_energy_timestamp
 
             log_address, _ = calc_log_address(log_address, 1, -4)
             total_addresses -= 1
@@ -544,30 +507,27 @@ class PlugwiseCircle(PlugwiseBaseNode):
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
 
-    async def energy_log_update(self, address: int | None) -> tuple[bool, bool]:
-        """Request energy log statistics from node. Returns true if successful."""
-        empty_log = False
-        result = False
+    async def energy_log_update(self, address: int | None) -> bool:
+        """Request energy logs and return True only when at least one recent, non-empty record was stored; otherwise return False."""
+        any_record_stored = False
         if address is None:
-            return result, empty_log
+            return False
 
         _LOGGER.debug(
-            "Request of energy log at address %s for node %s",
-            str(address),
-            self.name,
+            "Requesting EnergyLogs from node %s address %s",
+            self._mac_in_str,
+            address,
         )
         request = CircleEnergyLogsRequest(self._send, self._mac_in_bytes, address)
         if (response := await request.send()) is None:
             _LOGGER.debug(
-                "Retrieving of energy log at address %s for node %s failed",
-                str(address),
+                "Retrieving EnergyLogs data from node %s failed",
                 self._mac_in_str,
             )
-            return result, empty_log
+            return False
 
-        _LOGGER.debug("EnergyLogs data from %s, address=%s", self._mac_in_str, address)
+        _LOGGER.debug("EnergyLogs from node %s, address=%s:", self._mac_in_str, address)
         await self._available_update_state(True, response.timestamp)
-        energy_record_update = False
 
         # Forward historical energy log information to energy counters
         # Each response message contains 4 log counters (slots) of the
@@ -578,17 +538,23 @@ class PlugwiseCircle(PlugwiseBaseNode):
             _LOGGER.debug(
                 "In slot=%s: pulses=%s, timestamp=%s", _slot, log_pulses, log_timestamp
             )
-            if log_timestamp is None or log_pulses is None:
+            if (
+                log_timestamp is None
+                or log_pulses is None
+                # Don't store an old log-record, store am empty record instead
+                or not self._check_timestamp_is_recent(address, _slot, log_timestamp)
+            ):
                 self._energy_counters.add_empty_log(response.log_address, _slot)
-                empty_log = True
-            elif await self._energy_log_record_update_state(
+                continue
+
+            if await self._energy_log_record_update_state(
                 response.log_address,
                 _slot,
                 log_timestamp.replace(tzinfo=UTC),
                 log_pulses,
                 import_only=True,
             ):
-                energy_record_update = True
+                any_record_stored = True
                 if not last_energy_timestamp_collected:
                     # Collect the timestamp of the most recent response
                     self._last_collected_energy_timestamp = log_timestamp.replace(
@@ -600,15 +566,35 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     )
                     last_energy_timestamp_collected = True
 
-        result = True
         self._energy_counters.update()
-        if energy_record_update:
+        if any_record_stored:
             _LOGGER.debug(
                 "Saving energy record update to cache for %s", self._mac_in_str
             )
             await self.save_cache()
 
-        return result, empty_log
+        return any_record_stored
+
+    def _check_timestamp_is_recent(
+        self, address: int, slot: int, timestamp: datetime
+    ) -> bool:
+        """Check if the timestamp of the received log-record is recent.
+
+        A timestamp from within the last 24 hours is considered recent.
+        """
+        age_seconds = (
+            datetime.now(tz=UTC) - timestamp.replace(tzinfo=UTC)
+        ).total_seconds()
+        if age_seconds > DAY_IN_HOURS * 3600:
+            _LOGGER.warning(
+                "EnergyLog from Node %s | address %s | slot %s | timestamp %s is outdated, ignoring...",
+                self._mac_in_str,
+                address,
+                slot,
+                timestamp,
+            )
+            return False
+        return True
 
     async def _energy_log_records_load_from_cache(self) -> bool:
         """Load energy_log_record from cache."""
