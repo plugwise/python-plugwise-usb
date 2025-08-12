@@ -544,33 +544,33 @@ class PlugwiseCircle(PlugwiseBaseNode):
             if (
                 log_timestamp is None
                 or log_pulses is None
-                # Don't store an old log-record, store am empty record instead
+                # Don't store an old log-record; store am empty record instead
                 or not self._check_timestamp_is_recent(address, _slot, log_timestamp)
             ):
                 self._energy_counters.add_empty_log(response.log_address, _slot)
                 continue
 
-            if await self._energy_log_record_update_state(
+            await self._energy_log_record_update_state(
                 response.log_address,
                 _slot,
                 log_timestamp.replace(tzinfo=UTC),
                 log_pulses,
                 import_only=True,
-            ):
-                any_record_stored = True
-                if not last_energy_timestamp_collected:
-                    # Collect the timestamp of the most recent response
-                    self._last_collected_energy_timestamp = log_timestamp.replace(
-                        tzinfo=UTC
-                    )
-                    _LOGGER.debug(
-                        "Setting last_collected_energy_timestamp to %s",
-                        self._last_collected_energy_timestamp,
-                    )
-                    last_energy_timestamp_collected = True
+            )
+            any_record_stored = True
+            if not last_energy_timestamp_collected:
+                # Collect the timestamp of the most recent response
+                self._last_collected_energy_timestamp = log_timestamp.replace(
+                    tzinfo=UTC
+                )
+                _LOGGER.debug(
+                    "Setting last_collected_energy_timestamp to %s",
+                    self._last_collected_energy_timestamp,
+                )
+                last_energy_timestamp_collected = True
 
         self._energy_counters.update()
-        if any_record_stored:
+        if any_record_stored and self._cache_enabled:
             _LOGGER.debug(
                 "Saving energy record update to cache for %s", self._mac_in_str
             )
