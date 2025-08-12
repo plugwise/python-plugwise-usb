@@ -502,12 +502,13 @@ class PlugwiseCircle(PlugwiseBaseNode):
             create_task(self.energy_log_update(address))
             for address in missing_addresses
         ]
-        for task in tasks:
-            await task
-            # When an energy log collection task returns False, do not execute the remaining tasks
-            if not task.result():
-                for t in tasks:
+        for idx, task in enumerate(tasks):
+            result = await task
+            # When an energy log collection task returns False, stop and cancel the remaining tasks
+            if not result:
+                for t in tasks[idx + 1 :]:
                     t.cancel()
+                break
 
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
