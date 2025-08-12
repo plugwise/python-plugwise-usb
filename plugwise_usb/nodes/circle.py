@@ -24,6 +24,7 @@ from ..api import (
 )
 from ..connection import StickController
 from ..constants import (
+    DAY_IN_HOURS,
     DEFAULT_CONS_INTERVAL,
     MAX_TIME_DRIFT,
     MINIMAL_POWER_UPDATE,
@@ -71,6 +72,8 @@ CIRCLE_FEATURES: Final = (
 
 # Default firmware if not known
 DEFAULT_FIRMWARE: Final = datetime(2008, 8, 26, 15, 46, tzinfo=UTC)
+
+MAX_LOG_HOURS = DAY_IN_HOURS
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 _LOGGER = logging.getLogger(__name__)
@@ -468,7 +471,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             if not result:
                 # Handle case with None-data in all address slots
                 _LOGGER.debug(
-                     "All slots at log address %s are empty or outdated – stopping initial collection",
+                    "All slots at log address %s are empty or outdated – stopping initial collection",
                     log_address,
                 )
                 break
@@ -580,12 +583,12 @@ class PlugwiseCircle(PlugwiseBaseNode):
     ) -> bool:
         """Check if the timestamp of the received log-record is recent.
 
-        A timestamp from within the last 24 hours is considered recent.
+        A timestamp newer than MAX_LOG_HOURS is considered recent.
         """
         age_seconds = (
             datetime.now(tz=UTC) - timestamp.replace(tzinfo=UTC)
         ).total_seconds()
-        if age_seconds > DAY_IN_HOURS * 3600:
+        if age_seconds > MAX_LOG_HOURS * 3600:
             _LOGGER.warning(
                 "EnergyLog from Node %s | address %s | slot %s | timestamp %s is outdated, ignoring...",
                 self._mac_in_str,
