@@ -385,23 +385,22 @@ class PlugwiseCircle(PlugwiseBaseNode):
             result = await self.energy_log_update(self._current_log_address)
             if not result:
                 _LOGGER.debug(
-                    "async_energy_update | %s | Log rollover | energy_log_update failed",
+                    "async_energy_update | %s | Log rollover | energy_log_update from address %s failed",
                     self._mac_in_str,
+                    self._current_log_address,
                 )
                 return None
 
             if self._current_log_address is not None:
                 # Retry with previous log address as Circle node pointer to self._current_log_address
                 # could be rolled over while the last log is at previous address/slot
-                _prev_log_address, _ = calc_log_address(
-                    self._current_log_address, 1, -4
-                )
-                result = await self.energy_log_update(_prev_log_address)
+                prev_log_address, _ = calc_log_address(self._current_log_address, 1, -4)
+                result = await self.energy_log_update(prev_log_address)
                 if not result:
                     _LOGGER.debug(
-                        "async_energy_update | %s | Log rollover | energy_log_update %s failed",
+                        "async_energy_update | %s | Log rollover | energy_log_update from address %s failed",
                         self._mac_in_str,
-                        _prev_log_address,
+                        prev_log_address,
                     )
                     return None
 
@@ -507,6 +506,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
         ]
         for task in tasks:
             await task
+            # When an energy log collection task returns False, do not execute the remaining tasks
+            if not task.result():
+                for t in tasks:
+                    t.cancel()
 
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
