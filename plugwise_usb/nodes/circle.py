@@ -511,6 +511,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     t.cancel()
                 # Drain cancellations to avoid "Task exception was never retrieved"
                 from asyncio import gather as _gather
+
                 await _gather(*to_cancel, return_exceptions=True)
                 break
 
