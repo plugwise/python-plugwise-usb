@@ -118,7 +118,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
         self._energy_counters = EnergyCounters(mac)
         self._retrieve_energy_logs_task: None | Task[None] = None
         self._last_energy_log_requested: bool = False
-        self._last_collected_energy_timestamp: datetime | None = None
 
         self._group_member: list[int] = []
 
@@ -562,16 +561,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 import_only=True,
             )
             any_record_stored = True
-            if not last_energy_timestamp_collected:
-                # Collect the timestamp of the most recent response
-                self._last_collected_energy_timestamp = log_timestamp.replace(
-                    tzinfo=UTC
-                )
-                _LOGGER.debug(
-                    "Setting last_collected_energy_timestamp to %s",
-                    self._last_collected_energy_timestamp,
-                )
-                last_energy_timestamp_collected = True
 
         self._energy_counters.update()
         if any_record_stored and self._cache_enabled:
