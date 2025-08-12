@@ -461,7 +461,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             return
 
         _LOGGER.debug(
-            "Start collecting initial energy logs from the last 10 log addresses for node %s.",
+            "Start collecting today's energy logs for node %s.",
             self._mac_in_str,
         )
         total_addresses = int(floor(datetime.now(tz=UTC).hour / 4) + 1)
