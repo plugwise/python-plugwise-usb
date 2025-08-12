@@ -616,8 +616,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 if len(timestamp_energy_log) == 6:
                     address = int(log_fields[0])
                     slot = int(log_fields[1])
-                    pulses=int(log_fields[3])
-                    timestamp=datetime(
+                    pulses = int(log_fields[3])
+                    timestamp = datetime(
                         year=int(timestamp_energy_log[0]),
                         month=int(timestamp_energy_log[1]),
                         day=int(timestamp_energy_log[2]),
