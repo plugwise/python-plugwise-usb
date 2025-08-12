@@ -5,7 +5,7 @@ from __future__ import annotations
 from asyncio import Task, create_task
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from functools import wraps
 import logging
 from typing import Any, Final, TypeVar, cast
@@ -26,7 +26,6 @@ from ..connection import StickController
 from ..constants import (
     DAY_IN_HOURS,
     DEFAULT_CONS_INTERVAL,
-    MAX_LOG_HOURS,
     MAX_TIME_DRIFT,
     MINIMAL_POWER_UPDATE,
     NO_PRODUCTION_INTERVAL,
@@ -604,7 +603,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 "Failed to restore energy log records from cache for node %s", self.name
             )
             return False
-        restored_logs: dict[int, list[int]] = {}
+        restored_logs: dict[int, dict[int, tuple[int, datetime]]] = {}
         if cache_data == "":
             _LOGGER.debug("Cache-record is empty")
             return False
@@ -617,38 +616,42 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 if len(timestamp_energy_log) == 6:
                     address = int(log_fields[0])
                     slot = int(log_fields[1])
-                    self._energy_counters.add_pulse_log(
-                        address=address,
-                        slot=slot,
-                        timestamp=datetime(
-                            year=int(timestamp_energy_log[0]),
-                            month=int(timestamp_energy_log[1]),
-                            day=int(timestamp_energy_log[2]),
-                            hour=int(timestamp_energy_log[3]),
-                            minute=int(timestamp_energy_log[4]),
-                            second=int(timestamp_energy_log[5]),
-                            tzinfo=UTC,
-                        ),
-                        pulses=int(log_fields[3]),
-                        import_only=True,
+                    pulses=int(log_fields[3])
+                    timestamp=datetime(
+                        year=int(timestamp_energy_log[0]),
+                        month=int(timestamp_energy_log[1]),
+                        day=int(timestamp_energy_log[2]),
+                        hour=int(timestamp_energy_log[3]),
+                        minute=int(timestamp_energy_log[4]),
+                        second=int(timestamp_energy_log[5]),
+                        tzinfo=UTC,
                     )
                     if restored_logs.get(address) is None:
-                        restored_logs[address] = []
-                    restored_logs[address].append(slot)
+                        restored_logs[address] = {}
+                    restored_logs[address][slot] = (pulses, timestamp)
+                    _LOGGER.debug("HOI restored_logs=%s", restored_logs)
 
         # Sort and prune the records loaded from cache
-        sorted_logs: dict[int, dict[int, PulseLogRecord]] = {}
-        skip_before = datetime.now(tz=UTC) - timedelta(hours=MAX_LOG_HOURS)
-        sorted_address = sorted(restored_logs.keys(), reverse=True)
-        for address in sorted_address:
+        sorted_logs: dict[int, dict[int, tuple[int, datetime]]] = {}
+        skip_before = datetime.now(tz=UTC) - timedelta(hours=DAY_IN_HOURS)
+        sorted_addresses = sorted(restored_logs.keys(), reverse=True)
+        for address in sorted_addresses:
             sorted_slots = sorted(restored_logs[address].keys(), reverse=True)
             for slot in sorted_slots:
-                if restored_logs[address][slot].timestamp > skip_before:
-                    if sorted_log.get(address) is None:
-                        sorted_log[address] = {}
-                    sorted_log[address][slot] = restored_logs[address][slot]
+                if restored_logs[address][slot][1] > skip_before:
+                    if sorted_logs.get(address) is None:
+                        sorted_logs[address] = {}
+                    sorted_logs[address][slot] = restored_logs[address][slot]
 
-        restored_logs = sorted_logs
+        for address, data in sorted_logs.items():
+            for slot, pulse_data in data.items():
+                self._energy_counters.add_pulse_log(
+                    address=address,
+                    slot=slot,
+                    pulses=pulse_data[0],
+                    timestamp=pulse_data[1],
+                    import_only=True,
+                )
 
         self._energy_counters.update()
 
