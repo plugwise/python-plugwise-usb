@@ -453,7 +453,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         return None
 
     async def _get_initial_energy_logs(self) -> None:
-        """Collect initial energy logs from the last 10 log addresses."""
+        """Collect initial energy logs for recent hours up to MAX_LOG_HOURS/2 (or hours elapsed today)."""
         if self._current_log_address is None:
             return
 
@@ -547,7 +547,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             if (
                 log_timestamp is None
                 or log_pulses is None
-                # Don't store an old log-record; store am empty record instead
+                # Don't store an old log record; store am empty record instead
                 or not self._check_timestamp_is_recent(address, _slot, log_timestamp)
             ):
                 self._energy_counters.add_empty_log(response.log_address, _slot)
