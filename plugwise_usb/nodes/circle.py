@@ -465,7 +465,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
         total_addresses = 11
         log_address = self._current_log_address
-        prev_address_timestamp: datetime | None = None
         while total_addresses > 0:
             result = await self.energy_log_update(log_address)
             if not result:
