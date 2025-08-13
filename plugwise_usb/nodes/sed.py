@@ -242,6 +242,8 @@ class NodeSED(PlugwiseBaseNode):
             raise ValueError(
                 f"Invalid awake duration ({seconds}). It must be between 1 and 255 seconds."
             )
+        if self._battery_config.awake_duration == seconds:
+            return False
 
         self._battery_config = replace(
             self._battery_config,
