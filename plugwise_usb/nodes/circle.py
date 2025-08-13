@@ -471,7 +471,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
         # When both consumption and production are measured, 1 address contains data from 2 hours
         factor = 4 if self.energy_production_interval is not None else 2
         max_addresses_to_collect = int(MAX_LOG_HOURS / factor)
-        total_addresses = min(max_addresses_to_collect, ceil(datetime.now(tz=UTC).hour / factor) + 1)
+        total_addresses = min(
+            max_addresses_to_collect, ceil(datetime.now(tz=UTC).hour / factor) + 1
+        )
         log_address = self._current_log_address
         while total_addresses > 0:
             result = await self.energy_log_update(log_address)
