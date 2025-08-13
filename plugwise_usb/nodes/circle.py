@@ -368,7 +368,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         # Always request last energy log records at initial startup
         if not self._last_energy_log_requested:
             self._last_energy_log_requested = await self.energy_log_update(
-                self._current_log_address
+                self._current_log_address, save_cache=False
             )
 
         if self._energy_counters.log_rollover:
@@ -381,7 +381,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 return None
 
             # Try collecting energy-stats for _current_log_address
-            result = await self.energy_log_update(self._current_log_address)
+            result = await self.energy_log_update(self._current_log_address, save_cache=True)
             if not result:
                 _LOGGER.debug(
                     "async_energy_update | %s | Log rollover | energy_log_update from address %s failed",
@@ -394,7 +394,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 # Retry with previous log address as Circle node pointer to self._current_log_address
                 # could be rolled over while the last log is at previous address/slot
                 prev_log_address, _ = calc_log_address(self._current_log_address, 1, -4)
-                result = await self.energy_log_update(prev_log_address)
+                result = await self.energy_log_update(prev_log_address, save_cache=True)
                 if not result:
                     _LOGGER.debug(
                         "async_energy_update | %s | Log rollover | energy_log_update from address %s failed",
@@ -415,7 +415,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 return self._energy_counters.energy_statistics
 
             if len(missing_addresses) == 1:
-                result = await self.energy_log_update(missing_addresses[0])
+                result = await self.energy_log_update(missing_addresses[0], save_cache=True)
                 if result:
                     await self.power_update()
                     _LOGGER.debug(
@@ -454,7 +454,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         return None
 
     async def _get_initial_energy_logs(self) -> None:
-        """Collect initial energy logs for the hours elapsed today up to MAX_LOG_HOURS."""
+        """Collect initial energy logs for recent hours up to MAX_LOG_HOURS."""
         if self._current_log_address is None:
             return
 
@@ -476,7 +476,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
         log_address = self._current_log_address
         while total_addresses > 0:
-            result = await self.energy_log_update(log_address)
+            result = await self.energy_log_update(log_address, save_cache=False)
             if not result:
                 # Stop initial log collection when an address contains no (None) or outdated data
                 # Outdated data can indicate a EnergyLog address rollover: from address 6014 to 0
@@ -511,7 +511,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
         missing_addresses = sorted(missing_addresses, reverse=True)
         tasks = [
-            create_task(self.energy_log_update(address))
+            create_task(self.energy_log_update(address, save_cache=False))
             for address in missing_addresses
         ]
         for idx, task in enumerate(tasks):
@@ -528,7 +528,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
 
-    async def energy_log_update(self, address: int | None) -> bool:
+    async def energy_log_update(self, address: int | None, save_cache: bool = True) -> bool:
         """Request energy logs and return True only when at least one recent, non-empty record was stored; otherwise return False."""
         any_record_stored = False
         if address is None:
@@ -577,7 +577,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             any_record_stored = True
 
         self._energy_counters.update()
-        if any_record_stored and self._cache_enabled:
+        if any_record_stored and self._cache_enabled and save_cache:
             _LOGGER.debug(
                 "Saving energy record update to cache for %s", self._mac_in_str
             )
@@ -589,9 +589,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
         self, address: int, slot: int, timestamp: datetime
     ) -> bool:
         """Check if a log record timestamp is within the last MAX_LOG_HOURS hours."""
-        age_seconds = (
-            datetime.now(tz=UTC) - timestamp.replace(tzinfo=UTC)
-        ).total_seconds()
+        age_seconds = max(
+            0.0,
+            (datetime.now(tz=UTC) - timestamp.replace(tzinfo=UTC)).total_seconds()
+        )
         if age_seconds > MAX_LOG_HOURS * 3600:
             _LOGGER.warning(
                 "EnergyLog from Node %s | address %s | slot %s | timestamp %s is outdated, ignoring...",
