@@ -646,9 +646,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                         second=int(parts[5]),
                         tzinfo=UTC,
                     )
-                    if restored_logs.get(address) is None:
-                        restored_logs[address] = {}
-                    restored_logs[address][slot] = (timestamp, pulses)
+                if restored_logs.get(address) is None:
+                    restored_logs[address] = {}
+                restored_logs[address][slot] = (timestamp, pulses)
 
         # Sort and prune the records loaded from cache
         sorted_logs: dict[int, dict[int, tuple[datetime, int]]] = {}
