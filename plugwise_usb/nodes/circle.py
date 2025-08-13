@@ -75,7 +75,6 @@ CIRCLE_FEATURES: Final = (
 DEFAULT_FIRMWARE: Final = datetime(2008, 8, 26, 15, 46, tzinfo=UTC)
 
 MAX_LOG_HOURS = DAY_IN_HOURS
-MAX_ADDRESSES_COLLECTED: Final = 11
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 _LOGGER = logging.getLogger(__name__)
@@ -455,7 +454,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         return None
 
     async def _get_initial_energy_logs(self) -> None:
-        """Collect initial energy logs for the hours elapsed today up to MAX_LOG_HOURS ."""
+        """Collect initial energy logs for the hours elapsed today up to MAX_LOG_HOURS."""
         if self._current_log_address is None:
             return
 
@@ -469,8 +468,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         # When only consumption is measured, 1 address contains data from 4 hours
         # When both consumption and production are measured, 1 address contains data from 2 hours
-        factor = 4 if self.energy_production_interval is not None else 2
-        max_addresses_to_collect = int(MAX_LOG_HOURS / factor)
+        factor = 4 if self.energy_production_interval is None else 2
+        max_addresses_to_collect = MAX_LOG_HOURS // factor
         total_addresses = min(
             max_addresses_to_collect, ceil(datetime.now(tz=UTC).hour / factor) + 1
         )
