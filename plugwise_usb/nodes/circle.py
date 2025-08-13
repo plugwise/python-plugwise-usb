@@ -625,18 +625,25 @@ class PlugwiseCircle(PlugwiseBaseNode):
         for log_record in log_data:
             log_fields = log_record.split(":")
             if len(log_fields) == 4:
-                timestamp_energy_log = log_fields[2].split("-")
-                if len(timestamp_energy_log) == 6:
-                    address = int(log_fields[0])
-                    slot = int(log_fields[1])
-                    pulses = int(log_fields[3])
+                address = int(log_fields[0])
+                slot = int(log_fields[1])
+                pulses = int(log_fields[3])
+                # Parse zero-padded timestamp, fallback to manual split
+                try:
+                    timestamp = datetime.strptime(
+                        log_fields[2], "%Y-%m-%d-%H-%M-%S"
+                    ).replace(tzinfo=UTC)
+                except ValueError:
+                    parts = log_fields[2].split("-")
+                    if len(parts) != 6:
+                        continue
                     timestamp = datetime(
-                        year=int(timestamp_energy_log[0]),
-                        month=int(timestamp_energy_log[1]),
-                        day=int(timestamp_energy_log[2]),
-                        hour=int(timestamp_energy_log[3]),
-                        minute=int(timestamp_energy_log[4]),
-                        second=int(timestamp_energy_log[5]),
+                        year=int(parts[0]),
+                        month=int(parts[1]),
+                        day=int(parts[2]),
+                        hour=int(parts[3]),
+                        minute=int(parts[4]),
+                        second=int(parts[5]),
                         tzinfo=UTC,
                     )
                     if restored_logs.get(address) is None:
@@ -696,15 +703,15 @@ class PlugwiseCircle(PlugwiseBaseNode):
         records: list[str] = []
         for address, record in logs.items():
             for slot, log in record.items():
+                ts = log.timestamp
                 records.append(
-                    f"{address}:{slot}:{log.timestamp.year}"
-                    f"-{log.timestamp.month}-{log.timestamp.day}"
-                    f"-{log.timestamp.hour}-{log.timestamp.minute}"
-                    f"-{log.timestamp.second}:{log.pulses}"
+                    f"{address}:{slot}:{ts.strftime('%Y-%m-%d-%H-%M-%S')}:{log.pulses}"
                 )
         cached_logs = "|".join(records)
         _LOGGER.debug("Saving energy logrecords to cache for %s", self._mac_in_str)
         self._set_cache(CACHE_ENERGY_COLLECTION, cached_logs)
+        # Persist new cache entries to disk immediately
+        await self.save_cache(trigger_only=True)
 
     async def _energy_log_record_update_state(
         self,
