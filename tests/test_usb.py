@@ -2000,14 +2000,14 @@ class TestStick:
         awake_response2.timestamp = awake_response1.timestamp + td(
             seconds=pw_sed.AWAKE_RETRY
         )
-        assert await test_sed.set_awake_duration(15)
+        assert await test_sed.set_awake_duration(20)
         assert test_sed.battery_config.dirty
         mock_stick_controller.send_response = sed_config_accepted
         await test_sed._awake_response(awake_response2)  # pylint: disable=protected-access
         await asyncio.sleep(0.001)  # Ensure time for task to be executed
         assert not test_sed.battery_config.dirty
-        assert test_sed.battery_config.awake_duration == 15
-        assert test_sed.awake_duration == 15
+        assert test_sed.battery_config.awake_duration == 20
+        assert test_sed.awake_duration == 20
 
         # test maintenance interval
         assert test_sed.maintenance_interval == 60
