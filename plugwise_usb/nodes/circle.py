@@ -468,7 +468,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         # When only consumption is measured, 1 address contains data from 4 hours
         # When both consumption and production are measured, 1 address contains data from 2 hours
-        factor = 4 if self.energy_production_interval is None else 2
+        cons_only = self.energy_production_interval is None
+        factor = 4 if cons_only else 2
         max_addresses_to_collect = MAX_LOG_HOURS // factor
         total_addresses = min(
             max_addresses_to_collect, ceil(datetime.now(tz=UTC).hour / factor) + 1
