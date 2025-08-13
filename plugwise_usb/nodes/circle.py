@@ -8,7 +8,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from functools import wraps
 import logging
-from match import ceil
+from math import ceil
 from typing import Any, Final, TypeVar, cast
 
 from ..api import (
