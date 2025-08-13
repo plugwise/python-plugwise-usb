@@ -74,6 +74,7 @@ CIRCLE_FEATURES: Final = (
 DEFAULT_FIRMWARE: Final = datetime(2008, 8, 26, 15, 46, tzinfo=UTC)
 
 MAX_LOG_HOURS = DAY_IN_HOURS
+MAX_ADDRESSES_COLLECTED: Final = 11
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 _LOGGER = logging.getLogger(__name__)
@@ -461,7 +462,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             "Start collecting today's energy logs for node %s.",
             self._mac_in_str,
         )
-        total_addresses = min(11, datetime.now(tz=UTC).hour + 1)
+        total_addresses = min(MAX_ADDRESSES_COLLECTED, datetime.now(tz=UTC).hour + 1)
         log_address = self._current_log_address
         while total_addresses > 0:
             result = await self.energy_log_update(log_address)
