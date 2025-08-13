@@ -1,5 +1,9 @@
 # Changelog
 
+## Ongoing
+
+- Improve energy-collection via PR [311](https://github.com/plugwise/python-plugwise-usb/pull/311)
+
 ## v0.44.10 - 2025-08-11
 
 - PR [302](https://github.com/plugwise/python-plugwise-usb/pull/302) Improve registry discovery and SED/SCAN configuration management
