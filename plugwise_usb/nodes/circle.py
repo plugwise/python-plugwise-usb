@@ -381,7 +381,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 return None
 
             # Try collecting energy-stats for _current_log_address
-            result = await self.energy_log_update(self._current_log_address, save_cache=True)
+            result = await self.energy_log_update(
+                self._current_log_address, save_cache=True
+            )
             if not result:
                 _LOGGER.debug(
                     "async_energy_update | %s | Log rollover | energy_log_update from address %s failed",
@@ -415,7 +417,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 return self._energy_counters.energy_statistics
 
             if len(missing_addresses) == 1:
-                result = await self.energy_log_update(missing_addresses[0], save_cache=True)
+                result = await self.energy_log_update(
+                    missing_addresses[0], save_cache=True
+                )
                 if result:
                     await self.power_update()
                     _LOGGER.debug(
@@ -528,7 +532,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
 
-    async def energy_log_update(self, address: int | None, save_cache: bool = True) -> bool:
+    async def energy_log_update(
+        self, address: int | None, save_cache: bool = True
+    ) -> bool:
         """Request energy logs and return True only when at least one recent, non-empty record was stored; otherwise return False."""
         any_record_stored = False
         if address is None:
@@ -590,8 +596,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
     ) -> bool:
         """Check if a log record timestamp is within the last MAX_LOG_HOURS hours."""
         age_seconds = max(
-            0.0,
-            (datetime.now(tz=UTC) - timestamp.replace(tzinfo=UTC)).total_seconds()
+            0.0, (datetime.now(tz=UTC) - timestamp.replace(tzinfo=UTC)).total_seconds()
         )
         if age_seconds > MAX_LOG_HOURS * 3600:
             _LOGGER.warning(
