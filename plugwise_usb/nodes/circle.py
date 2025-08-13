@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import Task, create_task
+from asyncio import Task, create_task, gather
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -510,9 +510,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 for t in to_cancel:
                     t.cancel()
                 # Drain cancellations to avoid "Task exception was never retrieved"
-                from asyncio import gather as _gather
-
-                await _gather(*to_cancel, return_exceptions=True)
+                await gather(*to_cancel, return_exceptions=True)
                 break
 
         if self._cache_enabled:
