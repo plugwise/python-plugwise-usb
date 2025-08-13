@@ -8,6 +8,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from functools import wraps
 import logging
+from match import ceil
 from typing import Any, Final, TypeVar, cast
 
 from ..api import (
@@ -454,15 +455,23 @@ class PlugwiseCircle(PlugwiseBaseNode):
         return None
 
     async def _get_initial_energy_logs(self) -> None:
-        """Collect initial energy logs for up to 10 last log addresses or from the hours elapsed today."""
+        """Collect initial energy logs for the hours elapsed today up to MAX_LOG_HOURS ."""
         if self._current_log_address is None:
+            return
+
+        if self.energy_consumption_interval is None:
             return
 
         _LOGGER.debug(
             "Start collecting today's energy logs for node %s.",
             self._mac_in_str,
         )
-        total_addresses = min(MAX_ADDRESSES_COLLECTED, datetime.now(tz=UTC).hour + 1)
+
+        # When only consumption is measured, 1 address contains data from 4 hours
+        # When both consumption and production are measured, 1 address contains data from 2 hours
+        factor = 4 if self.energy_production_interval is not None else 2
+        max_addresses_to_collect = int(MAX_LOG_HOURS / factor)
+        total_addresses = min(max_addresses_to_collect, ceil(datetime.now(tz=UTC).hour / factor) + 1)
         log_address = self._current_log_address
         while total_addresses > 0:
             result = await self.energy_log_update(log_address)
