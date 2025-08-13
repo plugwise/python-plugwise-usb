@@ -560,7 +560,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             if (
                 log_timestamp is None
                 or log_pulses is None
-                # Don't store an old log record; store am empty record instead
+                # Don't store an old log record; store an empty record instead
                 or not self._check_timestamp_is_recent(address, _slot, log_timestamp)
             ):
                 self._energy_counters.add_empty_log(response.log_address, _slot)
@@ -587,10 +587,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
     def _check_timestamp_is_recent(
         self, address: int, slot: int, timestamp: datetime
     ) -> bool:
-        """Check if the timestamp of the received log-record is recent.
-
-        A timestamp newer than MAX_LOG_HOURS is considered recent.
-        """
+        """Check if a log record timestamp is within the last MAX_LOG_HOURS hours."""
         age_seconds = (
             datetime.now(tz=UTC) - timestamp.replace(tzinfo=UTC)
         ).total_seconds()
