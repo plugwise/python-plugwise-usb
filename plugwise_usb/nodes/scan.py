@@ -170,6 +170,11 @@ class PlugwiseScan(NodeSED):
         )
         if dirty:
             await self._scan_configure_update()
+        else:
+            await self.publish_feature_update_to_subscribers(
+                NodeFeature.MOTION_CONFIG,
+                self._motion_config,
+            )
         return super_load_success
 
     def _daylight_mode_from_cache(self) -> bool | None:

@@ -175,6 +175,11 @@ class NodeSED(PlugwiseBaseNode):
         )
         if dirty:
             await self._sed_configure_update()
+        else:
+            await self.publish_feature_update_to_subscribers(
+                NodeFeature.BATTERY,
+                self._battery_config,
+            )
         self._awake_timestamp_from_cache()
         self._awake_reason_from_cache()
         return super_load_success
@@ -243,6 +248,7 @@ class NodeSED(PlugwiseBaseNode):
             awake_duration=seconds,
             dirty=True,
         )
+        await self._sed_configure_update()
         return True
 
     async def set_clock_interval(self, minutes: int) -> bool:
@@ -264,6 +270,7 @@ class NodeSED(PlugwiseBaseNode):
         self._battery_config = replace(
             self._battery_config, clock_interval=minutes, dirty=True
         )
+        await self._sed_configure_update()
         return True
 
     async def set_clock_sync(self, sync: bool) -> bool:
@@ -280,6 +287,7 @@ class NodeSED(PlugwiseBaseNode):
         self._battery_config = replace(
             self._battery_config, clock_sync=sync, dirty=True
         )
+        await self._sed_configure_update()
         return True
 
     async def set_maintenance_interval(self, minutes: int) -> bool:
@@ -301,6 +309,7 @@ class NodeSED(PlugwiseBaseNode):
         self._battery_config = replace(
             self._battery_config, maintenance_interval=minutes, dirty=True
         )
+        await self._sed_configure_update()
         return True
 
     async def set_sleep_duration(self, minutes: int) -> bool:
@@ -325,6 +334,7 @@ class NodeSED(PlugwiseBaseNode):
         self._battery_config = replace(
             self._battery_config, sleep_duration=minutes, dirty=True
         )
+        await self._sed_configure_update()
         return True
 
     # endregion
