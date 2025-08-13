@@ -640,7 +640,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         # Sort and prune the records loaded from cache
         sorted_logs: dict[int, dict[int, tuple[datetime, int]]] = {}
-        skip_before = datetime.now(tz=UTC) - timedelta(hours=DAY_IN_HOURS)
+        skip_before = datetime.now(tz=UTC) - timedelta(hours=MAX_LOG_HOURS)
         sorted_addresses = sorted(restored_logs.keys(), reverse=True)
         for address in sorted_addresses:
             sorted_slots = sorted(restored_logs[address].keys(), reverse=True)
@@ -687,18 +687,17 @@ class PlugwiseCircle(PlugwiseBaseNode):
         logs: dict[int, dict[int, PulseLogRecord]] = (
             self._energy_counters.get_pulse_logs()
         )
-        cached_logs = ""
-        # logs is already sorted in reverse
+        # Efficiently serialize newest-first (logs is already sorted)
+        records: list[str] = []
         for address, record in logs.items():
-            for slot in record:
-                log = record[slot]
-                if cached_logs != "":
-                    cached_logs += "|"
-                cached_logs += f"{address}:{slot}:{log.timestamp.year}"
-                cached_logs += f"-{log.timestamp.month}-{log.timestamp.day}"
-                cached_logs += f"-{log.timestamp.hour}-{log.timestamp.minute}"
-                cached_logs += f"-{log.timestamp.second}:{log.pulses}"
-
+            for slot, log in record.items():
+                records.append(
+                    f"{address}:{slot}:{log.timestamp.year}"
+                    f"-{log.timestamp.month}-{log.timestamp.day}"
+                    f"-{log.timestamp.hour}-{log.timestamp.minute}"
+                    f"-{log.timestamp.second}:{log.pulses}"
+                )
+        cached_logs = "|".join(records)
         _LOGGER.debug("Saving energy logrecords to cache for %s", self._mac_in_str)
         self._set_cache(CACHE_ENERGY_COLLECTION, cached_logs)
 
@@ -722,16 +721,20 @@ class PlugwiseCircle(PlugwiseBaseNode):
         log_cache_record += f"-{timestamp.hour}-{timestamp.minute}"
         log_cache_record += f"-{timestamp.second}:{pulses}"
         if (cached_logs := self._get_cache(CACHE_ENERGY_COLLECTION)) is not None:
-            if log_cache_record not in cached_logs:
+            entries = cached_logs.split("|") if cached_logs else []
+            if log_cache_record not in entries:
                 _LOGGER.debug(
                     "Adding logrecord (%s, %s) to cache of %s",
                     str(address),
                     str(slot),
                     self._mac_in_str,
                 )
-                self._set_cache(
-                    CACHE_ENERGY_COLLECTION, log_cache_record + "|" + cached_logs
+                new_cache = (
+                    f"{log_cache_record}|{cached_logs}"
+                    if cached_logs
+                    else log_cache_record
                 )
+                self._set_cache(CACHE_ENERGY_COLLECTION, new_cache)
                 return True
 
             _LOGGER.debug(
