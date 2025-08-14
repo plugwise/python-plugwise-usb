@@ -661,11 +661,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         # Iterate in reverse sorted order directly
         for address in sorted(collected_logs, reverse=True):
-            for slot in range(4, 0, -1):
-                bucket = collected_logs.get(address, {})
-                if slot not in bucket:
-                    continue
-                (timestamp, pulses) = bucket[slot]
+            for slot in sorted(collected_logs[address].keys(), reverse=True):
+                (timestamp, pulses) = collected_logs[address][slot]
                 # Keep only recent entries; prune older-or-equal than cutoff
                 if timestamp <= skip_before:
                     continue
