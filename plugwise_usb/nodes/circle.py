@@ -634,7 +634,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             0.0, (datetime.now(tz=UTC) - timestamp.replace(tzinfo=UTC)).total_seconds()
         )
         if age_seconds > MAX_LOG_HOURS * 3600:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "EnergyLog from Node %s | address %s | slot %s | timestamp %s is outdated, ignoring...",
                 self._mac_in_str,
                 address,
