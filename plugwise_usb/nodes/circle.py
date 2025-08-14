@@ -108,9 +108,10 @@ def _collect_records(data: str) -> dict[int, dict[int, tuple[datetime, int]]]:
                     second=int(parts[5]),
                     tzinfo=UTC,
                 )
-            if logs.get(address) is None:
-                logs[address] = {}
-            logs[address][slot] = (timestamp, pulses)
+            bucket = logs.setdefault(address, {})
+            # Keep the first occurrence (cache is newest-first), skip older duplicates
+            if slot not in bucket:
+                bucket[slot] = (timestamp, pulses)
 
     return logs
 
