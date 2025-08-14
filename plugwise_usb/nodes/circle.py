@@ -536,7 +536,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
         self, address: int | None, save_cache: bool = True
     ) -> bool:
         """Request energy logs and return True only when at least one recent, non-empty record was stored; otherwise return False."""
-        any_record_stored = False
         if address is None:
             return False
 
@@ -555,6 +554,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         _LOGGER.debug("EnergyLogs from node %s, address=%s:", self._mac_in_str, address)
         await self._available_update_state(True, response.timestamp)
+        energy_record_update = False
 
         # Forward historical energy log information to energy counters
         # Each response message contains 4 log counters (slots) of the
@@ -580,16 +580,16 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 log_pulses,
                 import_only=True,
             )
-            any_record_stored = True
+            energy_record_update  = True
 
         self._energy_counters.update()
-        if any_record_stored and self._cache_enabled and save_cache:
+        if energy_record_update and self._cache_enabled and save_cache:
             _LOGGER.debug(
                 "Saving energy record update to cache for %s", self._mac_in_str
             )
             await self.save_cache()
 
-        return any_record_stored
+        return True
 
     def _check_timestamp_is_recent(
         self, address: int, slot: int, timestamp: datetime
