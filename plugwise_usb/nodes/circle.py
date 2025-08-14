@@ -655,18 +655,18 @@ class PlugwiseCircle(PlugwiseBaseNode):
             _LOGGER.debug("Cache-record is empty")
             return False
 
-        restored_logs = _collect_records(cache_data)
+        collected_logs = _collect_records(cache_data)
         # Sort and prune the records loaded from cache
         sorted_logs: dict[int, dict[int, tuple[datetime, int]]] = {}
         skip_before = datetime.now(tz=UTC) - timedelta(hours=MAX_LOG_HOURS)
-        sorted_addresses = sorted(restored_logs.keys(), reverse=True)
+        sorted_addresses = sorted(collected_logs.keys(), reverse=True)
         for address in sorted_addresses:
-            sorted_slots = sorted(restored_logs[address].keys(), reverse=True)
+            sorted_slots = sorted(collected_logs[address].keys(), reverse=True)
             for slot in sorted_slots:
-                if restored_logs[address][slot][0] > skip_before:
+                if collected_logs[address][slot][0] > skip_before:
                     if sorted_logs.get(address) is None:
                         sorted_logs[address] = {}
-                    sorted_logs[address][slot] = restored_logs[address][slot]
+                    sorted_logs[address][slot] = collected_logs[address][slot]
 
         for address, data in sorted_logs.items():
             for slot, pulse_data in data.items():
