@@ -594,6 +594,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         # Forward historical energy log information to energy counters
         # Each response message contains 4 log counters (slots) of the
         # energy pulses collected during the previous hour of given timestamp
+        cache_updated = False
         for _slot in range(4, 0, -1):
             log_timestamp, log_pulses = response.log_data[_slot]
             _LOGGER.debug(
