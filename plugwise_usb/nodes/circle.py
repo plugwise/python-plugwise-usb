@@ -589,7 +589,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         _LOGGER.debug("EnergyLogs from node %s, address=%s:", self._mac_in_str, address)
         await self._available_update_state(True, response.timestamp)
-        energy_record_update = False
 
         # Forward historical energy log information to energy counters
         # Each response message contains 4 log counters (slots) of the
@@ -608,17 +607,16 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._energy_counters.add_empty_log(response.log_address, _slot)
                 continue
 
-            await self._energy_log_record_update_state(
+            cache_updated = await self._energy_log_record_update_state(
                 response.log_address,
                 _slot,
                 log_timestamp.replace(tzinfo=UTC),
                 log_pulses,
                 import_only=True,
             )
-            energy_record_update = True
 
         self._energy_counters.update()
-        if energy_record_update and self._cache_enabled and save_cache:
+        if cache_updated and save_cache:
             _LOGGER.debug(
                 "Saving energy record update to cache for %s", self._mac_in_str
             )
