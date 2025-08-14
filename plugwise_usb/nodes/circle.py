@@ -663,7 +663,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         for address in sorted(collected_logs, reverse=True):
             for slot in range(4, 0, -1):
                 (timestamp, pulses) = collected_logs[address][slot]
-                if timestamp > skip_before:
+                if timestamp <= skip_before:
                     continue
                 self._energy_counters.add_pulse_log(
                     address=address,
