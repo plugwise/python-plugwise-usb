@@ -80,6 +80,41 @@ FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 _LOGGER = logging.getLogger(__name__)
 
 
+def _collect_records(data: str) -> dict[int, dict[int, tuple[datetime, int]]]:
+    """Collect logs from a cache data string."""
+    logs: dict[int, dict[int, tuple[datetime, int]]] = {}
+    log_data = data.split("|")
+    for log_record in log_data:
+        log_fields = log_record.split(":")
+        if len(log_fields) == 4:
+            address = int(log_fields[0])
+            slot = int(log_fields[1])
+            pulses = int(log_fields[3])
+            # Parse zero-padded timestamp, fallback to manual split
+            try:
+                timestamp = datetime.strptime(
+                    log_fields[2], "%Y-%m-%d-%H-%M-%S"
+                ).replace(tzinfo=UTC)
+            except ValueError:
+                parts = log_fields[2].split("-")
+                if len(parts) != 6:
+                    continue
+                timestamp = datetime(
+                    year=int(parts[0]),
+                    month=int(parts[1]),
+                    day=int(parts[2]),
+                    hour=int(parts[3]),
+                    minute=int(parts[4]),
+                    second=int(parts[5]),
+                    tzinfo=UTC,
+                )
+            if logs.get(address) is None:
+                logs[address] = {}
+            logs[address][slot] = (timestamp, pulses)
+
+    return logs
+
+
 def raise_calibration_missing(func: FuncT) -> FuncT:
     """Validate energy calibration settings are available."""
 
@@ -616,40 +651,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 "Failed to restore energy log records from cache for node %s", self.name
             )
             return False
-        restored_logs: dict[int, dict[int, tuple[datetime, int]]] = {}
         if cache_data == "":
             _LOGGER.debug("Cache-record is empty")
             return False
 
-        log_data = cache_data.split("|")
-        for log_record in log_data:
-            log_fields = log_record.split(":")
-            if len(log_fields) == 4:
-                address = int(log_fields[0])
-                slot = int(log_fields[1])
-                pulses = int(log_fields[3])
-                # Parse zero-padded timestamp, fallback to manual split
-                try:
-                    timestamp = datetime.strptime(
-                        log_fields[2], "%Y-%m-%d-%H-%M-%S"
-                    ).replace(tzinfo=UTC)
-                except ValueError:
-                    parts = log_fields[2].split("-")
-                    if len(parts) != 6:
-                        continue
-                    timestamp = datetime(
-                        year=int(parts[0]),
-                        month=int(parts[1]),
-                        day=int(parts[2]),
-                        hour=int(parts[3]),
-                        minute=int(parts[4]),
-                        second=int(parts[5]),
-                        tzinfo=UTC,
-                    )
-                if restored_logs.get(address) is None:
-                    restored_logs[address] = {}
-                restored_logs[address][slot] = (timestamp, pulses)
-
+        restored_logs = _collect_records(cache_data)
         # Sort and prune the records loaded from cache
         sorted_logs: dict[int, dict[int, tuple[datetime, int]]] = {}
         skip_before = datetime.now(tz=UTC) - timedelta(hours=MAX_LOG_HOURS)
