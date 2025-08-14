@@ -660,20 +660,17 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         # Iterate in reverse sorted order directly
         for address in sorted(collected_logs, reverse=True):
-            slots = collected_logs[address]
-            filtered_slots = {
-                slot: data
-                for slot, data in sorted(slots.items(), reverse=True)
-                if data[0] > skip_before
-            }
-            for slot, (timestamp, pulses) in filtered_slots.items():
+            for slot in range(4,0,-1):
+                (timestamp, pulses) = collected_logs[address][slot]
+                if timestamp > skip_before:
+                    continue
                 self._energy_counters.add_pulse_log(
                     address=address,
                     slot=slot,
                     pulses=pulses,
                     timestamp=timestamp,
                     import_only=True,
-                )
+                ) 
 
         self._energy_counters.update()
 
