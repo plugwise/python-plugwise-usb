@@ -580,7 +580,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 log_pulses,
                 import_only=True,
             )
-            energy_record_update  = True
+            energy_record_update = True
 
         self._energy_counters.update()
         if energy_record_update and self._cache_enabled and save_cache:
