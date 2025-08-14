@@ -734,10 +734,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
         if not self._cache_enabled:
             return False
 
-        log_cache_record = f"{address}:{slot}:{timestamp.year}"
-        log_cache_record += f"-{timestamp.month}-{timestamp.day}"
-        log_cache_record += f"-{timestamp.hour}-{timestamp.minute}"
-        log_cache_record += f"-{timestamp.second}:{pulses}"
+        log_cache_record = (
+            f"{address}:{slot}:{timestamp.strftime('%Y-%m-%d-%H-%M-%S')}:{pulses}"
+        )
         if (cached_logs := self._get_cache(CACHE_ENERGY_COLLECTION)) is not None:
             entries = cached_logs.split("|") if cached_logs else []
             if log_cache_record not in entries:
@@ -753,6 +752,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     else log_cache_record
                 )
                 self._set_cache(CACHE_ENERGY_COLLECTION, new_cache)
+                await self.save_cache(trigger_only=True)
                 return True
 
             _LOGGER.debug(
