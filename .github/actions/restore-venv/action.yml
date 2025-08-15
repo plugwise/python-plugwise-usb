@@ -26,11 +26,6 @@ runs:
             ${{ inputs.venv-dir }}
             ${{ inputs.precommit-home }}
           key: ${{ inputs.cache-key }}
-      - name: Ensure virtual environment after restore
-        if: ${{ steps.cache-create.outputs.cache-hit == 'true' }}
-        shell: bash
-        run: |
-          python -m venv --upgrade ${{ inputs.venv-dir }}
       - name: Create Python virtual environment
         if: ${{ steps.cache-create.outputs.cache-hit != 'true' }}
         shell: bash

@@ -23,10 +23,11 @@ jobs:
     name: Cache identify
     outputs:
       cache-key: ${{ steps.set-key.outputs.cache-key }}
+      python-version: ${{ steps.python.outputs.python-version }}  # Ensure all runners use THIS minor version
     steps:
       - name: Check out committed code
         uses: actions/checkout@v5
-      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+      - name: Set up Python and determine minor version for ${{ env.DEFAULT_PYTHON }}
         id: python
         uses: actions/setup-python@v5
         with:
@@ -43,11 +44,11 @@ jobs:
     steps:
       - name: Check out committed code
         uses: actions/checkout@v5
-      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+      - name: Set up Python ${{ needs.cache.outputs.python-version }}
         id: python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.DEFAULT_PYTHON }}
+          python-version: ${{ need.cache.outputs.python-versionN }}
       - name: Create or reuse cache
         id: cache-reuse
         uses: ./.github/actions/restore-venv
@@ -69,11 +70,11 @@ jobs:
         uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+      - name: Set up Python ${{ need.cache.outputs.python-versionN }}
         id: python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.DEFAULT_PYTHON }}
+          python-version: ${{ need.cache.outputs.python-versionN }}
       - name: Create or reuse cache
         id: cache-reuse
         uses: ./.github/actions/restore-venv
@@ -110,11 +111,11 @@ jobs:
     steps:
       - name: Check out committed code
         uses: actions/checkout@v5
-      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+      - name: Set up Python ${{ need.cache.outputs.python-versionN }}
         id: python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.DEFAULT_PYTHON }}
+          python-version: ${{ need.cache.outputs.python-versionN }}
       - name: Create or reuse cache
         id: cache-reuse
         uses: ./.github/actions/restore-venv
@@ -161,7 +162,7 @@ jobs:
         with:
           cache-key: ${{ needs.cache.outputs.cache-key }}-pytest-matrix-${{ matrix.python-version }}
           fail-on-miss: false # First time create cache (if not already exists)
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ steps.python.outputs.python-version }}  # Force to installed python minor
           venv-dir: ${{ env.VENV }}
           precommit-home: ${{ env.PRE_COMMIT_HOME }}
       - name: Run all tests
@@ -189,11 +190,11 @@ jobs:
         uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+      - name: Set up Python ${{ need.cache.outputs.python-versionN }}
         id: python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.DEFAULT_PYTHON }}
+          python-version: ${{ need.cache.outputs.python-versionN }}
       - name: Create or reuse cache
         id: cache-reuse
         uses: ./.github/actions/restore-venv
@@ -239,11 +240,11 @@ jobs:
     steps:
       - name: Check out committed code
         uses: actions/checkout@v5
-      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+      - name: Set up Python ${{ need.cache.outputs.python-versionN }}
         id: python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.DEFAULT_PYTHON }}
+          python-version: ${{ need.cache.outputs.python-versionN }}
       - name: Create or reuse cache
         id: cache-reuse
         uses: ./.github/actions/restore-venv
@@ -332,11 +333,11 @@ jobs:
     steps:
       - name: Check out committed code
         uses: actions/checkout@v5
-      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+      - name: Set up Python ${{ need.cache.outputs.python-versionN }}
         id: python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.DEFAULT_PYTHON }}
+          python-version: ${{ need.cache.outputs.python-versionN }}
       - name: Create or reuse cache
         id: cache-reuse
         uses: ./.github/actions/restore-venv
