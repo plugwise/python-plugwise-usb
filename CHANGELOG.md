@@ -1,6 +1,6 @@
 # Changelog
 
-# Ongoing
+## Ongoing
 
 - PR [319](https://github.com/plugwise/python-plugwise-usb/pull/319): Replace unclear warning message when a node is not online, also various small improvements suggested by CRAI.
 
