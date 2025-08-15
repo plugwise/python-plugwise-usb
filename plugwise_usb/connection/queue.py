@@ -86,7 +86,7 @@ class StickQueue:
             )
 
         while True:
-            if not request.resend:
+            if not request.resend():
                 break
             _LOGGER.debug("submit | start (%s) %s", request.retries_left, request)
             if not self._running or self._stick is None:
@@ -110,7 +110,7 @@ class StickQueue:
                         exc,
                     )
                     continue
-                if request.resend:
+                if request.resend():
                     _LOGGER.debug("%s, retrying", exc)
                     continue
                 _LOGGER.debug("%s, cancel request", exc)
