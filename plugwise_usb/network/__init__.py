@@ -479,9 +479,7 @@ class StickNetwork:
         _LOGGER.debug("_load_discovered_nodes | load_result=%s", load_result)
         result_index = 0
         for mac in nodes_not_loaded:
-            if load_result[result_index]:
-                await self._notify_node_event_subscribers(NodeEvent.LOADED, mac)
-            else:
+            if not load_result[result_index]:
                 _LOGGER.debug(
                     "_load_discovered_nodes | Load request for %s failed", mac
                 )
