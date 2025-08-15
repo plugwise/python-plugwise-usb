@@ -110,7 +110,7 @@ class StickQueue:
                 elif request.resend:
                     _LOGGER.debug("%s, retrying", exc)
                 else:
-                    _LOGGER.warning("%s, cancel request", exc)  # type: ignore[unreachable]
+                    _LOGGER.debug("%s, cancel request", exc)  # type: ignore[unreachable]
             except StickError as exc:
                 _LOGGER.error(exc)
                 raise StickError(
