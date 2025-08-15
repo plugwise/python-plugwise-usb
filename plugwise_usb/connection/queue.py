@@ -85,7 +85,9 @@ class StickQueue:
                 f"Cannot send message {request} which is currently waiting for response."
             )
 
-        while request.resend:
+        while True:
+            if not request.resend:
+                break
             _LOGGER.debug("submit | start (%s) %s", request.retries_left, request)
             if not self._running or self._stick is None:
                 raise StickError(
@@ -107,10 +109,12 @@ class StickQueue:
                         "%s, cancel because timeout is expected for NodePingRequests",
                         exc,
                     )
-                elif request.resend:
+                    continue
+                if request.resend:
                     _LOGGER.debug("%s, retrying", exc)
-                else:
-                    _LOGGER.debug("%s, cancel request", exc)  # type: ignore[unreachable]
+                    continue
+                _LOGGER.debug("%s, cancel request", exc)
+                break
             except StickError as exc:
                 _LOGGER.error(exc)
                 raise StickError(
