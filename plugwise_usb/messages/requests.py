@@ -301,7 +301,6 @@ class PlugwiseRequest(PlugwiseMessage):
             prev_seq_id = self._seq_id
             self._seq_id = None
             self.assign_error(NodeError(f"Stick failed request {prev_seq_id!r}"))
-            return
 
     async def _send_request(
         self, suppress_node_errors=False
