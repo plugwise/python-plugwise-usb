@@ -215,7 +215,7 @@ class PlugwiseRequest(PlugwiseMessage):
         if self._response_future.done():
             return
         if stick_timeout:
-            _LOGGER.info("USB-stick response timeout fot %s", self)
+            _LOGGER.info("USB-stick response timeout for %s", self)
         else:
             _LOGGER.info(
                 "No response received for %s within %s seconds", self, NODE_TIME_OUT
