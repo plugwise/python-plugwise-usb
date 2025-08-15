@@ -215,7 +215,7 @@ class PlugwiseRequest(PlugwiseMessage):
         if self._response_future.done():
             return
         if stick_timeout:
-            _LOGGER.info("USB-stick responded with time out to %s", self)
+            _LOGGER.info("USB-stick response timeout to %s", self)
         else:
             _LOGGER.info(
                 "No response received for %s within %s seconds", self, NODE_TIME_OUT
@@ -225,7 +225,7 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_from_node()
         if stick_timeout:
             self._response_future.set_exception(
-                StickTimeout(f"USB-stick responded with time out to {self}")
+                StickTimeout(f"USB-stick response timeout to {self}")
             )
         else:
             self._response_future.set_exception(
