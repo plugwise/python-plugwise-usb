@@ -297,6 +297,12 @@ class StickNetwork:
         if self._unsubscribe_node_awake is not None:
             self._unsubscribe_node_awake()
             self._unsubscribe_node_awake = None
+        if self._unsubscribe_node_join is not None:
+            self._unsubscribe_node_join()
+            self._unsubscribe_node_join = None
+        if self._unsubscribe_node_rejoin is not None:
+            self._unsubscribe_node_rejoin()
+            self._unsubscribe_node_rejoin = None
         if self._unsubscribe_stick_event is not None:
             self._unsubscribe_stick_event()
             self._unsubscribe_stick_event = None
