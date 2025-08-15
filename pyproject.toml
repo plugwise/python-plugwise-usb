@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "plugwise_usb"
-version         = "0.44.12a0"
+version         = "0.44.12a1"
 license         = "MIT"
 keywords        = ["home", "automation", "plugwise", "module", "usb"]
 classifiers     = [
