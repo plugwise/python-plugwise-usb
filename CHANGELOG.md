@@ -1,5 +1,9 @@
 # Changelog
 
+# Ongoing
+
+- PR [319](https://github.com/plugwise/python-plugwise-usb/pull/319): Replace unclear warning message when a node is not online, also various small improvements suggested by CRAI.
+
 ## v0.44.11 - 2025-08-14
 
 - Improve reading from energy-logs cache via PR [314](https://github.com/plugwise/python-plugwise-usb/pull/314)
