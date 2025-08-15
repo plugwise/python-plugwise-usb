@@ -423,7 +423,9 @@ class StickNetwork:
         _LOGGER.debug("Starting the discovery of node %s with unknown NodeType", mac)
         node_info, node_ping = await self._controller.get_node_details(mac, ping_first)
         if node_info is None:
-            _LOGGER.warning("Node %s with unknown NodeType not responding, is it offline?", mac)
+            _LOGGER.warning(
+                "Node %s with unknown NodeType not responding, is it offline?", mac
+            )
             self._registry_stragglers.append(mac)
             return False
         await self._create_node_object(mac, node_info.node_type)
