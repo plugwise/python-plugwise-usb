@@ -1,7 +1,8 @@
 # Changelog
 
-## Ongoing
+## v0.44.11 - 2025-08-14
 
+- Improve reading from energy-logs cache via PR [314](https://github.com/plugwise/python-plugwise-usb/pull/314)
 - Improve energy-collection via PR [311](https://github.com/plugwise/python-plugwise-usb/pull/311)
 
 ## v0.44.10 - 2025-08-11
