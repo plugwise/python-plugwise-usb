@@ -322,10 +322,9 @@ class StickNetwork:
             ping_response = await ping_request.send()
         except StickTimeout as err:
             raise StickError(
-                "The zigbee network coordinator (Circle+/Stealth+) with mac "
-                + "'%s' did not respond to ping request. Make "
-                + "sure the Circle+/Stealth+ is within reach of the USB-stick !",
-                self._controller.mac_coordinator,
+                f"The zigbee network coordinator (Circle+/Stealth+) with mac "
+                f"'{self._controller.mac_coordinator}' did not respond to the ping request. "
+                "Make sure the Circle+/Stealth+ is within reach of the USB-stick!"
             ) from err
         if ping_response is None:
             return False
