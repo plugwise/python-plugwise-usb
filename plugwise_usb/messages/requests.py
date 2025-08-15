@@ -299,18 +299,9 @@ class PlugwiseRequest(PlugwiseMessage):
 
         if stick_response.ack_id == StickResponseType.FAILED:
             prev_seq_id = self._seq_id
-            self._unsubscribe_from_node()
             self._seq_id = None
-            self._response_future.set_exception(
-                NodeError(f"Stick failed request {prev_seq_id!r}")
-            )
-
-        _LOGGER.debug(
-            "Unknown StickResponseType %s at %s for request %s",
-            str(stick_response.ack_id),
-            stick_response,
-            self,
-        )
+            self.assign_error(NodeError(f"Stick failed request {prev_seq_id!r}"))
+            return
 
     async def _send_request(
         self, suppress_node_errors=False
