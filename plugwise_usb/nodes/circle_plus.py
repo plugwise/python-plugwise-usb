@@ -46,7 +46,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
 
         # Check if node is online
         if (
-            not self._available 
+            not self._available
             and not await self.is_online()
             or await self.node_info_update() is None
         ):
