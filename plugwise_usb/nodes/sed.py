@@ -237,12 +237,15 @@ class NodeSED(PlugwiseBaseNode):
             raise ValueError(
                 f"Invalid awake duration ({seconds}). It must be between 1 and 255 seconds."
             )
+        if self._battery_config.awake_duration == seconds:
+            return False
 
         self._battery_config = replace(
             self._battery_config,
             awake_duration=seconds,
             dirty=True,
         )
+        await self._sed_configure_update()
         return True
 
     async def set_clock_interval(self, minutes: int) -> bool:
@@ -264,6 +267,7 @@ class NodeSED(PlugwiseBaseNode):
         self._battery_config = replace(
             self._battery_config, clock_interval=minutes, dirty=True
         )
+        await self._sed_configure_update()
         return True
 
     async def set_clock_sync(self, sync: bool) -> bool:
@@ -280,6 +284,7 @@ class NodeSED(PlugwiseBaseNode):
         self._battery_config = replace(
             self._battery_config, clock_sync=sync, dirty=True
         )
+        await self._sed_configure_update()
         return True
 
     async def set_maintenance_interval(self, minutes: int) -> bool:
@@ -301,6 +306,7 @@ class NodeSED(PlugwiseBaseNode):
         self._battery_config = replace(
             self._battery_config, maintenance_interval=minutes, dirty=True
         )
+        await self._sed_configure_update()
         return True
 
     async def set_sleep_duration(self, minutes: int) -> bool:
@@ -325,6 +331,7 @@ class NodeSED(PlugwiseBaseNode):
         self._battery_config = replace(
             self._battery_config, sleep_duration=minutes, dirty=True
         )
+        await self._sed_configure_update()
         return True
 
     # endregion

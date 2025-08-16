@@ -102,8 +102,8 @@ class PlugwiseScan(NodeSED):
         await super().load()
 
         self._setup_protocol(SCAN_FIRMWARE_SUPPORT, SCAN_FEATURES)
-        await self.initialize()
         await self._loaded_callback(NodeEvent.LOADED, self.mac)
+        await self.initialize()
 
     async def initialize(self) -> None:
         """Initialize Scan node."""
@@ -426,6 +426,10 @@ class PlugwiseScan(NodeSED):
         await super()._run_awake_tasks()
         if self._motion_config.dirty:
             await self._configure_scan_task()
+        await self.publish_feature_update_to_subscribers(
+            NodeFeature.MOTION_CONFIG,
+            self._motion_config,
+        )
 
     async def _configure_scan_task(self) -> bool:
         """Configure Scan device settings. Returns True if successful."""
