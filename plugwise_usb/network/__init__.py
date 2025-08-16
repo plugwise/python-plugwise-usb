@@ -297,6 +297,12 @@ class StickNetwork:
         if self._unsubscribe_node_awake is not None:
             self._unsubscribe_node_awake()
             self._unsubscribe_node_awake = None
+        if self._unsubscribe_node_join is not None:
+            self._unsubscribe_node_join()
+            self._unsubscribe_node_join = None
+        if self._unsubscribe_node_rejoin is not None:
+            self._unsubscribe_node_rejoin()
+            self._unsubscribe_node_rejoin = None
         if self._unsubscribe_stick_event is not None:
             self._unsubscribe_stick_event()
             self._unsubscribe_stick_event = None
@@ -322,10 +328,9 @@ class StickNetwork:
             ping_response = await ping_request.send()
         except StickTimeout as err:
             raise StickError(
-                "The zigbee network coordinator (Circle+/Stealth+) with mac "
-                + "'%s' did not respond to ping request. Make "
-                + "sure the Circle+/Stealth+ is within reach of the USB-stick !",
-                self._controller.mac_coordinator,
+                f"The zigbee network coordinator (Circle+/Stealth+) with mac "
+                f"'{self._controller.mac_coordinator}' did not respond to the ping request. "
+                "Make sure the Circle+/Stealth+ is within reach of the USB-stick!"
             ) from err
         if ping_response is None:
             return False
@@ -418,7 +423,9 @@ class StickNetwork:
         _LOGGER.debug("Starting the discovery of node %s with unknown NodeType", mac)
         node_info, node_ping = await self._controller.get_node_details(mac, ping_first)
         if node_info is None:
-            _LOGGER.debug("Node %s with unknown NodeType not responding", mac)
+            _LOGGER.warning(
+                "Node %s with unknown NodeType not responding, is it offline?", mac
+            )
             self._registry_stragglers.append(mac)
             return False
         await self._create_node_object(mac, node_info.node_type)

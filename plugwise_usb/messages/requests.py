@@ -1,4 +1,4 @@
-"""All known request messages to be send to plugwise devices."""
+"""All known request messages to be sent to plugwise devices."""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class PlugwiseRequest(PlugwiseMessage):
-    """Base class for request messages to be send from by USB-Stick."""
+    """Base class for request messages to be sent from by USB-Stick."""
 
     _reply_identifier: bytes = b"0000"
 
@@ -215,7 +215,7 @@ class PlugwiseRequest(PlugwiseMessage):
         if self._response_future.done():
             return
         if stick_timeout:
-            _LOGGER.info("USB-stick responded with time out to %s", self)
+            _LOGGER.info("USB-stick response timeout for %s", self)
         else:
             _LOGGER.info(
                 "No response received for %s within %s seconds", self, NODE_TIME_OUT
@@ -225,12 +225,12 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_from_node()
         if stick_timeout:
             self._response_future.set_exception(
-                StickTimeout(f"USB-stick responded with time out to {self}")
+                StickTimeout(f"USB-stick response timeout for {self}")
             )
         else:
             self._response_future.set_exception(
                 NodeTimeout(
-                    f"No device response to {self} within {NODE_TIME_OUT} seconds"
+                    f"No device response for {self} within {NODE_TIME_OUT} seconds"
                 )
             )
 
@@ -249,16 +249,17 @@ class PlugwiseRequest(PlugwiseMessage):
         if self._seq_id is None:
             _LOGGER.warning(
                 "Received %s as reply to %s without a seq_id assigned",
-                self._response,
+                response,
                 self,
             )
             return False
         if self._seq_id != response.seq_id:
             _LOGGER.warning(
-                "Received %s as reply to %s which is not correct (expected seq_id=%s)",
-                self._response,
+                "Received %s as reply to %s with mismatched seq_id (expected=%r, got=%r)",
+                response,
                 self,
-                str(self.seq_id),
+                self.seq_id,
+                response.seq_id,
             )
             return False
         if self._response_future.done():
@@ -297,19 +298,9 @@ class PlugwiseRequest(PlugwiseMessage):
             return
 
         if stick_response.ack_id == StickResponseType.FAILED:
-            self._unsubscribe_from_node()
+            prev_seq_id = self._seq_id
             self._seq_id = None
-            self._response_future.set_exception(
-                NodeError(f"Stick failed request {self._seq_id}")
-            )
-            return
-
-        _LOGGER.debug(
-            "Unknown StickResponseType %s at %s for request %s",
-            str(stick_response.ack_id),
-            stick_response,
-            self,
-        )
+            self.assign_error(NodeError(f"Stick failed request {prev_seq_id!r}"))
 
     async def _send_request(
         self, suppress_node_errors=False

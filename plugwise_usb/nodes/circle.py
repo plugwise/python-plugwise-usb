@@ -973,7 +973,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         # Energy collection
         if not await self._energy_log_records_load_from_cache():
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "Node %s failed to load energy_log_records from cache",
                 self._mac_in_str,
             )
