@@ -19,7 +19,7 @@ def validate_mac(mac: str) -> bool:
             return False
     except TypeError:
         return False
-       
+
     try:
         _ = int(mac, 16)
     except ValueError:
