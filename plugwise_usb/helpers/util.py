@@ -7,7 +7,6 @@ import re
 import crcmod
 
 from ..constants import HW_MODELS
-from ..exceptions import NodeError
 
 crc_fun = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0x0000, xorOut=0x0000)
 
