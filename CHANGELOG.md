@@ -3,6 +3,7 @@
 ## Ongoing
 
 - PR [319](https://github.com/plugwise/python-plugwise-usb/pull/319): Replace unclear warning message when a node is not online, also various small improvements suggested by CRAI.
+- PR [312](https://github.com/plugwise/python-plugwise-usb/pull/312): properly propagate configuration changes and initialize to available on first node wakeup
 
 ## v0.44.11 - 2025-08-14
 
