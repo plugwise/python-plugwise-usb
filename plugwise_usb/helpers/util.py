@@ -13,8 +13,12 @@ crc_fun = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0x0000, xorOut=0x0000)
 
 def validate_mac(mac: str) -> bool:
     """Validate the supplied string is in a MAC address format."""
-    if not re.match("^[A-F0-9]+$", mac):
+    try:
+        if not re.match("^[A-F0-9]+$", mac):
+            return False
+    except TypeError:
         return False
+
     try:
         _ = int(mac, 16)
     except ValueError:
