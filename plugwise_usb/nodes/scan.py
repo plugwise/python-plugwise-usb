@@ -427,9 +427,9 @@ class PlugwiseScan(NodeSED):
         if self._motion_config.dirty:
             await self._configure_scan_task()
         await self.publish_feature_update_to_subscribers(
-                NodeFeature.MOTION_CONFIG,
-                self._motion_config,
-            )
+            NodeFeature.MOTION_CONFIG,
+            self._motion_config,
+        )
 
     async def _configure_scan_task(self) -> bool:
         """Configure Scan device settings. Returns True if successful."""
