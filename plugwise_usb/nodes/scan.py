@@ -341,7 +341,7 @@ class PlugwiseScan(NodeSED):
                 level = MotionSensitivity(level)
             except ValueError:
                 _LOGGER.exception(
-                    "MotionSensitivity for %s: invalid numeric value %s", 
+                    "MotionSensitivity for %s: invalid numeric value %s",
                     self._mac_in_str,
                     str(level),
                 )
