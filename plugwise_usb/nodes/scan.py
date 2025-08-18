@@ -494,16 +494,12 @@ class PlugwiseScan(NodeSED):
 
     async def _scan_configure_update(self) -> None:
         """Push scan configuration update to cache."""
-        self._set_cache(
-            CACHE_SCAN_CONFIG_RESET_TIMER, str(self.reset_timer)
-        )
+        self._set_cache(CACHE_SCAN_CONFIG_RESET_TIMER, str(self.reset_timer))
         self._set_cache(
             CACHE_SCAN_CONFIG_SENSITIVITY,
             self._motion_config.sensitivity_level.name,
         )
-        self._set_cache(
-            CACHE_SCAN_CONFIG_DAYLIGHT_MODE, str(self.daylight_mode)
-        )
+        self._set_cache(CACHE_SCAN_CONFIG_DAYLIGHT_MODE, str(self.daylight_mode))
         self._set_cache(CACHE_SCAN_CONFIG_DIRTY, str(self.dirty))
         await gather(
             self.publish_feature_update_to_subscribers(
