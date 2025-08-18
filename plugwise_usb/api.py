@@ -240,7 +240,7 @@ class MotionConfig:
 
     daylight_mode: bool | None = None
     reset_timer: int | None = None
-    sensitivity_level: int | None = None
+    sensitivity_level: MotionSensitivity | None = None
     dirty: bool = False
 
 
@@ -659,7 +659,10 @@ class PlugwiseNode(Protocol):
 
         """
 
-    async def set_motion_sensitivity_level(self, level: MotionSensitivity) -> bool:
+    async def set_motion_sensitivity_level(
+        self, 
+        level: MotionSensitivity | int | str 
+    ) -> bool:
         """Configure motion sensitivity level.
 
         Description:
