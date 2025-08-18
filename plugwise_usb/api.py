@@ -233,7 +233,7 @@ class MotionConfig:
     Attributes:
         reset_timer: int | None: Motion reset timer in minutes before the motion detection is switched off.
         daylight_mode: bool | None: Motion detection when light level is below threshold.
-        sensitivity_level: int | None: Motion sensitivity level.
+        sensitivity_level: MotionSensitivity | None: Motion sensitivity level.
         dirty: bool: Settings changed, device update pending
 
     """

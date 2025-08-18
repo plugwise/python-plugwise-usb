@@ -198,7 +198,7 @@ class PlugwiseScan(NodeSED):
             return int(reset_timer)
         return None
 
-    def _sensitivity_level_from_cache(self) -> int | None:
+    def _sensitivity_level_from_cache(self) -> MotionSensitivity | None:
         """Load sensitivity level from cache."""
         if (
             sensitivity_level := self._get_cache(
@@ -326,14 +326,27 @@ class PlugwiseScan(NodeSED):
         await self._scan_configure_update()
         return True
 
-    async def set_motion_sensitivity_level(self, level: int) -> bool:
+    async def set_motion_sensitivity_level(self, level: MotionSensitivity | int | str) -> bool:
         """Configure the motion sensitivity level."""
         _LOGGER.debug(
             "set_motion_sensitivity_level | Device %s | %s -> %s",
             self.name,
             self._motion_config.sensitivity_level,
-            level,
+            str(level),
         )
+        if isinstance(level,int):
+            try:
+                level = MotionSensitivity(level)
+            except ValueError:
+                _LOGGER.exception("MotionSensitivity for %s: value error ", self._mac_in_str)
+                return False
+            
+        if isinstance(level,str):
+            try:
+                level = MotionSensitivity[level]
+            except KeyError:
+                _LOGGER.exception("MotionSensitivity for %s: unknown level %s", self._mac_in_str,level)
+                return False
         if self._motion_config.sensitivity_level == level:
             return False
         self._motion_config = replace(
@@ -447,7 +460,7 @@ class PlugwiseScan(NodeSED):
             self._send,
             self._mac_in_bytes,
             self._motion_config.reset_timer,
-            self._motion_config.sensitivity_level,
+            self._motion_config.sensitivity_level.value,
             self._motion_config.daylight_mode,
         )
         if (response := await request.send()) is None:
@@ -478,7 +491,7 @@ class PlugwiseScan(NodeSED):
         )
         self._set_cache(
             CACHE_SCAN_CONFIG_SENSITIVITY,
-            str(MotionSensitivity(self._motion_config.sensitivity_level).name),
+            self._motion_config.sensitivity_level.name,
         )
         self._set_cache(
             CACHE_SCAN_CONFIG_DAYLIGHT_MODE, str(self._motion_config.daylight_mode)
