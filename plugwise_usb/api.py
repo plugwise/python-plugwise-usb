@@ -660,8 +660,7 @@ class PlugwiseNode(Protocol):
         """
 
     async def set_motion_sensitivity_level(
-        self, 
-        level: MotionSensitivity | int | str 
+        self, level: MotionSensitivity | int | str
     ) -> bool:
         """Configure motion sensitivity level.
 
