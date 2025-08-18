@@ -326,7 +326,9 @@ class PlugwiseScan(NodeSED):
         await self._scan_configure_update()
         return True
 
-    async def set_motion_sensitivity_level(self, level: MotionSensitivity | int | str) -> bool:
+    async def set_motion_sensitivity_level(
+        self, level: MotionSensitivity | int | str
+    ) -> bool:
         """Configure the motion sensitivity level."""
         _LOGGER.debug(
             "set_motion_sensitivity_level | Device %s | %s -> %s",
@@ -334,18 +336,24 @@ class PlugwiseScan(NodeSED):
             self._motion_config.sensitivity_level,
             str(level),
         )
-        if isinstance(level,int):
+        if isinstance(level, int):
             try:
                 level = MotionSensitivity(level)
             except ValueError:
-                _LOGGER.exception("MotionSensitivity for %s: value error ", self._mac_in_str)
+                _LOGGER.exception(
+                    "MotionSensitivity for %s: value error ", self._mac_in_str
+                )
                 return False
-            
-        if isinstance(level,str):
+
+        if isinstance(level, str):
             try:
                 level = MotionSensitivity[level]
             except KeyError:
-                _LOGGER.exception("MotionSensitivity for %s: unknown level %s", self._mac_in_str,level)
+                _LOGGER.exception(
+                    "MotionSensitivity for %s: unknown level %s",
+                    self._mac_in_str,
+                    level,
+                )
                 return False
         if self._motion_config.sensitivity_level == level:
             return False
