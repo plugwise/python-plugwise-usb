@@ -38,7 +38,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         if self._loaded:
             return True
         if self._cache_enabled:
-            _LOGGER.debug("Loading Circle+ node %s from cache", self._node_info.mac)
+            _LOGGER.debug("Loading Circle+ node %s from cache", self._mac_in_str)
             if await self._load_from_cache():
                 self._loaded = True
         if not self._loaded:
