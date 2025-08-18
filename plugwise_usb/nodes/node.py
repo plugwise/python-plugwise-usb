@@ -787,7 +787,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         raise NotImplementedError()
 
     @raise_not_loaded
-    async def set_motion_sensitivity_level(self, level: MotionSensitivity) -> bool:
+    async def set_motion_sensitivity_level(self, level: MotionSensitivity |int | str) -> bool:
         """Configure motion sensitivity level."""
         if NodeFeature.MOTION not in self._features:
             raise FeatureError(
