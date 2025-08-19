@@ -42,19 +42,19 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             if await self._load_from_cache():
                 self._loaded = True
         if not self._loaded:
-            _LOGGER.debug("Retrieving Info For Circle+ node %s", self._mac_in_str)
+            _LOGGER.debug("Retrieving info for Circle+ node %s", self._mac_in_str)
 
-        # Check if node is online
-        if (
-            not self._available
-            and not await self.is_online()
-            or await self.node_info_update() is None
-        ):
-            _LOGGER.warning(
-                "Failed to load Circle+ node %s because it is not online or not responding",
-                self._mac_in_str,
-            )
-            return False
+            # Check if node is online
+            if (
+                not self._available
+                and not await self.is_online()
+                or await self.node_info_update() is None
+            ):
+                _LOGGER.warning(
+                    "Failed to load Circle+ node %s because it is not online or not responding",
+                    self._mac_in_str,
+                )
+                return False
 
         self._loaded = True
 
