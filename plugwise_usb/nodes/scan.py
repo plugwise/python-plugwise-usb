@@ -86,7 +86,7 @@ class PlugwiseScan(NodeSED):
 
         self._motion_state = MotionState()
         self._motion_config = MotionConfig()
-
+        self._scan_calibrate_light_scheduled: bool = False
         self._configure_daylight_mode_task: Task[Coroutine[Any, Any, None]] | None = (
             None
         )
@@ -449,6 +449,8 @@ class PlugwiseScan(NodeSED):
         await super()._run_awake_tasks()
         if self._motion_config.dirty:
             await self._configure_scan_task()
+        if self._scan_calibrate_light_scheduled:
+            await self._scan_calibrate_light()
         await self.publish_feature_update_to_subscribers(
             NodeFeature.MOTION_CONFIG,
             self._motion_config,
@@ -511,7 +513,11 @@ class PlugwiseScan(NodeSED):
             self.save_cache(),
         )
 
-    async def scan_calibrate_light(self) -> bool:
+    async def scan_calibrate_light(self) -> None:
+        """Schedule light sensitivity calibration of Scan device."""
+        self._scan_calibrate_light_scheduled = True
+
+    async def _scan_calibrate_light(self) -> bool:
         """Request to calibration light sensitivity of Scan device."""
         request = ScanLightCalibrateRequest(self._send, self._mac_in_bytes)
         if (response := await request.send()) is not None:
@@ -519,6 +525,7 @@ class PlugwiseScan(NodeSED):
                 response.node_ack_type
                 == NodeAckResponseType.SCAN_LIGHT_CALIBRATION_ACCEPTED
             ):
+                self._scan_calibrate_light_scheduled = False
                 return True
             return False
         raise NodeTimeout(
