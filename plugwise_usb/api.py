@@ -680,6 +680,13 @@ class PlugwiseNode(Protocol):
 
         """
 
+    async def scan_calibrate_light(self) -> bool:
+        """Request to calibration light sensitivity of Scan device.
+
+        Description:
+            Request to calibration light sensitivity of Scan device.
+        """
+
     async def set_relay_init(self, state: bool) -> bool:
         """Change the initial state of the relay.
 
