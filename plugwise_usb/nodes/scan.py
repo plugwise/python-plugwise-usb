@@ -86,7 +86,7 @@ class PlugwiseScan(NodeSED):
 
         self._motion_state = MotionState()
         self._motion_config = MotionConfig()
-        self._scan_calibrate_light_scheduled: bool = False
+        self._scan_calibrate_light_scheduled = False
         self._configure_daylight_mode_task: Task[Coroutine[Any, Any, None]] | None = (
             None
         )
@@ -165,7 +165,7 @@ class PlugwiseScan(NodeSED):
         self._motion_config = MotionConfig(
             daylight_mode=daylight_mode,
             reset_timer=reset_timer,
-            sensitivity_level=sensitivity_level,
+            sensitivity_level=sensitivity_level.value,
             dirty=dirty,
         )
         if dirty:
@@ -326,42 +326,19 @@ class PlugwiseScan(NodeSED):
         await self._scan_configure_update()
         return True
 
-    async def set_motion_sensitivity_level(
-        self, level: MotionSensitivity | int | str
-    ) -> bool:
+    async def set_motion_sensitivity_level(self, level: MotionSensitivity) -> bool:
         """Configure the motion sensitivity level."""
         _LOGGER.debug(
             "set_motion_sensitivity_level | Device %s | %s -> %s",
             self.name,
             self._motion_config.sensitivity_level,
-            str(level),
+            level.value,
         )
-        if isinstance(level, int):
-            try:
-                level = MotionSensitivity(level)
-            except ValueError:
-                _LOGGER.exception(
-                    "MotionSensitivity for %s: invalid numeric value %s",
-                    self._mac_in_str,
-                    str(level),
-                )
-                return False
-
-        if isinstance(level, str):
-            try:
-                level = MotionSensitivity[level]
-            except KeyError:
-                _LOGGER.exception(
-                    "MotionSensitivity for %s: unknown level %s",
-                    self._mac_in_str,
-                    level,
-                )
-                return False
-        if self._motion_config.sensitivity_level == level:
+        if self._motion_config.sensitivity_level == level.value:
             return False
         self._motion_config = replace(
             self._motion_config,
-            sensitivity_level=level,
+            sensitivity_level=level.value,
             dirty=True,
         )
         await self._scan_configure_update()
@@ -472,7 +449,7 @@ class PlugwiseScan(NodeSED):
             self._send,
             self._mac_in_bytes,
             self.reset_timer,
-            self.sensitivity_level.value,
+            self.sensitivity_level,
             self.daylight_mode,
         )
         if (response := await request.send()) is None:
@@ -501,7 +478,7 @@ class PlugwiseScan(NodeSED):
         self._set_cache(CACHE_SCAN_CONFIG_RESET_TIMER, str(self.reset_timer))
         self._set_cache(
             CACHE_SCAN_CONFIG_SENSITIVITY,
-            self._motion_config.sensitivity_level.name,
+            self._motion_config.sensitivity_level,
         )
         self._set_cache(CACHE_SCAN_CONFIG_DAYLIGHT_MODE, str(self.daylight_mode))
         self._set_cache(CACHE_SCAN_CONFIG_DIRTY, str(self.dirty))
