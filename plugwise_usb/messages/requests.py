@@ -9,6 +9,7 @@ from datetime import datetime
 import logging
 from typing import Any
 
+from ..api import MotionSensitivity
 from ..constants import (
     DAY_IN_MINUTES,
     HOUR_IN_MINUTES,
@@ -1376,14 +1377,14 @@ class ScanConfigureRequest(PlugwiseRequest):
         send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
         mac: bytes,
         reset_timer: int,
-        sensitivity: int,
+        sensitivity: MotionSensitivity,
         light: bool,
     ):
         """Initialize ScanConfigureRequest message object."""
         super().__init__(send_fn, mac)
         reset_timer_value = Int(reset_timer, length=2)
         # Sensitivity: HIGH(0x14),  MEDIUM(0x1E),  OFF(0xFF)
-        sensitivity_value = Int(sensitivity, length=2)
+        sensitivity_value = Int(sensitivity.value, length=2)
         light_temp = 1 if light else 0
         light_value = Int(light_temp, length=2)
         self._args += [

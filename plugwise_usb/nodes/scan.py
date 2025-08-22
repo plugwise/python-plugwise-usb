@@ -165,7 +165,7 @@ class PlugwiseScan(NodeSED):
         self._motion_config = MotionConfig(
             daylight_mode=daylight_mode,
             reset_timer=reset_timer,
-            sensitivity_level=sensitivity_level.value,
+            sensitivity_level=sensitivity_level,
             dirty=dirty,
         )
         if dirty:
@@ -274,11 +274,11 @@ class PlugwiseScan(NodeSED):
         return DEFAULT_RESET_TIMER
 
     @property
-    def sensitivity_level(self) -> int:
+    def sensitivity_level(self) -> MotionSensitivity:
         """Sensitivity level of motion sensor."""
         if self._motion_config.sensitivity_level is not None:
             return self._motion_config.sensitivity_level
-        return DEFAULT_SENSITIVITY.value
+        return DEFAULT_SENSITIVITY
 
     # endregion
     # region Configuration actions
@@ -331,14 +331,14 @@ class PlugwiseScan(NodeSED):
         _LOGGER.debug(
             "set_motion_sensitivity_level | Device %s | %s -> %s",
             self.name,
-            self._motion_config.sensitivity_level,
-            level.value,
+            self._motion_config.sensitivity_level.name,
+            level.name,
         )
-        if self._motion_config.sensitivity_level == level.value:
+        if self._motion_config.sensitivity_level == level:
             return False
         self._motion_config = replace(
             self._motion_config,
-            sensitivity_level=level.value,
+            sensitivity_level=level,
             dirty=True,
         )
         await self._scan_configure_update()
@@ -478,7 +478,7 @@ class PlugwiseScan(NodeSED):
         self._set_cache(CACHE_SCAN_CONFIG_RESET_TIMER, str(self.reset_timer))
         self._set_cache(
             CACHE_SCAN_CONFIG_SENSITIVITY,
-            self._motion_config.sensitivity_level,
+            self._motion_config.sensitivity_level.name,
         )
         self._set_cache(CACHE_SCAN_CONFIG_DAYLIGHT_MODE, str(self.daylight_mode))
         self._set_cache(CACHE_SCAN_CONFIG_DIRTY, str(self.dirty))
