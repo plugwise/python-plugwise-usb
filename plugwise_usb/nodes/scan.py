@@ -278,7 +278,7 @@ class PlugwiseScan(NodeSED):
         """Sensitivity level of motion sensor."""
         if self._motion_config.sensitivity_level is not None:
             return self._motion_config.sensitivity_level
-        return DEFAULT_SENSITIVITY
+        return DEFAULT_SENSITIVITY.value
 
     # endregion
     # region Configuration actions
