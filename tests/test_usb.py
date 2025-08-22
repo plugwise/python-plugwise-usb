@@ -1834,7 +1834,7 @@ class TestStick:
             await test_node.set_motion_daylight_mode(True)
 
         with pytest.raises(pw_exceptions.NodeError):
-            await test_node.set_motion_sensitivity_level(20)
+            await test_node.set_motion_sensitivity_level(pw_api.MotionSensitivity.HIGH)
 
         with pytest.raises(pw_exceptions.NodeError):
             await test_node.set_motion_reset_timer(5)
@@ -1865,7 +1865,7 @@ class TestStick:
             await test_node.set_motion_daylight_mode(True)
 
         with pytest.raises(pw_exceptions.FeatureError):
-            await test_node.set_motion_sensitivity_level(20)
+            await test_node.set_motion_sensitivity_level(pw_api.MotionSensitivity.HIGH)
 
         with pytest.raises(pw_exceptions.FeatureError):
             await test_node.set_motion_reset_timer(5)
@@ -1892,7 +1892,7 @@ class TestStick:
         with pytest.raises(NotImplementedError):
             await test_node.set_motion_daylight_mode(True)
         with pytest.raises(NotImplementedError):
-            await test_node.set_motion_sensitivity_level(20)
+            await test_node.set_motion_sensitivity_level(pw_api.MotionSensitivity.HIGH)
         with pytest.raises(NotImplementedError):
             await test_node.set_motion_reset_timer(5)
 
@@ -2242,10 +2242,14 @@ class TestStick:
         # test motion sensitivity level
         assert test_scan.sensitivity_level == 30
         assert test_scan.motion_config.sensitivity_level == 30
-        assert not await test_scan.set_motion_sensitivity_level(30)
+        assert not await test_scan.set_motion_sensitivity_level(
+            pw_api.MotionSensitivity.MEDIUM
+        )
 
         assert not test_scan.motion_config.dirty
-        assert await test_scan.set_motion_sensitivity_level(20)
+        assert await test_scan.set_motion_sensitivity_level(
+            pw_api.MotionSensitivity.HIGH
+        )
         assert test_scan.motion_config.dirty
         awake_response4 = pw_responses.NodeAwakeResponse()
         awake_response4.deserialize(
