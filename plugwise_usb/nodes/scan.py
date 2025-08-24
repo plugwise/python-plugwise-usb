@@ -19,7 +19,7 @@ from ..api import (
 )
 from ..connection import StickController
 from ..constants import MAX_UINT_2
-from ..exceptions import MessageError, NodeError, NodeTimeout
+from ..exceptions import MessageError, NodeError
 from ..messages.requests import ScanConfigureRequest, ScanLightCalibrateRequest
 from ..messages.responses import (
     NODE_SWITCH_GROUP_ID,
@@ -86,7 +86,7 @@ class PlugwiseScan(NodeSED):
 
         self._motion_state = MotionState()
         self._motion_config = MotionConfig()
-
+        self._scan_calibrate_light_scheduled = False
         self._configure_daylight_mode_task: Task[Coroutine[Any, Any, None]] | None = (
             None
         )
@@ -198,7 +198,7 @@ class PlugwiseScan(NodeSED):
             return int(reset_timer)
         return None
 
-    def _sensitivity_level_from_cache(self) -> int | None:
+    def _sensitivity_level_from_cache(self) -> MotionSensitivity | None:
         """Load sensitivity level from cache."""
         if (
             sensitivity_level := self._get_cache(
@@ -274,7 +274,7 @@ class PlugwiseScan(NodeSED):
         return DEFAULT_RESET_TIMER
 
     @property
-    def sensitivity_level(self) -> int:
+    def sensitivity_level(self) -> MotionSensitivity:
         """Sensitivity level of motion sensor."""
         if self._motion_config.sensitivity_level is not None:
             return self._motion_config.sensitivity_level
@@ -326,13 +326,13 @@ class PlugwiseScan(NodeSED):
         await self._scan_configure_update()
         return True
 
-    async def set_motion_sensitivity_level(self, level: int) -> bool:
+    async def set_motion_sensitivity_level(self, level: MotionSensitivity) -> bool:
         """Configure the motion sensitivity level."""
         _LOGGER.debug(
             "set_motion_sensitivity_level | Device %s | %s -> %s",
             self.name,
-            self._motion_config.sensitivity_level,
-            level,
+            self.sensitivity_level.name,
+            level.name,
         )
         if self._motion_config.sensitivity_level == level:
             return False
@@ -426,6 +426,8 @@ class PlugwiseScan(NodeSED):
         await super()._run_awake_tasks()
         if self._motion_config.dirty:
             await self._configure_scan_task()
+        if self._scan_calibrate_light_scheduled:
+            await self._scan_calibrate_light()
         await self.publish_feature_update_to_subscribers(
             NodeFeature.MOTION_CONFIG,
             self._motion_config,
@@ -446,9 +448,9 @@ class PlugwiseScan(NodeSED):
         request = ScanConfigureRequest(
             self._send,
             self._mac_in_bytes,
-            self._motion_config.reset_timer,
-            self._motion_config.sensitivity_level,
-            self._motion_config.daylight_mode,
+            self.reset_timer,
+            self.sensitivity_level.value,
+            self.daylight_mode,
         )
         if (response := await request.send()) is None:
             _LOGGER.warning(
@@ -473,17 +475,13 @@ class PlugwiseScan(NodeSED):
 
     async def _scan_configure_update(self) -> None:
         """Push scan configuration update to cache."""
-        self._set_cache(
-            CACHE_SCAN_CONFIG_RESET_TIMER, str(self._motion_config.reset_timer)
-        )
+        self._set_cache(CACHE_SCAN_CONFIG_RESET_TIMER, self.reset_timer)
         self._set_cache(
             CACHE_SCAN_CONFIG_SENSITIVITY,
-            str(MotionSensitivity(self._motion_config.sensitivity_level).name),
+            self._motion_config.sensitivity_level.name,
         )
-        self._set_cache(
-            CACHE_SCAN_CONFIG_DAYLIGHT_MODE, str(self._motion_config.daylight_mode)
-        )
-        self._set_cache(CACHE_SCAN_CONFIG_DIRTY, str(self._motion_config.dirty))
+        self._set_cache(CACHE_SCAN_CONFIG_DAYLIGHT_MODE, self.daylight_mode)
+        self._set_cache(CACHE_SCAN_CONFIG_DIRTY, self.dirty)
         await gather(
             self.publish_feature_update_to_subscribers(
                 NodeFeature.MOTION_CONFIG,
@@ -493,18 +491,36 @@ class PlugwiseScan(NodeSED):
         )
 
     async def scan_calibrate_light(self) -> bool:
+        """Schedule light sensitivity calibration of Scan device.
+
+        Returns True when scheduling was newly activated;
+                False if it was already scheduled.
+        """
+        if self._scan_calibrate_light_scheduled:
+            return False
+        self._scan_calibrate_light_scheduled = True
+        return True
+
+    async def _scan_calibrate_light(self) -> bool:
         """Request to calibration light sensitivity of Scan device."""
         request = ScanLightCalibrateRequest(self._send, self._mac_in_bytes)
-        if (response := await request.send()) is not None:
-            if (
-                response.node_ack_type
-                == NodeAckResponseType.SCAN_LIGHT_CALIBRATION_ACCEPTED
-            ):
-                return True
+        response = await request.send()
+        if response is None:
+            _LOGGER.warning(
+                "No response from %s to light calibration request",
+                self.name,
+            )
             return False
-        raise NodeTimeout(
-            f"No response from Scan device {self.mac} "
-            + "to light calibration request."
+        if (
+            response.node_ack_type
+            == NodeAckResponseType.SCAN_LIGHT_CALIBRATION_ACCEPTED
+        ):
+            self._scan_calibrate_light_scheduled = False
+            return True
+        _LOGGER.warning(
+            "Unexpected ack type %s for light calibration on %s",
+            response.node_ack_type,
+            self.name,
         )
 
     async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
