@@ -19,7 +19,7 @@ from ..api import (
 )
 from ..connection import StickController
 from ..constants import MAX_UINT_2
-from ..exceptions import MessageError, NodeError, NodeTimeout
+from ..exceptions import MessageError, NodeError
 from ..messages.requests import ScanConfigureRequest, ScanLightCalibrateRequest
 from ..messages.responses import (
     NODE_SWITCH_GROUP_ID,
@@ -331,7 +331,7 @@ class PlugwiseScan(NodeSED):
         _LOGGER.debug(
             "set_motion_sensitivity_level | Device %s | %s -> %s",
             self.name,
-            self._motion_config.sensitivity_level.name,
+            self.sensitivity_level.name,
             level.name,
         )
         if self._motion_config.sensitivity_level == level:
@@ -504,17 +504,23 @@ class PlugwiseScan(NodeSED):
     async def _scan_calibrate_light(self) -> bool:
         """Request to calibration light sensitivity of Scan device."""
         request = ScanLightCalibrateRequest(self._send, self._mac_in_bytes)
-        if (response := await request.send()) is not None:
-            if (
-                response.node_ack_type
-                == NodeAckResponseType.SCAN_LIGHT_CALIBRATION_ACCEPTED
-            ):
-                self._scan_calibrate_light_scheduled = False
-                return True
+        response = await request.send()
+        if response is None:
+            _LOGGER.warning(
+                "No response from %s to light calibration request",
+                self.name,
+            )
             return False
-        raise NodeTimeout(
-            f"No response from Scan device {self.mac} "
-            + "to light calibration request."
+        if (
+            response.node_ack_type
+            == NodeAckResponseType.SCAN_LIGHT_CALIBRATION_ACCEPTED
+        ):
+            self._scan_calibrate_light_scheduled = False
+            return True
+        _LOGGER.warning(
+            "Unexpected ack type %s for light calibration on %s",
+            response.node_ack_type,
+            self.name,
         )
 
     async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
