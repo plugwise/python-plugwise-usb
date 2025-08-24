@@ -490,9 +490,16 @@ class PlugwiseScan(NodeSED):
             self.save_cache(),
         )
 
-    async def scan_calibrate_light(self) -> None:
-        """Schedule light sensitivity calibration of Scan device."""
+    async def scan_calibrate_light(self) -> bool:
+        """Schedule light sensitivity calibration of Scan device.
+
+        Returns True when scheduling was newly activated;
+                False if it was already scheduled.
+        """
+        if self._scan_calibrate_light_scheduled:
+            return False
         self._scan_calibrate_light_scheduled = True
+        return True
 
     async def _scan_calibrate_light(self) -> bool:
         """Request to calibration light sensitivity of Scan device."""
