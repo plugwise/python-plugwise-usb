@@ -1,7 +1,9 @@
 # Changelog
 
-## Ongoing
+## v0.44.12 - 2025-08-24
 
+- PR [323](https://github.com/plugwise/python-plugwise-usb/pull/323): Motion Sensitivity to use named levels (Off/Medium/High) instead of numeric values, add light sensitivity calibration on wake-up for scan devices.
+- PR [322](https://github.com/plugwise/python-plugwise-usb/pull/322): Improve Circle+ load function to align to Circle load function
 - PR [321](https://github.com/plugwise/python-plugwise-usb/pull/321): Catch error reported in Issue [#312](https://github.com/plugwise/plugwise_usb-beta/issues/312)
 - PR [319](https://github.com/plugwise/python-plugwise-usb/pull/319): Replace unclear warning message when a node is not online, also various small improvements suggested by CRAI.
 - PR [312](https://github.com/plugwise/python-plugwise-usb/pull/312): properly propagate configuration changes and initialize to available on first node wakeup
