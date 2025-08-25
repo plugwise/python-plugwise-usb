@@ -1,5 +1,9 @@
 # Changelog
 
+## ongoing
+
+- PR [327](https://github.com/plugwise/python-plugwise-usb/pull/327): Improve code quality according to SonarCloud, simplify sed awake timer
+
 ## v0.44.12 - 2025-08-24
 
 - PR [323](https://github.com/plugwise/python-plugwise-usb/pull/323): Motion Sensitivity to use named levels (Off/Medium/High) instead of numeric values, add light sensitivity calibration on wake-up for scan devices.
