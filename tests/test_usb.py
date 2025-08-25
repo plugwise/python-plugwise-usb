@@ -5,7 +5,6 @@ from collections.abc import Callable, Coroutine
 from datetime import UTC, datetime as dt, timedelta as td
 import importlib
 import logging
-import math
 import random
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -932,9 +931,7 @@ class TestStick:
             last_second=None, last_8_seconds=None, timestamp=None
         )
         pu = await stick.nodes["0098765432101234"].power_update()
-        assert math.isclose(
-            pu.last_second, 21.2780505980402, rel_tol=1e-09, abs_tol=1e-09
-        )
+        assert pu.last_second == pytest.approx(21.2780505980402, rel=1e-09, abs=1e-09)
         assert pu.last_8_seconds == -27.150578775440106
 
         # Test energy state without request
@@ -1395,11 +1392,8 @@ class TestStick:
             0.07204743061527973,
             reset_timestamp,
         )
-        assert math.isclose(
-            energy_counter_init.energy,
-            0.07204743061527973,
-            rel_tol=1e-09,
-            abs_tol=1e-09,
+        assert energy_counter_init.energy == pytest.approx(
+            0.07204743061527973, rel=1e-09, abs=1e-09
         )
         assert energy_counter_init.last_reset == reset_timestamp
         assert energy_counter_init.last_update == reset_timestamp + td(minutes=10)
@@ -1409,11 +1403,8 @@ class TestStick:
             0.08263379198066137,
             reset_timestamp,
         )
-        assert math.isclose(
-            energy_counter_init.energy,
-            0.08263379198066137,
-            rel_tol=1e-09,
-            abs_tol=1e-09,
+        assert energy_counter_init.energy == pytest.approx(
+            0.08263379198066137, rel=1e-09, abs=1e-09
         )
         assert energy_counter_init.last_reset == reset_timestamp
         assert energy_counter_init.last_update == reset_timestamp + td(
