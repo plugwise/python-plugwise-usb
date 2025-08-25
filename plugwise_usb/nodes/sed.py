@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import CancelledError, Future, Task, gather, get_running_loop, wait_for
+from asyncio import Task, create_task, gather, sleep
 from collections.abc import Awaitable, Callable, Coroutine
 from dataclasses import replace
 from datetime import datetime, timedelta
@@ -85,7 +85,6 @@ class NodeSED(PlugwiseBaseNode):
     ):
         """Initialize base class for Sleeping End Device."""
         super().__init__(mac, node_type, controller, loaded_callback)
-        self._loop = get_running_loop()
         self._node_info.is_battery_powered = True
 
         # Configure SED
@@ -95,7 +94,6 @@ class NodeSED(PlugwiseBaseNode):
 
         self._last_awake: dict[NodeAwakeResponseType, datetime] = {}
         self._last_awake_reason: str = "Unknown"
-        self._awake_future: Future[bool] | None = None
 
         # Maintenance
         self._maintenance_last_awake: datetime | None = None
@@ -118,10 +116,8 @@ class NodeSED(PlugwiseBaseNode):
 
     async def unload(self) -> None:
         """Deactivate and unload node features."""
-        if self._awake_future is not None and not self._awake_future.done():
-            self._awake_future.set_result(True)
         if self._awake_timer_task is not None and not self._awake_timer_task.done():
-            await self._awake_timer_task
+            self._awake_timer_task.cancel()
         if self._awake_subscription is not None:
             self._awake_subscription()
         if self._delayed_task is not None and not self._delayed_task.done():
@@ -440,7 +436,7 @@ class NodeSED(PlugwiseBaseNode):
             ),
             self.save_cache(),
         ]
-        self._delayed_task = self._loop.create_task(
+        self._delayed_task = create_task(
             self._run_awake_tasks(), name=f"Delayed update for {self._mac_in_str}"
         )
         if response.awake_type == NodeAwakeResponseType.MAINTENANCE:
@@ -516,41 +512,30 @@ class NodeSED(PlugwiseBaseNode):
 
     async def _reset_awake(self, last_alive: datetime) -> None:
         """Reset node alive state."""
-        if self._awake_future is not None and not self._awake_future.done():
-            self._awake_future.set_result(True)
+        if self._awake_timer_task is not None and not self._awake_timer_task.done():
+            self._awake_timer_task.cancel()
         # Setup new maintenance timer
-        self._awake_future = self._loop.create_future()
-        self._awake_timer_task = self._loop.create_task(
+        self._awake_timer_task = create_task(
             self._awake_timer(), name=f"Node awake timer for {self._mac_in_str}"
         )
 
     async def _awake_timer(self) -> None:
         """Task to monitor to get next awake in time. If not it sets device to be unavailable."""
         # wait for next maintenance timer, but allow missing one
-        if self._awake_future is None:
-            return
         timeout_interval = self.maintenance_interval * 60 * 2.1
-        try:
-            await wait_for(
-                self._awake_future,
-                timeout=timeout_interval,
+        await sleep(timeout_interval)
+        # No maintenance awake message within expected time frame
+        # Mark node as unavailable
+        if self._available:
+            last_awake = self._last_awake.get(NodeAwakeResponseType.MAINTENANCE)
+            _LOGGER.warning(
+                "No awake message received from %s | last_maintenance_awake=%s | interval=%s (%s) | Marking node as unavailable",
+                self.name,
+                last_awake,
+                self.maintenance_interval,
+                timeout_interval,
             )
-        except TimeoutError:
-            # No maintenance awake message within expected time frame
-            # Mark node as unavailable
-            if self._available:
-                last_awake = self._last_awake.get(NodeAwakeResponseType.MAINTENANCE)
-                _LOGGER.warning(
-                    "No awake message received from %s | last_maintenance_awake=%s | interval=%s (%s) | Marking node as unavailable",
-                    self.name,
-                    last_awake,
-                    self.maintenance_interval,
-                    timeout_interval,
-                )
-                await self._available_update_state(False)
-        except CancelledError:
-            pass
-        self._awake_future = None
+            await self._available_update_state(False)
 
     async def _run_awake_tasks(self) -> None:
         """Execute all awake tasks."""
