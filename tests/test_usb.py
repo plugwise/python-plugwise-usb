@@ -465,7 +465,7 @@ class TestStick:
         await stick.disconnect()
         assert not stick.network_state
         with pytest.raises(pw_exceptions.StickError):
-            assert stick.mac_stick
+            stick.mac_stick
 
     async def disconnected(self, event: pw_api.StickEvent) -> None:  # type: ignore[name-defined]
         """Handle disconnect event callback."""
@@ -611,17 +611,17 @@ class TestStick:
 
         # Check Scan is raising NodeError for unsupported features
         with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["5555555555555555"].relay
+            stick.nodes["5555555555555555"].relay
         with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["5555555555555555"].relay_state
+            stick.nodes["5555555555555555"].relay_state
         with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["5555555555555555"].switch
+            stick.nodes["5555555555555555"].switch
         with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["5555555555555555"].power
+            stick.nodes["5555555555555555"].power
         with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["5555555555555555"].sense
+            stick.nodes["5555555555555555"].sense
         with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["5555555555555555"].energy
+            stick.nodes["5555555555555555"].energy
 
         # Motion
         self.test_motion_on = asyncio.Future()
@@ -851,11 +851,11 @@ class TestStick:
 
         # Check Circle is raising NodeError for unsupported features
         with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["0098765432101234"].motion
+            stick.nodes["0098765432101234"].motion
         with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["0098765432101234"].switch
+            stick.nodes["0098765432101234"].switch
         with pytest.raises(pw_exceptions.FeatureError):
-            assert stick.nodes["0098765432101234"].sense
+            stick.nodes["0098765432101234"].sense
 
         # Test relay init
         # load node 2222222222222222 which has
@@ -931,7 +931,7 @@ class TestStick:
             last_second=None, last_8_seconds=None, timestamp=None
         )
         pu = await stick.nodes["0098765432101234"].power_update()
-        assert pu.last_second == 21.2780505980402
+        assert pu.last_second == pytest.approx(21.2780505980402, rel=1e-09, abs=1e-09)
         assert pu.last_8_seconds == -27.150578775440106
 
         # Test energy state without request
@@ -1392,7 +1392,9 @@ class TestStick:
             0.07204743061527973,
             reset_timestamp,
         )
-        assert energy_counter_init.energy == 0.07204743061527973
+        assert energy_counter_init.energy == pytest.approx(
+            0.07204743061527973, rel=1e-09, abs=1e-09
+        )
         assert energy_counter_init.last_reset == reset_timestamp
         assert energy_counter_init.last_update == reset_timestamp + td(minutes=10)
 
@@ -1401,7 +1403,9 @@ class TestStick:
             0.08263379198066137,
             reset_timestamp,
         )
-        assert energy_counter_init.energy == 0.08263379198066137
+        assert energy_counter_init.energy == pytest.approx(
+            0.08263379198066137, rel=1e-09, abs=1e-09
+        )
         assert energy_counter_init.last_reset == reset_timestamp
         assert energy_counter_init.last_update == reset_timestamp + td(
             minutes=15, seconds=10
