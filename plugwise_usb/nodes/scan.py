@@ -545,7 +545,8 @@ class PlugwiseScan(NodeSED):
                     states[NodeFeature.MOTION_CONFIG] = self._motion_config
                 case _:
                     state_result = await super().get_state((feature,))
-                    states[feature] = state_result[feature]
+                    if feature in state_result:
+                        states[feature] = state_result[feature]
 
         if NodeFeature.AVAILABLE not in states:
             states[NodeFeature.AVAILABLE] = self.available_state
