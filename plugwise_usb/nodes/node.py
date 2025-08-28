@@ -633,9 +633,9 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                 case NodeFeature.PING:
                     states[NodeFeature.PING] = await self.ping_update()
                 case _:
-                    raise NodeError(
+                    _LOGGER.debug(
                         f"Update of feature '{feature.name}' is "
-                        + f"not supported for {self.mac}"
+                        + f"does not return any data {self.mac}"
                     )
 
         return states
