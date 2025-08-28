@@ -634,8 +634,9 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                     states[NodeFeature.PING] = await self.ping_update()
                 case _:
                     _LOGGER.debug(
-                        f"Update of feature '{feature.name}' is "
-                        + f"does not return any data {self.mac}"
+                        "Update of feature '%s' does not return any data for %s",
+                        feature.name,
+                        self.mac,
                     )
 
         return states
