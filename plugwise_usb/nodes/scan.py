@@ -524,7 +524,7 @@ class PlugwiseScan(NodeSED):
         )
 
     async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
-        """Update latest state for given feature."""
+        """Update latest state for given features."""
         states: dict[NodeFeature, Any] = {}
         for feature in features:
             _LOGGER.debug(
