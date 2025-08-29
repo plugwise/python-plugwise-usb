@@ -1243,7 +1243,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         return 0.0
 
     @raise_not_loaded
-    async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
+    async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:  # noqa: PLR0912
         """Update latest state for given feature."""
         states: dict[NodeFeature, Any] = {}
         if not self._available and not await self.is_online():
@@ -1294,7 +1294,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     )
                 case _:
                     state_result = await super().get_state((feature,))
-                    states[feature] = state_result[feature]
+                    if feature in state_result:
+                        states[feature] = state_result[feature]
 
         if NodeFeature.AVAILABLE not in states:
             states[NodeFeature.AVAILABLE] = self.available_state

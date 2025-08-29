@@ -1,8 +1,9 @@
 # Changelog
 
-## ongoing
+## v0.44.13 - 2025-08-29
 
 - PR [327](https://github.com/plugwise/python-plugwise-usb/pull/327): Improve code quality according to SonarCloud, simplify sed awake timer
+- PR [328](https://github.com/plugwise/python-plugwise-usb/pull/328): allow get_state request for non-data NodeFeatures
 
 ## v0.44.12 - 2025-08-24
 

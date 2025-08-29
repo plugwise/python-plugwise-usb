@@ -524,7 +524,7 @@ class PlugwiseScan(NodeSED):
         )
 
     async def get_state(self, features: tuple[NodeFeature]) -> dict[NodeFeature, Any]:
-        """Update latest state for given feature."""
+        """Update latest state for given features."""
         states: dict[NodeFeature, Any] = {}
         for feature in features:
             _LOGGER.debug(
@@ -545,7 +545,8 @@ class PlugwiseScan(NodeSED):
                     states[NodeFeature.MOTION_CONFIG] = self._motion_config
                 case _:
                     state_result = await super().get_state((feature,))
-                    states[feature] = state_result[feature]
+                    if feature in state_result:
+                        states[feature] = state_result[feature]
 
         if NodeFeature.AVAILABLE not in states:
             states[NodeFeature.AVAILABLE] = self.available_state

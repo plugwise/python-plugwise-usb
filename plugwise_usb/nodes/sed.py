@@ -632,6 +632,7 @@ class NodeSED(PlugwiseBaseNode):
                     states[NodeFeature.BATTERY] = self._battery_config
                 case _:
                     state_result = await super().get_state((feature,))
-                    states[feature] = state_result[feature]
+                    if feature in state_result:
+                        states[feature] = state_result[feature]
 
         return states
