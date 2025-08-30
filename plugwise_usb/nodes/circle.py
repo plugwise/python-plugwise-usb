@@ -441,6 +441,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     )
                     return None
 
+            await self.save_cache()
+
         if (
             missing_addresses := self._energy_counters.log_addresses_missing
         ) is not None:
@@ -529,6 +531,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
             log_address, _ = calc_log_address(log_address, 1, -4)
             total_addresses -= 1
 
+        await self.save_cache()
+
     async def get_missing_energy_logs(self) -> None:
         """Task to retrieve missing energy logs."""
         self._energy_counters.update()
@@ -561,6 +565,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 # Drain cancellations to avoid "Task exception was never retrieved"
                 await gather(*to_cancel, return_exceptions=True)
                 break
+
+        await self.save_cache()
 
     async def energy_log_update(
         self, address: int | None, save_cache: bool = True
