@@ -432,7 +432,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 # Retry with previous log address as Circle node pointer to self._current_log_address
                 # could be rolled over while the last log is at previous address/slot
                 prev_log_address, _ = calc_log_address(self._current_log_address, 1, -4)
-                result = await self.energy_log_update(prev_log_address, save_cache=False)
+                result = await self.energy_log_update(
+                    prev_log_address, save_cache=False
+                )
                 if not result:
                     _LOGGER.debug(
                         "async_energy_update | %s | Log rollover | energy_log_update from address %s failed",
@@ -612,13 +614,15 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._energy_counters.add_empty_log(response.log_address, _slot)
                 continue
 
-            cache_updated = await self._energy_log_record_update_state(
+            updated = await self._energy_log_record_update_state(
                 response.log_address,
                 _slot,
                 log_timestamp.replace(tzinfo=UTC),
                 log_pulses,
                 import_only=True,
             )
+            if updated:
+                cache_updated = True
 
         self._energy_counters.update()
         if cache_updated and save_cache:
