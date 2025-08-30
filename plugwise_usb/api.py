@@ -268,6 +268,37 @@ class SenseStatistics:
     humidity: float | None = None
 
 
+@dataclass(frozen=True)
+class SenseHysteresisConfig:
+    """Configuration of sense hysteresis switch.
+
+    Description: Configuration settings for sense hysteresis.
+                 When value is scheduled to be changed the returned value is the optimistic value
+
+    Attributes:
+        humidity_enabled: bool | None: enable humidity hysteresis
+        humidity_upper_bound: int | None: upper humidity switching value
+        humidity_lower_bound: int | None: lower humidity switching value
+        humidity_direction: bool | None: True switch on on increasing humidity, False switch off on increasing humidity
+        temperature_enabled: bool | None: enable temperature hysteresis
+        temperature_upper_bound: int | None: upper temperature switching value
+        temperature_lower_bound: int | None: lower temperature switching value
+        temperature_direction: bool | None: True switch on on increasing temperature, False switch off on increasing temperature
+        dirty: bool: Settings changed, device update pending
+
+    """
+
+    humidity_enabled: bool | None = None
+    humidity_upper_bound: int | None = None
+    humidity_lower_bound: int | None = None
+    humidity_direction: bool | None = None
+    temperature_enabled: bool | None = None
+    temperature_upper_bound: int | None = None
+    temperature_lower_bound: int | None = None
+    temperature_direction: bool | None = None
+    dirty: bool = False
+
+
 class PlugwiseNode(Protocol):
     """Protocol definition of a Plugwise device node."""
 
