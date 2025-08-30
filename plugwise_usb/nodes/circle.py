@@ -529,9 +529,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
             log_address, _ = calc_log_address(log_address, 1, -4)
             total_addresses -= 1
 
-        if self._cache_enabled:
-            await self._energy_log_records_save_to_cache()
-
     async def get_missing_energy_logs(self) -> None:
         """Task to retrieve missing energy logs."""
         self._energy_counters.update()
@@ -564,9 +561,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 # Drain cancellations to avoid "Task exception was never retrieved"
                 await gather(*to_cancel, return_exceptions=True)
                 break
-
-        if self._cache_enabled:
-            await self._energy_log_records_save_to_cache()
 
     async def energy_log_update(
         self, address: int | None, save_cache: bool = True
@@ -713,8 +707,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
         cached_logs = "|".join(records)
         _LOGGER.debug("Saving energy logrecords to cache for %s", self._mac_in_str)
         self._set_cache(CACHE_ENERGY_COLLECTION, cached_logs)
-        # Persist new cache entries to disk immediately
-        await self.save_cache(trigger_only=True)
 
     async def _energy_log_record_update_state(
         self,
@@ -725,14 +717,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
         import_only: bool = False,
     ) -> bool:
         """Process new energy log record. Returns true if record is new or changed."""
-        _LOGGER.warning(
-            "EnergyLogs before update: %s", self._energy_counters.get_pulse_logs()
-        )
         self._energy_counters.add_pulse_log(
             address, slot, timestamp, pulses, import_only=import_only
-        )
-        _LOGGER.warning(
-            "EnergyLogs after update: %s", self._energy_counters.get_pulse_logs()
         )
         if not self._cache_enabled:
             return False
@@ -749,8 +735,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     str(slot),
                     self._mac_in_str,
                 )
-                self._energy_log_records_save_to_cache()
-                await self.save_cache(trigger_only=True)
+                await self._energy_log_records_save_to_cache()
                 return True
 
             _LOGGER.debug(
@@ -764,8 +749,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             str(slot),
             self._mac_in_str,
         )
-        self._energy_log_records_save_to_cache()
-        await self.save_cache(trigger_only=True)
+        await self._energy_log_records_save_to_cache()
         return True
 
     @raise_not_loaded
