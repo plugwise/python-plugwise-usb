@@ -576,7 +576,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
     async def energy_log_update(
         self, address: int | None, save_cache: bool = True
     ) -> bool:
-        """Request energy logs and return True only when at least one recent, non-empty record was stored; otherwise return False."""
+        """Request energy logs from node and store them.
+        
+        Return True if processing succeeded (records stored in memory), regardless of whether new entries were added.
+        Return False on transport or address errors."""
         if address is None:
             return False
 
@@ -1186,7 +1189,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 NodeFeature.RELAY_INIT, self._relay_config
             )
             _LOGGER.debug(
-                "Saving relay_init state update to cachefor %s", self._mac_in_str
+                "Saving relay_init state update to cache for %s", self._mac_in_str
             )
             await self.save_cache()
 
