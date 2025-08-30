@@ -625,11 +625,13 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 cache_updated = True
 
         self._energy_counters.update()
-        if cache_updated and save_cache:
-            _LOGGER.debug(
-                "Saving energy record update to cache for %s", self._mac_in_str
-            )
-            await self.save_cache()
+        if cache_updated:
+            await self._energy_log_records_save_to_cache()
+            if save_cache:
+                _LOGGER.debug(
+                    "Saving energy record update to cache for %s", self._mac_in_str
+                )
+                await self.save_cache()
 
         return True
 
@@ -748,7 +750,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     str(slot),
                     self._mac_in_str,
                 )
-                await self._energy_log_records_save_to_cache()
                 return True
 
             _LOGGER.debug(
@@ -762,7 +763,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
             str(slot),
             self._mac_in_str,
         )
-        await self._energy_log_records_save_to_cache()
         return True
 
     @raise_not_loaded
