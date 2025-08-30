@@ -725,8 +725,14 @@ class PlugwiseCircle(PlugwiseBaseNode):
         import_only: bool = False,
     ) -> bool:
         """Process new energy log record. Returns true if record is new or changed."""
+        _LOGGER.warning(
+            "EnergyLogs before update: %s", self._energy_counters.get_pulse_logs()
+        )
         self._energy_counters.add_pulse_log(
             address, slot, timestamp, pulses, import_only=import_only
+        )
+        _LOGGER.warning(
+            "EnergyLogs after update: %s", self._energy_counters.get_pulse_logs()
         )
         if not self._cache_enabled:
             return False
