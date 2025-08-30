@@ -1404,6 +1404,55 @@ class ScanConfigureRequest(PlugwiseRequest):
         )
 
 
+class SenseConfigureHysteresisRequest(PlugwiseRequest):
+    """Configure a Sense Hysteresis Switching Setting.
+
+    temp_hum : configure temperature True or humidity False
+    lower_bound : lower bound of the hysteresis
+    upper_bound : upper bound of the hysteresis
+    direction   : Switch active high or active low
+
+    Response message: NodeAckResponse
+    """
+
+    _identifier = b"0104"
+    _reply_identifier = b"0100"
+
+    # pylint: disable=too-many-arguments
+    def __init__(  # noqa: PLR0913
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+        mac: bytes,
+        temp_hum: bool,
+        lower_bound: int,
+        upper_bound: int,
+        direction: bool,
+    ):
+        """Initialize ScanConfigureRequest message object."""
+        super().__init__(send_fn, mac)
+        temp_hum_value = 1 if temp_hum else 0
+        lower_bound_value = Int(lower_bound, length=4)
+        upper_bound_value = Int(upper_bound, length=4)
+        direction_value = 1 if direction else 0
+        self._args += [
+            temp_hum_value,
+            lower_bound_value,
+            upper_bound_value,
+            direction_value,
+        ]
+
+    async def send(self) -> NodeAckResponse | None:
+        """Send request."""
+        result = await self._send_request()
+        if isinstance(result, NodeAckResponse):
+            return result
+        if result is None:
+            return None
+        raise MessageError(
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeAckResponse"
+        )
+
+
 class ScanLightCalibrateRequest(PlugwiseRequest):
     """Calibrate light sensitivity.
 
