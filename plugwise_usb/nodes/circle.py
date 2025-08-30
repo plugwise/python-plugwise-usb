@@ -618,22 +618,21 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._energy_counters.add_empty_log(response.log_address, _slot)
                 continue
 
-            updated = await self._energy_log_record_update_state(
+            slot_updated = await self._energy_log_record_update_state(
                 response.log_address,
                 _slot,
                 log_timestamp.replace(tzinfo=UTC),
                 log_pulses,
                 import_only=True,
             )
-            if updated:
-                cache_updated = True
+            cache_updated |= slot_updated
 
         self._energy_counters.update()
         if cache_updated:
             await self._energy_log_records_save_to_cache()
             if save_cache:
                 _LOGGER.debug(
-                    "Saving energy record update to cache for %s", self._mac_in_str
+                    "Saving and storing energy cache for %s", self._mac_in_str
                 )
                 await self.save_cache()
 
@@ -708,7 +707,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         return True
 
     async def _energy_log_records_save_to_cache(self) -> None:
-        """Save currently collected energy logs to cached file."""
+        """Update the in-memory energy log cache string (no file I/O)."""
         if not self._cache_enabled:
             return
 
@@ -724,7 +723,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     f"{address}:{slot}:{ts.strftime('%Y-%m-%d-%H-%M-%S')}:{log.pulses}"
                 )
         cached_logs = "|".join(records)
-        _LOGGER.debug("Saving energy logrecords to cache for %s", self._mac_in_str)
+        _LOGGER.debug("Updating in-memory energy log records for %s", self._mac_in_str)
         self._set_cache(CACHE_ENERGY_COLLECTION, cached_logs)
 
     async def _energy_log_record_update_state(
