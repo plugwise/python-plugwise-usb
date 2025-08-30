@@ -749,12 +749,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     str(slot),
                     self._mac_in_str,
                 )
-                new_cache = (
-                    f"{log_cache_record}|{cached_logs}"
-                    if cached_logs
-                    else log_cache_record
-                )
-                self._set_cache(CACHE_ENERGY_COLLECTION, new_cache)
+                self._energy_log_records_save_to_cache()
                 await self.save_cache(trigger_only=True)
                 return True
 
@@ -769,7 +764,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
             str(slot),
             self._mac_in_str,
         )
-        self._set_cache(CACHE_ENERGY_COLLECTION, log_cache_record)
+        self._energy_log_records_save_to_cache()
+        await self.save_cache(trigger_only=True)
         return True
 
     @raise_not_loaded
