@@ -578,7 +578,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
     ) -> bool:
         """Request energy logs from node and store them.
 
-        Return True if processing succeeded (records stored in memory), regardless of whether new entries were added.
+        Return True if processing succeeded: records stored in memory, also for empty slots.
         Return False on transport or address errors.
         """
         if address is None:
