@@ -583,9 +583,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
     ) -> tuple[bool, bool]:
         """Request energy logs from node and store them.
 
-        Return first bool as True if processing succeeded (records stored in memory, possibly all-empty).
-        Return first bool as False on transport or address errors.
-        Return second bool as False when all slots are empty or outdated; otherwise True.
+        First bool: True when processing succeeded (records stored in memory, possibly all-empty);
+        False only on transport or address errors.
+        Second bool: slots_empty — True when all four slots at the address are empty or outdated;
+        False when at least one recent, non-empty record was stored.
         """
         result = False
         slots_empty = True
@@ -618,17 +619,13 @@ class PlugwiseCircle(PlugwiseBaseNode):
             _LOGGER.debug(
                 "In slot=%s: pulses=%s, timestamp=%s", _slot, log_pulses, log_timestamp
             )
+            address = response.log_address
+            log_timestamp = log_timestamp.replace(tzinfo=UTC)
             if log_timestamp is None or log_pulses is None:
-                self._energy_counters.add_empty_log(response.log_address, _slot)
-            elif self._check_timestamp_is_recent(
-                response.log_address, _slot, log_timestamp.replace(tzinfo=UTC)
-            ):
+                self._energy_counters.add_empty_log(address, _slot)
+            elif self._check_timestamp_is_recent(address, _slot, log_timestamp):
                 self._energy_counters.add_pulse_log(
-                    response.log_address,
-                    _slot,
-                    log_timestamp.replace(tzinfo=UTC),
-                    log_pulses,
-                    import_only=True,
+                    address, _slot, log_timestamp, log_pulses, import_only=True,
                 )
                 cache_updated = True
 
