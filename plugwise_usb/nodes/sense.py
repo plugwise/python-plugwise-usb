@@ -377,19 +377,22 @@ class PlugwiseSense(NodeSED):
             self._hysteresis_config.humidity_upper_bound,
             upper_bound,
         )
-        if upper_bound < 1 or upper_bound > 128:
+        if upper_bound < 1 or upper_bound > 99:
             raise ValueError(
-                "Invalid humidity upper bound {upper_bound}. It must be between 1 and 128 percent."
+                f"Invalid humidity upper bound {upper_bound}. It must be between 1 and 99 percent."
             )
-        if upper_bound < self._hysteresis_config.humidity_lower_bound:
+        if (
+            self._hysteresis_config.humidity_lower_bound is not None
+            and upper_bound < self._hysteresis_config.humidity_lower_bound
+        ):
             raise ValueError(
-                "Invalid humidity upper bound {upper_bound}. It must be equal or above the lower bound {self._hysteresis_config.humidity_lower_bound}."
+                f"Invalid humidity upper bound {upper_bound}. It must be equal or above the lower bound {self._hysteresis_config.humidity_lower_bound}."
             )
         if self._hysteresis_config.humidity_upper_bound == upper_bound:
             return False
         self._hysteresis_config = replace(
             self._hysteresis_config,
-            upper_bound=upper_bound,
+            humidity_upper_bound=upper_bound,
             dirty=True,
         )
         await self._sense_configure_update()
@@ -406,19 +409,22 @@ class PlugwiseSense(NodeSED):
             self._hysteresis_config.humidity_lower_bound,
             lower_bound,
         )
-        if lower_bound < 1 or lower_bound > 128:
+        if lower_bound < 1 or lower_bound > 99:
             raise ValueError(
-                "Invalid humidity lower bound {lower_bound}. It must be between 1 and 128 percent."
+                f"Invalid humidity lower bound {lower_bound}. It must be between 1 and 99 percent."
             )
-        if lower_bound > self._hysteresis_config.humidity_upper_bound:
+        if (
+            self._hysteresis_config.humidity_upper_bound is not None
+            and lower_bound > self._hysteresis_config.humidity_upper_bound
+        ):
             raise ValueError(
-                "Invalid humidity lower bound {lower_bound}. It must be equal or above the lower bound {self._hysteresis_config.humidity_lower_bound}."
+                f"Invalid humidity lower bound {lower_bound}. It must be equal or above the lower bound {self._hysteresis_config.humidity_lower_bound}."
             )
         if self._hysteresis_config.humidity_lower_bound == lower_bound:
             return False
         self._hysteresis_config = replace(
             self._hysteresis_config,
-            lower_bound=lower_bound,
+            humidity_lower_bound=lower_bound,
             dirty=True,
         )
         await self._sense_configure_update()
@@ -477,19 +483,22 @@ class PlugwiseSense(NodeSED):
             self._hysteresis_config.temperature_upper_bound,
             upper_bound,
         )
-        if upper_bound < 1 or upper_bound > 128:
+        if upper_bound < 1 or upper_bound > 60:
             raise ValueError(
-                "Invalid temperature upper bound {upper_bound}. It must be between 1 and 128 percent."
+                f"Invalid temperature upper bound {upper_bound}. It must be between 1 and 60 degrees."
             )
-        if upper_bound < self._hysteresis_config.temperature_lower_bound:
+        if (
+            self._hysteresis_config.temperature_lower_bound is not None
+            and upper_bound < self._hysteresis_config.temperature_lower_bound
+        ):
             raise ValueError(
-                "Invalid temperature upper bound {upper_bound}. It must be equal or above the lower bound {self._hysteresis_config.temperature_lower_bound}."
+                f"Invalid temperature upper bound {upper_bound}. It must be equal or above the lower bound {self._hysteresis_config.temperature_lower_bound}."
             )
         if self._hysteresis_config.temperature_upper_bound == upper_bound:
             return False
         self._hysteresis_config = replace(
             self._hysteresis_config,
-            upper_bound=upper_bound,
+            temperature_upper_bound=upper_bound,
             dirty=True,
         )
         await self._sense_configure_update()
@@ -506,19 +515,22 @@ class PlugwiseSense(NodeSED):
             self._hysteresis_config.temperature_lower_bound,
             lower_bound,
         )
-        if lower_bound < 1 or lower_bound > 128:
+        if lower_bound < 1 or lower_bound > 60:
             raise ValueError(
-                "Invalid temperature lower bound {lower_bound}. It must be between 1 and 128 percent."
+                f"Invalid temperature lower bound {lower_bound}. It must be between 1 and 60 degrees."
             )
-        if lower_bound > self._hysteresis_config.temperature_upper_bound:
+        if (
+            self._hysteresis_config.temperature_upper_bound is not None
+            and lower_bound > self._hysteresis_config.temperature_upper_bound
+        ):
             raise ValueError(
-                "Invalid temperature lower bound {lower_bound}. It must be equal or below the upper bound {self._hysteresis_config.temperature_upper_bound}."
+                f"Invalid temperature lower bound {lower_bound}. It must be equal or below the upper bound {self._hysteresis_config.temperature_upper_bound}."
             )
         if self._hysteresis_config.temperature_lower_bound == lower_bound:
             return False
         self._hysteresis_config = replace(
             self._hysteresis_config,
-            lower_bound=lower_bound,
+            temperature_lower_bound=lower_bound,
             dirty=True,
         )
         await self._sense_configure_update()
@@ -614,8 +626,13 @@ class PlugwiseSense(NodeSED):
         """Execute all awake tasks."""
         await super()._run_awake_tasks()
         if self._hysteresis_config.dirty:
-            await self._configure_sense_humidity_task()
-            await self._configure_sense_temperature_task()
+            configure_result = await gather(
+                self._configure_sense_humidity_task(),
+                self._configure_sense_temperature_task(),
+            )
+            if not all(configure_result):
+                self._hysteresis_config = replace(self._hysteresis_config, dirty=False)
+                await self._sense_configure_update()
 
     async def _configure_sense_humidity_task(self) -> bool:
         """Configure Sense humidity hysteresis device settings. Returns True if successful."""
@@ -662,8 +679,6 @@ class PlugwiseSense(NodeSED):
             _LOGGER.debug(
                 "Successful configure humidity hysteresis settings for %s", self.name
             )
-            self._hysteresis_config = replace(self._hysteresis_config, dirty=False)
-            await self._sense_configure_update()
             return True
 
         _LOGGER.warning(
@@ -718,8 +733,6 @@ class PlugwiseSense(NodeSED):
             _LOGGER.debug(
                 "Successful configure temperature hysteresis settings for %s", self.name
             )
-            self._hysteresis_config = replace(self._hysteresis_config, dirty=False)
-            await self._sense_configure_update()
             return True
 
         _LOGGER.warning(
