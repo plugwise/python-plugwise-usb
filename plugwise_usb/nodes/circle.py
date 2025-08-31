@@ -432,7 +432,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
             # Retry with previous log address as Circle node pointer to self._current_log_address
             # could be rolled over while the last log is at previous address
             prev_log_address, _ = calc_log_address(self._current_log_address, 1, -4)
-            result, slots_empty_prev = await self.energy_log_update(prev_log_address, save_cache=False)
+            result, slots_empty_prev = await self.energy_log_update(
+                prev_log_address, save_cache=False
+            )
             if not result:
                 _LOGGER.debug(
                     "async_energy_update | %s | Log rollover | energy_log_update from address %s failed",
@@ -532,7 +534,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 )
                 break
 
-            any_updates |= (not slots_empty)
+            any_updates |= not slots_empty
             log_address, _ = calc_log_address(log_address, 1, -4)
             total_addresses -= 1
 
@@ -573,7 +575,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 await gather(*to_cancel, return_exceptions=True)
                 break
 
-            any_updates |= (not slots_empty)
+            any_updates |= not slots_empty
 
         if self._cache_enabled and any_updates:
             await self.save_cache()
@@ -620,13 +622,18 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 "In slot=%s: pulses=%s, timestamp=%s", _slot, log_pulses, log_timestamp
             )
             address = response.log_address
-            log_timestamp = log_timestamp.replace(tzinfo=UTC)
             if log_timestamp is None or log_pulses is None:
                 self._energy_counters.add_empty_log(address, _slot)
-            elif self._check_timestamp_is_recent(address, _slot, log_timestamp):
-                self._energy_counters.add_pulse_log(
-                    address, _slot, log_timestamp, log_pulses, import_only=True,
-                )
+            else:
+                log_timestamp = log_timestamp.replace(tzinfo=UTC)
+                if self._check_timestamp_is_recent(address, _slot, log_timestamp):
+                    self._energy_counters.add_pulse_log(
+                        address,
+                        _slot,
+                        log_timestamp,
+                        log_pulses,
+                        import_only=True,
+                    )
                 cache_updated = True
 
         self._energy_counters.update()
