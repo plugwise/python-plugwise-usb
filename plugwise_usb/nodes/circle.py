@@ -518,12 +518,12 @@ class PlugwiseCircle(PlugwiseBaseNode):
             max_addresses_to_collect, ceil(datetime.now(tz=UTC).hour / factor) + 1
         )
         log_address = self._current_log_address
+        any_updates = False
         while total_addresses > 0:
             result, slots_empty = await self.energy_log_update(
                 log_address, save_cache=False
             )
-            if result and not slots_empty:
-                # (address with outdated data in slots is stored as with None data!)
+            if result and slots_empty:
                 # Stop initial log collection when an address contains no (None) or outdated data
                 # Outdated data can indicate a EnergyLog address rollover: from address 6014 to 0
                 _LOGGER.debug(
@@ -532,10 +532,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 )
                 break
 
+            any_updates |= (not slots_empty)
             log_address, _ = calc_log_address(log_address, 1, -4)
             total_addresses -= 1
 
-        if self._cache_enabled:
+        if self._cache_enabled and any_updates:
             await self.save_cache()
 
     async def get_missing_energy_logs(self) -> None:
@@ -560,8 +561,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
             create_task(self.energy_log_update(address, save_cache=False))
             for address in missing_addresses
         ]
+        any_updates = False
         for idx, task in enumerate(tasks):
-            result = await task
+            result, slots_empty = await task
             # When an energy log collection task returns False, stop and cancel the remaining tasks
             if not result:
                 to_cancel = tasks[idx + 1 :]
@@ -571,7 +573,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 await gather(*to_cancel, return_exceptions=True)
                 break
 
-        if self._cache_enabled:
+            any_updates |= (not slots_empty)
+
+        if self._cache_enabled and any_updates:
             await self.save_cache()
 
     async def energy_log_update(
