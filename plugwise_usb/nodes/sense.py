@@ -341,6 +341,11 @@ class PlugwiseSense(NodeSED):
             return self._hysteresis_config.temperature_direction
         return DEFAULT_SENSE_HYSTERESIS_TEMPERATURE_DIRECTION
 
+    @property
+    def dirty(self) -> bool:
+        """Sense hysteresis configuration dirty flag."""
+        return self._hysteresis_config.dirty
+
     # end region
 
     # region Configuration actions
@@ -634,9 +639,17 @@ class PlugwiseSense(NodeSED):
                 self._configure_sense_humidity_task(),
                 self._configure_sense_temperature_task(),
             )
-            if not all(configure_result):
+            if all(configure_result):
                 self._hysteresis_config = replace(self._hysteresis_config, dirty=False)
                 await self._sense_configure_update()
+            else:
+                _LOGGER.warning(
+                    "Sense hysteresis configuration partially failed for %s "
+                    "(humidity=%s, temperature=%s); will retry on next wake.",
+                    self.name,
+                    configure_result[0],
+                    configure_result[1],
+                )
 
     async def _configure_sense_humidity_task(self) -> bool:
         """Configure Sense humidity hysteresis device settings. Returns True if successful."""
@@ -648,7 +661,7 @@ class PlugwiseSense(NodeSED):
         if self.humidity_enabled:
             if self.humidity_lower_bound > self.humidity_upper_bound:
                 raise ValueError(
-                    "Invalid humidity lower bound {self.humidity_lower_bound}. It must be equal or below the upper bound {self.humidity_upper_bound}."
+                    f"Invalid humidity lower bound {self.humidity_lower_bound}. It must be equal or below the upper bound {self.humidity_upper_bound}."
                 )
             humidity_lower_bound = int(
                 (self.humidity_lower_bound + SENSE_HUMIDITY_OFFSET)
@@ -702,7 +715,7 @@ class PlugwiseSense(NodeSED):
         if self.temperature_enabled:
             if self.temperature_lower_bound > self.temperature_upper_bound:
                 raise ValueError(
-                    "Invalid temperature lower bound {self.temperature_lower_bound}. It must be equal or below the upper bound {self.temperature_upper_bound}."
+                    f"Invalid temperature lower bound {self.temperature_lower_bound}. It must be equal or below the upper bound {self.temperature_upper_bound}."
                 )
             temperature_lower_bound = int(
                 (self.temperature_lower_bound + SENSE_TEMPERATURE_OFFSET)
