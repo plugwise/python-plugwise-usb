@@ -402,7 +402,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 return None
 
         # Always request the most recent energy log records at initial startup, check if the current
-        # address is acutally reported by the node even when all slots at that address are empty.
+        # address is actually reported by the node even when all slots at that address are empty.
         if not self._last_energy_log_requested:
             self._last_energy_log_requested, _ = await self.energy_log_update(
                 self._current_log_address, save_cache=False
@@ -418,7 +418,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 return None
 
             # Try collecting energy-stats from _current_log_address
-            result, _ = await self.energy_log_update(
+            result, slots_empty_cur = await self.energy_log_update(
                 self._current_log_address, save_cache=False
             )
             if not result:
@@ -432,7 +432,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             # Retry with previous log address as Circle node pointer to self._current_log_address
             # could be rolled over while the last log is at previous address
             prev_log_address, _ = calc_log_address(self._current_log_address, 1, -4)
-            result, _ = await self.energy_log_update(prev_log_address, save_cache=False)
+            result, slots_empty_prev = await self.energy_log_update(prev_log_address, save_cache=False)
             if not result:
                 _LOGGER.debug(
                     "async_energy_update | %s | Log rollover | energy_log_update from address %s failed",
@@ -441,7 +441,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 )
                 return None
 
-            if self._cache_enabled:
+            if self._cache_enabled and (not slots_empty_cur or not slots_empty_prev):
                 await self.save_cache()
 
         if (
@@ -583,9 +583,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
     ) -> tuple[bool, bool]:
         """Request energy logs from node and store them.
 
-        Return first bool as True if processing succeeded: records stored in memory, also with empty slots.
-        Return fist bool as False on transport or address errors.
-        Return second bool as False when all slots are empty otherwise as True
+        Return first bool as True if processing succeeded (records stored in memory, possibly all-empty).
+        Return first bool as False on transport or address errors.
+        Return second bool as False when all slots are empty or outdated; otherwise True.
         """
         result = False
         slots_empty = True
@@ -613,7 +613,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
         # Each response message contains 4 log counters (slots) of the
         # energy pulses collected during the previous hour of given timestamp
         cache_updated = False
-        slot_updated = False
         for _slot in range(4, 0, -1):
             log_timestamp, log_pulses = response.log_data[_slot]
             _LOGGER.debug(
@@ -631,18 +630,14 @@ class PlugwiseCircle(PlugwiseBaseNode):
                     log_pulses,
                     import_only=True,
                 )
-                slot_updated = True
-
-            cache_updated |= slot_updated
+                cache_updated = True
 
         self._energy_counters.update()
         if cache_updated:
             slots_empty = False
             await self._energy_log_records_save_to_cache()
             if save_cache:
-                _LOGGER.debug(
-                    "Saving and storing energy cache for %s", self._mac_in_str
-                )
+                _LOGGER.debug("Saving energy cache for %s", self._mac_in_str)
                 await self.save_cache()
             return result, slots_empty
 
