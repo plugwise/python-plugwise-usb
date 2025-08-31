@@ -60,7 +60,7 @@ CACHE_SENSE_HYSTERESIS_TEMPERATURE_ENABLED = "temperature_enabled"
 CACHE_SENSE_HYSTERESIS_TEMPERATURE_UPPER_BOUND = "temperature_upper_bound"
 CACHE_SENSE_HYSTERESIS_TEMPERATURE_LOWER_BOUND = "temperature_lower_bound"
 CACHE_SENSE_HYSTERESIS_TEMPERATURE_DIRECTION = "temperature_direction"
-CACHE_SENSE_HYSTERESIS_DIRTY = "sense_hysteresis_dirty"
+CACHE_SENSE_HYSTERESIS_CONFIG_DIRTY = "sense_hysteresis_config_dirty"
 
 DEFAULT_SENSE_HYSTERESIS_HUMIDITY_ENABLED: Final = False
 DEFAULT_SENSE_HYSTERESIS_HUMIDITY_UPPER_BOUND: Final = 24.0
@@ -181,7 +181,7 @@ class PlugwiseSense(NodeSED):
         if (temperature_direction := self._temperature_direction_from_cache()) is None:
             dirty = True
             temperature_direction = DEFAULT_SENSE_HYSTERESIS_TEMPERATURE_DIRECTION
-        dirty |= self._sense_hysteresis_dirty_from_cache()
+        dirty |= self._sense_hysteresis_config_dirty_from_cache()
 
         self._hysteresis_config = SenseHysteresisConfig(
             humidity_enabled=humidity_enabled,
@@ -254,9 +254,11 @@ class PlugwiseSense(NodeSED):
         """Load Temperature hysteresis switch direction from cache."""
         return self._get_cache_as_bool(CACHE_SENSE_HYSTERESIS_TEMPERATURE_DIRECTION)
 
-    def _sense_hysteresis_dirty_from_cache(self) -> bool:
+    def _sense_hysteresis_config_dirty_from_cache(self) -> bool:
         """Load sense hysteresis dirty from cache."""
-        if (dirty := self._get_cache_as_bool(CACHE_SENSE_HYSTERESIS_DIRTY)) is not None:
+        if (
+            dirty := self._get_cache_as_bool(CACHE_SENSE_HYSTERESIS_CONFIG_DIRTY)
+        ) is not None:
             return dirty
         return True
 
@@ -282,7 +284,7 @@ class PlugwiseSense(NodeSED):
             temperature_upper_bound=self.temperature_upper_bound,
             temperature_lower_bound=self.temperature_lower_bound,
             temperature_direction=self.temperature_direction,
-            dirty=self.dirty,
+            dirty=self.hysteresis_config_dirty,
         )
 
     @property
@@ -342,7 +344,7 @@ class PlugwiseSense(NodeSED):
         return DEFAULT_SENSE_HYSTERESIS_TEMPERATURE_DIRECTION
 
     @property
-    def dirty(self) -> bool:
+    def hysteresis_config_dirty(self) -> bool:
         """Sense hysteresis configuration dirty flag."""
         return self._hysteresis_config.dirty
 
@@ -783,7 +785,9 @@ class PlugwiseSense(NodeSED):
         self._set_cache(
             CACHE_SENSE_HYSTERESIS_TEMPERATURE_DIRECTION, self.temperature_direction
         )
-        self._set_cache(CACHE_SENSE_HYSTERESIS_DIRTY, self.dirty)
+        self._set_cache(
+            CACHE_SENSE_HYSTERESIS_CONFIG_DIRTY, self.hysteresis_config_dirty
+        )
         await gather(
             self.publish_feature_update_to_subscribers(
                 NodeFeature.SENSE_HYSTERESIS,
