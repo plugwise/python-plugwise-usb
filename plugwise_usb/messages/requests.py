@@ -1433,12 +1433,14 @@ class SenseConfigureHysteresisRequest(PlugwiseRequest):
         temp_hum_value = 1 if temp_hum else 0
         lower_bound_value = Int(lower_bound, length=4)
         upper_bound_value = Int(upper_bound, length=4)
-        direction_value = 1 if direction else 0
+        direction_value_1 = 0 if direction else 1
+        direction_value_2 = 1 if direction else 0
         self._args += [
             temp_hum_value,
             lower_bound_value,
+            direction_value_1,
             upper_bound_value,
-            direction_value,
+            direction_value_2,
         ]
 
     async def send(self) -> NodeAckResponse | None:

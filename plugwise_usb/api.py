@@ -55,6 +55,7 @@ class NodeFeature(str, Enum):
     RELAY_LOCK = "relay_lock"
     SWITCH = "switch"
     SENSE = "sense"
+    SENSE_HYSTERESIS = "sense_hysteresis"
     TEMPERATURE = "temperature"
 
 
@@ -260,14 +261,6 @@ class EnergyStatistics:
     day_production_reset: datetime | None = None
 
 
-@dataclass
-class SenseStatistics:
-    """Sense statistics collection."""
-
-    temperature: float | None = None
-    humidity: float | None = None
-
-
 @dataclass(frozen=True)
 class SenseHysteresisConfig:
     """Configuration of sense hysteresis switch.
@@ -289,14 +282,25 @@ class SenseHysteresisConfig:
     """
 
     humidity_enabled: bool | None = None
-    humidity_upper_bound: int | None = None
-    humidity_lower_bound: int | None = None
+    humidity_upper_bound: float | None = None
+    humidity_lower_bound: float | None = None
     humidity_direction: bool | None = None
     temperature_enabled: bool | None = None
-    temperature_upper_bound: int | None = None
-    temperature_lower_bound: int | None = None
+    temperature_upper_bound: float | None = None
+    temperature_lower_bound: float | None = None
     temperature_direction: bool | None = None
     dirty: bool = False
+
+
+@dataclass
+class SenseStatistics:
+    """Sense statistics collection."""
+
+    temperature: float | None = None
+    humidity: float | None = None
+    temperature_state: bool | None = None
+    temperature_state: bool | None = None
+    humidity_state: bool | None = None
 
 
 class PlugwiseNode(Protocol):
