@@ -437,14 +437,6 @@ class PlugwiseScan(NodeSED):
         """Configure Scan device settings. Returns True if successful."""
         if not self._motion_config.dirty:
             return True
-        if not await self.scan_configure():
-            _LOGGER.debug("Motion Configuration for %s failed", self._mac_in_str)
-            return False
-        return True
-
-    async def scan_configure(self) -> bool:
-        """Configure Scan device settings. Returns True if successful."""
-        # Default to medium
         request = ScanConfigureRequest(
             self._send,
             self._mac_in_bytes,
@@ -542,7 +534,7 @@ class PlugwiseScan(NodeSED):
                 case NodeFeature.MOTION:
                     states[NodeFeature.MOTION] = self._motion_state
                 case NodeFeature.MOTION_CONFIG:
-                    states[NodeFeature.MOTION_CONFIG] = self._motion_config
+                    states[NodeFeature.MOTION_CONFIG] = self.motion_config
                 case _:
                     state_result = await super().get_state((feature,))
                     if feature in state_result:
