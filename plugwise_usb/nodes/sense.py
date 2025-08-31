@@ -571,7 +571,11 @@ class PlugwiseSense(NodeSED):
         _LOGGER.warning("%s received %s", self.name, response)
         await gather(
             self._available_update_state(True, response.timestamp),
-            self._hysteresis_state_update(response.switch_state, response.timestamp),
+            self._hysteresis_state_update(
+                response.switch_state,
+                response.switch_group,
+                response.timestamp,
+            ),
         )
         return True
 
