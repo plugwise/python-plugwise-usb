@@ -1,5 +1,9 @@
 # Changelog
 
+## Ongoing
+
+- PR [329](https://github.com/plugwise/python-plugwise-usb/pull/329): Improve EnergyLogs caching: store only data from MAX_LOG_HOURS (24)
+
 ## v0.44.13 - 2025-08-29
 
 - PR [327](https://github.com/plugwise/python-plugwise-usb/pull/327): Improve code quality according to SonarCloud, simplify sed awake timer
