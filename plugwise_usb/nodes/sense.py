@@ -392,7 +392,7 @@ class PlugwiseSense(NodeSED):
             and upper_bound < self._hysteresis_config.humidity_lower_bound
         ):
             raise ValueError(
-                f"Invalid humidity upper bound {upper_bound}. It must be equal or above the lower bound {self._hysteresis_config.humidity_lower_bound}."
+                f"Invalid humidity upper bound {upper_bound}. It must be ≥ the lower bound {self._hysteresis_config.humidity_lower_bound}."
             )
         if self._hysteresis_config.humidity_upper_bound == upper_bound:
             return False
@@ -424,7 +424,7 @@ class PlugwiseSense(NodeSED):
             and lower_bound > self._hysteresis_config.humidity_upper_bound
         ):
             raise ValueError(
-                f"Invalid humidity lower bound {lower_bound}. It must be equal or above the lower bound {self._hysteresis_config.humidity_lower_bound}."
+                f"Invalid humidity lower bound {lower_bound}. It must be ≤ the upper bound {self._hysteresis_config.humidity_upper_bound}."
             )
         if self._hysteresis_config.humidity_lower_bound == lower_bound:
             return False
@@ -498,7 +498,7 @@ class PlugwiseSense(NodeSED):
             and upper_bound < self._hysteresis_config.temperature_lower_bound
         ):
             raise ValueError(
-                f"Invalid temperature upper bound {upper_bound}. It must be equal or above the lower bound {self._hysteresis_config.temperature_lower_bound}."
+                f"Invalid temperature upper bound {upper_bound}. It must be ≥ the lower bound {self._hysteresis_config.temperature_lower_bound}."
             )
         if self._hysteresis_config.temperature_upper_bound == upper_bound:
             return False
@@ -530,7 +530,7 @@ class PlugwiseSense(NodeSED):
             and lower_bound > self._hysteresis_config.temperature_upper_bound
         ):
             raise ValueError(
-                f"Invalid temperature lower bound {lower_bound}. It must be equal or below the upper bound {self._hysteresis_config.temperature_upper_bound}."
+                f"Invalid temperature lower bound {lower_bound}. It must be ≤ the upper bound {self._hysteresis_config.temperature_upper_bound}."
             )
         if self._hysteresis_config.temperature_lower_bound == lower_bound:
             return False
@@ -731,7 +731,7 @@ class PlugwiseSense(NodeSED):
         request = SenseConfigureHysteresisRequest(
             self._send,
             self._mac_in_bytes,
-            False,
+            True,
             temperature_lower_bound,
             temperature_upper_bound,
             self.temperature_direction,
