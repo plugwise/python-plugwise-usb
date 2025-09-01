@@ -652,6 +652,10 @@ class PlugwiseSense(NodeSED):
                     configure_result[0],
                     configure_result[1],
                 )
+        await self.publish_feature_update_to_subscribers(
+            NodeFeature.SENSE_HYSTERESIS,
+            self.hysteresis_config,
+        )
 
     async def _configure_sense_humidity_task(self) -> bool:
         """Configure Sense humidity hysteresis device settings. Returns True if successful."""
