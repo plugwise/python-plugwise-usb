@@ -1992,7 +1992,8 @@ class TestStick:
         )
         mock_stick_controller.send_response = sed_config_failed
         await test_sed._awake_response(awake_response1)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sed._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sed._delayed_task), timeout=2)
         assert test_sed.battery_config.dirty
         assert test_sed.battery_config.awake_duration == 15
         assert test_sed.awake_duration == 15
@@ -2009,7 +2010,8 @@ class TestStick:
         assert test_sed.battery_config.dirty
         mock_stick_controller.send_response = sed_config_accepted
         await test_sed._awake_response(awake_response2)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sed._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sed._delayed_task), timeout=2)
         assert not test_sed.battery_config.dirty
         assert test_sed.battery_config.awake_duration == 20
         assert test_sed.awake_duration == 20
@@ -2033,7 +2035,8 @@ class TestStick:
             seconds=pw_sed.AWAKE_RETRY
         )
         await test_sed._awake_response(awake_response3)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sed._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sed._delayed_task), timeout=2)
         assert not test_sed.battery_config.dirty
         assert test_sed.battery_config.maintenance_interval == 30
         assert test_sed.maintenance_interval == 30
@@ -2057,7 +2060,8 @@ class TestStick:
             seconds=pw_sed.AWAKE_RETRY
         )
         await test_sed._awake_response(awake_response4)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sed._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sed._delayed_task), timeout=2)
         assert not test_sed.battery_config.dirty
         assert test_sed.battery_config.clock_interval == 15000
         assert test_sed.clock_interval == 15000
@@ -2076,7 +2080,8 @@ class TestStick:
             seconds=pw_sed.AWAKE_RETRY
         )
         await test_sed._awake_response(awake_response5)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sed._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sed._delayed_task), timeout=2)
         assert not test_sed.battery_config.dirty
         assert test_sed.battery_config.clock_sync
         assert test_sed.clock_sync
@@ -2099,7 +2104,8 @@ class TestStick:
             seconds=pw_sed.AWAKE_RETRY
         )
         await test_sed._awake_response(awake_response6)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sed._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sed._delayed_task), timeout=2)
         assert not test_sed.battery_config.dirty
         assert test_sed.battery_config.sleep_duration == 120
         assert test_sed.sleep_duration == 120
@@ -2204,7 +2210,8 @@ class TestStick:
         )
         mock_stick_controller.send_response = scan_config_failed
         await test_scan._awake_response(awake_response1)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_scan._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_scan._delayed_task), timeout=2)
         assert test_scan.motion_config.dirty
 
         # Successful config
@@ -2219,7 +2226,8 @@ class TestStick:
         assert await test_scan.set_motion_reset_timer(25)
         assert test_scan.motion_config.dirty
         await test_scan._awake_response(awake_response2)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_scan._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_scan._delayed_task), timeout=2)
         assert not test_scan.motion_config.dirty
         assert test_scan.reset_timer == 25
         assert test_scan.motion_config.reset_timer == 25
@@ -2239,7 +2247,8 @@ class TestStick:
             seconds=pw_sed.AWAKE_RETRY
         )
         await test_scan._awake_response(awake_response3)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_scan._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_scan._delayed_task), timeout=2)
         assert not test_scan.motion_config.dirty
         assert test_scan.daylight_mode
         assert test_scan.motion_config.daylight_mode
@@ -2266,7 +2275,8 @@ class TestStick:
             seconds=pw_sed.AWAKE_RETRY
         )
         await test_scan._awake_response(awake_response4)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_scan._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_scan._delayed_task), timeout=2)
         assert not test_scan.motion_config.dirty
         assert test_scan.sensitivity_level == pw_api.MotionSensitivity.HIGH
         assert (
@@ -2432,9 +2442,11 @@ class TestStick:
         )
         mock_stick_controller.send_response = sense_config_failed
         await test_sense._awake_response(awake_response1)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
         await test_sense._awake_response(awake_response1)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
         assert test_sense.hysteresis_config_dirty
 
         # Successful config
@@ -2447,9 +2459,11 @@ class TestStick:
         )
         mock_stick_controller.send_response = sense_config_accepted
         await test_sense._awake_response(awake_response2)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
         await test_sense._awake_response(awake_response2)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
         assert not test_sense.hysteresis_config_dirty
         assert test_sense.humidity_upper_bound == 65
 
@@ -2477,9 +2491,11 @@ class TestStick:
         )
         mock_stick_controller.send_response = sense_config_accepted
         await test_sense._awake_response(awake_response3)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
         await test_sense._awake_response(awake_response3)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
         assert not test_sense.hysteresis_config_dirty
         assert test_sense.humidity_lower_bound == 55
 
@@ -2511,9 +2527,11 @@ class TestStick:
         )
         mock_stick_controller.send_response = sense_config_failed
         await test_sense._awake_response(awake_response4)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
         await test_sense._awake_response(awake_response4)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
         assert test_sense.hysteresis_config_dirty
 
         # Successful config
@@ -2526,9 +2544,11 @@ class TestStick:
         )
         mock_stick_controller.send_response = sense_config_accepted
         await test_sense._awake_response(awake_response5)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
         await test_sense._awake_response(awake_response5)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
         assert not test_sense.hysteresis_config_dirty
         assert test_sense.temperature_upper_bound == 26
 
@@ -2556,9 +2576,11 @@ class TestStick:
         )
         mock_stick_controller.send_response = sense_config_accepted
         await test_sense._awake_response(awake_response6)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
         await test_sense._awake_response(awake_response6)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
         assert not test_sense.hysteresis_config_dirty
         assert test_sense.temperature_lower_bound == 24
 
