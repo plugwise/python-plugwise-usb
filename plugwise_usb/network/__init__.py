@@ -169,7 +169,7 @@ class StickNetwork:
         try:
             await self._register.unregister_node(mac)
         except (KeyError, NodeError) as exc:
-            raise MessageError("Mac not registered, already deleted?") from exc
+            raise MessageError(f"Mac not registered: {exc}") from exc
 
         await self._nodes[mac].unload()
         self._nodes.pop(mac)
