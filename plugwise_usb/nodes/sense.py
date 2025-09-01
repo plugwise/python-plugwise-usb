@@ -435,7 +435,7 @@ class PlugwiseSense(NodeSED):
         return True
 
     async def set_hysteresis_humidity_direction(self, state: bool) -> bool:
-        """Configure humitidy hysteresis to switch on or off on increasing or decreasing direction.
+        """Configure humidity hysteresis to switch on or off on increasing or decreasing direction.
 
         Configuration request will be queued and will be applied the next time when node is awake for maintenance.
         """
@@ -791,7 +791,7 @@ class PlugwiseSense(NodeSED):
         await gather(
             self.publish_feature_update_to_subscribers(
                 NodeFeature.SENSE_HYSTERESIS,
-                self._hysteresis_config,
+                self.hysteresis_config,
             ),
             self.save_cache(),
         )
