@@ -580,7 +580,6 @@ class PlugwiseSense(NodeSED):
             self._hysteresis_state_update(
                 response.switch_state,
                 response.switch_group,
-                response.timestamp,
             ),
         )
         return True
