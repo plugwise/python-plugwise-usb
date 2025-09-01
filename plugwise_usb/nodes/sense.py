@@ -586,7 +586,7 @@ class PlugwiseSense(NodeSED):
         return True
 
     async def _hysteresis_state_update(
-        self, switch_state: bool, switch_group: int, timestamp: datetime
+        self, switch_state: bool, switch_group: int
     ) -> None:
         """Process hysteresis state update."""
         _LOGGER.debug(
