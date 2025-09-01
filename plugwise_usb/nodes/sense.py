@@ -385,7 +385,7 @@ class PlugwiseSense(NodeSED):
         )
         if upper_bound < 1 or upper_bound > 99:
             raise ValueError(
-                f"Invalid humidity upper bound {upper_bound}. It must be between 1 and 99 percent."
+                f"Invalid humidity upper bound {upper_bound}. It must be between 1 and 99 %."
             )
         if (
             self._hysteresis_config.humidity_lower_bound is not None
@@ -417,7 +417,7 @@ class PlugwiseSense(NodeSED):
         )
         if lower_bound < 1 or lower_bound > 99:
             raise ValueError(
-                f"Invalid humidity lower bound {lower_bound}. It must be between 1 and 99 percent."
+                f"Invalid humidity lower bound {lower_bound}. It must be between 1 and 99 %."
             )
         if (
             self._hysteresis_config.humidity_upper_bound is not None
@@ -491,7 +491,7 @@ class PlugwiseSense(NodeSED):
         )
         if upper_bound < 1 or upper_bound > 60:
             raise ValueError(
-                f"Invalid temperature upper bound {upper_bound}. It must be between 1 and 60 degrees."
+                f"Invalid temperature upper bound {upper_bound}. It must be between 1 and 60 °C."
             )
         if (
             self._hysteresis_config.temperature_lower_bound is not None
@@ -523,7 +523,7 @@ class PlugwiseSense(NodeSED):
         )
         if lower_bound < 1 or lower_bound > 60:
             raise ValueError(
-                f"Invalid temperature lower bound {lower_bound}. It must be between 1 and 60 degrees."
+                f"Invalid temperature lower bound {lower_bound}. It must be between 1 and 60 °C."
             )
         if (
             self._hysteresis_config.temperature_upper_bound is not None
@@ -543,7 +543,7 @@ class PlugwiseSense(NodeSED):
         return True
 
     async def set_hysteresis_temperature_direction(self, state: bool) -> bool:
-        """Configure humitidy hysteresis to switch on or off on increase or decreasing direction.
+        """Configure temperature hysteresis to switch on or off on increase or decreasing direction.
 
         Configuration request will be queued and will be applied the next time when node is awake for maintenance.
         """
@@ -596,7 +596,7 @@ class PlugwiseSense(NodeSED):
         )
         if switch_group == 1:
             self._sense_statistics.temperature_state = switch_state
-        if switch_group == 2:
+        elif switch_group == 2:
             self._sense_statistics.humidity_state = switch_state
 
         await self.publish_feature_update_to_subscribers(
@@ -656,7 +656,7 @@ class PlugwiseSense(NodeSED):
         """Configure Sense humidity hysteresis device settings. Returns True if successful."""
         if not self._hysteresis_config.dirty:
             return True
-        # Set value to -1 for disabled
+        # Set value to -1% for 'disabled' (humidity):2621
         humidity_lower_bound = 2621
         humidity_upper_bound = 2621
         if self.humidity_enabled:
@@ -710,7 +710,7 @@ class PlugwiseSense(NodeSED):
         """Configure Sense temperature hysteresis device settings. Returns True if successful."""
         if not self._hysteresis_config.dirty:
             return True
-        # Set value to -1 for disabled
+        # Set value to -1 °C for disabled (temperature): 17099
         temperature_lower_bound = 17099
         temperature_upper_bound = 17099
         if self.temperature_enabled:
