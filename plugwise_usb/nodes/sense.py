@@ -46,7 +46,6 @@ SENSE_FEATURES: Final = (
     NodeFeature.INFO,
     NodeFeature.SENSE,
     NodeFeature.SENSE_HYSTERESIS,
-    NodeFeature.SWITCH,
 )
 
 # Default firmware if not known
