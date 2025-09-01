@@ -644,6 +644,7 @@ class PlugwiseSense(NodeSED):
             if all(configure_result):
                 self._hysteresis_config = replace(self._hysteresis_config, dirty=False)
                 await self._sense_configure_update()
+                return
             else:
                 _LOGGER.warning(
                     "Sense hysteresis configuration partially failed for %s "
