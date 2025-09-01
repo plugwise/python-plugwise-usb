@@ -148,9 +148,7 @@ class PlugwiseSense(NodeSED):
 
     async def _load_from_cache(self) -> bool:
         """Load states from previous cached information. Returns True if successful."""
-        super_load_success = True
-        if not await super()._load_from_cache():
-            super_load_success = False
+        super_load_success = await super()._load_from_cache()
         dirty = False
         if (humidity_enabled := self._humidity_enabled_from_cache()) is None:
             dirty = True
@@ -437,7 +435,7 @@ class PlugwiseSense(NodeSED):
         return True
 
     async def set_hysteresis_humidity_direction(self, state: bool) -> bool:
-        """Configure humitidy hysteresis to switch on or off on increase or decreasing direction.
+        """Configure humitidy hysteresis to switch on or off on increasing or decreasing direction.
 
         Configuration request will be queued and will be applied the next time when node is awake for maintenance.
         """
@@ -543,7 +541,7 @@ class PlugwiseSense(NodeSED):
         return True
 
     async def set_hysteresis_temperature_direction(self, state: bool) -> bool:
-        """Configure temperature hysteresis to switch on or off on increase or decreasing direction.
+        """Configure temperature hysteresis to switch on or off on increasing or decreasing direction.
 
         Configuration request will be queued and will be applied the next time when node is awake for maintenance.
         """
@@ -597,6 +595,10 @@ class PlugwiseSense(NodeSED):
             self._sense_statistics.temperature_state = switch_state
         elif switch_group == 2:
             self._sense_statistics.humidity_state = switch_state
+        else:
+            _LOGGER.debug(
+                "Ignoring unknown switch_group %s for %s", switch_group, self.name
+            )
 
         await self.publish_feature_update_to_subscribers(
             NodeFeature.SENSE, self._sense_statistics
@@ -661,7 +663,7 @@ class PlugwiseSense(NodeSED):
         if self.humidity_enabled:
             if self.humidity_lower_bound > self.humidity_upper_bound:
                 raise ValueError(
-                    f"Invalid humidity lower bound {self.humidity_lower_bound}. It must be equal or below the upper bound {self.humidity_upper_bound}."
+                    f"Invalid humidity lower bound {self.humidity_lower_bound}. It must be ≤ the upper bound {self.humidity_upper_bound}."
                 )
             humidity_lower_bound = int(
                 (self.humidity_lower_bound + SENSE_HUMIDITY_OFFSET)
@@ -715,7 +717,7 @@ class PlugwiseSense(NodeSED):
         if self.temperature_enabled:
             if self.temperature_lower_bound > self.temperature_upper_bound:
                 raise ValueError(
-                    f"Invalid temperature lower bound {self.temperature_lower_bound}. It must be equal or below the upper bound {self.temperature_upper_bound}."
+                    f"Invalid temperature lower bound {self.temperature_lower_bound}. It must be ≤ the upper bound {self.temperature_upper_bound}."
                 )
             temperature_lower_bound = int(
                 (self.temperature_lower_bound + SENSE_TEMPERATURE_OFFSET)
