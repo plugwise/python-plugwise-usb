@@ -592,9 +592,9 @@ class PlugwiseSense(NodeSED):
             switch_state,
         )
         if switch_group == 1:
-            self._sense_statistics.temperature_state = switch_state
-        elif switch_group == 2:
             self._sense_statistics.humidity_state = switch_state
+        elif switch_group == 2:
+            self._sense_statistics.temperature_state = switch_state
         else:
             _LOGGER.debug(
                 "Ignoring unknown switch_group %s for %s", switch_group, self.name
