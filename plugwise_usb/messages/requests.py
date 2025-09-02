@@ -1433,8 +1433,8 @@ class SenseConfigureHysteresisRequest(PlugwiseRequest):
         temp_hum_value = Int(1 if temp_hum else 0, length=2)
         lower_bound_value = Int(lower_bound, length=4)
         upper_bound_value = Int(upper_bound, length=4)
-        direction_value_1 = Int(0 if direction else 1, length=2)
-        direction_value_2 = Int(1 if direction else 0, length=2)
+        direction_value_1 = Int(1 if direction else 0, length=2)
+        direction_value_2 = Int(0 if direction else 1, length=2)
         self._args += [
             temp_hum_value,
             lower_bound_value,
