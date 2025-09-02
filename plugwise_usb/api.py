@@ -87,6 +87,7 @@ PUSHING_FEATURES = (
     NodeFeature.MOTION_CONFIG,
     NodeFeature.TEMPERATURE,
     NodeFeature.SENSE,
+    NodeFeature.SENSE_HYSTERESIS,
     NodeFeature.SWITCH,
 )
 
