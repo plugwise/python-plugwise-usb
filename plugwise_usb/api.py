@@ -271,14 +271,17 @@ class SenseHysteresisConfig:
 
     Attributes:
         humidity_enabled: bool | None: enable humidity hysteresis
-        humidity_upper_bound: int | None: upper humidity switching value
-        humidity_lower_bound: int | None: lower humidity switching value
-        humidity_direction: bool | None: True switch on on increasing humidity, False switch off on increasing humidity
+        humidity_upper_bound: float | None: upper humidity switching value
+        humidity_lower_bound: float | None: lower humidity switching value
+        humidity_direction: bool | None: True switch ON when humidity rises, False switch OFF when humidity rises
         temperature_enabled: bool | None: enable temperature hysteresis
-        temperature_upper_bound: int | None: upper temperature switching value
-        temperature_lower_bound: int | None: lower temperature switching value
-        temperature_direction: bool | None: True switch on on increasing temperature, False switch off on increasing temperature
+        temperature_upper_bound: float | None: upper temperature switching value
+        temperature_lower_bound: float | None: lower temperature switching value
+        temperature_direction: bool | None: True switch ON when temperature rises, False switch OFF when temperature rises
         dirty: bool: Settings changed, device update pending
+
+    Notes:
+            Disabled sentinel values are hardware-specific (temperature=17099 for -1°C, humidity=2621 for -1%) and are handled in the node layer; the public API exposes floats in SI units.
 
     """
 
