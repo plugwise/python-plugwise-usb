@@ -271,13 +271,13 @@ class SenseHysteresisConfig:
 
     Attributes:
         humidity_enabled: bool | None: enable humidity hysteresis
-        humidity_upper_bound: float | None: upper humidity switching value
-        humidity_lower_bound: float | None: lower humidity switching value
-        humidity_direction: bool | None: True switch ON when humidity rises, False switch OFF when humidity rises
+        humidity_upper_bound: float | None: upper humidity switching threshold (%RH)
+        humidity_lower_bound: float | None: lower humidity switching threshold (%RH)
+        humidity_direction: bool | None: True = switch ON when humidity rises; False = switch OFF when humidity rises
         temperature_enabled: bool | None: enable temperature hysteresis
-        temperature_upper_bound: float | None: upper temperature switching value
-        temperature_lower_bound: float | None: lower temperature switching value
-        temperature_direction: bool | None: True switch ON when temperature rises, False switch OFF when temperature rises
+        temperature_upper_bound: float | None: upper temperature switching threshold (°C)
+        temperature_lower_bound: float | None: lower temperature switching threshold (°C)
+        temperature_direction: bool | None: True = switch ON when temperature rises; False = switch OFF when temperature rises
         dirty: bool: Settings changed, device update pending
 
     Notes:
