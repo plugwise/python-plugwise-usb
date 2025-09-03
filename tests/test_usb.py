@@ -36,6 +36,7 @@ pw_node = importlib.import_module("plugwise_usb.nodes.node")
 pw_circle = importlib.import_module("plugwise_usb.nodes.circle")
 pw_sed = importlib.import_module("plugwise_usb.nodes.sed")
 pw_scan = importlib.import_module("plugwise_usb.nodes.scan")
+pw_sense = importlib.import_module("plugwise_usb.nodes.sense")
 pw_switch = importlib.import_module("plugwise_usb.nodes.switch")
 pw_energy_counter = importlib.import_module("plugwise_usb.nodes.helpers.counter")
 pw_energy_calibration = importlib.import_module("plugwise_usb.nodes.helpers")
@@ -1991,7 +1992,8 @@ class TestStick:
         )
         mock_stick_controller.send_response = sed_config_failed
         await test_sed._awake_response(awake_response1)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sed._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sed._delayed_task), timeout=2)
         assert test_sed.battery_config.dirty
         assert test_sed.battery_config.awake_duration == 15
         assert test_sed.awake_duration == 15
@@ -2008,7 +2010,8 @@ class TestStick:
         assert test_sed.battery_config.dirty
         mock_stick_controller.send_response = sed_config_accepted
         await test_sed._awake_response(awake_response2)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sed._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sed._delayed_task), timeout=2)
         assert not test_sed.battery_config.dirty
         assert test_sed.battery_config.awake_duration == 20
         assert test_sed.awake_duration == 20
@@ -2032,7 +2035,8 @@ class TestStick:
             seconds=pw_sed.AWAKE_RETRY
         )
         await test_sed._awake_response(awake_response3)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sed._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sed._delayed_task), timeout=2)
         assert not test_sed.battery_config.dirty
         assert test_sed.battery_config.maintenance_interval == 30
         assert test_sed.maintenance_interval == 30
@@ -2056,7 +2060,8 @@ class TestStick:
             seconds=pw_sed.AWAKE_RETRY
         )
         await test_sed._awake_response(awake_response4)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sed._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sed._delayed_task), timeout=2)
         assert not test_sed.battery_config.dirty
         assert test_sed.battery_config.clock_interval == 15000
         assert test_sed.clock_interval == 15000
@@ -2075,7 +2080,8 @@ class TestStick:
             seconds=pw_sed.AWAKE_RETRY
         )
         await test_sed._awake_response(awake_response5)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sed._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sed._delayed_task), timeout=2)
         assert not test_sed.battery_config.dirty
         assert test_sed.battery_config.clock_sync
         assert test_sed.clock_sync
@@ -2098,7 +2104,8 @@ class TestStick:
             seconds=pw_sed.AWAKE_RETRY
         )
         await test_sed._awake_response(awake_response6)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_sed._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sed._delayed_task), timeout=2)
         assert not test_sed.battery_config.dirty
         assert test_sed.battery_config.sleep_duration == 120
         assert test_sed.sleep_duration == 120
@@ -2203,7 +2210,8 @@ class TestStick:
         )
         mock_stick_controller.send_response = scan_config_failed
         await test_scan._awake_response(awake_response1)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_scan._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_scan._delayed_task), timeout=2)
         assert test_scan.motion_config.dirty
 
         # Successful config
@@ -2218,7 +2226,8 @@ class TestStick:
         assert await test_scan.set_motion_reset_timer(25)
         assert test_scan.motion_config.dirty
         await test_scan._awake_response(awake_response2)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_scan._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_scan._delayed_task), timeout=2)
         assert not test_scan.motion_config.dirty
         assert test_scan.reset_timer == 25
         assert test_scan.motion_config.reset_timer == 25
@@ -2238,7 +2247,8 @@ class TestStick:
             seconds=pw_sed.AWAKE_RETRY
         )
         await test_scan._awake_response(awake_response3)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_scan._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_scan._delayed_task), timeout=2)
         assert not test_scan.motion_config.dirty
         assert test_scan.daylight_mode
         assert test_scan.motion_config.daylight_mode
@@ -2265,7 +2275,8 @@ class TestStick:
             seconds=pw_sed.AWAKE_RETRY
         )
         await test_scan._awake_response(awake_response4)  # pylint: disable=protected-access
-        await asyncio.sleep(0.001)  # Ensure time for task to be executed
+        assert test_scan._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_scan._delayed_task), timeout=2)
         assert not test_scan.motion_config.dirty
         assert test_scan.sensitivity_level == pw_api.MotionSensitivity.HIGH
         assert (
@@ -2311,6 +2322,267 @@ class TestStick:
             )
         )
         assert not state[pw_api.NodeFeature.AVAILABLE].state
+
+    @pytest.mark.asyncio
+    async def test_sense_node(self, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: PLR0915
+        """Testing properties of sense."""
+
+        def fake_cache(dummy: object, setting: str) -> str | None:  # noqa: PLR0911 PLR0912
+            """Fake cache retrieval."""
+            if setting == pw_node.CACHE_FIRMWARE:
+                return "2011-11-3-13-7-33"
+            if setting == pw_node.CACHE_HARDWARE:
+                return "070030"
+            if setting == pw_node.CACHE_RELAY:
+                return "True"
+            if setting == pw_node.CACHE_NODE_INFO_TIMESTAMP:
+                return "2024-12-7-1-0-0"
+            if setting == pw_sed.CACHE_SED_AWAKE_DURATION:
+                return "20"
+            if setting == pw_sed.CACHE_SED_CLOCK_INTERVAL:
+                return "12600"
+            if setting == pw_sed.CACHE_SED_MAINTENANCE_INTERVAL:
+                return "60"
+            if setting == pw_sed.CACHE_SED_SLEEP_DURATION:
+                return "60"
+            if setting == pw_sense.CACHE_SENSE_HYSTERESIS_HUMIDITY_UPPER_BOUND:
+                return "60"
+            if setting == pw_sense.CACHE_SENSE_HYSTERESIS_HUMIDITY_LOWER_BOUND:
+                return "60"
+            if setting == pw_sense.CACHE_SENSE_HYSTERESIS_TEMPERATURE_UPPER_BOUND:
+                return "25.0"
+            if setting == pw_sense.CACHE_SENSE_HYSTERESIS_TEMPERATURE_LOWER_BOUND:
+                return "25.0"
+            return None
+
+        def fake_cache_bool(dummy: object, setting: str) -> bool | None:
+            """Fake cache_bool retrieval."""
+            if setting in (
+                pw_sed.CACHE_SED_CLOCK_SYNC,
+                pw_sense.CACHE_SENSE_HYSTERESIS_TEMPERATURE_DIRECTION,
+                pw_sense.CACHE_SENSE_HYSTERESIS_HUMIDITY_DIRECTION,
+            ):
+                return True
+            if setting in (
+                pw_sed.CACHE_SED_DIRTY,
+                pw_sense.CACHE_SENSE_HYSTERESIS_HUMIDITY_ENABLED,
+                pw_sense.CACHE_SENSE_HYSTERESIS_TEMPERATURE_ENABLED,
+                pw_sense.CACHE_SENSE_HYSTERESIS_CONFIG_DIRTY,
+            ):
+                return False
+            return None
+
+        monkeypatch.setattr(pw_node.PlugwiseBaseNode, "_get_cache", fake_cache)
+        monkeypatch.setattr(
+            pw_node.PlugwiseBaseNode, "_get_cache_as_bool", fake_cache_bool
+        )
+        mock_stick_controller = MockStickController()
+        sense_config_accepted = pw_responses.NodeAckResponse()
+        sense_config_accepted.deserialize(
+            construct_message(b"0100555555555555555500B5", b"0000")
+        )
+        sense_config_failed = pw_responses.NodeAckResponse()
+        sense_config_failed.deserialize(
+            construct_message(b"0100555555555555555500B6", b"0000")
+        )
+
+        async def load_callback(event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
+            """Load callback for event."""
+
+        test_sense = pw_sense.PlugwiseSense(
+            "1298347650AFBECD",
+            pw_api.NodeType.SENSE,
+            mock_stick_controller,
+            load_callback,
+        )
+        assert not test_sense.cache_enabled
+        node_info = pw_api.NodeInfoMessage(
+            current_logaddress_pointer=None,
+            firmware=dt(2011, 11, 3, 13, 7, 33, tzinfo=UTC),
+            hardware="070030",
+            node_type=None,
+            relay_state=None,
+        )
+        await test_sense.update_node_details(node_info)
+        await test_sense.load()
+
+        # test hysteresis cache load
+        assert not test_sense.hysteresis_config_dirty
+        assert not test_sense.humidity_enabled
+        assert test_sense.humidity_upper_bound == 60
+        assert test_sense.humidity_lower_bound == 60
+        assert test_sense.humidity_direction
+        assert not test_sense.temperature_enabled
+        assert test_sense.temperature_upper_bound == 25
+        assert test_sense.temperature_lower_bound == 25
+        assert test_sense.temperature_direction
+
+        # test humidity upper bound
+        with pytest.raises(ValueError):
+            await test_sense.set_hysteresis_humidity_upper_bound(0)
+        with pytest.raises(ValueError):
+            await test_sense.set_hysteresis_humidity_upper_bound(100)
+        assert not await test_sense.set_hysteresis_humidity_upper_bound(60)
+        assert not test_sense.hysteresis_config_dirty
+        with pytest.raises(ValueError):
+            await test_sense.set_hysteresis_humidity_upper_bound(55)
+        assert not test_sense.hysteresis_config_dirty
+        assert await test_sense.set_hysteresis_humidity_upper_bound(65)
+        assert test_sense.hysteresis_config_dirty
+        assert test_sense.humidity_upper_bound == 65
+        assert not await test_sense.set_hysteresis_humidity_enabled(False)
+        assert await test_sense.set_hysteresis_humidity_enabled(True)
+        assert not await test_sense.set_hysteresis_humidity_direction(True)
+        assert await test_sense.set_hysteresis_humidity_direction(False)
+
+        # Restore to original settings after failed config
+        awake_response1 = pw_responses.NodeAwakeResponse()
+        awake_response1.deserialize(
+            construct_message(b"004F555555555555555500", b"FFFE")
+        )
+        mock_stick_controller.send_response = sense_config_failed
+        await test_sense._awake_response(awake_response1)  # pylint: disable=protected-access
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        await test_sense._awake_response(awake_response1)  # pylint: disable=protected-access
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        assert test_sense.hysteresis_config_dirty
+
+        # Successful config
+        awake_response2 = pw_responses.NodeAwakeResponse()
+        awake_response2.deserialize(
+            construct_message(b"004F555555555555555500", b"FFFE")
+        )
+        awake_response2.timestamp = awake_response1.timestamp + td(
+            seconds=pw_sed.AWAKE_RETRY
+        )
+        mock_stick_controller.send_response = sense_config_accepted
+        await test_sense._awake_response(awake_response2)  # pylint: disable=protected-access
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        await test_sense._awake_response(awake_response2)  # pylint: disable=protected-access
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        assert not test_sense.hysteresis_config_dirty
+        assert test_sense.humidity_upper_bound == 65
+
+        # test humidity lower bound
+        with pytest.raises(ValueError):
+            await test_sense.set_hysteresis_humidity_lower_bound(0)
+        with pytest.raises(ValueError):
+            await test_sense.set_hysteresis_humidity_lower_bound(100)
+        assert not await test_sense.set_hysteresis_humidity_lower_bound(60)
+        assert not test_sense.hysteresis_config_dirty
+        with pytest.raises(ValueError):
+            await test_sense.set_hysteresis_humidity_lower_bound(70)
+        assert not test_sense.hysteresis_config_dirty
+        assert await test_sense.set_hysteresis_humidity_lower_bound(55)
+        assert test_sense.hysteresis_config_dirty
+        assert test_sense.humidity_lower_bound == 55
+
+        # Successful config
+        awake_response3 = pw_responses.NodeAwakeResponse()
+        awake_response3.deserialize(
+            construct_message(b"004F555555555555555500", b"FFFE")
+        )
+        awake_response3.timestamp = awake_response2.timestamp + td(
+            seconds=pw_sed.AWAKE_RETRY
+        )
+        mock_stick_controller.send_response = sense_config_accepted
+        await test_sense._awake_response(awake_response3)  # pylint: disable=protected-access
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        await test_sense._awake_response(awake_response3)  # pylint: disable=protected-access
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        assert not test_sense.hysteresis_config_dirty
+        assert test_sense.humidity_lower_bound == 55
+
+        # test temperature upper bound
+        with pytest.raises(ValueError):
+            await test_sense.set_hysteresis_temperature_upper_bound(0)
+        with pytest.raises(ValueError):
+            await test_sense.set_hysteresis_temperature_upper_bound(61)
+        assert not await test_sense.set_hysteresis_temperature_upper_bound(25)
+        assert not test_sense.hysteresis_config_dirty
+        with pytest.raises(ValueError):
+            await test_sense.set_hysteresis_temperature_upper_bound(24)
+        assert not test_sense.hysteresis_config_dirty
+        assert await test_sense.set_hysteresis_temperature_upper_bound(26)
+        assert test_sense.hysteresis_config_dirty
+        assert test_sense.temperature_upper_bound == 26
+        assert not await test_sense.set_hysteresis_temperature_enabled(False)
+        assert await test_sense.set_hysteresis_temperature_enabled(True)
+        assert not await test_sense.set_hysteresis_temperature_direction(True)
+        assert await test_sense.set_hysteresis_temperature_direction(False)
+
+        # Restore to original settings after failed config
+        awake_response4 = pw_responses.NodeAwakeResponse()
+        awake_response4.deserialize(
+            construct_message(b"004F555555555555555500", b"FFFE")
+        )
+        awake_response4.timestamp = awake_response3.timestamp + td(
+            seconds=pw_sed.AWAKE_RETRY
+        )
+        mock_stick_controller.send_response = sense_config_failed
+        await test_sense._awake_response(awake_response4)  # pylint: disable=protected-access
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        await test_sense._awake_response(awake_response4)  # pylint: disable=protected-access
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        assert test_sense.hysteresis_config_dirty
+
+        # Successful config
+        awake_response5 = pw_responses.NodeAwakeResponse()
+        awake_response5.deserialize(
+            construct_message(b"004F555555555555555500", b"FFFE")
+        )
+        awake_response5.timestamp = awake_response4.timestamp + td(
+            seconds=pw_sed.AWAKE_RETRY
+        )
+        mock_stick_controller.send_response = sense_config_accepted
+        await test_sense._awake_response(awake_response5)  # pylint: disable=protected-access
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        await test_sense._awake_response(awake_response5)  # pylint: disable=protected-access
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        assert not test_sense.hysteresis_config_dirty
+        assert test_sense.temperature_upper_bound == 26
+
+        # test temperature lower bound
+        with pytest.raises(ValueError):
+            await test_sense.set_hysteresis_temperature_lower_bound(0)
+        with pytest.raises(ValueError):
+            await test_sense.set_hysteresis_temperature_lower_bound(61)
+        assert not await test_sense.set_hysteresis_temperature_lower_bound(25)
+        assert not test_sense.hysteresis_config_dirty
+        with pytest.raises(ValueError):
+            await test_sense.set_hysteresis_temperature_lower_bound(27)
+        assert not test_sense.hysteresis_config_dirty
+        assert await test_sense.set_hysteresis_temperature_lower_bound(24)
+        assert test_sense.hysteresis_config_dirty
+        assert test_sense.temperature_lower_bound == 24
+
+        # Successful config
+        awake_response6 = pw_responses.NodeAwakeResponse()
+        awake_response6.deserialize(
+            construct_message(b"004F555555555555555500", b"FFFE")
+        )
+        awake_response6.timestamp = awake_response5.timestamp + td(
+            seconds=pw_sed.AWAKE_RETRY
+        )
+        mock_stick_controller.send_response = sense_config_accepted
+        await test_sense._awake_response(awake_response6)  # pylint: disable=protected-access
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        await test_sense._awake_response(awake_response6)  # pylint: disable=protected-access
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        assert not test_sense.hysteresis_config_dirty
+        assert test_sense.temperature_lower_bound == 24
 
     @pytest.mark.asyncio
     async def test_switch_node(self, monkeypatch: pytest.MonkeyPatch) -> None:

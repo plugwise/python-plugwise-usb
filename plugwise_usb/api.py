@@ -55,6 +55,7 @@ class NodeFeature(str, Enum):
     RELAY_LOCK = "relay_lock"
     SWITCH = "switch"
     SENSE = "sense"
+    SENSE_HYSTERESIS = "sense_hysteresis"
     TEMPERATURE = "temperature"
 
 
@@ -86,6 +87,7 @@ PUSHING_FEATURES = (
     NodeFeature.MOTION_CONFIG,
     NodeFeature.TEMPERATURE,
     NodeFeature.SENSE,
+    NodeFeature.SENSE_HYSTERESIS,
     NodeFeature.SWITCH,
 )
 
@@ -260,12 +262,48 @@ class EnergyStatistics:
     day_production_reset: datetime | None = None
 
 
+@dataclass(frozen=True)
+class SenseHysteresisConfig:
+    """Configuration of sense hysteresis switch.
+
+    Description: Configuration settings for sense hysteresis.
+                 When value is scheduled to be changed the returned value is the optimistic value
+
+    Attributes:
+        humidity_enabled: bool | None: enable humidity hysteresis
+        humidity_upper_bound: float | None: upper humidity switching threshold (%RH)
+        humidity_lower_bound: float | None: lower humidity switching threshold (%RH)
+        humidity_direction: bool | None: True = switch ON when humidity rises; False = switch OFF when humidity rises
+        temperature_enabled: bool | None: enable temperature hysteresis
+        temperature_upper_bound: float | None: upper temperature switching threshold (°C)
+        temperature_lower_bound: float | None: lower temperature switching threshold (°C)
+        temperature_direction: bool | None: True = switch ON when temperature rises; False = switch OFF when temperature rises
+        dirty: bool: Settings changed, device update pending
+
+    Notes:
+            Disabled sentinel values are hardware-specific (temperature=17099 for -1°C, humidity=2621 for -1%) and are handled in the node layer; the public API exposes floats in SI units.
+
+    """
+
+    humidity_enabled: bool | None = None
+    humidity_upper_bound: float | None = None
+    humidity_lower_bound: float | None = None
+    humidity_direction: bool | None = None
+    temperature_enabled: bool | None = None
+    temperature_upper_bound: float | None = None
+    temperature_lower_bound: float | None = None
+    temperature_direction: bool | None = None
+    dirty: bool = False
+
+
 @dataclass
 class SenseStatistics:
     """Sense statistics collection."""
 
     temperature: float | None = None
     humidity: float | None = None
+    temperature_hysteresis_state: bool | None = None
+    humidity_hysteresis_state: bool | None = None
 
 
 class PlugwiseNode(Protocol):

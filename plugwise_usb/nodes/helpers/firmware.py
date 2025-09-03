@@ -159,6 +159,7 @@ FEATURE_SUPPORTED_AT_FIRMWARE: Final = {
     NodeFeature.CIRCLEPLUS: 2.0,
     NodeFeature.INFO: 2.0,
     NodeFeature.SENSE: 2.0,
+    NodeFeature.SENSE_HYSTERESIS: 2.0,
     NodeFeature.TEMPERATURE: 2.0,
     NodeFeature.HUMIDITY: 2.0,
     NodeFeature.ENERGY: 2.0,
