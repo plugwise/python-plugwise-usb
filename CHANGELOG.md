@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.45.0 - 2025-09-03
+
+- PR [330](https://github.com/plugwise/python-plugwise-usb/pull/330): Add sense hysteresis based switch action
+
 ## 0.44.14 - 2025-08-31
 
 - PR [329](https://github.com/plugwise/python-plugwise-usb/pull/329): Improve EnergyLogs caching: store only data from MAX_LOG_HOURS (24)
