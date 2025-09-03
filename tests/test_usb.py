@@ -2578,9 +2578,9 @@ class TestStick:
         await test_sense._awake_response(awake_response6)  # pylint: disable=protected-access
         assert test_sense._delayed_task is not None  # pylint: disable=protected-access
         await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        await test_sense._awake_response(awake_response6)  # pylint: disable=protected-access
         assert test_sense._delayed_task is not None  # pylint: disable=protected-access
         await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
-        await test_sense._awake_response(awake_response6)  # pylint: disable=protected-access
         assert not test_sense.hysteresis_config_dirty
         assert test_sense.temperature_lower_bound == 24
 
