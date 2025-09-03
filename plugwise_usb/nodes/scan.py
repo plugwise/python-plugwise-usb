@@ -430,7 +430,7 @@ class PlugwiseScan(NodeSED):
             await self._scan_calibrate_light()
         await self.publish_feature_update_to_subscribers(
             NodeFeature.MOTION_CONFIG,
-            self._motion_config,
+            self.motion_config,
         )
 
     async def _configure_scan_task(self) -> bool:
@@ -477,7 +477,7 @@ class PlugwiseScan(NodeSED):
         await gather(
             self.publish_feature_update_to_subscribers(
                 NodeFeature.MOTION_CONFIG,
-                self._motion_config,
+                self.motion_config,
             ),
             self.save_cache(),
         )
