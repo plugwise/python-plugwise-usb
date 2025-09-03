@@ -302,8 +302,8 @@ class SenseStatistics:
 
     temperature: float | None = None
     humidity: float | None = None
-    temperature_state: bool | None = None
-    humidity_state: bool | None = None
+    temperature_hysteresis_state: bool | None = None
+    humidity_hysteresis_state: bool | None = None
 
 
 class PlugwiseNode(Protocol):
