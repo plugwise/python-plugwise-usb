@@ -132,10 +132,7 @@ class PlugwiseSense(NodeSED):
     async def _load_defaults(self) -> None:
         """Load default configuration settings."""
         await super()._load_defaults()
-        self._sense_statistics = SenseStatistics(
-            temperature=0.0,
-            humidity=0.0,
-        )
+        self._sense_statistics = SenseStatistics()
         if self._node_info.model is None:
             self._node_info.model = "Sense"
             self._sed_node_info_update_task_scheduled = True
