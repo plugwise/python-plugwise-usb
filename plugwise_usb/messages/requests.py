@@ -1428,7 +1428,7 @@ class SenseConfigureHysteresisRequest(PlugwiseRequest):
         upper_bound: int,
         direction: bool,
     ):
-        """Initialize ScanConfigureRequest message object."""
+        """Initialize ScanConfigureHysteresisRequest message object."""
         super().__init__(send_fn, mac)
         temp_hum_value = Int(1 if temp_hum else 0, length=2)
         lower_bound_value = Int(lower_bound, length=4)
