@@ -1056,7 +1056,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         ):
             # Rollover of log address
             _LOGGER.debug(
-                "Rollover log address from %s into %s for node %s",
+                "Rollover log address from %s to %s for node %s",
                 self._current_log_address,
                 node_info.current_logaddress_pointer,
                 self._mac_in_str,
