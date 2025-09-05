@@ -738,7 +738,7 @@ class CircleClockSetRequest(PlugwiseRequest):
         mac: bytes,
         dt: datetime,
         protocol_version: float,
-        reset: bool = False,
+        reset: int | bool = False,
     ) -> None:
         """Initialize CircleLogDataRequest message object."""
         super().__init__(send_fn, mac)
@@ -754,7 +754,14 @@ class CircleClockSetRequest(PlugwiseRequest):
         this_date = DateTime(dt.year, dt.month, month_minutes)
         this_time = Time(dt.hour, dt.minute, dt.second)
         day_of_week = Int(dt.weekday(), 2)
-        if reset:
+        if isinstance(reset, int):
+            self._args += [
+                this_date,
+                LogAddr(reset, 8, False),
+                this_time,
+                day_of_week,
+            ]
+        elif reset:
             self._args += [
                 this_date,
                 LogAddr(0, 8, False),

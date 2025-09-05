@@ -57,6 +57,7 @@ class EnergyCounters:
         self._mac = mac
         self._calibration: EnergyCalibration | None = None
         self._counters: dict[EnergyType, EnergyCounter] = {}
+        self._current_logaddress: int | None = None
         for energy_type in ENERGY_COUNTERS:
             self._counters[energy_type] = EnergyCounter(energy_type, mac)
         self._pulse_collection = PulseCollection(mac)
@@ -66,6 +67,10 @@ class EnergyCounters:
     def collected_logs(self) -> int:
         """Total collected logs."""
         return self._pulse_collection.collected_logs
+
+    def set_current_logaddres(self, address: int) -> None:
+        """Update current logaddress value."""
+        self._current_logaddress = address
 
     def add_empty_log(self, address: int, slot: int) -> None:
         """Add empty energy log record to mark any start of beginning of energy log collection."""
@@ -128,6 +133,11 @@ class EnergyCounters:
         return self._pulse_collection.log_addresses_missing
 
     @property
+    def current_logaddress(self) -> int | None:
+        """Return current registered logaddress value."""
+        return self._current_logaddress
+
+    @property
     def log_rollover(self) -> bool:
         """Indicate if new log is required due to rollover."""
         return self._pulse_collection.log_rollover
@@ -149,6 +159,7 @@ class EnergyCounters:
         self._pulse_collection.recalculate_missing_log_addresses()
         if self._calibration is None:
             return
+        self._energy_statistics.current_logaddress = self._current_logaddress
         self._energy_statistics.log_interval_consumption = (
             self._pulse_collection.log_interval_consumption
         )

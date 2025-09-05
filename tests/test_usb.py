@@ -947,6 +947,7 @@ class TestStick:
             hour_production_reset=None,
             day_production=None,
             day_production_reset=None,
+            current_logaddress=20,
         )
         # energy_update is not complete and should return none
         utc_now = dt.now(UTC)
@@ -964,6 +965,7 @@ class TestStick:
             hour_production_reset=None,
             day_production=None,
             day_production_reset=None,
+            current_logaddress=20,
         )
         await stick.disconnect()
 

@@ -260,6 +260,7 @@ class EnergyStatistics:
     hour_production_reset: datetime | None = None
     day_production: float | None = None
     day_production_reset: datetime | None = None
+    current_logaddress: int | None = None
 
 
 @dataclass(frozen=True)

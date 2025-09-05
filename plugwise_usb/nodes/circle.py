@@ -27,6 +27,7 @@ from ..connection import StickController
 from ..constants import (
     DAY_IN_HOURS,
     DEFAULT_CONS_INTERVAL,
+    LOGADDR_MAX,
     MAX_TIME_DRIFT,
     MINIMAL_POWER_UPDATE,
     NO_PRODUCTION_INTERVAL,
@@ -1030,26 +1031,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
             node_info = await node_request.send()
 
         if node_info is None:
+            _LOGGER.debug("No response for node_info_update() for %s", self.mac)
+            await self._available_update_state(False)
             return None
 
         await super().node_info_update(node_info)
-        await self._relay_update_state(
-            node_info.relay_state, timestamp=node_info.timestamp
-        )
-        if self._current_log_address is not None and (
-            self._current_log_address > node_info.current_logaddress_pointer
-            or self._current_log_address == 1
-        ):
-            # Rollover of log address
-            _LOGGER.debug(
-                "Rollover log address from %s into %s for node %s",
-                self._current_log_address,
-                node_info.current_logaddress_pointer,
-                self._mac_in_str,
-            )
-
-        if self._current_log_address != node_info.current_logaddress_pointer:
-            self._current_log_address = node_info.current_logaddress_pointer
 
         return self._node_info
 
@@ -1059,14 +1045,29 @@ class PlugwiseCircle(PlugwiseBaseNode):
     ) -> bool:
         """Process new node info and return true if all fields are updated."""
         if node_info.relay_state is not None:
-            self._relay_state = replace(
-                self._relay_state,
-                state=node_info.relay_state,
-                timestamp=node_info.timestamp,
+            await self._relay_update_state(
+                node_info.relay_state, timestamp=node_info.timestamp
+            )
+
+        if (
+            node_info.current_logaddress_pointer is not None
+            and self._current_log_address is not None
+            and (
+                self._current_log_address < node_info.current_logaddress_pointer
+                or self._current_log_address == 1
+            )
+        ):
+            # Rollover of log address
+            _LOGGER.debug(
+                "Rollover log address from %s into %s for node %s",
+                self._current_log_address,
+                node_info.current_logaddress_pointer,
+                self._mac_in_str,
             )
 
         if node_info.current_logaddress_pointer is not None:
             self._current_log_address = node_info.current_logaddress_pointer
+            self._energy_counters.set_current_logaddres(self._current_log_address)
 
         return await super().update_node_details(node_info)
 
@@ -1319,6 +1320,74 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
 
         _LOGGER.warning("Energy reset for Node %s successful", self._mac_in_str)
+
+        # Follow up by an energy-intervals (re)set
+        interval_request = CircleMeasureIntervalRequest(
+            self._send,
+            self._mac_in_bytes,
+            DEFAULT_CONS_INTERVAL,
+            NO_PRODUCTION_INTERVAL,
+        )
+        if (interval_response := await interval_request.send()) is None:
+            raise NodeError("No response for CircleMeasureIntervalRequest")
+
+        if (
+            interval_response.response_type
+            != NodeResponseType.POWER_LOG_INTERVAL_ACCEPTED
+        ):
+            raise MessageError(
+                f"Unknown NodeResponseType '{interval_response.response_type.name}' received"
+            )
+        _LOGGER.warning("Resetting energy intervals to default (= consumption only)")
+
+        # Clear the cached energy_collection
+        if self._cache_enabled:
+            self._set_cache(CACHE_ENERGY_COLLECTION, "")
+            _LOGGER.warning(
+                "Energy-collection cache cleared successfully, updating cache for %s",
+                self._mac_in_str,
+            )
+            await self.save_cache()
+
+        # Clear PulseCollection._logs
+        self._energy_counters.reset_pulse_collection()
+        _LOGGER.warning("Resetting pulse-collection")
+
+        # Request a NodeInfo update
+        if await self.node_info_update() is None:
+            _LOGGER.warning(
+                "Node info update failed after energy-reset for %s",
+                self._mac_in_str,
+            )
+        else:
+            _LOGGER.warning(
+                "Node info update after energy-reset successful for %s",
+                self._mac_in_str,
+            )
+
+    async def energy_logaddr_setrequest(self, logaddr: int) -> None:
+        """Set the logaddress to a specific value."""
+        if self._node_protocols is None:
+            raise NodeError("Unable to energy-reset when protocol version is unknown")
+
+        if logaddr < 1 or logaddr >= LOGADDR_MAX:
+            raise ValueError("Set logaddress out of range for {self._mac_in_str}")
+        request = CircleClockSetRequest(
+            self._send,
+            self._mac_in_bytes,
+            datetime.now(tz=UTC),
+            self._node_protocols.max,
+            logaddr,
+        )
+        if (response := await request.send()) is None:
+            raise NodeError(f"Logaddress set for {self._mac_in_str} failed")
+
+        if response.ack_id != NodeResponseType.CLOCK_ACCEPTED:
+            raise MessageError(
+                f"Unexpected NodeResponseType {response.ack_id!r} received as response to CircleClockSetRequest"
+            )
+
+        _LOGGER.warning("Logaddress set for Node %s successful", self._mac_in_str)
 
         # Follow up by an energy-intervals (re)set
         interval_request = CircleMeasureIntervalRequest(
