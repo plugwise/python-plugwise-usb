@@ -1049,10 +1049,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         if (
             node_info.current_logaddress_pointer is not None
             and self._current_log_address is not None
-            and (
-                self._current_log_address > node_info.current_logaddress_pointer
-                or self._current_log_address == 1
-            )
+            and self._current_log_address > node_info.current_logaddress_pointer
         ):
             # Rollover of log address
             _LOGGER.debug(
@@ -1062,7 +1059,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._mac_in_str,
             )
 
-        if node_info.current_logaddress_pointer is not None:
+        if (
+            node_info.current_logaddress_pointer is not None
+            and node_info.current_logaddress_pointer != self._current_log_address
+        ):
             self._current_log_address = node_info.current_logaddress_pointer
 
         return await super().update_node_details(node_info)
