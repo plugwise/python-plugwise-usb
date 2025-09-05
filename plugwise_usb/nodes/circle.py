@@ -1041,6 +1041,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
         self, node_info: NodeInfoResponse | None = None
     ) -> bool:
         """Process new node info and return true if all fields are updated."""
+        if node_info is None:
+            return False
+
         if node_info.relay_state is not None:
             await self._relay_update_state(
                 node_info.relay_state, timestamp=node_info.timestamp
