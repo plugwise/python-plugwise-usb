@@ -1033,39 +1033,39 @@ class PlugwiseCircle(PlugwiseBaseNode):
             return None
 
         await super().node_info_update(node_info)
-        await self._relay_update_state(
-            node_info.relay_state, timestamp=node_info.timestamp
-        )
-        if self._current_log_address is not None and (
-            self._current_log_address > node_info.current_logaddress_pointer
-            or self._current_log_address == 1
-        ):
-            # Rollover of log address
-            _LOGGER.debug(
-                "Rollover log address from %s into %s for node %s",
-                self._current_log_address,
-                node_info.current_logaddress_pointer,
-                self._mac_in_str,
-            )
-
-        if self._current_log_address != node_info.current_logaddress_pointer:
-            self._current_log_address = node_info.current_logaddress_pointer
 
         return self._node_info
 
     # pylint: disable=too-many-arguments
     async def update_node_details(
-        self, node_info: NodeInfoResponse | None = None
+        self, node_info: NodeInfoResponse | NodeInfoMessage | None = None
     ) -> bool:
         """Process new node info and return true if all fields are updated."""
+        if node_info is None:
+            return False
+
         if node_info.relay_state is not None:
-            self._relay_state = replace(
-                self._relay_state,
-                state=node_info.relay_state,
-                timestamp=node_info.timestamp,
+            await self._relay_update_state(
+                node_info.relay_state, timestamp=node_info.timestamp
             )
 
-        if node_info.current_logaddress_pointer is not None:
+        if (
+            node_info.current_logaddress_pointer is not None
+            and self._current_log_address is not None
+            and self._current_log_address > node_info.current_logaddress_pointer
+        ):
+            # Rollover of log address
+            _LOGGER.debug(
+                "Rollover log address from %s to %s for node %s",
+                self._current_log_address,
+                node_info.current_logaddress_pointer,
+                self._mac_in_str,
+            )
+
+        if (
+            node_info.current_logaddress_pointer is not None
+            and node_info.current_logaddress_pointer != self._current_log_address
+        ):
             self._current_log_address = node_info.current_logaddress_pointer
 
         return await super().update_node_details(node_info)
