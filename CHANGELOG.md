@@ -1,5 +1,9 @@
 # Changelog
 
+## ongoing
+
+- PR [333](https://github.com/plugwise/python-plugwise-usb/pull/333): Improve node_info_update and update_node_details logic
+
 ## 0.45.0 - 2025-09-03
 
 - PR [330](https://github.com/plugwise/python-plugwise-usb/pull/330): Add sense hysteresis based switch action
