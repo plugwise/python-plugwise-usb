@@ -1038,7 +1038,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
     # pylint: disable=too-many-arguments
     async def update_node_details(
-        self, node_info: NodeInfoResponse | None = None
+        self, node_info: NodeInfoResponse | NodeInfoMessage | None = None
     ) -> bool:
         """Process new node info and return true if all fields are updated."""
         if node_info is None:
