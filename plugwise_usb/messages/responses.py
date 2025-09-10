@@ -59,13 +59,15 @@ class NodeResponseType(bytes, Enum):
     CIRCLE_PLUS = b"00DD"  # ack for CirclePlusAllowJoiningRequest with state false
     CLOCK_ACCEPTED = b"00D7"
     JOIN_ACCEPTED = b"00D9"  # ack for CirclePlusAllowJoiningRequest with state true
+    NODE_RESET_ACK = b"00F2"
+    # NODE_RESET_NACK = b"????"
     POWER_LOG_INTERVAL_ACCEPTED = b"00F8"  # ack for CircleMeasureIntervalRequest
+    REAL_TIME_CLOCK_ACCEPTED = b"00DF"
+    REAL_TIME_CLOCK_FAILED = b"00E7"
     RELAY_SWITCHED_OFF = b"00DE"
     RELAY_SWITCHED_ON = b"00D8"
     RELAY_SWITCH_FAILED = b"00E2"
     SED_CONFIG_ACCEPTED = b"00F6"
-    REAL_TIME_CLOCK_ACCEPTED = b"00DF"
-    REAL_TIME_CLOCK_FAILED = b"00E7"
 
     # TODO: Validate these response types
     SED_CONFIG_FAILED = b"00F7"
