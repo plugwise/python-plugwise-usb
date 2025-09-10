@@ -485,7 +485,7 @@ class NodeResetRequest(PlugwiseRequest):
     """
 
     _identifier = b"0009"
-    _reply_identifier = b"0003"
+    # _reply_identifier is b"0000'with NODE_RESET_ACK, not b"0003" @dirixmjm & @bouwew 20250910
 
     def __init__(
         self,
