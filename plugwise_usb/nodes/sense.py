@@ -738,10 +738,7 @@ class PlugwiseSense(NodeSED):
             self.humidity_direction,
         )
         if (response := await request.send()) is None:
-            _LOGGER.warning(
-                "No response from %s to configure humidity hysteresis settings request",
-                self.name,
-            )
+            self._log_configure_failed("humidity hysteresis")
             return False
         if response.node_ack_type == NodeAckResponseType.SENSE_BOUNDARIES_FAILED:
             _LOGGER.warning(
@@ -749,16 +746,10 @@ class PlugwiseSense(NodeSED):
             )
             return False
         if response.node_ack_type == NodeAckResponseType.SENSE_BOUNDARIES_ACCEPTED:
-            _LOGGER.debug(
-                "Successful configure humidity hysteresis settings for %s", self.name
-            )
+            self._log_configure_success("humidity hysteresis")
             return True
 
-        _LOGGER.warning(
-            "Unexpected response ack type %s for %s",
-            response.node_ack_type,
-            self.name,
-        )
+        self._log_unexpected_response_ack(response.node_ack_type)
         return False
 
     async def _configure_sense_temperature_task(self) -> bool:
@@ -798,21 +789,13 @@ class PlugwiseSense(NodeSED):
             )
             return False
         if response.node_ack_type == NodeAckResponseType.SENSE_BOUNDARIES_FAILED:
-            _LOGGER.warning(
-                "Failed to configure temperature hysteresis settings for %s", self.name
-            )
+            self._log_configure_failed("temperature hysteresis")
             return False
         if response.node_ack_type == NodeAckResponseType.SENSE_BOUNDARIES_ACCEPTED:
-            _LOGGER.debug(
-                "Successful configure temperature hysteresis settings for %s", self.name
-            )
+            self._log_configure_success("temperature hysteresis")
             return True
 
-        _LOGGER.warning(
-            "Unexpected response ack type %s for %s",
-            response.node_ack_type,
-            self.name,
-        )
+        self._log_unexpected_response_ack(response.node_ack_type)
         return False
 
     async def _configure_sense_report_interval_task(self) -> bool:
@@ -831,18 +814,30 @@ class PlugwiseSense(NodeSED):
             )
             return False
         if response.node_ack_type == NodeAckResponseType.SENSE_INTERVAL_FAILED:
-            _LOGGER.warning("Failed to configure report interval for %s", self.name)
+            self._log_configure_failed("report interval")
             return False
         if response.node_ack_type == NodeAckResponseType.SENSE_INTERVAL_ACCEPTED:
-            _LOGGER.debug("Successful configure report interval for %s", self.name)
+            self._log_configure_success("report interval")
             return True
 
+        self._log_unexpected_response_ack(response.node_ack_type)
+        return False
+
+    def _log_unexpected_response_ack(self, response: NodeAckResponseType) -> None:
+        """Log unexpected response."""
         _LOGGER.warning(
             "Unexpected response ack type %s for %s",
             response.node_ack_type,
             self.name,
         )
-        return False
+
+    def _log_configure_failed(self, parameter: str) -> None:
+        """Log configuration failed."""
+        _LOGGER.warning("Failed to configure %s for %s", parameter, self.name)
+
+    def _log_configure_success(self, parameter: str) -> None:
+        """Log configuration success."""
+        _LOGGER.debug("Successful configure %s for %s", parameter, self.name)
 
     async def _sense_configure_update(self) -> None:
         """Push sense configuration update to cache."""
