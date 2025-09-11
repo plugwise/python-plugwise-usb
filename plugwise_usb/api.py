@@ -495,6 +495,20 @@ class PlugwiseNode(Protocol):
     # endregion
 
     # region Actions to execute
+    async def reset_node(self) -> None:
+        """Reset a node.
+
+        Description:
+            Resets the mode before unregistering it from the Plugwise network.
+
+        Returns:
+            None
+
+        Raised:
+            A warning logger message.
+
+        """
+
     async def set_relay(self, state: bool) -> bool:
         """Change the state of the relay.
 
