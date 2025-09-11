@@ -356,8 +356,8 @@ class PlugwiseSense(NodeSED):
         return DEFAULT_SENSE_HYSTERESIS_TEMPERATURE_DIRECTION
 
     @property
-    def report_interval(self) -> float:
-        """Temperature lower bound value."""
+    def report_interval(self) -> int:
+        """Sense report interval in minutes."""
         if self._hysteresis_config.report_interval is not None:
             return self._hysteresis_config.report_interval
         return DEFAULT_SENSE_HYSTERESIS_REPORT_INTERVAL
