@@ -18,7 +18,10 @@ from ..api import (
 )
 from ..connection import StickController
 from ..exceptions import MessageError, NodeError
-from ..messages.requests import SenseConfigureHysteresisRequest
+from ..messages.requests import (
+    SenseConfigureHysteresisRequest,
+    SenseReportIntervalRequest,
+)
 from ..messages.responses import (
     NODE_SWITCH_GROUP_ID,
     SENSE_REPORT_ID,
@@ -59,6 +62,7 @@ CACHE_SENSE_HYSTERESIS_TEMPERATURE_ENABLED = "temperature_enabled"
 CACHE_SENSE_HYSTERESIS_TEMPERATURE_UPPER_BOUND = "temperature_upper_bound"
 CACHE_SENSE_HYSTERESIS_TEMPERATURE_LOWER_BOUND = "temperature_lower_bound"
 CACHE_SENSE_HYSTERESIS_TEMPERATURE_DIRECTION = "temperature_direction"
+CACHE_SENSE_HYSTERESIS_REPORT_INTERVAL = "report_interval"
 CACHE_SENSE_HYSTERESIS_CONFIG_DIRTY = "sense_hysteresis_config_dirty"
 
 DEFAULT_SENSE_HYSTERESIS_HUMIDITY_ENABLED: Final = False
@@ -69,6 +73,7 @@ DEFAULT_SENSE_HYSTERESIS_TEMPERATURE_ENABLED: Final = False
 DEFAULT_SENSE_HYSTERESIS_TEMPERATURE_UPPER_BOUND: Final = 50.0
 DEFAULT_SENSE_HYSTERESIS_TEMPERATURE_LOWER_BOUND: Final = 50.0
 DEFAULT_SENSE_HYSTERESIS_TEMPERATURE_DIRECTION: Final = True
+DEFAULT_SENSE_HYSTERESIS_REPORT_INTERVAL: Final = 15
 
 
 class PlugwiseSense(NodeSED):
@@ -175,6 +180,9 @@ class PlugwiseSense(NodeSED):
         if (temperature_direction := self._temperature_direction_from_cache()) is None:
             dirty = True
             temperature_direction = DEFAULT_SENSE_HYSTERESIS_TEMPERATURE_DIRECTION
+        if (report_interval := self._report_interval_from_cache()) is None:
+            dirty = True
+            report_interval = DEFAULT_SENSE_HYSTERESIS_REPORT_INTERVAL
         dirty |= self._sense_hysteresis_config_dirty_from_cache()
 
         self._hysteresis_config = SenseHysteresisConfig(
@@ -186,6 +194,7 @@ class PlugwiseSense(NodeSED):
             temperature_upper_bound=temperature_upper_bound,
             temperature_lower_bound=temperature_lower_bound,
             temperature_direction=temperature_direction,
+            report_interval=report_interval,
             dirty=dirty,
         )
         if dirty:
@@ -248,6 +257,14 @@ class PlugwiseSense(NodeSED):
         """Load Temperature hysteresis switch direction from cache."""
         return self._get_cache_as_bool(CACHE_SENSE_HYSTERESIS_TEMPERATURE_DIRECTION)
 
+    def _report_interval_from_cache(self) -> float | None:
+        """Report interval from cache."""
+        if (
+            report_interval := self._get_cache(CACHE_SENSE_HYSTERESIS_REPORT_INTERVAL)
+        ) is not None:
+            return int(report_interval)
+        return None
+
     def _sense_hysteresis_config_dirty_from_cache(self) -> bool:
         """Load sense hysteresis dirty from cache."""
         if (
@@ -278,6 +295,7 @@ class PlugwiseSense(NodeSED):
             temperature_upper_bound=self.temperature_upper_bound,
             temperature_lower_bound=self.temperature_lower_bound,
             temperature_direction=self.temperature_direction,
+            report_interval=self.report_interval,
             dirty=self.hysteresis_config_dirty,
         )
 
@@ -336,6 +354,13 @@ class PlugwiseSense(NodeSED):
         if self._hysteresis_config.temperature_direction is not None:
             return self._hysteresis_config.temperature_direction
         return DEFAULT_SENSE_HYSTERESIS_TEMPERATURE_DIRECTION
+
+    @property
+    def report_interval(self) -> float:
+        """Temperature lower bound value."""
+        if self._hysteresis_config.report_interval is not None:
+            return self._hysteresis_config.report_interval
+        return DEFAULT_SENSE_HYSTERESIS_REPORT_INTERVAL
 
     @property
     def hysteresis_config_dirty(self) -> bool:
@@ -537,6 +562,31 @@ class PlugwiseSense(NodeSED):
         await self._sense_configure_update()
         return True
 
+    async def set_report_interval(self, report_interval: int) -> bool:
+        """Configure Sense measurement interval.
+
+        Configuration request will be queued and will be applied the next time when node is awake for maintenance.
+        """
+        _LOGGER.debug(
+            "set_report_interval | Device %s | %s -> %s",
+            self.name,
+            self._hysteresis_config.report_interval,
+            report_interval,
+        )
+        if report_interval < 1 or report_interval > 60:
+            raise ValueError(
+                f"Invalid measurement interval {report_interval}. It must be between 1 and 60 minutes"
+            )
+        if self._hysteresis_config.report_interval == report_interval:
+            return False
+        self._hysteresis_config = replace(
+            self._hysteresis_config,
+            report_interval=report_interval,
+            dirty=True,
+        )
+        await self._sense_configure_update()
+        return True
+
     async def set_hysteresis_temperature_direction(self, state: bool) -> bool:
         """Configure temperature hysteresis to switch on or off on increasing or decreasing direction.
 
@@ -637,6 +687,7 @@ class PlugwiseSense(NodeSED):
             configure_result = await gather(
                 self._configure_sense_humidity_task(),
                 self._configure_sense_temperature_task(),
+                self._configure_sense_report_interval_task(),
             )
             if all(configure_result):
                 self._hysteresis_config = replace(self._hysteresis_config, dirty=False)
@@ -645,10 +696,11 @@ class PlugwiseSense(NodeSED):
             else:
                 _LOGGER.warning(
                     "Sense hysteresis configuration partially failed for %s "
-                    "(humidity=%s, temperature=%s); will retry on next wake.",
+                    "(humidity=%s, temperature=%s, report_interval=%s); will retry on next wake.",
                     self.name,
                     configure_result[0],
                     configure_result[1],
+                    configure_result[2],
                 )
         await self.publish_feature_update_to_subscribers(
             NodeFeature.SENSE_HYSTERESIS,
@@ -763,6 +815,35 @@ class PlugwiseSense(NodeSED):
         )
         return False
 
+    async def _configure_sense_report_interval_task(self) -> bool:
+        """Configure Sense report interval setting. Returns True if successful."""
+        if not self._hysteresis_config.dirty:
+            return True
+        request = SenseReportIntervalRequest(
+            self._send,
+            self._mac_in_bytes,
+            self.report_interval,
+        )
+        if (response := await request.send()) is None:
+            _LOGGER.warning(
+                "No response from %s to configure report interval.",
+                self.name,
+            )
+            return False
+        if response.node_ack_type == NodeAckResponseType.SENSE_INTERVAL_FAILED:
+            _LOGGER.warning("Failed to configure report interval for %s", self.name)
+            return False
+        if response.node_ack_type == NodeAckResponseType.SENSE_INTERVAL_ACCEPTED:
+            _LOGGER.debug("Successful configure report interval for %s", self.name)
+            return True
+
+        _LOGGER.warning(
+            "Unexpected response ack type %s for %s",
+            response.node_ack_type,
+            self.name,
+        )
+        return False
+
     async def _sense_configure_update(self) -> None:
         """Push sense configuration update to cache."""
         self._set_cache(CACHE_SENSE_HYSTERESIS_HUMIDITY_ENABLED, self.humidity_enabled)
@@ -787,6 +868,7 @@ class PlugwiseSense(NodeSED):
         self._set_cache(
             CACHE_SENSE_HYSTERESIS_TEMPERATURE_DIRECTION, self.temperature_direction
         )
+        self._set_cache(CACHE_SENSE_HYSTERESIS_REPORT_INTERVAL, self.report_interval)
         self._set_cache(
             CACHE_SENSE_HYSTERESIS_CONFIG_DIRTY, self.hysteresis_config_dirty
         )

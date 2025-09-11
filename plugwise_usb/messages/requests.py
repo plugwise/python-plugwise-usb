@@ -1493,7 +1493,7 @@ class SenseReportIntervalRequest(PlugwiseRequest):
         mac: bytes,
         interval: int,
     ):
-        """Initialize ScanLightCalibrateRequest message object."""
+        """Initialize SenseReportIntervalRequest message object."""
         super().__init__(send_fn, mac)
         self._args.append(Int(interval, length=2))
 
