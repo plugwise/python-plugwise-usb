@@ -827,7 +827,7 @@ class PlugwiseSense(NodeSED):
         """Log unexpected response."""
         _LOGGER.warning(
             "Unexpected response ack type %s for %s",
-            response.node_ack_type,
+            response.name,
             self.name,
         )
 
