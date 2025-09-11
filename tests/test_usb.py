@@ -721,7 +721,7 @@ class TestStick:
         assert len(stick.nodes) == 7  # Discovered nodes
 
         # Test unregistering of node
-        await unregister_node("1111111111111111")
+        await pw_stick.unregister_node("1111111111111111")
         
         await stick.disconnect()
 
