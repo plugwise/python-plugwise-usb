@@ -252,13 +252,17 @@ class MockStickController:
         """Add response to queue."""
         self.send_response.append(send_response)
 
+    def clear_response(self) -> None:
+        """Clear response queue."""
+        self.send_response.clear()
+
     async def send(
         self,
         request: pw_requests.PlugwiseRequest,  # type: ignore[name-defined]
         suppress_node_errors=True,
     ) -> pw_responses.PlugwiseResponse | None:  # type: ignore[name-defined]
         """Submit request to queue and return response."""
-        if len(self.send_response) > 0:
+        if self.send_response:
             return self.send_response.pop(0)
         return None
 
@@ -2296,7 +2300,7 @@ class TestStick:
         )
 
         # scan with cache enabled
-        mock_stick_controller.send_response = []
+        mock_stick_controller.clear_response()
         test_scan = pw_scan.PlugwiseScan(
             "1298347650AFBECD",
             pw_api.NodeType.SCAN,
