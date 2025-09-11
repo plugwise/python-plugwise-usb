@@ -228,7 +228,9 @@ class MockOsPath:
 class MockStickController:
     """Mock stick controller."""
 
-    send_response: list = []
+    def __init__(self) -> None:
+        """Initialize MockStickController."""
+        self.send_response: list[pw_responses.PlugwiseResponse] = []
 
     async def subscribe_to_messages(
         self,
