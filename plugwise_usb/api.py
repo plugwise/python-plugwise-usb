@@ -495,17 +495,20 @@ class PlugwiseNode(Protocol):
     # endregion
 
     # region Actions to execute
-    async def reset_node(self) -> None:
-        """Reset a node.
+    async def unregister_node(self, mac: str) -> None:
+        """Remove a node from the Plugwise network.
 
         Description:
             Resets the mode before unregistering it from the Plugwise network.
+
+        Args:
+            mac: MAC of the node to unregister.
 
         Returns:
             None
 
         Raised:
-            A warning logger message.
+            NodeError: when the node isn't removed.
 
         """
 
