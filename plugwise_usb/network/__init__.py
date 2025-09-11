@@ -166,8 +166,12 @@ class StickNetwork:
 
     async def unregister_node(self, mac: str) -> None:
         """Unregister node from current Plugwise network."""
+        if not validate_mac(mac):
+            raise NodeError(f"MAC {mac} invalid")
+
+        node_to_remove = self._nodes[mac]
         try:
-            await self._register.unregister_node(mac)
+            await self._register.unregister_node(node_to_remove)
         except (KeyError, NodeError) as exc:
             raise MessageError("Mac not registered, already deleted?") from exc
 
