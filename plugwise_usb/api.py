@@ -278,7 +278,7 @@ class SenseHysteresisConfig:
         temperature_upper_bound: float | None: upper temperature switching threshold (°C)
         temperature_lower_bound: float | None: lower temperature switching threshold (°C)
         temperature_direction: bool | None: True = switch ON when temperature rises; False = switch OFF when temperature rises
-        report_interval: int | None = None: Interval time at which the temperature and humidity are reported
+        report_interval: int | None = None: Interval in minutes at which the temperature and humidity are reported (1-60)
         dirty: bool: Settings changed, device update pending
 
     Notes:
