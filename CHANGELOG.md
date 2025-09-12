@@ -1,7 +1,8 @@
 # Changelog
 
-## ongoing
+## 0.46.0 - 2025-09-12
 
+- PR [338](https://github.com/plugwise/python-plugwise-usb/pull/338): Append report interval to Sense node configuration
 - PR [333](https://github.com/plugwise/python-plugwise-usb/pull/333): Improve node_info_update and update_node_details logic
 
 ## 0.45.0 - 2025-09-03
