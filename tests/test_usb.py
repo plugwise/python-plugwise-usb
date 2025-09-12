@@ -2445,6 +2445,7 @@ class TestStick:
         assert test_sense.temperature_upper_bound == 25
         assert test_sense.temperature_lower_bound == 25
         assert test_sense.temperature_direction
+        assert test_sense.report_interval == 15
 
         # test humidity upper bound
         with pytest.raises(ValueError):
@@ -2584,6 +2585,43 @@ class TestStick:
         await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
         assert not test_sense.hysteresis_config_dirty
         assert test_sense.temperature_lower_bound == 24
+
+        # test report interval
+        with pytest.raises(ValueError):
+            await test_sense.set_report_interval(0)
+        with pytest.raises(ValueError):
+            await test_sense.set_report_interval(61)
+        assert not await test_sense.set_report_interval(15)
+        assert not test_sense.hysteresis_config_dirty
+        assert await test_sense.set_report_interval(5)
+        assert test_sense.hysteresis_config_dirty
+        assert test_sense.hysteresis_config_dirty
+        assert test_sense.report_interval == 5
+
+        # Failed config
+        mock_stick_controller.append_response(sense_config_accepted)
+        mock_stick_controller.append_response(sense_config_accepted)
+        mock_stick_controller.append_response(sense_config_report_interval_failed)
+        awake_response1.timestamp = awake_response1.timestamp + td(
+            seconds=pw_sed.AWAKE_RETRY
+        )
+        await test_sense._awake_response(awake_response1)  # pylint: disable=protected-access
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        assert test_sense.hysteresis_config_dirty
+
+        # Successful config
+        mock_stick_controller.append_response(sense_config_accepted)
+        mock_stick_controller.append_response(sense_config_accepted)
+        mock_stick_controller.append_response(sense_config_report_interval_accepted)
+        awake_response1.timestamp = awake_response1.timestamp + td(
+            seconds=pw_sed.AWAKE_RETRY
+        )
+        await test_sense._awake_response(awake_response1)  # pylint: disable=protected-access
+        assert test_sense._delayed_task is not None  # pylint: disable=protected-access
+        await asyncio.wait_for(asyncio.shield(test_sense._delayed_task), timeout=2)
+        assert not test_sense.hysteresis_config_dirty
+        assert test_sense.report_interval == 5
 
     @pytest.mark.asyncio
     async def test_switch_node(self, monkeypatch: pytest.MonkeyPatch) -> None:
