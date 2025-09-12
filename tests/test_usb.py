@@ -250,9 +250,9 @@ class MockStickController:
 
         return dummy_method
 
-    def append_response(self, send_response) -> None:
+    def append_response(self, response) -> None:
         """Add response to queue."""
-        self.send_response.append(send_response)
+        self.send_response.append(response)
 
     def clear_responses(self) -> None:
         """Clear response queue."""
@@ -2420,7 +2420,9 @@ class TestStick:
             construct_message(b"004F555555555555555500", b"FFFE")
         )
 
-        async def run_awake_with_response(responses):
+        async def run_awake_with_response(
+            responses: list[pw_responses.PlugwiseResponse],
+        ):
             """Wake node up and run tasks."""
             mock_stick_controller.clear_responses()
             for r in responses:
