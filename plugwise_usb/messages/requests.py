@@ -861,11 +861,11 @@ class NodeRemoveRequest(PlugwiseRequest):
         self,
         send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
         mac_circle_plus: bytes,
-        mac_to_unjoined: str,
+        mac_to_unjoin: str,
     ) -> None:
         """Initialize NodeRemoveRequest message object."""
         super().__init__(send_fn, mac_circle_plus)
-        self._args.append(String(mac_to_unjoined, length=16))
+        self._args.append(String(mac_to_unjoin, length=16))
 
     async def send(self) -> NodeRemoveResponse | None:
         """Send request."""
