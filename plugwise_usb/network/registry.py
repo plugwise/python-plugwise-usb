@@ -271,8 +271,7 @@ class StickNetworkRegister:
         if node.mac not in self._registry:
             raise NodeError(f"No existing Node ({node.mac}) found to unregister")
 
-        # First reset the node, then remove it from the network.
-        await node.reset_node()
+        # First remove the node, when succesful then reset it.
         request = NodeRemoveRequest(self._send_to_controller, self._mac_nc, node.mac)
         if (response := await request.send()) is None:
             raise NodeError(
@@ -285,6 +284,7 @@ class StickNetworkRegister:
                 + f" failed to unregister node '{node.mac}'"
             )
 
+        await node.reset_node()
         await self.remove_network_registration(node.mac)
         await node.clear_cache()
 
