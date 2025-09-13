@@ -648,7 +648,11 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             self._send, self._mac_in_bytes, self.node_type.value, timeout
         )
         response = await request.send()
-        if response is None or getattr(response, "response_type", None) != NodeResponseType.NODE_RESET_ACK:
+        if (
+            response is None
+            or getattr(response, "response_type", None)
+            != NodeResponseType.NODE_RESET_ACK
+        ):
             ack = getattr(response, "ack_id", None)
             rtype = getattr(response, "response_type", None)
             _LOGGER.warning(
