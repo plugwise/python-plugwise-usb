@@ -722,7 +722,7 @@ class TestStick:
 
         # Test unregistering of node
         _LOGGER.debug("HOI unregister node")
-        await pw_api.PlugwiseNode.unregister_node(self, "1111111111111111")
+        await stick.unregister_node("1111111111111111")
         assert stick.nodes.get("1111111111111111") is None
         assert len(stick.nodes) == 6
         await stick.disconnect()
