@@ -721,7 +721,6 @@ class TestStick:
         assert len(stick.nodes) == 7  # Discovered nodes
 
         # Test unregistering of node
-        _LOGGER.debug("HOI unregister node")
         await stick.unregister_node("3333333333333333")
         assert stick.nodes.get("3333333333333333") is None
         assert len(stick.nodes) == 6

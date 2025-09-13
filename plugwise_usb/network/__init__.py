@@ -166,7 +166,6 @@ class StickNetwork:
 
     async def unregister_node(self, mac: str) -> None:
         """Unregister node from current Plugwise network."""
-        _LOGGER.debug("HOI network-unregister_node with %s", mac)
         if not validate_mac(mac):
             raise NodeError(f"MAC {mac} invalid")
 
