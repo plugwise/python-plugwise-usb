@@ -59,7 +59,7 @@ class NodeFeature(str, Enum):
     TEMPERATURE = "temperature"
 
 
-class NodeType(Enum):
+class NodeType(IntEnum):
     """USB Node types."""
 
     STICK = 0
