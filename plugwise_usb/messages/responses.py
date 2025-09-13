@@ -60,7 +60,6 @@ class NodeResponseType(bytes, Enum):
     CLOCK_ACCEPTED = b"00D7"
     JOIN_ACCEPTED = b"00D9"  # ack for CirclePlusAllowJoiningRequest with state true
     NODE_RESET_ACK = b"00F2"
-    # NODE_RESET_NACK = b"????"
     POWER_LOG_INTERVAL_ACCEPTED = b"00F8"  # ack for CircleMeasureIntervalRequest
     REAL_TIME_CLOCK_ACCEPTED = b"00DF"
     REAL_TIME_CLOCK_FAILED = b"00E7"
