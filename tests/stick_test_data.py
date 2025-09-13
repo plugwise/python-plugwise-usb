@@ -1347,7 +1347,8 @@ RESPONSE_MESSAGES = {
     b"\x05\x05\x03\x03000933333333333333330204\r\n": (
         "Reset node request for 333333333333333333",
         b"000000C1",  # Success ack
-        b"000000F2"
+        b"0000"  # msg_id
+        + b"00F2"  # NODE_RESET_ACK
         + b"3333333333333333",
     ),
 }
