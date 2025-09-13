@@ -496,10 +496,8 @@ class NodeResetRequest(PlugwiseRequest):
     ) -> None:
         """Initialize NodeResetRequest message object."""
         super().__init__(send_fn, mac)
-        self._args += [
-            Int(moduletype, length=2),
-            Int(timeout, length=2),
-        ]
+        module_id = getattr(moduletype, "value", moduletype)
+        self._args += [Int(module_id, length=2), Int(timeout, length=2)]
 
     async def send(self) -> NodeResponse | None:
         """Send request."""
