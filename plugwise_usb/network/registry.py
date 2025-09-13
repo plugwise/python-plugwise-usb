@@ -286,6 +286,7 @@ class StickNetworkRegister:
             )
 
         await self.remove_network_registration(node.mac)
+        await node.clear_cache()
 
     async def clear_register_cache(self) -> None:
         """Clear current cache."""
