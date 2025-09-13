@@ -31,7 +31,7 @@ class NetworkRegistrationCache(PlugwiseCache):
             node_value = str(node_type)
             cache_data_to_save[mac] = node_value
         _LOGGER.debug("Save NodeTypes %s", str(len(cache_data_to_save)))
-        await self.write_cache(cache_data_to_save)
+        await self.write_cache(cache_data_to_save, True)  # rewrite=True is required
 
     async def clear_cache(self) -> None:
         """Clear current cache."""
