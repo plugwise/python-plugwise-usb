@@ -1349,7 +1349,7 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"0000" + b"00F2" + b"3333333333333333",  # msg_id, reset_ack, mac
     ),
-    b"\x05\x05\x03\x03001C0098765432101234333333333333333333\r\n": (
+    b"\x05\x05\x03\x03001C009876543210123433333333333333331E2D\r\n": (
         "Remove node request for 333333333333333333",
         b"000000C1",  # Success ack
         b"001D"  # msg_id
