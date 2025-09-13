@@ -645,7 +645,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Reset node present in the current Plugwise network."""
         timeout = 4
         request = NodeResetRequest(
-            self._send, self._mac_in_bytes, int(self.node_type), timeout
+            self._send, self._mac_in_bytes, self.node_type.value, timeout
         )
         response = await request.send()
         if response is None or getattr(response, "response_type", None) != NodeResponseType.NODE_RESET_ACK:
