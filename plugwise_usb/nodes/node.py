@@ -648,18 +648,11 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
             self._send, self._mac_in_bytes, self.node_type.value, timeout
         )
         response = await request.send()
-        if (
-            response is None
-            or getattr(response, "response_type", None)
-            != NodeResponseType.NODE_RESET_ACK
-        ):
-            ack = getattr(response, "ack_id", None)
-            rtype = getattr(response, "response_type", None)
+        if response is None or response.ack_id != NodeResponseType.NODE_RESET_ACK:
             _LOGGER.warning(
-                "Node %s reset not acknowledged (ack_id=%s, response_type=%s)",
+                "Node %s reset not acknowledged (response=%s)",
                 self._mac_in_str,
-                ack,
-                rtype,
+                getattr(response, "ack_id", None),
             )
 
     async def unload(self) -> None:
