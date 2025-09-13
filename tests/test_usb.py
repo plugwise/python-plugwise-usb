@@ -719,6 +719,11 @@ class TestStick:
         assert stick.joined_nodes == 9
         assert stick.nodes.get("0098765432101234") is not None
         assert len(stick.nodes) == 7  # Discovered nodes
+
+        # Test unregistering of node
+        await stick.unregister_node("3333333333333333")
+        assert stick.nodes.get("3333333333333333") is None
+        assert len(stick.nodes) == 6
         await stick.disconnect()
 
     async def node_relay_state(
@@ -1733,10 +1738,10 @@ class TestStick:
             )
             mock_file_stream.writelines.assert_called_with(
                 [
-                    "0123456789ABCDEF;NodeType.CIRCLE_PLUS\n",
-                    "FEDCBA9876543210;NodeType.CIRCLE\n",
-                    "1298347650AFBECD;NodeType.SCAN\n",
-                    "1234ABCD4321FEDC;NodeType.STEALTH\n",
+                    "0123456789ABCDEF;1\n",
+                    "FEDCBA9876543210;2\n",
+                    "1298347650AFBECD;6\n",
+                    "1234ABCD4321FEDC;9\n",
                 ]
             )
         assert pw_nw_cache.nodetypes == {

@@ -1,5 +1,9 @@
 # Changelog
 
+## Ongoing
+
+- Improve node removal: reset the node before removing and remove the cache-file too.
+
 ## 0.46.0 - 2025-09-12
 
 - PR [338](https://github.com/plugwise/python-plugwise-usb/pull/338): Append report interval to Sense node configuration
