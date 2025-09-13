@@ -481,7 +481,7 @@ class NodeResetRequest(PlugwiseRequest):
     """TODO:Some kind of reset request.
 
     Supported protocols : 1.0, 2.0, 2.1
-    Response message    : <UNKNOWN>
+    Response message    : NodeResponse with NODE_RESET_ACK/NACK
     """
 
     _identifier = b"0009"
@@ -501,15 +501,15 @@ class NodeResetRequest(PlugwiseRequest):
             Int(timeout, length=2),
         ]
 
-    async def send(self) -> NodeSpecificResponse | None:
+    async def send(self) -> NodeResponse | None:
         """Send request."""
         result = await self._send_request()
-        if isinstance(result, NodeSpecificResponse):
+        if isinstance(result, NodeResponse):
             return result
         if result is None:
             return None
         raise MessageError(
-            f"Invalid response message. Received {result.__class__.__name__}, expected NodeSpecificResponse"
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeResponse"
         )
 
 
