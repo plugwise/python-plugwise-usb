@@ -722,8 +722,8 @@ class TestStick:
 
         # Test unregistering of node
         _LOGGER.debug("HOI unregister node")
-        await stick.unregister_node("1111111111111111")
-        assert stick.nodes.get("1111111111111111") is None
+        await stick.unregister_node("3333333333333333")
+        assert stick.nodes.get("3333333333333333") is None
         assert len(stick.nodes) == 6
         await stick.disconnect()
 
