@@ -33,7 +33,7 @@ from ..constants import SUPPRESS_INITIALIZATION_WARNINGS, TYPE_MODEL, UTF8
 from ..exceptions import FeatureError, NodeError
 from ..helpers.util import version_to_model
 from ..messages.requests import NodeInfoRequest, NodePingRequest, NodeResetRequest
-from ..messages.responses import NodeInfoResponse, NodePingResponse
+from ..messages.responses import NodeInfoResponse, NodePingResponse, NodeResponseType
 from .helpers import raise_not_loaded
 from .helpers.cache import NodeCache
 from .helpers.firmware import FEATURE_SUPPORTED_AT_FIRMWARE, SupportedVersions
@@ -645,14 +645,17 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         """Reset node present in the current Plugwise network."""
         timeout = 4
         request = NodeResetRequest(
-            self._send, self._mac_in_bytes, self.node_type, timeout
+            self._send, self._mac_in_bytes, int(self.node_type), timeout
         )
         response = await request.send()
-        if response is None or response.ack_id != NodeType.NODE_RESET_ACK:
+        if response is None or getattr(response, "response_type", None) != NodeResponseType.NODE_RESET_ACK:
+            ack = getattr(response, "ack_id", None)
+            rtype = getattr(response, "response_type", None)
             _LOGGER.warning(
-                "Node %s reset response is None or wrong ack_id %s received",
+                "Node %s reset not acknowledged (ack_id=%s, response_type=%s)",
                 self._mac_in_str,
-                response.ack_id,
+                ack,
+                rtype,
             )
 
     async def unload(self) -> None:
