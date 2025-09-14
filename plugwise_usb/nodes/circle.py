@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import Task, create_task, gather
+from asyncio import Task, create_task, gather, sleep
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
@@ -141,6 +141,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
         """Initialize base class for Sleeping End Device."""
         super().__init__(mac, node_type, controller, loaded_callback)
 
+        # Clock
+        self._clock_synchronize_task: Task[None] | None = None
         # Relay
         self._relay_lock: RelayLock = RelayLock()
         self._relay_state: RelayState = RelayState()
@@ -852,6 +854,12 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 )
                 await self.save_cache()
 
+    async def _clock_synchronize_scheduler(self) -> bool:
+        """Synchronize clock scheduler."""
+        while True:
+            await sleep(60)
+            await self.clock_synchronize()
+
     async def clock_synchronize(self) -> bool:
         """Synchronize clock. Returns true if successful."""
         get_clock_request = CircleClockGetRequest(self._send, self._mac_in_bytes)
@@ -992,6 +1000,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             self._initialized = False
             return False
+        if self._clock_synchronize_task is None or self._clock_synchronize_task.done():
+            self._clock_synchronize_task = create_task(
+                self._clock_synchronize_scheduler()
+            )
 
         if not self._calibration and not await self.calibration_update():
             _LOGGER.debug(
@@ -1081,6 +1093,13 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
+
+        if (
+            hasattr(self, "_clock_synchronize_task")
+            and self._clock_synchronize_task
+            and not self._clock_synchronize_task.done()
+        ):
+            self._clock_synchronize_task.cancel()
 
         await super().unload()
 
