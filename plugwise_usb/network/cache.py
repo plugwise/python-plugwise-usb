@@ -28,10 +28,11 @@ class NetworkRegistrationCache(PlugwiseCache):
         """Save the node information to file."""
         cache_data_to_save: dict[str, str] = {}
         for mac, node_type in self._nodetypes.items():
-            node_value = str(node_type)
-            cache_data_to_save[mac] = node_value
-        _LOGGER.debug("Save NodeTypes %s", str(len(cache_data_to_save)))
-        await self.write_cache(cache_data_to_save)
+            cache_data_to_save[mac] = node_type.name
+        _LOGGER.debug("Save NodeTypes for %s Nodes", str(len(cache_data_to_save)))
+        await self.write_cache(
+            cache_data_to_save, True
+        )  # rewrite set to True is required
 
     async def clear_cache(self) -> None:
         """Clear current cache."""
@@ -44,11 +45,16 @@ class NetworkRegistrationCache(PlugwiseCache):
         self._nodetypes = {}
         for mac, node_value in data.items():
             node_type: NodeType | None = None
-            if len(node_value) >= 10:
+            # Backward-compatible parsing: support full enums, enum names, or numeric values
+            val = node_value.strip()
+            key = val.split(".", 1)[1] if val.startswith("NodeType.") else val
+            node_type = NodeType.__members__.get(key)  # e.g., "CIRCLE"
+            if node_type is None and val.isdigit():  # e.g., "2"
                 try:
-                    node_type = NodeType[node_value[9:]]
-                except KeyError:
+                    node_type = NodeType(int(val))
+                except ValueError:
                     node_type = None
+
             if node_type is None:
                 _LOGGER.warning("Invalid NodeType in cache: %s", node_value)
                 continue
