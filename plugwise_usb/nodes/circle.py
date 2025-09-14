@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import Task, create_task, gather, sleep
+from asyncio import CancelledError, Task, create_task, gather, sleep
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
@@ -854,11 +854,14 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 )
                 await self.save_cache()
 
-    async def _clock_synchronize_scheduler(self) -> bool:
-        """Synchronize clock scheduler."""
-        while True:
-            await sleep(60)
-            await self.clock_synchronize()
+    async def _clock_synchronize_scheduler(self) -> None:
+        """Background task: periodically synchronize the clock until cancelled."""
+        try:
+            while True:
+                await sleep(60)
+                await self.clock_synchronize()
+        except CancelledError:
+            _LOGGER.debug("Clock sync scheduler cancelled for %s", self.name)
 
     async def clock_synchronize(self) -> bool:
         """Synchronize clock. Returns true if successful."""
@@ -1094,12 +1097,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
 
-        if (
-            hasattr(self, "_clock_synchronize_task")
-            and self._clock_synchronize_task
-            and not self._clock_synchronize_task.done()
-        ):
+        if self._clock_synchronize_task:
             self._clock_synchronize_task.cancel()
+            await gather(self._clock_synchronize_task, return_exceptions=True)
+            self._clock_synchronize_task = None
 
         await super().unload()
 
