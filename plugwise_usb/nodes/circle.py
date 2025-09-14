@@ -862,6 +862,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 await self.clock_synchronize()
         except CancelledError:
             _LOGGER.debug("Clock sync scheduler cancelled for %s", self.name)
+            raise
 
     async def clock_synchronize(self) -> bool:
         """Synchronize clock. Returns true if successful."""
