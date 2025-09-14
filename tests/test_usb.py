@@ -1733,10 +1733,10 @@ class TestStick:
             )
             mock_file_stream.writelines.assert_called_with(
                 [
-                    "0123456789ABCDEF;NodeType.CIRCLE_PLUS\n",
-                    "FEDCBA9876543210;NodeType.CIRCLE\n",
-                    "1298347650AFBECD;NodeType.SCAN\n",
-                    "1234ABCD4321FEDC;NodeType.STEALTH\n",
+                    "0123456789ABCDEF;CIRCLE_PLUS\n",
+                    "FEDCBA9876543210;CIRCLE\n",
+                    "1298347650AFBECD;SCAN\n",
+                    "1234ABCD4321FEDC;STEALTH\n",
                 ]
             )
         assert pw_nw_cache.nodetypes == {
