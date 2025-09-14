@@ -29,7 +29,7 @@ class NetworkRegistrationCache(PlugwiseCache):
         cache_data_to_save: dict[str, str] = {}
         for mac, node_type in self._nodetypes.items():
             cache_data_to_save[mac] = node_type.name
-        _LOGGER.debug("Save NodeTypes for %s Nodes", str(len(cache_data_to_save)))
+        _LOGGER.debug("Save NodeTypes for %s Nodes", (len(cache_data_to_save)))
         await self.write_cache(
             cache_data_to_save, True
         )  # rewrite set to True is required
@@ -47,9 +47,9 @@ class NetworkRegistrationCache(PlugwiseCache):
             node_type: NodeType | None = None
             # Backward-compatible parsing: support full enums, enum names, or numeric values
             val = node_value.strip()
-            key = val.split(".", 1)[1] if val.startswith("NodeType.") else val
+            key = (val.split(".", 1)[1] if val.startswith("NodeType.") else val).upper()
             node_type = NodeType.__members__.get(key)  # e.g., "CIRCLE"
-            if node_type is None and val.isdigit():  # e.g., "2"
+            if node_type is None:
                 try:
                     node_type = NodeType(int(val))
                 except ValueError:
@@ -92,5 +92,9 @@ class NetworkRegistrationCache(PlugwiseCache):
                 continue
             if (node_type := self.get_nodetype(mac)) is not None:
                 new_nodetypes[mac] = node_type
+
+        if new_nodetypes == self._nodetypes:
+            _LOGGER.debug("prune_cache: no changes; skipping save")
+            return
         self._nodetypes = new_nodetypes
         await self.save_cache()
