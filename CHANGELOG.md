@@ -1,5 +1,9 @@
 # Changelog
 
+## Ongoing
+
+- PR [342](https://github.com/plugwise/python-plugwise-usb/pull/342): Improve node_type chaching.
+
 ## 0.46.0 - 2025-09-12
 
 - PR [338](https://github.com/plugwise/python-plugwise-usb/pull/338): Append report interval to Sense node configuration

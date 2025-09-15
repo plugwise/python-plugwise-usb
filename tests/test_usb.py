@@ -1712,9 +1712,9 @@ class TestStick:
 
         # test with valid data
         mock_read_data = [
-            "0123456789ABCDEF;NodeType.CIRCLE_PLUS",
+            "0123456789ABCDEF;CIRCLE_PLUS",
             "FEDCBA9876543210;NodeType.CIRCLE",
-            "1298347650AFBECD;NodeType.SCAN",
+            "1298347650AFBECD;6",
         ]
         file_chunks_iter = iter(mock_read_data)
         mock_file_stream = MagicMock(readlines=lambda *args, **kwargs: file_chunks_iter)
@@ -1733,10 +1733,10 @@ class TestStick:
             )
             mock_file_stream.writelines.assert_called_with(
                 [
-                    "0123456789ABCDEF;NodeType.CIRCLE_PLUS\n",
-                    "FEDCBA9876543210;NodeType.CIRCLE\n",
-                    "1298347650AFBECD;NodeType.SCAN\n",
-                    "1234ABCD4321FEDC;NodeType.STEALTH\n",
+                    "0123456789ABCDEF;CIRCLE_PLUS\n",
+                    "FEDCBA9876543210;CIRCLE\n",
+                    "1298347650AFBECD;SCAN\n",
+                    "1234ABCD4321FEDC;STEALTH\n",
                 ]
             )
         assert pw_nw_cache.nodetypes == {
