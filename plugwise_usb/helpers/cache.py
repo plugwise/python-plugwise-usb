@@ -6,7 +6,12 @@ from asyncio import get_running_loop
 from contextlib import suppress
 from secrets import token_hex as secrets_token_hex
 import logging
-from os import fsync as os_fsync, getenv as os_getenv, getpid as os_getpid, name as os_name
+from os import (
+    fsync as os_fsync,
+    getenv as os_getenv,
+    getpid as os_getpid,
+    name as os_name,
+)
 from os.path import expanduser as os_path_expand_user, join as os_path_join
 from pathlib import Path
 
