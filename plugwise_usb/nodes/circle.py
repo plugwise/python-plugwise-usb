@@ -888,7 +888,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         _LOGGER.info(
             "Reset clock of node %s because time has drifted %s sec",
             self._mac_in_str,
-            str(clock_offset.seconds),
+            str(int(abs(clock_offset.total_seconds()))),
         )
         if self._node_protocols is None:
             raise NodeError(
