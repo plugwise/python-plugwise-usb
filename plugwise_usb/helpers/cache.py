@@ -99,9 +99,7 @@ class PlugwiseCache:
             )
         return os_path_join(os_path_expand_user("~"), CACHE_DIR)
 
-    async def write_cache(
-        self, data: dict[str, str], rewrite: bool = False
-    ) -> None:    # noqa: PLR0912
+    async def write_cache(self, data: dict[str, str], rewrite: bool = False) -> None:  # noqa: PLR0912
         """Save information to cache file atomically using aiofiles + temp file."""
         if not self._initialized:
             raise CacheError(
