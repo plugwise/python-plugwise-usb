@@ -79,46 +79,76 @@ class PlugwiseCache:
             )
         return os_path_join(os_path_expand_user("~"), CACHE_DIR)
 
-    async def write_cache(self, data: dict[str, str], rewrite: bool = False) -> None:
-        """Save information to cache file."""
-        if not self._initialized:
-            raise CacheError(
-                f"Unable to save cache. Initialize cache file '{self._file_name}' first."
-            )
+async def write_cache(self, data: dict[str, str], rewrite: bool = False) -> None:
+    """Save information to cache file atomically using aiofiles + temp file."""
+    if not self._initialized:
+        raise CacheError(
+            f"Unable to save cache. Initialize cache file '{self._file_name}' first."
+        )
 
-        current_data: dict[str, str] = {}
-        if not rewrite:
-            current_data = await self.read_cache()
-        processed_keys: list[str] = []
-        data_to_write: list[str] = []
-        for _cur_key, _cur_val in current_data.items():
-            _write_val = _cur_val
-            if _cur_key in data:
-                _write_val = data[_cur_key]
-                processed_keys.append(_cur_key)
-            data_to_write.append(f"{_cur_key}{CACHE_KEY_SEPARATOR}{_write_val}\n")
-        # Write remaining new data
-        for _key, _value in data.items():
-            if _key not in processed_keys:
-                data_to_write.append(f"{_key}{CACHE_KEY_SEPARATOR}{_value}\n")
+    current_data: dict[str, str] = {}
+    if not rewrite:
+        current_data = await self.read_cache()
+    
+    processed_keys: list[str] = []
+    data_to_write: list[str] = []
+    
+    # Prepare data exactly as in original implementation
+    for _cur_key, _cur_val in current_data.items():
+        _write_val = _cur_val
+        if _cur_key in data:
+            _write_val = data[_cur_key]
+            processed_keys.append(_cur_key)
+        data_to_write.append(f"{_cur_key}{CACHE_KEY_SEPARATOR}{_write_val}\n")
+    
+    # Write remaining new data
+    for _key, _value in data.items():
+        if _key not in processed_keys:
+            data_to_write.append(f"{_key}{CACHE_KEY_SEPARATOR}{_value}\n")
 
-        try:
-            async with aiofiles_open(
-                file=self._cache_file,
-                mode="w",
-                encoding=UTF8,
-            ) as file_data:
-                await file_data.writelines(data_to_write)
-        except OSError as exc:
-            _LOGGER.warning(
-                "%s while writing data to cache file %s", exc, str(self._cache_file)
-            )
-        else:
-            if not self._cache_file_exists:
-                self._cache_file_exists = True
-            _LOGGER.debug(
-                "Saved %s lines to cache file %s", str(len(data)), self._cache_file
-            )
+    # Atomic write using aiofiles with temporary file
+    cache_file_path = Path(self._cache_file)
+    temp_path = cache_file_path.with_name(f".{cache_file_path.name}.tmp.{os.getpid()}")
+    
+    try:
+        # Write to temporary file using aiofiles
+        async with aiofiles_open(
+            file=str(temp_path),
+            mode="w",
+            encoding=UTF8,
+        ) as temp_file:
+            await temp_file.writelines(data_to_write)
+            await temp_file.flush()
+        
+        # Atomic rename
+        if os.name == 'nt' and cache_file_path.exists():
+            cache_file_path.unlink()
+        
+        temp_path.replace(cache_file_path)
+        temp_path = None  # Successfully renamed
+        
+        if not self._cache_file_exists:
+            self._cache_file_exists = True
+            
+        _LOGGER.debug(
+            "Saved %s lines to cache file %s (aiofiles atomic write)", 
+            str(len(data)), 
+            self._cache_file
+        )
+        
+    except OSError as exc:
+        _LOGGER.warning(
+            "%s while writing data to cache file %s (aiofiles atomic write)", 
+            exc, 
+            str(self._cache_file)
+        )
+    finally:
+        # Cleanup on error
+        if temp_path and temp_path.exists():
+            try:
+                temp_path.unlink()
+            except OSError:
+                pass
 
     async def read_cache(self) -> dict[str, str]:
         """Return current data from cache file."""
