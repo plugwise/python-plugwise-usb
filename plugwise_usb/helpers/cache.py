@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from asyncio import get_running_loop
 from contextlib import suppress
+from secrets import token_hex as secrets_token_hex
 import logging
-from os import getenv as os_getenv, getpid as os_getpid, name as os_name
+from os import fsync as os_fsync, getenv as os_getenv, getpid as os_getpid, name as os_name
 from os.path import expanduser as os_path_expand_user, join as os_path_join
 from pathlib import Path
 
@@ -56,7 +57,7 @@ class PlugwiseCache:
         if self._root_dir != "":
             if not create_root_folder and not await ospath.exists(self._root_dir):
                 raise CacheError(
-                    f"Unable to initialize caching. Cache folder '{self._root_dir}' does not exists."
+                    f"Unable to initialize caching. Cache folder '{self._root_dir}' does not exist."
                 )
             cache_dir = self._root_dir
         else:
@@ -114,7 +115,7 @@ class PlugwiseCache:
 
         cache_file_path = Path(self._cache_file)
         temp_path = cache_file_path.with_name(
-            f".{cache_file_path.name}.tmp.{os_getpid()}"
+            f".{cache_file_path.name}.tmp.{os_getpid()}.{secrets_token_hex(8)}"
         )
 
         try:
@@ -126,11 +127,11 @@ class PlugwiseCache:
             ) as temp_file:
                 await temp_file.writelines(data_to_write)
                 await temp_file.flush()
+                # Ensure data reaches disk before rename
+                loop = get_running_loop()
+                await loop.run_in_executor(None, os_fsync, temp_file.fileno())
 
-            # Atomic rename
-            if os_name == "nt" and cache_file_path.exists():
-                cache_file_path.unlink()
-
+            # Atomic rename (overwrites atomically on all platforms)
             temp_path.replace(cache_file_path)
             temp_path = None  # Successfully renamed
 
@@ -139,7 +140,7 @@ class PlugwiseCache:
 
             _LOGGER.debug(
                 "Saved %s lines to cache file %s (aiofiles atomic write)",
-                str(len(data)),
+                len(data_to_write),
                 self._cache_file,
             )
 
@@ -168,7 +169,7 @@ class PlugwiseCache:
 
         if not self._cache_file_exists:
             _LOGGER.debug(
-                "Cache file '%s' does not exists, return empty cache data",
+                "Cache file '%s' does not exist, return empty cache data",
                 self._cache_file,
             )
             return current_data
@@ -195,7 +196,8 @@ class PlugwiseCache:
                     data,
                     str(self._cache_file),
                 )
-                break
+                continue
+
             current_data[data[:index_separator]] = data[index_separator + 1 :]
 
         return current_data
