@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from asyncio import get_running_loop
 import logging
-from os import getenv as os_getenv, name as os_name
+from os import getenv as os_getenv, getpid as os_getpid, name as os_name
 from os.path import expanduser as os_path_expand_user, join as os_path_join
 from pathlib import Path
 
@@ -110,7 +110,7 @@ class PlugwiseCache:
         # Atomic write using aiofiles with temporary file
         cache_file_path = Path(self._cache_file)
         temp_path = cache_file_path.with_name(
-            f".{cache_file_path.name}.tmp.{os.getpid()}"
+            f".{cache_file_path.name}.tmp.{os_getpid()}"
         )
 
         try:
@@ -124,7 +124,7 @@ class PlugwiseCache:
                 await temp_file.flush()
 
             # Atomic rename
-            if os.name == "nt" and cache_file_path.exists():
+            if os_name == "nt" and cache_file_path.exists():
                 cache_file_path.unlink()
 
             temp_path.replace(cache_file_path)
