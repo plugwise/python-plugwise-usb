@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from asyncio import Task, create_task, gather
+from asyncio import CancelledError, Task, create_task, gather, sleep
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
@@ -74,7 +74,9 @@ CIRCLE_FEATURES: Final = (
 # Default firmware if not known
 DEFAULT_FIRMWARE: Final = datetime(2008, 8, 26, 15, 46, tzinfo=UTC)
 
-MAX_LOG_HOURS = DAY_IN_HOURS
+MAX_LOG_HOURS: Final = DAY_IN_HOURS
+
+CLOCK_SYNC_PERIOD: Final = 3600
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 _LOGGER = logging.getLogger(__name__)
@@ -141,6 +143,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
         """Initialize base class for Sleeping End Device."""
         super().__init__(mac, node_type, controller, loaded_callback)
 
+        # Clock
+        self._clock_synchronize_task: Task[None] | None = None
         # Relay
         self._relay_lock: RelayLock = RelayLock()
         self._relay_state: RelayState = RelayState()
@@ -852,6 +856,21 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 )
                 await self.save_cache()
 
+    async def _clock_synchronize_scheduler(self) -> None:
+        """Background task: periodically synchronize the clock until cancelled."""
+        try:
+            while True:
+                await sleep(CLOCK_SYNC_PERIOD + (random.uniform(-5, 5)))
+                try:
+                    await self.clock_synchronize()
+                except Exception:
+                    _LOGGER.exception(
+                        "Clock synchronization failed for %s", self._mac_in_str
+                    )
+        except CancelledError:
+            _LOGGER.debug("Clock sync scheduler cancelled for %s", self._mac_in_str)
+            raise
+
     async def clock_synchronize(self) -> bool:
         """Synchronize clock. Returns true if successful."""
         get_clock_request = CircleClockGetRequest(self._send, self._mac_in_bytes)
@@ -866,14 +885,13 @@ class PlugwiseCircle(PlugwiseBaseNode):
             tzinfo=UTC,
         )
         clock_offset = clock_response.timestamp.replace(microsecond=0) - _dt_of_circle
-        if (clock_offset.seconds < MAX_TIME_DRIFT) or (
-            clock_offset.seconds > -(MAX_TIME_DRIFT)
-        ):
+        if abs(clock_offset.total_seconds()) < MAX_TIME_DRIFT:
             return True
         _LOGGER.info(
-            "Reset clock of node %s because time has drifted %s sec",
+            "Reset clock of node %s because time drifted %s seconds (max %s seconds)",
             self._mac_in_str,
-            str(clock_offset.seconds),
+            str(int(abs(clock_offset.total_seconds()))),
+            str(MAX_TIME_DRIFT),
         )
         if self._node_protocols is None:
             raise NodeError(
@@ -992,6 +1010,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             self._initialized = False
             return False
+        if self._clock_synchronize_task is None or self._clock_synchronize_task.done():
+            self._clock_synchronize_task = create_task(
+                self._clock_synchronize_scheduler()
+            )
 
         if not self._calibration and not await self.calibration_update():
             _LOGGER.debug(
@@ -1081,6 +1103,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
+
+        if self._clock_synchronize_task:
+            self._clock_synchronize_task.cancel()
+            await gather(self._clock_synchronize_task, return_exceptions=True)
+            self._clock_synchronize_task = None
 
         await super().unload()
 

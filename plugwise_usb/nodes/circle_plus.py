@@ -86,14 +86,12 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             tzinfo=UTC,
         )
         clock_offset = clock_response.timestamp.replace(microsecond=0) - _dt_of_circle
-        if (clock_offset.seconds < MAX_TIME_DRIFT) or (
-            clock_offset.seconds > -(MAX_TIME_DRIFT)
-        ):
+        if abs(clock_offset.total_seconds()) < MAX_TIME_DRIFT:
             return True
         _LOGGER.info(
             "Reset realtime clock of node %s because time has drifted %s seconds while max drift is set to %s seconds)",
             self._node_info.mac,
-            str(clock_offset.seconds),
+            str(int(abs(clock_offset.total_seconds()))),
             str(MAX_TIME_DRIFT),
         )
         clock_set_request = CirclePlusRealTimeClockSetRequest(
