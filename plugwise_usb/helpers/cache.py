@@ -109,11 +109,13 @@ class PlugwiseCache:
                 data_to_write.append(f"{_key}{CACHE_KEY_SEPARATOR}{_value}\n")
 
         # Atomic write using aiofiles with temporary file
-        if self._cache_file is not None:
-            cache_file_path = Path(self._cache_file)
-            temp_path = cache_file_path.with_name(
-                f".{cache_file_path.name}.tmp.{os_getpid()}"
-            )
+        if self._cache_file is None:
+            raise CacheError("Unable to save cache, cache-file has no name")
+
+        cache_file_path = Path(self._cache_file)
+        temp_path = cache_file_path.with_name(
+            f".{cache_file_path.name}.tmp.{os_getpid()}"
+        )
 
         try:
             # Write to temporary file using aiofiles
@@ -160,6 +162,10 @@ class PlugwiseCache:
                 f"Unable to save cache. Initialize cache file '{self._file_name}' first."
             )
         current_data: dict[str, str] = {}
+        if self._cache_file is None:
+            _LOGGER.debug("Cache file has no name, return empty cache data")
+            return current_data
+
         if not self._cache_file_exists:
             _LOGGER.debug(
                 "Cache file '%s' does not exists, return empty cache data",
@@ -167,20 +173,19 @@ class PlugwiseCache:
             )
             return current_data
 
-        if self._cache_file is not None:
-            try:
-                async with aiofiles_open(
-                    file=self._cache_file,
-                    encoding=UTF8,
-                ) as read_file_data:
-                    lines: list[str] = await read_file_data.readlines()
-            except OSError as exc:
-                # suppress file errors as this is expected the first time
-                # when no cache file exists yet.
-                _LOGGER.warning(
-                    "OS error %s while reading cache file %s", exc, str(self._cache_file)
-                )
-                return current_data
+        try:
+            async with aiofiles_open(
+                file=self._cache_file,
+                encoding=UTF8,
+            ) as read_file_data:
+                lines: list[str] = await read_file_data.readlines()
+        except OSError as exc:
+            # suppress file errors as this is expected the first time
+            # when no cache file exists yet.
+            _LOGGER.warning(
+                "OS error %s while reading cache file %s", exc, str(self._cache_file)
+            )
+            return current_data
 
         for line in lines:
             data = line.strip()
