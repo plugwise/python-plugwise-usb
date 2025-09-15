@@ -80,7 +80,6 @@ class PlugwiseCache:
             )
         return os_path_join(os_path_expand_user("~"), CACHE_DIR)
 
-
     async def write_cache(self, data: dict[str, str], rewrite: bool = False) -> None:
         """Save information to cache file atomically using aiofiles + temp file."""
         if not self._initialized:
@@ -110,7 +109,9 @@ class PlugwiseCache:
 
         # Atomic write using aiofiles with temporary file
         cache_file_path = Path(self._cache_file)
-        temp_path = cache_file_path.with_name(f".{cache_file_path.name}.tmp.{os.getpid()}")
+        temp_path = cache_file_path.with_name(
+            f".{cache_file_path.name}.tmp.{os.getpid()}"
+        )
 
         try:
             # Write to temporary file using aiofiles
