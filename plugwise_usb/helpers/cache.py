@@ -159,9 +159,14 @@ class PlugwiseCache:
             temp_path = None  # Successfully renamed
             if os_name != "nt":
                 # Ensure directory entry is persisted on POSIX
-                await loop.run_in_executor(
-                    None, _fsync_parent_dir, cache_file_path.parent
-                )
+                try:
+                    await loop.run_in_executor(
+                        None, _fsync_parent_dir, cache_file_path.parent
+                    )
+                except (OSError, PermissionError):
+                    # Directory fsync may fail on some filesystems
+                    # The atomic rename is still complete
+                    pass
 
             if not self._cache_file_exists:
                 self._cache_file_exists = True
