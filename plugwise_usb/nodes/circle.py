@@ -860,11 +860,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
         """Background task: periodically synchronize the clock until cancelled."""
         try:
             while True:
-                await sleep(CLOCK_SYNC_PERIOD)
+                await sleep(CLOCK_SYNC_PERIOD + (random.uniform(-5, 5)))
                 try:
                     await self.clock_synchronize()
                 except Exception:
-                    _LOGGER.exception("Clock synchronisation failed for %s", self._mac_in_str)
+                    _LOGGER.exception("Clock synchronization failed for %s", self._mac_in_str)
         except CancelledError:
             _LOGGER.debug("Clock sync scheduler cancelled for %s", self._mac_in_str)
             raise
