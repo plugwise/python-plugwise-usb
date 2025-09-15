@@ -2,6 +2,7 @@
 
 ## Ongoing
 
+- PR [341](https://github.com/plugwise/python-plugwise-usb/pull/341): Schedule clock synchronization every 3600 seconds
 - PR [342](https://github.com/plugwise/python-plugwise-usb/pull/342): Improve node_type chaching.
 
 ## 0.46.0 - 2025-09-12
