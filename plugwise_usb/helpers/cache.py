@@ -146,27 +146,23 @@ class PlugwiseCache:
                 await temp_file.writelines(data_to_write)
                 await temp_file.flush()
                 # Ensure data reaches disk before rename
-                try:
+                with suppress(OSError, TypeError, AttributeError):
+                    # If fsync fails due to fileno() issues or other problems,
+                    # continue without it. Flush() provides reasonable durability.
                     loop = get_running_loop()
                     await loop.run_in_executor(None, os_fsync, temp_file.fileno())
-                except (OSError, TypeError, AttributeError):
-                    # If fsync fails due to fileno() issues or other problems,
-                    # continue without it. flush() provides reasonable durability.
-                    pass
 
             # Atomic rename (overwrites atomically on all platforms)
             temp_path.replace(cache_file_path)
             temp_path = None  # Successfully renamed
             if os_name != "nt":
                 # Ensure directory entry is persisted on POSIX
-                try:
+                with suppress(OSError, PermissionError):
+                    # Directory fsync may fail on some filesystems
+                    # The atomic replace is still complete
                     await loop.run_in_executor(
                         None, _fsync_parent_dir, cache_file_path.parent
                     )
-                except (OSError, PermissionError):
-                    # Directory fsync may fail on some filesystems
-                    # The atomic rename is still complete
-                    pass
 
             if not self._cache_file_exists:
                 self._cache_file_exists = True
