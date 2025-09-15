@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from asyncio import get_running_loop
 from contextlib import suppress
-from secrets import token_hex as secrets_token_hex
 import logging
 from os import (
     fsync as os_fsync,
@@ -14,6 +13,7 @@ from os import (
 )
 from os.path import expanduser as os_path_expand_user, join as os_path_join
 from pathlib import Path
+from secrets import token_hex as secrets_token_hex
 
 from aiofiles import open as aiofiles_open, ospath  # type: ignore[import-untyped]
 from aiofiles.os import (  # type: ignore[import-untyped]
