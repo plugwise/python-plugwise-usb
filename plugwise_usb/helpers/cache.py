@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from asyncio import get_running_loop
-import logging
 from contextlib import suppress
+import logging
 from os import getenv as os_getenv, getpid as os_getpid, name as os_name
 from os.path import expanduser as os_path_expand_user, join as os_path_join
 from pathlib import Path
@@ -109,10 +109,11 @@ class PlugwiseCache:
                 data_to_write.append(f"{_key}{CACHE_KEY_SEPARATOR}{_value}\n")
 
         # Atomic write using aiofiles with temporary file
-        cache_file_path = Path(self._cache_file)
-        temp_path = cache_file_path.with_name(
-            f".{cache_file_path.name}.tmp.{os_getpid()}"
-        )
+        if self._cache_file is not None:
+            cache_file_path = Path(self._cache_file)
+            temp_path = cache_file_path.with_name(
+                f".{cache_file_path.name}.tmp.{os_getpid()}"
+            )
 
         try:
             # Write to temporary file using aiofiles
@@ -165,19 +166,21 @@ class PlugwiseCache:
                 self._cache_file,
             )
             return current_data
-        try:
-            async with aiofiles_open(
-                file=self._cache_file,
-                encoding=UTF8,
-            ) as read_file_data:
-                lines: list[str] = await read_file_data.readlines()
-        except OSError as exc:
-            # suppress file errors as this is expected the first time
-            # when no cache file exists yet.
-            _LOGGER.warning(
-                "OS error %s while reading cache file %s", exc, str(self._cache_file)
-            )
-            return current_data
+
+        if self._cache_file is not None:
+            try:
+                async with aiofiles_open(
+                    file=self._cache_file,
+                    encoding=UTF8,
+                ) as read_file_data:
+                    lines: list[str] = await read_file_data.readlines()
+            except OSError as exc:
+                # suppress file errors as this is expected the first time
+                # when no cache file exists yet.
+                _LOGGER.warning(
+                    "OS error %s while reading cache file %s", exc, str(self._cache_file)
+                )
+                return current_data
 
         for line in lines:
             data = line.strip()
@@ -189,6 +192,7 @@ class PlugwiseCache:
                 )
                 break
             current_data[data[:index_separator]] = data[index_separator + 1 :]
+
         return current_data
 
     async def delete_cache(self) -> None:
