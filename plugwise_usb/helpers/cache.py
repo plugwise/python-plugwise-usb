@@ -6,10 +6,13 @@ from asyncio import get_running_loop
 from contextlib import suppress
 import logging
 from os import (
+    O_RDONLY as os_O_RDONLY,
+    close as os_close,
     fsync as os_fsync,
     getenv as os_getenv,
     getpid as os_getpid,
     name as os_name,
+    open as os_open,
 )
 from os.path import expanduser as os_path_expand_user, join as os_path_join
 from pathlib import Path
@@ -25,6 +28,15 @@ from ..constants import CACHE_DIR, CACHE_KEY_SEPARATOR, UTF8
 from ..exceptions import CacheError
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _fsync_parent_dir(path: Path) -> None:
+    """Ensure persistence on POSIX."""
+    fd = os_open(str(path), os_O_RDONLY)
+    try:
+        os_fsync(fd)
+    finally:
+        os_close(fd)
 
 
 class PlugwiseCache:
@@ -87,7 +99,9 @@ class PlugwiseCache:
             )
         return os_path_join(os_path_expand_user("~"), CACHE_DIR)
 
-    async def write_cache(self, data: dict[str, str], rewrite: bool = False) -> None:
+    async def write_cache(
+        self, data: dict[str, str], rewrite: bool = False
+    ) -> None:    # noqa: PLR0912
         """Save information to cache file atomically using aiofiles + temp file."""
         if not self._initialized:
             raise CacheError(
@@ -98,7 +112,7 @@ class PlugwiseCache:
         if not rewrite:
             current_data = await self.read_cache()
 
-        processed_keys: list[str] = []
+        processed_keys: set[str] = set()
         data_to_write: list[str] = []
 
         # Prepare data exactly as in original implementation
@@ -106,7 +120,7 @@ class PlugwiseCache:
             _write_val = _cur_val
             if _cur_key in data:
                 _write_val = data[_cur_key]
-                processed_keys.append(_cur_key)
+                processed_keys.add(_cur_key)
             data_to_write.append(f"{_cur_key}{CACHE_KEY_SEPARATOR}{_write_val}\n")
 
         # Write remaining new data
@@ -129,16 +143,27 @@ class PlugwiseCache:
                 file=str(temp_path),
                 mode="w",
                 encoding=UTF8,
+                newline="\n",
             ) as temp_file:
                 await temp_file.writelines(data_to_write)
                 await temp_file.flush()
                 # Ensure data reaches disk before rename
-                loop = get_running_loop()
-                await loop.run_in_executor(None, os_fsync, temp_file.fileno())
+                try:
+                    loop = get_running_loop()
+                    await loop.run_in_executor(None, os_fsync, temp_file.fileno())
+                except (OSError, TypeError, AttributeError):
+                    # If fsync fails due to fileno() issues or other problems,
+                    # continue without it. flush() provides reasonable durability.
+                    pass
 
             # Atomic rename (overwrites atomically on all platforms)
             temp_path.replace(cache_file_path)
             temp_path = None  # Successfully renamed
+            if os_name != "nt":
+                # Ensure directory entry is persisted on POSIX
+                await loop.run_in_executor(
+                    None, _fsync_parent_dir, cache_file_path.parent
+                )
 
             if not self._cache_file_exists:
                 self._cache_file_exists = True
@@ -165,7 +190,7 @@ class PlugwiseCache:
         """Return current data from cache file."""
         if not self._initialized:
             raise CacheError(
-                f"Unable to save cache. Initialize cache file '{self._file_name}' first."
+                f"Unable to read cache. Initialize cache file '{self._file_name}' first."
             )
         current_data: dict[str, str] = {}
         if self._cache_file is None:
