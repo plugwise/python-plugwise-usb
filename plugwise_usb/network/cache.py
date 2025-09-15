@@ -26,13 +26,11 @@ class NetworkRegistrationCache(PlugwiseCache):
 
     async def save_cache(self) -> None:
         """Save the node information to file."""
-        cache_data_to_save: dict[str, str] = {}
-        for mac, node_type in self._nodetypes.items():
-            cache_data_to_save[mac] = node_type.name
+        cache_data_to_save: dict[str, str] = {
+            mac: node_type.name for mac, node_type in self._nodetypes.items()
+        }
         _LOGGER.debug("Save NodeTypes for %s Nodes", len(cache_data_to_save))
-        await self.write_cache(
-            cache_data_to_save, True
-        )  # rewrite set to True to make sure the cache-contents is actual
+        await self.write_cache(cache_data_to_save, rewrite=True)  # Make sure the cache-contents is actual
 
     async def clear_cache(self) -> None:
         """Clear current cache."""
@@ -56,7 +54,7 @@ class NetworkRegistrationCache(PlugwiseCache):
                     node_type = None
 
             if node_type is None:
-                _LOGGER.warning("Invalid NodeType in cache: %s", node_value)
+                _LOGGER.warning("Invalid NodeType in cache for mac %s: %s", mac, node_value)
                 continue
             self._nodetypes[mac] = node_type
             _LOGGER.debug(
