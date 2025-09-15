@@ -74,7 +74,9 @@ CIRCLE_FEATURES: Final = (
 # Default firmware if not known
 DEFAULT_FIRMWARE: Final = datetime(2008, 8, 26, 15, 46, tzinfo=UTC)
 
-MAX_LOG_HOURS = DAY_IN_HOURS
+MAX_LOG_HOURS: Final = DAY_IN_HOURS
+
+CLOCK_SYNC_PERIOD: Final = 3600
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 _LOGGER = logging.getLogger(__name__)
@@ -858,7 +860,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         """Background task: periodically synchronize the clock until cancelled."""
         try:
             while True:
-                await sleep(60)
+                await sleep(CLOCK_SYNC_PERIOD)
                 try:
                     await self.clock_synchronize()
                 except Exception:
