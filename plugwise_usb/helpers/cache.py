@@ -5,15 +5,7 @@ from __future__ import annotations
 from asyncio import get_running_loop
 from contextlib import suppress
 import logging
-from os import (
-    O_RDONLY as os_O_RDONLY,
-    close as os_close,
-    fsync as os_fsync,
-    getenv as os_getenv,
-    getpid as os_getpid,
-    name as os_name,
-    open as os_open,
-)
+from os import getenv as os_getenv, getpid as os_getpid, name as os_name
 from os.path import expanduser as os_path_expand_user, join as os_path_join
 from pathlib import Path
 from secrets import token_hex as secrets_token_hex
@@ -28,15 +20,6 @@ from ..constants import CACHE_DIR, CACHE_KEY_SEPARATOR, UTF8
 from ..exceptions import CacheError
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def _fsync_parent_dir(path: Path) -> None:
-    """Ensure persistence on POSIX."""
-    fd = os_open(str(path), os_O_RDONLY)
-    try:
-        os_fsync(fd)
-    finally:
-        os_close(fd)
 
 
 class PlugwiseCache:
@@ -144,25 +127,12 @@ class PlugwiseCache:
                 newline="\n",
             ) as temp_file:
                 await temp_file.writelines(data_to_write)
+                # Ensure buffered data is written
                 await temp_file.flush()
-                # Ensure data reaches disk before rename
-                with suppress(OSError, TypeError, AttributeError):
-                    # If fsync fails due to fileno() issues or other problems,
-                    # continue without it. Flush() provides reasonable durability.
-                    loop = get_running_loop()
-                    await loop.run_in_executor(None, os_fsync, temp_file.fileno())
 
             # Atomic rename (overwrites atomically on all platforms)
             temp_path.replace(cache_file_path)
             temp_path = None  # Successfully renamed
-            if os_name != "nt":
-                # Ensure directory entry is persisted on POSIX
-                with suppress(OSError, PermissionError):
-                    # Directory fsync may fail on some filesystems
-                    # The atomic replace is still complete
-                    await loop.run_in_executor(
-                        None, _fsync_parent_dir, cache_file_path.parent
-                    )
 
             if not self._cache_file_exists:
                 self._cache_file_exists = True
