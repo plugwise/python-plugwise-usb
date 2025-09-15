@@ -864,7 +864,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 try:
                     await self.clock_synchronize()
                 except Exception:
-                    _LOGGER.exception("Clock synchronization failed for %s", self._mac_in_str)
+                    _LOGGER.exception(
+                        "Clock synchronization failed for %s", self._mac_in_str
+                    )
         except CancelledError:
             _LOGGER.debug("Clock sync scheduler cancelled for %s", self._mac_in_str)
             raise
