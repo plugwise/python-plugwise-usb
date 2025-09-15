@@ -6,6 +6,7 @@ from asyncio import get_running_loop
 import logging
 from os import getenv as os_getenv, name as os_name
 from os.path import expanduser as os_path_expand_user, join as os_path_join
+from pathlib import Path
 
 from aiofiles import open as aiofiles_open, ospath  # type: ignore[import-untyped]
 from aiofiles.os import (  # type: ignore[import-untyped]
