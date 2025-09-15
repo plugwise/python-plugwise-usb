@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from asyncio import get_running_loop
 import logging
+from contextlib import suppress
 from os import getenv as os_getenv, getpid as os_getpid, name as os_name
 from os.path import expanduser as os_path_expand_user, join as os_path_join
 from pathlib import Path
@@ -148,10 +149,8 @@ class PlugwiseCache:
         finally:
             # Cleanup on error
             if temp_path and temp_path.exists():
-                try:
+                with suppress(OSError):
                     temp_path.unlink()
-                except OSError:
-                    pass
 
     async def read_cache(self) -> dict[str, str]:
         """Return current data from cache file."""
