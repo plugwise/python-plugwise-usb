@@ -859,7 +859,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
         try:
             while True:
                 await sleep(60)
-                await self.clock_synchronize()
+                try:
+                    await self.clock_synchronize()
+                except Exception:
+                    _LOGGER.exception("Clock synchronisation failed for %s", self.name)
         except CancelledError:
             _LOGGER.debug("Clock sync scheduler cancelled for %s", self.name)
             raise
