@@ -864,9 +864,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 try:
                     await self.clock_synchronize()
                 except Exception:
-                    _LOGGER.exception("Clock synchronisation failed for %s", self.name)
+                    _LOGGER.exception("Clock synchronisation failed for %s", self.mac_in_str)
         except CancelledError:
-            _LOGGER.debug("Clock sync scheduler cancelled for %s", self.name)
+            _LOGGER.debug("Clock sync scheduler cancelled for %s", self.mac_in_str)
             raise
 
     async def clock_synchronize(self) -> bool:
@@ -883,9 +883,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
             tzinfo=UTC,
         )
         clock_offset = clock_response.timestamp.replace(microsecond=0) - _dt_of_circle
-        if (clock_offset.seconds < MAX_TIME_DRIFT) or (
-            clock_offset.seconds > -(MAX_TIME_DRIFT)
-        ):
+        if abs(clock_offset.total_seconds()) < MAX_TIME_DRIFT:
             return True
         _LOGGER.info(
             "Reset clock of node %s because time has drifted %s sec",
