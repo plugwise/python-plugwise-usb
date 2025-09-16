@@ -27,7 +27,7 @@ class NetworkRegistrationCache(PlugwiseCache):
     async def save_cache(self) -> None:
         """Save the node information to file."""
         cache_data_to_save: dict[str, str] = {
-            mac: node_type.name for mac, node_type in self._nodetypes.items()
+            mac: node_type.name for mac, node_type in self._nodetypes.items() if node_type.value > 1
         }
         _LOGGER.debug("Save NodeTypes for %s Nodes", len(cache_data_to_save))
         await self.write_cache(
