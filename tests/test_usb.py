@@ -1704,7 +1704,7 @@ class TestStick:
         await pw_nw_cache.initialize_cache()
         # test with invalid data
         mock_read_data = [
-            "0123456789ABCDEF;NodeType.CIRCLE",
+            "0123456789ABCDEF;NodeType.CIRCLE_PLUS",
             "FEDCBA9876543210;None",
         ]
         file_chunks_iter = iter(mock_read_data)
@@ -1712,13 +1712,13 @@ class TestStick:
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             await pw_nw_cache.restore_cache()
             assert pw_nw_cache.nodetypes == {
-                "0123456789ABCDEF": pw_api.NodeType.CIRCLE,
+                "0123456789ABCDEF": pw_api.NodeType.CIRCLE_PLUS,
             }
 
         # test with valid data
         mock_read_data = [
-            "0123456789ABCDEF;NodeType.CIRCLE",
-            "FEDCBA9876543210;CIRCLE",
+            "0123456789ABCDEF;CIRCLE_PLUS",
+            "FEDCBA9876543210;NodeType.CIRCLE",
             "1298347650AFBECD;6",
         ]
         file_chunks_iter = iter(mock_read_data)
@@ -1726,7 +1726,7 @@ class TestStick:
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             await pw_nw_cache.restore_cache()
             assert pw_nw_cache.nodetypes == {
-                "0123456789ABCDEF": pw_api.NodeType.CIRCLE,
+                "0123456789ABCDEF": pw_api.NodeType.CIRCLE_PLUS,
                 "FEDCBA9876543210": pw_api.NodeType.CIRCLE,
                 "1298347650AFBECD": pw_api.NodeType.SCAN,
             }
@@ -1738,14 +1738,14 @@ class TestStick:
             )
             mock_file_stream.writelines.assert_called_with(
                 [
-                    "0123456789ABCDEF;CIRCLE\n",
+                    "0123456789ABCDEF;CIRCLE_PLUS\n",
                     "FEDCBA9876543210;CIRCLE\n",
                     "1298347650AFBECD;SCAN\n",
                     "1234ABCD4321FEDC;STEALTH\n",
                 ]
             )
         assert pw_nw_cache.nodetypes == {
-            "0123456789ABCDEF": pw_api.NodeType.CIRCLE,
+            "0123456789ABCDEF": pw_api.NodeType.CIRCLE_PLUS,
             "FEDCBA9876543210": pw_api.NodeType.CIRCLE,
             "1298347650AFBECD": pw_api.NodeType.SCAN,
             "1234ABCD4321FEDC": pw_api.NodeType.STEALTH,
