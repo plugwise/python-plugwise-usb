@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from asyncio import get_running_loop
+from contextlib import suppress
 import logging
-from os import getenv as os_getenv, name as os_name
+from os import getenv as os_getenv, getpid as os_getpid, name as os_name
 from os.path import expanduser as os_path_expand_user, join as os_path_join
+from pathlib import Path
+from secrets import token_hex as secrets_token_hex
 
 from aiofiles import open as aiofiles_open, ospath  # type: ignore[import-untyped]
 from aiofiles.os import (  # type: ignore[import-untyped]
@@ -54,7 +57,7 @@ class PlugwiseCache:
         if self._root_dir != "":
             if not create_root_folder and not await ospath.exists(self._root_dir):
                 raise CacheError(
-                    f"Unable to initialize caching. Cache folder '{self._root_dir}' does not exists."
+                    f"Unable to initialize caching. Cache folder '{self._root_dir}' does not exist."
                 )
             cache_dir = self._root_dir
         else:
@@ -79,8 +82,8 @@ class PlugwiseCache:
             )
         return os_path_join(os_path_expand_user("~"), CACHE_DIR)
 
-    async def write_cache(self, data: dict[str, str], rewrite: bool = False) -> None:
-        """Save information to cache file."""
+    async def write_cache(self, data: dict[str, str], rewrite: bool = False) -> None:  # noqa: PLR0912
+        """Save information to cache file atomically using aiofiles + temp file."""
         if not self._initialized:
             raise CacheError(
                 f"Unable to save cache. Initialize cache file '{self._file_name}' first."
@@ -89,50 +92,87 @@ class PlugwiseCache:
         current_data: dict[str, str] = {}
         if not rewrite:
             current_data = await self.read_cache()
-        processed_keys: list[str] = []
+
+        processed_keys: set[str] = set()
         data_to_write: list[str] = []
+
+        # Prepare data exactly as in original implementation
         for _cur_key, _cur_val in current_data.items():
             _write_val = _cur_val
             if _cur_key in data:
                 _write_val = data[_cur_key]
-                processed_keys.append(_cur_key)
+                processed_keys.add(_cur_key)
             data_to_write.append(f"{_cur_key}{CACHE_KEY_SEPARATOR}{_write_val}\n")
+
         # Write remaining new data
         for _key, _value in data.items():
             if _key not in processed_keys:
                 data_to_write.append(f"{_key}{CACHE_KEY_SEPARATOR}{_value}\n")
 
+        # Atomic write using aiofiles with temporary file
+        if self._cache_file is None:
+            raise CacheError("Unable to save cache, cache-file has no name")
+
+        cache_file_path = Path(self._cache_file)
+        temp_path = cache_file_path.with_name(
+            f".{cache_file_path.name}.tmp.{os_getpid()}.{secrets_token_hex(8)}"
+        )
+
         try:
+            # Write to temporary file using aiofiles
             async with aiofiles_open(
-                file=self._cache_file,
+                file=str(temp_path),
                 mode="w",
                 encoding=UTF8,
-            ) as file_data:
-                await file_data.writelines(data_to_write)
-        except OSError as exc:
-            _LOGGER.warning(
-                "%s while writing data to cache file %s", exc, str(self._cache_file)
-            )
-        else:
+                newline="\n",
+            ) as temp_file:
+                await temp_file.writelines(data_to_write)
+                # Ensure buffered data is written
+                await temp_file.flush()
+
+            # Atomic rename (overwrites atomically on all platforms)
+            temp_path.replace(cache_file_path)
+            temp_path = None  # Successfully renamed
+
             if not self._cache_file_exists:
                 self._cache_file_exists = True
+
             _LOGGER.debug(
-                "Saved %s lines to cache file %s", str(len(data)), self._cache_file
+                "Saved %s lines to cache file %s (aiofiles atomic write)",
+                len(data_to_write),
+                self._cache_file,
             )
+
+        except OSError as exc:
+            _LOGGER.warning(
+                "%s while writing data to cache file %s (aiofiles atomic write)",
+                exc,
+                str(self._cache_file),
+            )
+        finally:
+            # Cleanup on error
+            if temp_path and temp_path.exists():
+                with suppress(OSError):
+                    temp_path.unlink()
 
     async def read_cache(self) -> dict[str, str]:
         """Return current data from cache file."""
         if not self._initialized:
             raise CacheError(
-                f"Unable to save cache. Initialize cache file '{self._file_name}' first."
+                f"Unable to read cache. Initialize cache file '{self._file_name}' first."
             )
         current_data: dict[str, str] = {}
+        if self._cache_file is None:
+            _LOGGER.debug("Cache file has no name, return empty cache data")
+            return current_data
+
         if not self._cache_file_exists:
             _LOGGER.debug(
-                "Cache file '%s' does not exists, return empty cache data",
+                "Cache file '%s' does not exist, return empty cache data",
                 self._cache_file,
             )
             return current_data
+
         try:
             async with aiofiles_open(
                 file=self._cache_file,
@@ -155,8 +195,10 @@ class PlugwiseCache:
                     data,
                     str(self._cache_file),
                 )
-                break
+                continue
+
             current_data[data[:index_separator]] = data[index_separator + 1 :]
+
         return current_data
 
     async def delete_cache(self) -> None:
