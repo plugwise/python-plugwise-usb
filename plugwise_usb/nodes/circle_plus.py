@@ -85,6 +85,8 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             microsecond=0,
             tzinfo=UTC,
         )
+        _LOGGER.debug("HOI circle+ clock=%s", clock_response.timestamp.replace(microsecond=0))
+        _LOGGER.debug("HOI _dt_of_circle=%s", _dt_of_circle)
         clock_offset = clock_response.timestamp.replace(microsecond=0) - _dt_of_circle
         if abs(clock_offset.total_seconds()) < MAX_TIME_DRIFT:
             return True
