@@ -909,6 +909,7 @@ class TestStick:
 
         await stick.disconnect()
 
+    @freeze_time("2025-04-03 22:00:00", real_asyncio=True)
     @pytest.mark.asyncio
     async def test_energy_circle(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Testing energy retrieval."""
