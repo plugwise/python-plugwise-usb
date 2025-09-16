@@ -596,13 +596,13 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"003A"  # msg_id
         + b"0098765432101234"  # mac
-        + bytes(("%%0%dd" % 2) % utc_now.second, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % utc_now.minute, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % utc_now.hour, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % utc_now.weekday(), pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % utc_now.day, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % utc_now.month, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % (utc_now.year - 2000), pw_constants.UTF8),  # noqa: UP031
+        + bytes(("%%0%dd" % 2) % 0, pw_constants.UTF8)  # noqa: UP031
+        + bytes(("%%0%dd" % 2) % 0, pw_constants.UTF8)  # noqa: UP031
+        + bytes(("%%0%dd" % 2) % 18, pw_constants.UTF8)  # noqa: UP031
+        + bytes(("%%0%dd" % 2) % 20, pw_constants.UTF8)  # noqa: UP031
+        + bytes(("%%0%dd" % 2) % 1, pw_constants.UTF8)  # noqa: UP031
+        + bytes(("%%0%dd" % 2) % 6, pw_constants.UTF8)  # noqa: UP031
+        + bytes(("%%0%dd" % 2) % 24, pw_constants.UTF8),  # noqa: UP031
     ),
     b"\x05\x05\x03\x0300280098765432101234000022030304259DDF\r\n": (
         "Circle+ Realtime set clock for 0098765432101234",
