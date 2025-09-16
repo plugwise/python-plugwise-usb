@@ -481,11 +481,10 @@ class NodeResetRequest(PlugwiseRequest):
     """TODO:Some kind of reset request.
 
     Supported protocols : 1.0, 2.0, 2.1
-    Response message    : <UNKNOWN>
+    Response message    : NodeResponse with NODE_RESET_ACK/NACK (@dirixmjm & @bouwew 20250910)
     """
 
     _identifier = b"0009"
-    _reply_identifier = b"0003"
 
     def __init__(
         self,
@@ -496,20 +495,18 @@ class NodeResetRequest(PlugwiseRequest):
     ) -> None:
         """Initialize NodeResetRequest message object."""
         super().__init__(send_fn, mac)
-        self._args += [
-            Int(moduletype, length=2),
-            Int(timeout, length=2),
-        ]
+        module_id = getattr(moduletype, "value", moduletype)
+        self._args += [Int(module_id, length=2), Int(timeout, length=2)]
 
-    async def send(self) -> NodeSpecificResponse | None:
+    async def send(self) -> NodeResponse | None:
         """Send request."""
         result = await self._send_request()
-        if isinstance(result, NodeSpecificResponse):
+        if isinstance(result, NodeResponse):
             return result
         if result is None:
             return None
         raise MessageError(
-            f"Invalid response message. Received {result.__class__.__name__}, expected NodeSpecificResponse"
+            f"Invalid response message. Received {result.__class__.__name__}, expected NodeResponse"
         )
 
 
@@ -863,11 +860,11 @@ class NodeRemoveRequest(PlugwiseRequest):
         self,
         send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
         mac_circle_plus: bytes,
-        mac_to_unjoined: str,
+        mac_to_unjoin: str,
     ) -> None:
         """Initialize NodeRemoveRequest message object."""
         super().__init__(send_fn, mac_circle_plus)
-        self._args.append(String(mac_to_unjoined, length=16))
+        self._args.append(String(mac_to_unjoin, length=16))
 
     async def send(self) -> NodeRemoveResponse | None:
         """Send request."""

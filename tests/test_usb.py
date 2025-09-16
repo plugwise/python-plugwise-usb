@@ -719,6 +719,11 @@ class TestStick:
         assert stick.joined_nodes == 9
         assert stick.nodes.get("0098765432101234") is not None
         assert len(stick.nodes) == 7  # Discovered nodes
+
+        # Test unregistering of node
+        await stick.unregister_node("3333333333333333")
+        assert stick.nodes.get("3333333333333333") is None
+        assert len(stick.nodes) == 6
         await stick.disconnect()
 
     async def node_relay_state(

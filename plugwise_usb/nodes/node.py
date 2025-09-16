@@ -32,8 +32,8 @@ from ..connection import StickController
 from ..constants import SUPPRESS_INITIALIZATION_WARNINGS, TYPE_MODEL, UTF8
 from ..exceptions import FeatureError, NodeError
 from ..helpers.util import version_to_model
-from ..messages.requests import NodeInfoRequest, NodePingRequest
-from ..messages.responses import NodeInfoResponse, NodePingResponse
+from ..messages.requests import NodeInfoRequest, NodePingRequest, NodeResetRequest
+from ..messages.responses import NodeInfoResponse, NodePingResponse, NodeResponseType
 from .helpers import raise_not_loaded
 from .helpers.cache import NodeCache
 from .helpers.firmware import FEATURE_SUPPORTED_AT_FIRMWARE, SupportedVersions
@@ -391,6 +391,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
     async def clear_cache(self) -> None:
         """Clear current cache."""
         if self._node_cache is not None:
+            _LOGGER.debug("Removing node % cache", self._mac_in_str)
             await self._node_cache.clear_cache()
 
     async def _load_from_cache(self) -> bool:
@@ -640,6 +641,20 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
                     )
 
         return states
+
+    async def reset_node(self) -> None:
+        """Reset node present in the current Plugwise network."""
+        timeout = 4
+        request = NodeResetRequest(
+            self._send, self._mac_in_bytes, self.node_type.value, timeout
+        )
+        response = await request.send()
+        if response is None or response.ack_id != NodeResponseType.NODE_RESET_ACK:
+            _LOGGER.warning(
+                "Node %s reset not acknowledged (response=%s)",
+                self._mac_in_str,
+                getattr(response, "ack_id", None),
+            )
 
     async def unload(self) -> None:
         """Deactivate and unload node features."""

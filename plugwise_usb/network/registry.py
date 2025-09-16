@@ -8,7 +8,7 @@ from copy import deepcopy
 import logging
 from typing import Final
 
-from ..api import NodeType
+from ..api import NodeType, PlugwiseNode
 from ..constants import UTF8
 from ..exceptions import CacheError, NodeError, StickError
 from ..helpers.util import validate_mac
@@ -266,27 +266,27 @@ class StickNetworkRegister:
         if self.update_network_registration(mac):
             await self._exec_node_discover_callback(mac, None, False)
 
-    async def unregister_node(self, mac: str) -> None:
+    async def unregister_node(self, node: PlugwiseNode) -> None:
         """Unregister node from current Plugwise network."""
-        if not validate_mac(mac):
-            raise NodeError(f"MAC {mac} invalid")
+        if node.mac not in self._registry:
+            raise NodeError(f"No existing Node ({node.mac}) found to unregister")
 
-        if mac not in self._registry:
-            raise NodeError(f"No existing Node ({mac}) found to unregister")
-
-        request = NodeRemoveRequest(self._send_to_controller, self._mac_nc, mac)
+        # First remove the node, when succesful then reset it.
+        request = NodeRemoveRequest(self._send_to_controller, self._mac_nc, node.mac)
         if (response := await request.send()) is None:
             raise NodeError(
                 f"The Zigbee network coordinator '{self._mac_nc!r}'"
-                + f" did not respond to unregister node '{mac}'"
+                + f" did not respond to unregister node '{node.mac}'"
             )
         if response.status.value != 1:
             raise NodeError(
                 f"The Zigbee network coordinator '{self._mac_nc!r}'"
-                + f" failed to unregister node '{mac}'"
+                + f" failed to unregister node '{node.mac}'"
             )
 
-        await self.remove_network_registration(mac)
+        await node.reset_node()
+        await self.remove_network_registration(node.mac)
+        await node.clear_cache()
 
     async def clear_register_cache(self) -> None:
         """Clear current cache."""
