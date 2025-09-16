@@ -57,7 +57,7 @@ class NetworkRegistrationCache(PlugwiseCache):
                 except ValueError:
                     node_type = None
 
-            if node_type is None:
+            if node_type in (None, NodeType.CIRCLE_PLUS):
                 _LOGGER.warning(
                     "Invalid NodeType in cache for mac %s: %s", mac, node_value
                 )
