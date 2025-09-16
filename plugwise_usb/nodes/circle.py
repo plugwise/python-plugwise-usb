@@ -8,6 +8,7 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from functools import wraps
 import logging
+import random
 from math import ceil
 from typing import Any, Final, TypeVar, cast
 
@@ -860,7 +861,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         """Background task: periodically synchronize the clock until cancelled."""
         try:
             while True:
-                await sleep(CLOCK_SYNC_PERIOD + (random.uniform(-5, 5)))
+                await sleep(CLOCK_SYNC_PERIOD + random.uniform(-5, 5))
                 try:
                     await self.clock_synchronize()
                 except Exception:
@@ -895,7 +896,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
         if self._node_protocols is None:
             raise NodeError(
-                "Unable to synchronize clock en when protocol version is unknown"
+                "Unable to synchronize clock when protocol version is unknown"
             )
         set_clock_request = CircleClockSetRequest(
             self._send,
