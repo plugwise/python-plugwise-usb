@@ -607,7 +607,7 @@ RESPONSE_MESSAGES = {
     b'\x05\x05\x03\x030028009876543210123430081800150925FE53\r\n': (
         "Circle+ Realtime set clock for 0098765432101234",
         b"000000C1",  # Success ack
-        b"0000" + b"00DF" + b"0098765432101234"  # msg_id, clock_ack, mac
+        b"0000" + b"00D7" + b"0098765432101234"  # msg_id, clock_ack, mac
     ),
     b"\x05\x05\x03\x03003E11111111111111111B8A\r\n": (
         "clock for 0011111111111111",
