@@ -67,6 +67,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
 
     async def clock_synchronize(self) -> bool:
         """Synchronize realtime clock. Returns true if successful."""
+        _dt_req_to_circle: datetime = datetime.now(tz=UTC)
         clock_request = CirclePlusRealTimeClockGetRequest(
             self._send, self._mac_in_bytes
         )
@@ -78,16 +79,16 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             return False
         await self._available_update_state(True, clock_response.timestamp)
 
-        _dt_of_circle: datetime = datetime.now(tz=UTC).replace(
-            hour=clock_response.time.value.hour,
-            minute=clock_response.time.value.minute,
-            second=clock_response.time.value.second,
-            microsecond=0,
-            tzinfo=UTC,
-        )
-        _LOGGER.debug("HOI circle+ clock=%s", clock_response.timestamp.replace(microsecond=0))
-        _LOGGER.debug("HOI _dt_of_circle=%s", _dt_of_circle)
-        clock_offset = clock_response.timestamp.replace(microsecond=0) - _dt_of_circle
+        # _dt_req_to_circle: datetime = datetime.now(tz=UTC).replace(
+        #     hour=clock_response.time.value.hour,
+        #     minute=clock_response.time.value.minute,
+        #     second=clock_response.time.value.second,
+        #     microsecond=0,
+        #     tzinfo=UTC,
+        # )
+        _LOGGER.debug("HOI circle+ clock=%s", clock_response.timestamp)
+        _LOGGER.debug("HOI _dt_req_to_circle=%s", _dt_req_to_circle)
+        clock_offset = clock_response.timestamp.replace(microsecond=0) - _dt_req_to_circle
         if abs(clock_offset.total_seconds()) < MAX_TIME_DRIFT:
             return True
         _LOGGER.info(
