@@ -67,29 +67,28 @@ class PlugwiseCirclePlus(PlugwiseCircle):
 
     async def clock_synchronize(self) -> bool:
         """Synchronize realtime clock. Returns true if successful."""
-        #_dt_req_to_circle: datetime = datetime.now(tz=UTC)
-        clock_request = CirclePlusRealTimeClockGetRequest(
+        request = CirclePlusRealTimeClockGetRequest(
             self._send, self._mac_in_bytes
         )
-        if (clock_response := await clock_request.send()) is None:
+        if (response := await request.send()) is None:
             _LOGGER.debug(
                 "No response for async_realtime_clock_synchronize() for %s", self.mac
             )
             await self._available_update_state(False)
             return False
-        await self._available_update_state(True, clock_response.timestamp)
+        await self._available_update_state(True, response.timestamp)
 
-        _dt_req_to_circle: datetime = datetime.now(tz=UTC).replace(
-            hour=clock_response.time.value.hour,
-            minute=clock_response.time.value.minute,
-            second=clock_response.time.value.second,
+        circle_plus_dt: datetime = datetime.now(tz=UTC).replace(
+            hour=response.time.value.hour,
+            minute=response.time.value.minute,
+            second=response.time.value.second,
             microsecond=0,
             tzinfo=UTC,
         )
-        _LOGGER.debug("HOI circle+ clock=%s", clock_response.timestamp)
-        _LOGGER.debug("HOI _dt_req_to_circle=%s", _dt_req_to_circle)
+        _LOGGER.debug("HOI circle+ clock=%s", circle_plus_dt)
+        _LOGGER.debug("HOI response timestamp=%s", response.timestamp)
         clock_offset = (
-            clock_response.timestamp.replace(microsecond=0) - _dt_req_to_circle
+            response.timestamp.replace(microsecond=0) - circle_plus_dt
         )
         if abs(clock_offset.total_seconds()) < MAX_TIME_DRIFT:
             return True
@@ -99,10 +98,10 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             str(int(abs(clock_offset.total_seconds()))),
             str(MAX_TIME_DRIFT),
         )
-        clock_set_request = CirclePlusRealTimeClockSetRequest(
+        set_request = CirclePlusRealTimeClockSetRequest(
             self._send, self._mac_in_bytes, datetime.now(tz=UTC)
         )
-        if (node_response := await clock_set_request.send()) is not None:
+        if (node_response := await set_request.send()) is not None:
             return node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED
         _LOGGER.warning(
             "Failed to (re)set the internal realtime clock of %s",
