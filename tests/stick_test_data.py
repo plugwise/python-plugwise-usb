@@ -596,8 +596,8 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"003A"  # msg_id
         + b"0098765432101234"  # mac
-        # 2025-04-03 22:00:00
-        + bytes(("%%0%dd" % 2) % 0, pw_constants.UTF8)  # noqa: UP031
+        # 2025-04-03 22:00:30
+        + bytes(("%%0%dd" % 2) % 30, pw_constants.UTF8)  # noqa: UP031
         + bytes(("%%0%dd" % 2) % 0, pw_constants.UTF8)  # noqa: UP031
         + bytes(("%%0%dd" % 2) % 22, pw_constants.UTF8)  # noqa: UP031
         + bytes(("%%0%dd" % 2) % 5, pw_constants.UTF8)  # noqa: UP031
