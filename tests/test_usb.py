@@ -5,17 +5,13 @@ from collections.abc import Callable, Coroutine
 from datetime import UTC, datetime as dt, timedelta as td
 import importlib
 import logging
-import random
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
 import aiofiles  # type: ignore[import-untyped]
-import crcmod
 from freezegun import freeze_time
-
-crc_fun = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0x0000, xorOut=0x0000)
 
 pw_stick = importlib.import_module("plugwise_usb")
 pw_api = importlib.import_module("plugwise_usb.api")
@@ -46,126 +42,6 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
 
 
-def inc_seq_id(seq_id: bytes | None) -> bytes:
-    """Increment sequence id."""
-    if seq_id is None:
-        return b"0000"
-    temp_int = int(seq_id, 16) + 1
-    if temp_int >= 65532:
-        temp_int = 0
-    temp_str = str(hex(temp_int)).lstrip("0x").upper()
-    while len(temp_str) < 4:
-        temp_str = "0" + temp_str
-    return temp_str.encode()
-
-
-def construct_message(data: bytes, seq_id: bytes = b"0000") -> bytes:
-    """Construct plugwise message."""
-    body = data[:4] + seq_id + data[4:]
-    return bytes(
-        pw_constants.MESSAGE_HEADER
-        + body
-        + bytes(f"{crc_fun(body):04X}", pw_constants.UTF8)
-        + pw_constants.MESSAGE_FOOTER
-    )
-
-
-class DummyTransport:
-    """Dummy transport class."""
-
-    protocol_data_received: Callable[[bytes], None]
-
-    def __init__(
-        self,
-        loop: asyncio.AbstractEventLoop,
-        test_data: dict[bytes, tuple[str, bytes, bytes | None]] | None = None,
-    ) -> None:
-        """Initialize dummy transport class."""
-        self._loop = loop
-        self._msg = 0
-        self._seq_id = b"1233"
-        self._processed: list[bytes] = []
-        self._first_response = test_data
-        self._second_response = test_data
-        if test_data is None:
-            self._first_response = pw_userdata.RESPONSE_MESSAGES
-            self._second_response = pw_userdata.SECOND_RESPONSE_MESSAGES
-        self.random_extra_byte = 0
-        self._closing = False
-
-    def is_closing(self) -> bool:
-        """Close connection."""
-        return self._closing
-
-    def write(self, data: bytes) -> None:
-        """Write data back to system."""
-        log = None
-        ack = None
-        response = None
-        if data in self._processed and self._second_response is not None:
-            log, ack, response = self._second_response.get(data, (None, None, None))
-        if log is None and self._first_response is not None:
-            log, ack, response = self._first_response.get(data, (None, None, None))
-        if log is None:
-            resp = pw_userdata.PARTLY_RESPONSE_MESSAGES.get(
-                data[:24], (None, None, None)
-            )
-            if resp is None:
-                _LOGGER.debug("No msg response for %s", str(data))
-                return
-            log, ack, response = resp
-        if ack is None:
-            _LOGGER.debug("No ack response for %s", str(data))
-            return
-
-        self._seq_id = inc_seq_id(self._seq_id)
-        if response and self._msg == 0:
-            self.message_response_at_once(ack, response, self._seq_id)
-            self._processed.append(data)
-        else:
-            self.message_response(ack, self._seq_id)
-            self._processed.append(data)
-            if response is None or self._closing:
-                return
-            self._loop.create_task(self._delayed_response(response, self._seq_id))
-        self._msg += 1
-
-    async def _delayed_response(self, data: bytes, seq_id: bytes) -> None:
-        delay = random.uniform(0.005, 0.025)
-        await asyncio.sleep(delay)
-        self.message_response(data, seq_id)
-
-    def message_response(self, data: bytes, seq_id: bytes) -> None:
-        """Handle message response."""
-        self.random_extra_byte += 1
-        if self.random_extra_byte > 25:
-            self.protocol_data_received(b"\x83")
-            self.random_extra_byte = 0
-            self.protocol_data_received(construct_message(data, seq_id) + b"\x83")
-        else:
-            self.protocol_data_received(construct_message(data, seq_id))
-
-    def message_response_at_once(self, ack: bytes, data: bytes, seq_id: bytes) -> None:
-        """Full message."""
-        self.random_extra_byte += 1
-        if self.random_extra_byte > 25:
-            self.protocol_data_received(b"\x83")
-            self.random_extra_byte = 0
-            self.protocol_data_received(
-                construct_message(ack, seq_id)
-                + construct_message(data, seq_id)
-                + b"\x83"
-            )
-        else:
-            self.protocol_data_received(
-                construct_message(ack, seq_id) + construct_message(data, seq_id)
-            )
-
-    def close(self) -> None:
-        """Close connection."""
-        self._closing = True
-
-
 class MockSerial:
     """Mock serial connection."""
 
@@ -175,7 +51,7 @@ class MockSerial:
         """Init mocked serial connection."""
         self.custom_response = custom_response
         self._protocol: pw_receiver.StickReceiver | None = None  # type: ignore[name-defined]
-        self._transport: DummyTransport | None = None
+        self._transport: pw_userdata.DummyTransport | None = None
 
     def inject_message(self, data: bytes, seq_id: bytes) -> None:
         """Inject message to be received from stick."""
@@ -194,10 +70,10 @@ class MockSerial:
         loop: asyncio.AbstractEventLoop,
         protocol_factory: Callable[[], pw_receiver.StickReceiver],  # type: ignore[name-defined]
         **kwargs: dict[str, Any],
-    ) -> tuple[DummyTransport, pw_receiver.StickReceiver]:  # type: ignore[name-defined]
+    ) -> tuple[pw_userdata.DummyTransport, pw_receiver.StickReceiver]:  # type: ignore[name-defined]
         """Mock connection with dummy connection."""
         self._protocol = protocol_factory()
-        self._transport = DummyTransport(loop, self.custom_response)
+        self._transport = pw_userdata.DummyTransport(loop, self.custom_response)
         self._transport.protocol_data_received = self._protocol.data_received
         loop.call_soon_threadsafe(self._protocol.connection_made, self._transport)
         return self._transport, self._protocol
@@ -1975,11 +1851,11 @@ class TestStick:
 
         sed_config_accepted = pw_responses.NodeResponse()
         sed_config_accepted.deserialize(
-            construct_message(b"000000F65555555555555555", b"0000")
+            pw_userdata.construct_message(b"000000F65555555555555555", b"0000")
         )
         sed_config_failed = pw_responses.NodeResponse()
         sed_config_failed.deserialize(
-            construct_message(b"000000F75555555555555555", b"0000")
+            pw_userdata.construct_message(b"000000F75555555555555555", b"0000")
         )
 
         # test awake duration
@@ -2000,7 +1876,7 @@ class TestStick:
         # Restore to original settings after failed config
         awake_response1 = pw_responses.NodeAwakeResponse()
         awake_response1.deserialize(
-            construct_message(b"004F555555555555555500", b"FFFE")
+            pw_userdata.construct_message(b"004F555555555555555500", b"FFFE")
         )
         mock_stick_controller.append_response(sed_config_failed)
         await test_sed._awake_response(awake_response1)  # pylint: disable=protected-access
@@ -2013,7 +1889,7 @@ class TestStick:
         # Successful config
         awake_response2 = pw_responses.NodeAwakeResponse()
         awake_response2.deserialize(
-            construct_message(b"004F555555555555555500", b"FFFE")
+            pw_userdata.construct_message(b"004F555555555555555500", b"FFFE")
         )
         awake_response2.timestamp = awake_response1.timestamp + td(
             seconds=pw_sed.AWAKE_RETRY
@@ -2041,7 +1917,7 @@ class TestStick:
         assert test_sed.battery_config.dirty
         awake_response3 = pw_responses.NodeAwakeResponse()
         awake_response3.deserialize(
-            construct_message(b"004F555555555555555500", b"FFFE")
+            pw_userdata.construct_message(b"004F555555555555555500", b"FFFE")
         )
         awake_response3.timestamp = awake_response2.timestamp + td(
             seconds=pw_sed.AWAKE_RETRY
@@ -2067,7 +1943,7 @@ class TestStick:
         assert test_sed.battery_config.dirty
         awake_response4 = pw_responses.NodeAwakeResponse()
         awake_response4.deserialize(
-            construct_message(b"004F555555555555555500", b"FFFE")
+            pw_userdata.construct_message(b"004F555555555555555500", b"FFFE")
         )
         awake_response4.timestamp = awake_response3.timestamp + td(
             seconds=pw_sed.AWAKE_RETRY
@@ -2088,7 +1964,7 @@ class TestStick:
         assert test_sed.battery_config.dirty
         awake_response5 = pw_responses.NodeAwakeResponse()
         awake_response5.deserialize(
-            construct_message(b"004F555555555555555500", b"FFFE")
+            pw_userdata.construct_message(b"004F555555555555555500", b"FFFE")
         )
         awake_response5.timestamp = awake_response4.timestamp + td(
             seconds=pw_sed.AWAKE_RETRY
@@ -2113,7 +1989,7 @@ class TestStick:
         assert test_sed.battery_config.dirty
         awake_response6 = pw_responses.NodeAwakeResponse()
         awake_response6.deserialize(
-            construct_message(b"004F555555555555555500", b"FFFE")
+            pw_userdata.construct_message(b"004F555555555555555500", b"FFFE")
         )
         awake_response6.timestamp = awake_response5.timestamp + td(
             seconds=pw_sed.AWAKE_RETRY
@@ -2177,11 +2053,11 @@ class TestStick:
         mock_stick_controller = MockStickController()
         scan_config_accepted = pw_responses.NodeAckResponse()
         scan_config_accepted.deserialize(
-            construct_message(b"0100555555555555555500BE", b"0000")
+            pw_userdata.construct_message(b"0100555555555555555500BE", b"0000")
         )
         scan_config_failed = pw_responses.NodeAckResponse()
         scan_config_failed.deserialize(
-            construct_message(b"0100555555555555555500BF", b"0000")
+            pw_userdata.construct_message(b"0100555555555555555500BF", b"0000")
         )
 
         async def load_callback(event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
@@ -2222,7 +2098,7 @@ class TestStick:
         # Restore to original settings after failed config
         awake_response1 = pw_responses.NodeAwakeResponse()
         awake_response1.deserialize(
-            construct_message(b"004F555555555555555500", b"FFFE")
+            pw_userdata.construct_message(b"004F555555555555555500", b"FFFE")
         )
         mock_stick_controller.append_response(scan_config_failed)
         await test_scan._awake_response(awake_response1)  # pylint: disable=protected-access
@@ -2233,7 +2109,7 @@ class TestStick:
         # Successful config
         awake_response2 = pw_responses.NodeAwakeResponse()
         awake_response2.deserialize(
-            construct_message(b"004F555555555555555500", b"FFFE")
+            pw_userdata.construct_message(b"004F555555555555555500", b"FFFE")
         )
         awake_response2.timestamp = awake_response1.timestamp + td(
             seconds=pw_sed.AWAKE_RETRY
@@ -2257,7 +2133,7 @@ class TestStick:
         assert test_scan.motion_config.dirty
         awake_response3 = pw_responses.NodeAwakeResponse()
         awake_response3.deserialize(
-            construct_message(b"004F555555555555555500", b"FFFE")
+            pw_userdata.construct_message(b"004F555555555555555500", b"FFFE")
         )
         awake_response3.timestamp = awake_response2.timestamp + td(
             seconds=pw_sed.AWAKE_RETRY
@@ -2286,7 +2162,7 @@ class TestStick:
         assert test_scan.motion_config.dirty
         awake_response4 = pw_responses.NodeAwakeResponse()
         awake_response4.deserialize(
-            construct_message(b"004F555555555555555500", b"FFFE")
+            pw_userdata.construct_message(b"004F555555555555555500", b"FFFE")
         )
         awake_response4.timestamp = awake_response3.timestamp + td(
             seconds=pw_sed.AWAKE_RETRY
@@ -2399,25 +2275,25 @@ class TestStick:
         mock_stick_controller = MockStickController()
         sense_config_accepted = pw_responses.NodeAckResponse()
         sense_config_accepted.deserialize(
-            construct_message(b"0100555555555555555500B5", b"0000")
+            pw_userdata.construct_message(b"0100555555555555555500B5", b"0000")
         )
         sense_config_failed = pw_responses.NodeAckResponse()
         sense_config_failed.deserialize(
-            construct_message(b"0100555555555555555500B6", b"0000")
+            pw_userdata.construct_message(b"0100555555555555555500B6", b"0000")
         )
 
         sense_config_report_interval_accepted = pw_responses.NodeAckResponse()
         sense_config_report_interval_accepted.deserialize(
-            construct_message(b"0100555555555555555500B3", b"0000")
+            pw_userdata.construct_message(b"0100555555555555555500B3", b"0000")
         )
         sense_config_report_interval_failed = pw_responses.NodeAckResponse()
         sense_config_report_interval_failed.deserialize(
-            construct_message(b"0100555555555555555500B4", b"0000")
+            pw_userdata.construct_message(b"0100555555555555555500B4", b"0000")
         )
 
         awake_response = pw_responses.NodeAwakeResponse()
         awake_response.deserialize(
-            construct_message(b"004F555555555555555500", b"FFFE")
+            pw_userdata.construct_message(b"004F555555555555555500", b"FFFE")
         )
 
         async def run_awake_with_response(

@@ -1,7 +1,19 @@
 """Stick Test Program."""
 
+import asyncio
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 import importlib
+import logging
+import random
+
+import crcmod
+
+crc_fun = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0x0000, xorOut=0x0000)
+
+
+_LOGGER = logging.getLogger(__name__)
+_LOGGER.setLevel(logging.DEBUG)
 
 pw_constants = importlib.import_module("plugwise_usb.constants")
 
@@ -11,6 +23,124 @@ utc_now = datetime.now(tz=UTC).replace(tzinfo=UTC)
 
 # generate energy log timestamps with fixed hour timestamp used in tests
 hour_timestamp = utc_now.replace(minute=0, second=0, microsecond=0)
+
+
+def construct_message(data: bytes, seq_id: bytes = b"0000") -> bytes:
+    """Construct plugwise message."""
+    body = data[:4] + seq_id + data[4:]
+    return bytes(
+        pw_constants.MESSAGE_HEADER
+        + body
+        + bytes(f"{crc_fun(body):04X}", pw_constants.UTF8)
+        + pw_constants.MESSAGE_FOOTER
+    )
+
+
+class DummyTransport:
+    """Dummy transport class."""
+
+    protocol_data_received: Callable[[bytes], None]
+
+    def __init__(
+        self,
+        loop: asyncio.AbstractEventLoop,
+        test_data: dict[bytes, tuple[str, bytes, bytes | None]] | None = None,
+    ) -> None:
+        """Initialize dummy transport class."""
+        self._loop = loop
+        self._msg = 0
+        self._seq_id = b"1233"
+        self._processed: list[bytes] = []
+        self._first_response = test_data
+        self._second_response = test_data
+        if test_data is None:
+            self._first_response = RESPONSE_MESSAGES
+            self._second_response = SECOND_RESPONSE_MESSAGES
+        self.random_extra_byte = 0
+        self._closing = False
+
+    def inc_seq_id(self, seq_id: bytes | None) -> bytes:
+        """Increment sequence id."""
+        if seq_id is None:
+            return b"0000"
+        temp_int = int(seq_id, 16) + 1
+        if temp_int >= 65532:
+            temp_int = 0
+        temp_str = str(hex(temp_int)).lstrip("0x").upper()
+        while len(temp_str) < 4:
+            temp_str = "0" + temp_str
+        return temp_str.encode()
+
+    def is_closing(self) -> bool:
+        """Close connection."""
+        return self._closing
+
+    def write(self, data: bytes) -> None:
+        """Write data back to system."""
+        log = None
+        ack = None
+        response = None
+        if data in self._processed and self._second_response is not None:
+            log, ack, response = self._second_response.get(data, (None, None, None))
+        if log is None and self._first_response is not None:
+            log, ack, response = self._first_response.get(data, (None, None, None))
+        if log is None:
+            resp = PARTLY_RESPONSE_MESSAGES.get(data[:24], (None, None, None))
+            if resp is None:
+                _LOGGER.debug("No msg response for %s", str(data))
+                return
+            log, ack, response = resp
+        if ack is None:
+            _LOGGER.debug("No ack response for %s", str(data))
+            return
+
+        self._seq_id = self.inc_seq_id(self._seq_id)
+        if response and self._msg == 0:
+            self.message_response_at_once(ack, response, self._seq_id)
+            self._processed.append(data)
+        else:
+            self.message_response(ack, self._seq_id)
+            self._processed.append(data)
+            if response is None or self._closing:
+                return
+            self._loop.create_task(self._delayed_response(response, self._seq_id))
+        self._msg += 1
+
+    async def _delayed_response(self, data: bytes, seq_id: bytes) -> None:
+        delay = random.uniform(0.005, 0.025)
+        await asyncio.sleep(delay)
+        self.message_response(data, seq_id)
+
+    def message_response(self, data: bytes, seq_id: bytes) -> None:
+        """Handle message response."""
+        self.random_extra_byte += 1
+        if self.random_extra_byte > 25:
+            self.protocol_data_received(b"\x83")
+            self.random_extra_byte = 0
+            self.protocol_data_received(construct_message(data, seq_id) + b"\x83")
+        else:
+            self.protocol_data_received(construct_message(data, seq_id))
+
+    def message_response_at_once(self, ack: bytes, data: bytes, seq_id: bytes) -> None:
+        """Full message."""
+        self.random_extra_byte += 1
+        if self.random_extra_byte > 25:
+            self.protocol_data_received(b"\x83")
+            self.random_extra_byte = 0
+            self.protocol_data_received(
+                construct_message(ack, seq_id)
+                + construct_message(data, seq_id)
+                + b"\x83"
+            )
+        else:
+            self.protocol_data_received(
+                construct_message(ack, seq_id) + construct_message(data, seq_id)
+            )
+
+    def close(self) -> None:
+        """Close connection."""
+        self._closing = True
+
 
 LOG_TIMESTAMPS = {}
 _one_hour = timedelta(hours=1)
