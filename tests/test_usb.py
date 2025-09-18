@@ -101,11 +101,11 @@ class DummyTransport:
         """Write data back to system."""
         log = None
         ack = None
-        response_1 = None
+        response = None
         if data in self._processed and self._second_response is not None:
-            log, ack, response_1 = self._second_response.get(data, (None, None, None))
+            log, ack, response = self._second_response.get(data, (None, None, None))
         if log is None and self._first_response is not None:
-            log, ack, response_1 = self._first_response.get(data, (None, None, None))
+            log, ack, response = self._first_response.get(data, (None, None, None))
         if log is None:
             resp = pw_userdata.PARTLY_RESPONSE_MESSAGES.get(
                 data[:24], (None, None, None)
@@ -113,21 +113,25 @@ class DummyTransport:
             if resp is None:
                 _LOGGER.debug("No msg response for %s", str(data))
                 return
-            log, ack, response_1 = resp
+            log, ack, response = resp
+        if log is not None:
+            _LOGGER.debug("HOI log=%s", log)
+            _LOGGER.debug("HOI ack=%s", ack)
+            _LOGGER.debug("HOI response=%s", response)
         if ack is None:
             _LOGGER.debug("No ack response for %s", str(data))
             return
 
         self._seq_id = inc_seq_id(self._seq_id)
-        if response_1 and self._msg == 0:
-            self.message_response_at_once(ack, response_1, self._seq_id)
+        if response and self._msg == 0:
+            self.message_response_at_once(ack, response, self._seq_id)
             self._processed.append(data)
         else:
             self.message_response(ack, self._seq_id)
             self._processed.append(data)
-            if response_1 is None or self._closing:
+            if response is None or self._closing:
                 return
-            self._loop.create_task(self._delayed_response(response_1, self._seq_id))
+            self._loop.create_task(self._delayed_response(response, self._seq_id))
         self._msg += 1
 
     async def _delayed_response(self, data: bytes, seq_id: bytes) -> None:
