@@ -784,7 +784,7 @@ class TestStick:
                 )
             )
 
-    @freeze_time("2025-04-03 22:00:00", real_asyncio=True)
+    # @freeze_time("2025-04-03 22:00:00", real_asyncio=True)
     @pytest.mark.asyncio
     async def test_node_relay_and_power(self, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa:  PLR0915
         """Testing discovery of nodes."""
