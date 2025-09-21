@@ -114,10 +114,6 @@ class DummyTransport:
                 _LOGGER.debug("No msg response for %s", str(data))
                 return
             log, ack, response = resp
-        if log is not None:
-            _LOGGER.debug("HOI log=%s", log)
-            _LOGGER.debug("HOI ack=%s", ack)
-            _LOGGER.debug("HOI response=%s", response)
         if ack is None:
             _LOGGER.debug("No ack response for %s", str(data))
             return
