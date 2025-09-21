@@ -895,7 +895,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         _LOGGER.warning(
             "Reset realtime clock of node %s because time drifted %s seconds (max %s seconds)",
-            self.name,
+            self._mac_in_str,
             str(int(abs(clock_offset.total_seconds()))),
             str(MAX_TIME_DRIFT),
         )
