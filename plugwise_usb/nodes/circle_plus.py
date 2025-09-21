@@ -81,9 +81,9 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         dt_now = datetime.now(tz=UTC)
         _LOGGER.debug("HOI dt_now weekday=%s", dt_now.weekday())
         _LOGGER.debug("HOI circle+ day_of_week=%s", response.day_of_week.value)
-        days_diff = response.day_of_week.value - dt_now.weekday()
+        days_diff = (response.day_of_week.value - dt_now.weekday()) % 7
         circle_plus_timestamp: datetime = dt_now.replace(
-            day=dt_now.day - days_diff,
+            day=(dt_now.day + days_diff), 
             hour=response.time.value.hour,
             minute=response.time.value.minute,
             second=response.time.value.second,
