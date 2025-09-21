@@ -880,9 +880,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
             return False
 
         dt_now = datetime.now(tz=UTC)
-        days_diff = response.day_of_week.value - dt_now.weekday()
-        circle_timestamp = dt_now.replace(
-            day=dt_now.day - days_diff,
+        days_diff = (response.day_of_week.value - dt_now.weekday()) % 7
+        circle_plus_timestamp: datetime = dt_now.replace(
+            day=dt_now.day + days_diff, 
             hour=response.time.value.hour,
             minute=response.time.value.minute,
             second=response.time.value.second,
@@ -892,6 +892,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         clock_offset = response.timestamp.replace(microsecond=0) - circle_timestamp
         if abs(clock_offset.total_seconds()) < MAX_TIME_DRIFT:
             return True
+
         _LOGGER.info(
             "Reset clock of node %s because time drifted %s seconds (max %s seconds)",
             self._mac_in_str,
