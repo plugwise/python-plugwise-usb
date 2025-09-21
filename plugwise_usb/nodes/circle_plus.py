@@ -81,7 +81,8 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         dt_now = datetime.now(tz=UTC)
         days_diff = response.day_of_week.value - dt_now.weekday()
         circle_plus_ts: datetime = dt_now.replace(
-            hour=response.time.value.hour + (24 * days_diff),
+            day=dt_now.day - days_diff,
+            hour=response.time.value.hour,
             minute=response.time.value.minute,
             second=response.time.value.second,
             microsecond=0,
