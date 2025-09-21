@@ -874,18 +874,22 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
     async def clock_synchronize(self) -> bool:
         """Synchronize clock. Returns true if successful."""
-        get_clock_request = CircleClockGetRequest(self._send, self._mac_in_bytes)
-        clock_response = await get_clock_request.send()
-        if clock_response is None or clock_response.timestamp is None:
+        request = CircleClockGetRequest(self._send, self._mac_in_bytes)
+        response = await request.send()
+        if response is None or response.timestamp is None:
             return False
-        _dt_of_circle = datetime.now(tz=UTC).replace(
-            hour=clock_response.time.hour.value,
-            minute=clock_response.time.minute.value,
-            second=clock_response.time.second.value,
+
+        dt_now = datetime.now(tz=UTC)
+        days_diff = response.day_of_week.value - dt_now.weekday()
+        circle_timestamp = dt_now.replace(
+            day=dt_now.day - days_diff,
+            hour=response.time.value.hour,
+            minute=response.time.value.minute,
+            second=response.time.value.second,
             microsecond=0,
             tzinfo=UTC,
         )
-        clock_offset = clock_response.timestamp.replace(microsecond=0) - _dt_of_circle
+        clock_offset = response.timestamp.replace(microsecond=0) - circle_timestamp
         if abs(clock_offset.total_seconds()) < MAX_TIME_DRIFT:
             return True
         _LOGGER.info(
@@ -898,13 +902,14 @@ class PlugwiseCircle(PlugwiseBaseNode):
             raise NodeError(
                 "Unable to synchronize clock en when protocol version is unknown"
             )
-        set_clock_request = CircleClockSetRequest(
+
+        set_request = CircleClockSetRequest(
             self._send,
             self._mac_in_bytes,
             datetime.now(tz=UTC),
             self._node_protocols.max,
         )
-        if (node_response := await set_clock_request.send()) is None:
+        if (node_response := await set_request.send()) is None:
             _LOGGER.warning(
                 "Failed to (re)set the internal clock of %s",
                 self.name,
