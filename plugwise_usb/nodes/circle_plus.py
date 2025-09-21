@@ -78,17 +78,19 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             return False
         await self._available_update_state(True, response.timestamp)
 
-        circle_plus_dt: datetime = datetime.now(tz=UTC).replace(
-            hour=response.time.value.hour,
+        dt_now = datetime.now(tz=UTC)
+        days_diff = response.day_of_week - dt_now.weekday()
+        circle_plus_ts: datetime = dt_now.replace(
+            hour=response.time.value.hour + (24 * days_diff),
             minute=response.time.value.minute,
             second=response.time.value.second,
             microsecond=0,
             tzinfo=UTC,
         )
-        _LOGGER.debug("HOI circle+ clock=%s", circle_plus_dt)
+        _LOGGER.debug("HOI circle+ clock=%s", circle_plus_ts)
         _LOGGER.debug("HOI response timestamp=%s", response.timestamp)
         clock_offset = (
-            response.timestamp.replace(microsecond=0) - circle_plus_dt
+            response.timestamp.replace(microsecond=0) - circle_plus_ts
         )
         if abs(clock_offset.total_seconds()) < MAX_TIME_DRIFT:
             return True
