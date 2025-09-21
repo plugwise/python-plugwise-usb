@@ -893,9 +893,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
         if abs(clock_offset.total_seconds()) < MAX_TIME_DRIFT:
             return True
 
-        _LOGGER.info(
-            "Reset clock of node %s because time drifted %s seconds (max %s seconds)",
-            self._mac_in_str,
+        _LOGGER.warning(
+            "Reset realtime clock of node %s because time drifted %s seconds (max %s seconds)",
+            self.name,
             str(int(abs(clock_offset.total_seconds()))),
             str(MAX_TIME_DRIFT),
         )

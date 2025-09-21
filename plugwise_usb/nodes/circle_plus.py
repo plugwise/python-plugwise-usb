@@ -94,9 +94,9 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         if abs(clock_offset.total_seconds()) < MAX_TIME_DRIFT:
             return True
 
-        _LOGGER.info(
+        _LOGGER.warning(
             "Reset realtime clock of node %s because time has drifted %s seconds while max drift is set to %s seconds)",
-            self._node_info.mac,
+            self.name,
             str(int(abs(clock_offset.total_seconds()))),
             str(MAX_TIME_DRIFT),
         )
