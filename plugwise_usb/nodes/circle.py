@@ -910,14 +910,12 @@ class PlugwiseCircle(PlugwiseBaseNode):
             datetime.now(tz=UTC),
             self._node_protocols.max,
         )
-        if (node_response := await set_request.send()) is None:
-            _LOGGER.warning(
-                "Failed to (re)set the internal clock of %s",
-                self.name,
-            )
-            return False
-        if node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED:
-            return True
+        if (node_response := await set_request.send()) is not None:
+            return node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED
+        _LOGGER.warning(
+            "Failed to (re)set the internal realtime clock of %s",
+            self.name,
+        )
         return False
 
     async def load(self) -> None:
