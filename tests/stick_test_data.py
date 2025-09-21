@@ -599,7 +599,6 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"003A"  # msg_id
         + b"0098765432101234"  # mac
-        # datetime.now()
         + bytes(("%%0%dd" % 2) % utc_now.second, pw_constants.UTF8)  # noqa: UP031
         + bytes(("%%0%dd" % 2) % utc_now.minute, pw_constants.UTF8)  # noqa: UP031
         + bytes(("%%0%dd" % 2) % utc_now.hour, pw_constants.UTF8)  # noqa: UP031
