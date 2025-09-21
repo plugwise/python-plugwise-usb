@@ -79,7 +79,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         await self._available_update_state(True, response.timestamp)
 
         dt_now = datetime.now(tz=UTC)
-        days_diff = response.day_of_week - dt_now.weekday()
+        days_diff = response.day_of_week.value - dt_now.weekday()
         circle_plus_ts: datetime = dt_now.replace(
             hour=response.time.value.hour + (24 * days_diff),
             minute=response.time.value.minute,
