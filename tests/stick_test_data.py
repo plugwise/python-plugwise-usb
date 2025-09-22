@@ -6,9 +6,7 @@ import importlib
 pw_constants = importlib.import_module("plugwise_usb.constants")
 
 # test using utc timezone - 2025-04-03 22:00:00
-utc_now = datetime(
-    2025, 4, 3, 22, 0, 0
-)  # datetime.now(tz=UTC).replace(tzinfo=UTC)
+utc_now = datetime(2025, 4, 3, 22, 0, 0)  # datetime.now(tz=UTC).replace(tzinfo=UTC)
 # utc_now_offset = datetime.now(tz=UTC).replace(tzinfo=UTC) + timedelta(
 #     days=1, hours=4, seconds=30
 # )
@@ -623,7 +621,9 @@ RESPONSE_MESSAGES = {
         + b"1111111111111111"  # mac
         + bytes(("%%0%dX" % 2) % utc_now.hour, pw_constants.UTF8)  # noqa: UP031
         + bytes(("%%0%dX" % 2) % utc_now.minute, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dX" % 2) % (utc_now + timedelta(seconds=10)).second, pw_constants.UTF8)  # noqa: UP031
+        + bytes(
+            ("%%0%dX" % 2) % (utc_now + timedelta(seconds=10)).second, pw_constants.UTF8
+        )  # noqa: UP031
         + bytes(("%%0%dX" % 2) % utc_now.weekday(), pw_constants.UTF8)  # noqa: UP031
         + b"00"  # unknown
         + b"0000",  # unknown2
