@@ -600,34 +600,13 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"003A"  # msg_id
         + b"0098765432101234"  # mac
-        + bytes(
-            ("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).second,
-            pw_constants.UTF8,
-        )  # noqa: UP031
-        + bytes(
-            ("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).minute,
-            pw_constants.UTF8,
-        )  # noqa: UP031
-        + bytes(
-            ("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).hour,
-            pw_constants.UTF8,
-        )  # noqa: UP031
-        + bytes(
-            ("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).weekday(),
-            pw_constants.UTF8,
-        )  # noqa: UP031
-        + bytes(
-            ("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).day,
-            pw_constants.UTF8,
-        )  # noqa: UP031
-        + bytes(
-            ("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).month,
-            pw_constants.UTF8,
-        )  # noqa: UP031
-        + bytes(
-            ("%%0%dd" % 2) % (datetime.now(tz=UTC).replace(tzinfo=UTC).year - 2000),
-            pw_constants.UTF8,
-        ),  # noqa: UP031
+        + bytes(("%%0%dd" % 2) % utc_now.second, pw_constants.UTF8)  # noqa: UP031
+        + bytes(("%%0%dd" % 2) % utc_now.minute, pw_constants.UTF8)  # noqa: UP031
+        + bytes(("%%0%dd" % 2) % utc_now.hour, pw_constants.UTF8)  # noqa: UP031
+        + bytes(("%%0%dd" % 2) % utc_now.weekday(), pw_constants.UTF8)  # noqa: UP031
+        + bytes(("%%0%dd" % 2) % utc_now.day, pw_constants.UTF8)  # noqa: UP031
+        + bytes(("%%0%dd" % 2) % utc_now.month, pw_constants.UTF8)  # noqa: UP031
+        + bytes(("%%0%dd" % 2) % (utc_now.year - 2000), pw_constants.UTF8)  # noqa: UP031
     ),
     b"\x05\x05\x03\x0300280098765432101234000022030304259DDF\r\n": (
         "Circle+ Realtime set clock for 0098765432101234",
