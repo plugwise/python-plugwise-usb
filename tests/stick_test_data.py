@@ -629,7 +629,7 @@ RESPONSE_MESSAGES = {
             pw_constants.UTF8,
         ),  # noqa: UP031
     ),
-    b"\x05\x05\x03\x030028009876543210123452441406210925D23C\r\n": (
+    b"\x05\x05\x03\x0300280098765432101234000022030304259DDF\r\n": (
         "Circle+ Realtime set clock for 0098765432101234",
         b"000000C1",  # Success ack
         b"0000" + b"00D7" + b"0098765432101234",  # msg_id, clock_ack, mac
