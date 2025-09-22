@@ -619,7 +619,7 @@ RESPONSE_MESSAGES = {
         + bytes(f"{utc_now.hour:02x}", pw_constants.UTF8)  # noqa: UP031
         + bytes(f"{utc_now.minute:02x}", pw_constants.UTF8)  # noqa: UP031
         + bytes(f"{(utc_now + timedelta(seconds=10)).second:02x}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.weekday():02d}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{utc_now.weekday():02x}", pw_constants.UTF8)  # noqa: UP031
         + b"00"  # unknown
         + b"0000",  # unknown2
     ),
