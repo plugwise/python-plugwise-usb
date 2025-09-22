@@ -599,13 +599,34 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"003A"  # msg_id
         + b"0098765432101234"  # mac
-        + bytes(("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).second, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).minute, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).hour, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).weekday(), pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).day, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).month, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % (datetime.now(tz=UTC).replace(tzinfo=UTC).year - 2000), pw_constants.UTF8),  # noqa: UP031
+        + bytes(
+            ("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).second,
+            pw_constants.UTF8,
+        )  # noqa: UP031
+        + bytes(
+            ("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).minute,
+            pw_constants.UTF8,
+        )  # noqa: UP031
+        + bytes(
+            ("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).hour,
+            pw_constants.UTF8,
+        )  # noqa: UP031
+        + bytes(
+            ("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).weekday(),
+            pw_constants.UTF8,
+        )  # noqa: UP031
+        + bytes(
+            ("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).day,
+            pw_constants.UTF8,
+        )  # noqa: UP031
+        + bytes(
+            ("%%0%dd" % 2) % datetime.now(tz=UTC).replace(tzinfo=UTC).month,
+            pw_constants.UTF8,
+        )  # noqa: UP031
+        + bytes(
+            ("%%0%dd" % 2) % (datetime.now(tz=UTC).replace(tzinfo=UTC).year - 2000),
+            pw_constants.UTF8,
+        ),  # noqa: UP031
     ),
     b"\x05\x05\x03\x030028009876543210123452441406210925D23C\r\n": (
         "Circle+ Realtime set clock for 0098765432101234",
