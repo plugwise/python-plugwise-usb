@@ -603,7 +603,7 @@ RESPONSE_MESSAGES = {
         b"003A"  # msg_id
         + b"0098765432101234"  # mac
         + bytes(
-            ("%%0%dd" % 2) % (utc_now + timedelta(seconds=10)).second, pw_constants.UTF8
+            ("%%0%dd" % 2) % (utc_now + timedelta(seconds=0)).second, pw_constants.UTF8
         )  # noqa: UP031
         + bytes(("%%0%dd" % 2) % utc_now.minute, pw_constants.UTF8)  # noqa: UP031
         + bytes(("%%0%dd" % 2) % utc_now.hour, pw_constants.UTF8)  # noqa: UP031
