@@ -623,7 +623,7 @@ RESPONSE_MESSAGES = {
         + b"1111111111111111"  # mac
         + bytes(("%%0%dX" % 2) % utc_now.hour, pw_constants.UTF8)  # noqa: UP031
         + bytes(("%%0%dX" % 2) % utc_now.minute, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dX" % 2) % utc_now.second, pw_constants.UTF8)  # noqa: UP031
+        + bytes(("%%0%dX" % 2) % (utc_now + timedelta(seconds=10)).second, pw_constants.UTF8)  # noqa: UP031
         + bytes(("%%0%dX" % 2) % utc_now.weekday(), pw_constants.UTF8)  # noqa: UP031
         + b"00"  # unknown
         + b"0000",  # unknown2
