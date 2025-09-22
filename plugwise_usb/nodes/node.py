@@ -391,7 +391,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
     async def clear_cache(self) -> None:
         """Clear current cache."""
         if self._node_cache is not None:
-            _LOGGER.debug("Removing node % cache", self._mac_in_str)
+            _LOGGER.debug("Removing node %s cache", self._mac_in_str)
             await self._node_cache.clear_cache()
 
     async def _load_from_cache(self) -> bool:
