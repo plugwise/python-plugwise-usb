@@ -1,6 +1,6 @@
 """Stick Test Program."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 import importlib
 
 pw_constants = importlib.import_module("plugwise_usb.constants")
