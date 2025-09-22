@@ -2724,6 +2724,7 @@ class TestStick:
         )
         assert not state[pw_api.NodeFeature.AVAILABLE].state
 
+    @freeze_time("2025-04-03 22:00:00", real_asyncio=True)
     @pytest.mark.asyncio
     async def test_node_discovery_and_load(  # noqa: PLR0915
         self, monkeypatch: pytest.MonkeyPatch

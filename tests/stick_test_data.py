@@ -14,7 +14,9 @@ utc_now_offset = datetime.now(tz=UTC).replace(tzinfo=UTC) + timedelta(
 
 # generate energy log timestamps with fixed hour timestamp used in tests
 # 2025-04-03 22:00:00
-hour_timestamp = datetime(2025, 4, 3, 22, 0, 0)  # utc_now.replace(minute=0, second=0, microsecond=0)
+hour_timestamp = datetime(
+    2025, 4, 3, 22, 0, 0
+)  # utc_now.replace(minute=0, second=0, microsecond=0)
 
 LOG_TIMESTAMPS = {}
 _one_hour = timedelta(hours=1)
@@ -606,7 +608,7 @@ RESPONSE_MESSAGES = {
         + bytes(("%%0%dd" % 2) % utc_now.weekday(), pw_constants.UTF8)  # noqa: UP031
         + bytes(("%%0%dd" % 2) % utc_now.day, pw_constants.UTF8)  # noqa: UP031
         + bytes(("%%0%dd" % 2) % utc_now.month, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % (utc_now.year - 2000), pw_constants.UTF8)  # noqa: UP031
+        + bytes(("%%0%dd" % 2) % (utc_now.year - 2000), pw_constants.UTF8),  # noqa: UP031
     ),
     b"\x05\x05\x03\x0300280098765432101234000022030304259DDF\r\n": (
         "Circle+ Realtime set clock for 0098765432101234",
