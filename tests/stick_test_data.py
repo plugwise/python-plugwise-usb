@@ -13,7 +13,8 @@ utc_now_offset = datetime.now(tz=UTC).replace(tzinfo=UTC) + timedelta(
 
 
 # generate energy log timestamps with fixed hour timestamp used in tests
-hour_timestamp = utc_now.replace(minute=0, second=0, microsecond=0)
+# 2025-04-03 22:00:00
+hour_timestamp = datetime(25, 4, 3, 22, 0, 0)  # utc_now.replace(minute=0, second=0, microsecond=0)
 
 LOG_TIMESTAMPS = {}
 _one_hour = timedelta(hours=1)
