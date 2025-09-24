@@ -3,7 +3,7 @@
 ## v0.46.1 - 2025-09-25
 
 - PR [337](https://github.com/plugwise/python-plugwise-usb/pull/337): Improve node removal, remove and reset the node as executed by Source, and remove the cache-file.
-- PR [342](https://github.com/plugwise/python-plugwise-usb/pull/342): Improve node_type chaching.
+- PR [342](https://github.com/plugwise/python-plugwise-usb/pull/342): Improve node_type caching.
 - PR [343](https://github.com/plugwise/python-plugwise-usb/pull/343): Improve writing of cache-files.
 - PR [344](https://github.com/plugwise/python-plugwise-usb/pull/344): Don't store plus-device in nodetypes cache.
 - PR [348](https://github.com/plugwise/python-plugwise-usb/pull/348): Fix broken auto-joining.
