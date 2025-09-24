@@ -108,7 +108,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             return True
 
         _LOGGER.warning(
-            "Reset realtime clock of node %s because time has drifted %s seconds while max drift is set to %s seconds)",
+            "Reset realtime clock of node %s because time drifted %s seconds (max %s seconds)",
             self._mac_in_str,
             int(abs(clock_offset.total_seconds())),
             MAX_TIME_DRIFT,
