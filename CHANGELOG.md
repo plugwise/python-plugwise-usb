@@ -1,6 +1,6 @@
 # Changelog
 
-## Ongoing
+## v0.46.1 - 2025-09-25
 
 - PR [337](https://github.com/plugwise/python-plugwise-usb/pull/337): Improve node removal, remove and reset the node as executed by Source, and remove the cache-file.
 - PR [342](https://github.com/plugwise/python-plugwise-usb/pull/342): Improve node_type chaching.
