@@ -263,8 +263,6 @@ class StickNetworkRegister:
             await request.send()
         except StickError as exc:
             raise NodeError(f"{exc}") from exc
-        if self.update_network_registration(mac):
-            await self._exec_node_discover_callback(mac, None, False)
 
     async def unregister_node(self, node: PlugwiseNode) -> None:
         """Unregister node from current Plugwise network."""
