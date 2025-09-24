@@ -6,14 +6,10 @@ import importlib
 pw_constants = importlib.import_module("plugwise_usb.constants")
 
 # test using utc timezone - 2025-04-03 22:00:00
-utc_now = datetime(2025, 4, 3, 22, 0, 0)  # datetime.now(tz=UTC).replace(tzinfo=UTC)
-# utc_now_offset = datetime.now(tz=UTC).replace(tzinfo=UTC) + timedelta(
-#     days=1, hours=4, seconds=30
-# )
-
+fixed_time = datetime(2025, 4, 3, 22, 0, 0)  # changed from datetime.now(tz=UTC).replace(tzinfo=UTC)
 
 # generate energy log timestamps with fixed hour timestamp used in tests
-hour_timestamp = utc_now.replace(minute=0, second=0, microsecond=0)
+hour_timestamp = fixed_time.replace(minute=0, second=0, microsecond=0)
 
 LOG_TIMESTAMPS = {}
 _one_hour = timedelta(hours=1)
@@ -598,13 +594,13 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"003A"  # msg_id
         + b"0098765432101234"  # mac
-        + bytes(f"{(utc_now + timedelta(seconds=10)).second:02d}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.minute:02d}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.hour:02d}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.weekday():02d}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.day:02d}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.month:02d}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{(utc_now.year - 2000):02d}", pw_constants.UTF8),  # noqa: UP031
+        + bytes(f"{(fixed_time + timedelta(seconds=10)).second:02d}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.minute:02d}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.hour:02d}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.weekday():02d}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.day:02d}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.month:02d}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{(fixed_time.year - 2000):02d}", pw_constants.UTF8),  # noqa: UP031
     ),
     b"\x05\x05\x03\x0300280098765432101234000022030304259DDF\r\n": (
         "Circle+ Realtime set clock for 0098765432101234",
@@ -616,10 +612,10 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"003F"  # msg_id
         + b"1111111111111111"  # mac
-        + bytes(f"{utc_now.hour:02x}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.minute:02x}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{(utc_now + timedelta(seconds=10)).second:02x}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.weekday():02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.hour:02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.minute:02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{(fixed_time + timedelta(seconds=10)).second:02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.weekday():02x}", pw_constants.UTF8)  # noqa: UP031
         + b"00"  # unknown
         + b"0000",  # unknown2
     ),
@@ -628,10 +624,10 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"003F"  # msg_id
         + b"2222222222222222"  # mac
-        + bytes(f"{utc_now.hour:02x}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.minute:02x}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.second:02x}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.weekday():02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.hour:02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.minute:02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.second:02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.weekday():02x}", pw_constants.UTF8)  # noqa: UP031
         + b"00"  # unknown
         + b"0000",  # unknown2
     ),
@@ -640,10 +636,10 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"003F"  # msg_id
         + b"3333333333333333"  # mac
-        + bytes(f"{utc_now.hour:02x}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.minute:02x}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.second:02x}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.weekday():02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.hour:02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.minute:02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.second:02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.weekday():02x}", pw_constants.UTF8)  # noqa: UP031
         + b"00"  # unknown
         + b"0000",  # unknown2
     ),
@@ -652,10 +648,10 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"003F"  # msg_id
         + b"4444444444444444"  # mac
-        + bytes(f"{utc_now.hour:02x}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.minute:02x}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.second:02x}", pw_constants.UTF8)  # noqa: UP031
-        + bytes(f"{utc_now.weekday():02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.hour:02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.minute:02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.second:02x}", pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.weekday():02x}", pw_constants.UTF8)  # noqa: UP031
         + b"00"  # unknown
         + b"0000",  # unknown2
     ),
