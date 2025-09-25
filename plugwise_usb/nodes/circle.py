@@ -896,11 +896,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
         _LOGGER.warning(
             "Sync clock of node %s because time drifted %s seconds",
             self._mac_in_str,
-            str(int(abs(clock_offset.total_seconds()))),
+            int(abs(clock_offset.total_seconds())),
         )
         if self._node_protocols is None:
             raise NodeError(
-                "Unable to synchronize clock en when protocol version is unknown"
+                "Unable to synchronize clock when protocol version is unknown"
             )
 
         set_request = CircleClockSetRequest(
@@ -1011,10 +1011,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
             )
             self._initialized = False
             return False
-        if self._clock_synchronize_task is None or self._clock_synchronize_task.done():
-            self._clock_synchronize_task = create_task(
-                self._clock_synchronize_scheduler()
-            )
 
         if not self._calibration and not await self.calibration_update():
             _LOGGER.debug(
@@ -1039,6 +1035,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 return False
 
         await super().initialize()
+        if self._clock_synchronize_task is None or self._clock_synchronize_task.done():
+            self._clock_synchronize_task = create_task(
+                self._clock_synchronize_scheduler()
+            )
         return True
 
     async def node_info_update(
