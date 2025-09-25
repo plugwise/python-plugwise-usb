@@ -894,10 +894,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
             return True
 
         _LOGGER.warning(
-            "Reset realtime clock of node %s because time drifted %s seconds (max %s seconds)",
+            "Sync clock of node %s because time drifted %s seconds",
             self._mac_in_str,
             str(int(abs(clock_offset.total_seconds()))),
-            str(MAX_TIME_DRIFT),
         )
         if self._node_protocols is None:
             raise NodeError(
@@ -912,10 +911,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
         if (node_response := await set_request.send()) is not None:
             return node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED
-        _LOGGER.warning(
-            "Failed to (re)set the internal realtime clock of %s",
-            self.name,
-        )
+        _LOGGER.debug("Failed to sync the clock of %s", self.name)
         return False
 
     async def load(self) -> None:
