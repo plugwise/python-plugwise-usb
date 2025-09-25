@@ -1,6 +1,6 @@
 # Changelog
 
-## Ongoing
+## v0.47.0 - 2025-09-26
 
 - PR [345](https://github.com/plugwise/python-plugwise-usb/pull/345): New Feature: schedule clock synchronization every 3600 seconds
 
