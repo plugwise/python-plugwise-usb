@@ -893,7 +893,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         if abs(clock_offset.total_seconds()) < MAX_TIME_DRIFT:
             return True
 
-        _LOGGER.warning(
+        _LOGGER.info(
             "Sync clock of node %s because time drifted %s seconds",
             self._mac_in_str,
             int(abs(clock_offset.total_seconds())),
@@ -911,7 +911,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         )
         if (node_response := await set_request.send()) is not None:
             return node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED
-        _LOGGER.debug("Failed to sync the clock of %s", self.name)
+        _LOGGER.warning("Failed to sync the clock of %s", self.name)
         return False
 
     async def load(self) -> None:
@@ -1346,7 +1346,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 f"Unexpected NodeResponseType {response.ack_id!r} received as response to CircleClockSetRequest"
             )
 
-        _LOGGER.warning("Energy reset for Node %s successful", self._mac_in_str)
+        _LOGGER.info("Energy reset for Node %s successful", self._mac_in_str)
 
         # Follow up by an energy-intervals (re)set
         interval_request = CircleMeasureIntervalRequest(
@@ -1365,12 +1365,12 @@ class PlugwiseCircle(PlugwiseBaseNode):
             raise MessageError(
                 f"Unknown NodeResponseType '{interval_response.response_type.name}' received"
             )
-        _LOGGER.warning("Resetting energy intervals to default (= consumption only)")
+        _LOGGER.info("Resetting energy intervals to default (= consumption only)")
 
         # Clear the cached energy_collection
         if self._cache_enabled:
             self._set_cache(CACHE_ENERGY_COLLECTION, "")
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Energy-collection cache cleared successfully, updating cache for %s",
                 self._mac_in_str,
             )
@@ -1378,7 +1378,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         # Clear PulseCollection._logs
         self._energy_counters.reset_pulse_collection()
-        _LOGGER.warning("Resetting pulse-collection")
+        _LOGGER.info("Resetting pulse-collection")
 
         # Request a NodeInfo update
         if await self.node_info_update() is None:
@@ -1387,7 +1387,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._mac_in_str,
             )
         else:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Node info update after energy-reset successful for %s",
                 self._mac_in_str,
             )

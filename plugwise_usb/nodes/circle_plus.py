@@ -69,7 +69,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         """Synchronize realtime clock. Returns true if successful."""
         request = CirclePlusRealTimeClockGetRequest(self._send, self._mac_in_bytes)
         if (response := await request.send()) is None:
-            _LOGGER.debug(
+            _LOGGER.warning(
                 "No response for clock_synchronize() for %s", self._mac_in_str
             )
             await self._available_update_state(False)
@@ -89,7 +89,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
             tzinfo=UTC,
         )
         if dt_now_date != response_date:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Sync clock of node %s because time has drifted %s days",
                 self._mac_in_str,
                 int(abs((dt_now_date - response_date).days)),
@@ -107,7 +107,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         if abs(clock_offset.total_seconds()) < MAX_TIME_DRIFT:
             return True
 
-        _LOGGER.warning(
+        _LOGGER.info(
             "Sync clock of node %s because time drifted %s seconds",
             self._mac_in_str,
             int(abs(clock_offset.total_seconds())),
@@ -121,7 +121,7 @@ class PlugwiseCirclePlus(PlugwiseCircle):
         )
         if (node_response := await set_request.send()) is not None:
             return node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED
-        _LOGGER.debug("Failed to sync the clock of %s", self.name)
+        _LOGGER.warning("Failed to sync the clock of %s", self.name)
         return False
 
     @raise_not_loaded
