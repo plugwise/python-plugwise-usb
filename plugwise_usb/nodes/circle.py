@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from asyncio import Task, create_task, gather
+from asyncio import CancelledError, Task, create_task, gather, sleep
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from functools import wraps
 import logging
 from math import ceil
+import random
 from typing import Any, Final, TypeVar, cast
 
 from ..api import (
@@ -74,7 +75,9 @@ CIRCLE_FEATURES: Final = (
 # Default firmware if not known
 DEFAULT_FIRMWARE: Final = datetime(2008, 8, 26, 15, 46, tzinfo=UTC)
 
-MAX_LOG_HOURS = DAY_IN_HOURS
+MAX_LOG_HOURS: Final = DAY_IN_HOURS
+
+CLOCK_SYNC_PERIOD: Final = 3600
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 _LOGGER = logging.getLogger(__name__)
@@ -141,6 +144,8 @@ class PlugwiseCircle(PlugwiseBaseNode):
         """Initialize base class for Sleeping End Device."""
         super().__init__(mac, node_type, controller, loaded_callback)
 
+        # Clock
+        self._clock_synchronize_task: Task[None] | None = None
         # Relay
         self._relay_lock: RelayLock = RelayLock()
         self._relay_state: RelayState = RelayState()
@@ -852,47 +857,61 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 )
                 await self.save_cache()
 
+    async def _clock_synchronize_scheduler(self) -> None:
+        """Background task: periodically synchronize the clock until cancelled."""
+        try:
+            while True:
+                await sleep(CLOCK_SYNC_PERIOD + (random.uniform(-5, 5)))
+                try:
+                    await self.clock_synchronize()
+                except Exception:
+                    _LOGGER.exception(
+                        "Clock synchronization failed for %s", self._mac_in_str
+                    )
+        except CancelledError:
+            _LOGGER.debug("Clock sync scheduler cancelled for %s", self._mac_in_str)
+            raise
+
     async def clock_synchronize(self) -> bool:
         """Synchronize clock. Returns true if successful."""
-        get_clock_request = CircleClockGetRequest(self._send, self._mac_in_bytes)
-        clock_response = await get_clock_request.send()
-        if clock_response is None or clock_response.timestamp is None:
+        request = CircleClockGetRequest(self._send, self._mac_in_bytes)
+        response = await request.send()
+        if response is None or response.timestamp is None:
             return False
-        _dt_of_circle = datetime.now(tz=UTC).replace(
-            hour=clock_response.time.hour.value,
-            minute=clock_response.time.minute.value,
-            second=clock_response.time.second.value,
+
+        dt_now = datetime.now(tz=UTC)
+        days_diff = (response.day_of_week.value - dt_now.weekday()) % 7
+        circle_timestamp: datetime = dt_now.replace(
+            day=dt_now.day + days_diff,
+            hour=response.time.value.hour,
+            minute=response.time.value.minute,
+            second=response.time.value.second,
             microsecond=0,
             tzinfo=UTC,
         )
-        clock_offset = clock_response.timestamp.replace(microsecond=0) - _dt_of_circle
-        if (clock_offset.seconds < MAX_TIME_DRIFT) or (
-            clock_offset.seconds > -(MAX_TIME_DRIFT)
-        ):
+        clock_offset = response.timestamp.replace(microsecond=0) - circle_timestamp
+        if abs(clock_offset.total_seconds()) < MAX_TIME_DRIFT:
             return True
+
         _LOGGER.info(
-            "Reset clock of node %s because time has drifted %s sec",
+            "Sync clock of node %s because time drifted %s seconds",
             self._mac_in_str,
-            str(clock_offset.seconds),
+            int(abs(clock_offset.total_seconds())),
         )
         if self._node_protocols is None:
             raise NodeError(
-                "Unable to synchronize clock en when protocol version is unknown"
+                "Unable to synchronize clock when protocol version is unknown"
             )
-        set_clock_request = CircleClockSetRequest(
+
+        set_request = CircleClockSetRequest(
             self._send,
             self._mac_in_bytes,
             datetime.now(tz=UTC),
             self._node_protocols.max,
         )
-        if (node_response := await set_clock_request.send()) is None:
-            _LOGGER.warning(
-                "Failed to (re)set the internal clock of %s",
-                self.name,
-            )
-            return False
-        if node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED:
-            return True
+        if (node_response := await set_request.send()) is not None:
+            return node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED
+        _LOGGER.warning("Failed to sync the clock of %s", self.name)
         return False
 
     async def load(self) -> None:
@@ -1016,6 +1035,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 return False
 
         await super().initialize()
+        if self._clock_synchronize_task is None or self._clock_synchronize_task.done():
+            self._clock_synchronize_task = create_task(
+                self._clock_synchronize_scheduler()
+            )
         return True
 
     async def node_info_update(
@@ -1081,6 +1104,11 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         if self._cache_enabled:
             await self._energy_log_records_save_to_cache()
+
+        if self._clock_synchronize_task:
+            self._clock_synchronize_task.cancel()
+            await gather(self._clock_synchronize_task, return_exceptions=True)
+            self._clock_synchronize_task = None
 
         await super().unload()
 
@@ -1318,7 +1346,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 f"Unexpected NodeResponseType {response.ack_id!r} received as response to CircleClockSetRequest"
             )
 
-        _LOGGER.warning("Energy reset for Node %s successful", self._mac_in_str)
+        _LOGGER.info("Energy reset for Node %s successful", self._mac_in_str)
 
         # Follow up by an energy-intervals (re)set
         interval_request = CircleMeasureIntervalRequest(
@@ -1337,12 +1365,12 @@ class PlugwiseCircle(PlugwiseBaseNode):
             raise MessageError(
                 f"Unknown NodeResponseType '{interval_response.response_type.name}' received"
             )
-        _LOGGER.warning("Resetting energy intervals to default (= consumption only)")
+        _LOGGER.info("Resetting energy intervals to default (= consumption only)")
 
         # Clear the cached energy_collection
         if self._cache_enabled:
             self._set_cache(CACHE_ENERGY_COLLECTION, "")
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Energy-collection cache cleared successfully, updating cache for %s",
                 self._mac_in_str,
             )
@@ -1350,7 +1378,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         # Clear PulseCollection._logs
         self._energy_counters.reset_pulse_collection()
-        _LOGGER.warning("Resetting pulse-collection")
+        _LOGGER.info("Resetting pulse-collection")
 
         # Request a NodeInfo update
         if await self.node_info_update() is None:
@@ -1359,7 +1387,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._mac_in_str,
             )
         else:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Node info update after energy-reset successful for %s",
                 self._mac_in_str,
             )

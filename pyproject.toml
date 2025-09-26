@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "plugwise_usb"
-version         = "0.46.1"
+version         = "0.47.0"
 license         = "MIT"
 keywords        = ["home", "automation", "plugwise", "module", "usb"]
 classifiers     = [
@@ -540,3 +540,7 @@ testpaths = [
 ]
 asyncio_default_fixture_loop_scope = "session"
 asyncio_mode = "strict"
+# log_cli = true
+# log_cli_level = "DEBUG"
+# log_format = "%(asctime)s %(levelname)s %(message)s"
+# log_date_format = "%Y-%m-%d %H:%M:%S"

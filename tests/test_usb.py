@@ -780,6 +780,7 @@ class TestStick:
                 )
             )
 
+    @freeze_time("2025-04-03 22:00:00", real_asyncio=True)
     @pytest.mark.asyncio
     async def test_node_relay_and_power(self, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa:  PLR0915
         """Testing discovery of nodes."""
@@ -908,6 +909,7 @@ class TestStick:
 
         await stick.disconnect()
 
+    @freeze_time("2025-04-03 22:00:00", real_asyncio=True)
     @pytest.mark.asyncio
     async def test_energy_circle(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Testing energy retrieval."""
@@ -2722,6 +2724,7 @@ class TestStick:
         )
         assert not state[pw_api.NodeFeature.AVAILABLE].state
 
+    @freeze_time("2025-04-03 22:00:00", real_asyncio=True)
     @pytest.mark.asyncio
     async def test_node_discovery_and_load(  # noqa: PLR0915
         self, monkeypatch: pytest.MonkeyPatch

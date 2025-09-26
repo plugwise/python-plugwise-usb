@@ -67,44 +67,61 @@ class PlugwiseCirclePlus(PlugwiseCircle):
 
     async def clock_synchronize(self) -> bool:
         """Synchronize realtime clock. Returns true if successful."""
-        clock_request = CirclePlusRealTimeClockGetRequest(
-            self._send, self._mac_in_bytes
-        )
-        if (clock_response := await clock_request.send()) is None:
-            _LOGGER.debug(
-                "No response for async_realtime_clock_synchronize() for %s", self.mac
+        request = CirclePlusRealTimeClockGetRequest(self._send, self._mac_in_bytes)
+        if (response := await request.send()) is None:
+            _LOGGER.warning(
+                "No response for clock_synchronize() for %s", self._mac_in_str
             )
             await self._available_update_state(False)
             return False
-        await self._available_update_state(True, clock_response.timestamp)
+        await self._available_update_state(True, response.timestamp)
 
-        _dt_of_circle: datetime = datetime.now(tz=UTC).replace(
-            hour=clock_response.time.value.hour,
-            minute=clock_response.time.value.minute,
-            second=clock_response.time.value.second,
+        dt_now = datetime.now(tz=UTC)
+        dt_now_date = dt_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        response_date = datetime(
+            response.date.value.year,
+            response.date.value.month,
+            response.date.value.day,
+            hour=0,
+            minute=0,
+            second=0,
             microsecond=0,
             tzinfo=UTC,
         )
-        clock_offset = clock_response.timestamp.replace(microsecond=0) - _dt_of_circle
-        if (clock_offset.seconds < MAX_TIME_DRIFT) or (
-            clock_offset.seconds > -(MAX_TIME_DRIFT)
-        ):
-            return True
-        _LOGGER.info(
-            "Reset realtime clock of node %s because time has drifted %s seconds while max drift is set to %s seconds)",
-            self._node_info.mac,
-            str(clock_offset.seconds),
-            str(MAX_TIME_DRIFT),
+        if dt_now_date != response_date:
+            _LOGGER.info(
+                "Sync clock of node %s because time has drifted %s days",
+                self._mac_in_str,
+                int(abs((dt_now_date - response_date).days)),
+            )
+            return await self._send_clock_set_req()
+
+        circle_plus_timestamp: datetime = dt_now.replace(
+            hour=response.time.value.hour,
+            minute=response.time.value.minute,
+            second=response.time.value.second,
+            microsecond=0,
+            tzinfo=UTC,
         )
-        clock_set_request = CirclePlusRealTimeClockSetRequest(
+        clock_offset = response.timestamp.replace(microsecond=0) - circle_plus_timestamp
+        if abs(clock_offset.total_seconds()) < MAX_TIME_DRIFT:
+            return True
+
+        _LOGGER.info(
+            "Sync clock of node %s because time drifted %s seconds",
+            self._mac_in_str,
+            int(abs(clock_offset.total_seconds())),
+        )
+        return await self._send_clock_set_req()
+
+    async def _send_clock_set_req(self) -> bool:
+        """Send CirclePlusRealTimeClockSetRequest."""
+        set_request = CirclePlusRealTimeClockSetRequest(
             self._send, self._mac_in_bytes, datetime.now(tz=UTC)
         )
-        if (node_response := await clock_set_request.send()) is not None:
+        if (node_response := await set_request.send()) is not None:
             return node_response.ack_id == NodeResponseType.CLOCK_ACCEPTED
-        _LOGGER.warning(
-            "Failed to (re)set the internal realtime clock of %s",
-            self.name,
-        )
+        _LOGGER.warning("Failed to sync the clock of %s", self.name)
         return False
 
     @raise_not_loaded

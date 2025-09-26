@@ -1,27 +1,27 @@
 """Stick Test Program."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 import importlib
 
 pw_constants = importlib.import_module("plugwise_usb.constants")
 
-# test using utc timezone
-utc_now = datetime.now(tz=UTC).replace(tzinfo=UTC)
-
+# test using utc timezone - 2025-04-03 22:00:00
+fixed_time = datetime(
+    2025, 4, 3, 22, 0, 0
+)  # changed from datetime.now(tz=UTC).replace(tzinfo=UTC)
 
 # generate energy log timestamps with fixed hour timestamp used in tests
-hour_timestamp = utc_now.replace(minute=0, second=0, microsecond=0)
+hour_timestamp = fixed_time.replace(minute=0, second=0, microsecond=0)
 
 LOG_TIMESTAMPS = {}
 _one_hour = timedelta(hours=1)
 for x in range(168):
     delta_month = hour_timestamp - hour_timestamp.replace(day=1, hour=0)
     LOG_TIMESTAMPS[x] = (
-        bytes(("%%0%dX" % 2) % (hour_timestamp.year - 2000), pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dX" % 2) % hour_timestamp.month, pw_constants.UTF8)  # noqa: UP031
+        bytes(f"{(hour_timestamp.year - 2000):02x}", pw_constants.UTF8)
+        + bytes(f"{hour_timestamp.month:02x}", pw_constants.UTF8)
         + bytes(
-            ("%%0%dX" % 4)  # noqa: UP031
-            % int((delta_month.days * 1440) + (delta_month.seconds / 60)),
+            f"{int((delta_month.days * 1440) + (delta_month.seconds / 60)):04x}",
             pw_constants.UTF8,
         )
     )
@@ -596,23 +596,28 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"003A"  # msg_id
         + b"0098765432101234"  # mac
-        + bytes(("%%0%dd" % 2) % utc_now.second, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % utc_now.minute, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % utc_now.hour, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % utc_now.weekday(), pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % utc_now.day, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % utc_now.month, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dd" % 2) % (utc_now.year - 2000), pw_constants.UTF8),  # noqa: UP031
+        + bytes(f"{(fixed_time + timedelta(seconds=10)).second:02d}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.minute:02d}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.hour:02d}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.weekday():02d}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.day:02d}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.month:02d}", pw_constants.UTF8)
+        + bytes(f"{(fixed_time.year - 2000):02d}", pw_constants.UTF8),
+    ),
+    b"\x05\x05\x03\x0300280098765432101234000022030304259DDF\r\n": (
+        "Circle+ Realtime set clock for 0098765432101234",
+        b"000000C1",  # Success ack
+        b"0000" + b"00D7" + b"0098765432101234",  # msg_id, clock_ack, mac
     ),
     b"\x05\x05\x03\x03003E11111111111111111B8A\r\n": (
         "clock for 0011111111111111",
         b"000000C1",  # Success ack
         b"003F"  # msg_id
         + b"1111111111111111"  # mac
-        + bytes(("%%0%dX" % 2) % utc_now.hour, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dX" % 2) % utc_now.minute, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dX" % 2) % utc_now.second, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dX" % 2) % utc_now.weekday(), pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.hour:02x}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.minute:02x}", pw_constants.UTF8)
+        + bytes(f"{(fixed_time + timedelta(seconds=10)).second:02x}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.weekday():02x}", pw_constants.UTF8)
         + b"00"  # unknown
         + b"0000",  # unknown2
     ),
@@ -621,10 +626,10 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"003F"  # msg_id
         + b"2222222222222222"  # mac
-        + bytes(("%%0%dX" % 2) % utc_now.hour, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dX" % 2) % utc_now.minute, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dX" % 2) % utc_now.second, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dX" % 2) % utc_now.weekday(), pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.hour:02x}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.minute:02x}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.second:02x}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.weekday():02x}", pw_constants.UTF8)
         + b"00"  # unknown
         + b"0000",  # unknown2
     ),
@@ -633,10 +638,10 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"003F"  # msg_id
         + b"3333333333333333"  # mac
-        + bytes(("%%0%dX" % 2) % utc_now.hour, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dX" % 2) % utc_now.minute, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dX" % 2) % utc_now.second, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dX" % 2) % utc_now.weekday(), pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.hour:02x}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.minute:02x}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.second:02x}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.weekday():02x}", pw_constants.UTF8)
         + b"00"  # unknown
         + b"0000",  # unknown2
     ),
@@ -645,10 +650,10 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"003F"  # msg_id
         + b"4444444444444444"  # mac
-        + bytes(("%%0%dX" % 2) % utc_now.hour, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dX" % 2) % utc_now.minute, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dX" % 2) % utc_now.second, pw_constants.UTF8)  # noqa: UP031
-        + bytes(("%%0%dX" % 2) % utc_now.weekday(), pw_constants.UTF8)  # noqa: UP031
+        + bytes(f"{fixed_time.hour:02x}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.minute:02x}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.second:02x}", pw_constants.UTF8)
+        + bytes(f"{fixed_time.weekday():02x}", pw_constants.UTF8)
         + b"00"  # unknown
         + b"0000",  # unknown2
     ),

@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.47.0 - 2025-09-26
+
+- PR [345](https://github.com/plugwise/python-plugwise-usb/pull/345): New Feature: schedule clock synchronization every 3600 seconds
+
 ## v0.46.1 - 2025-09-25
 
 - PR [337](https://github.com/plugwise/python-plugwise-usb/pull/337): Improve node removal, remove and reset the node as executed by Source, and remove the cache-file.
