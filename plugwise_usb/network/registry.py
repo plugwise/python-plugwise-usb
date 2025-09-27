@@ -184,7 +184,7 @@ class StickNetworkRegister:
         """Update NodeType inside registry and cache."""
         if self._network_cache is None or mac == "":
             return
-        await self._network_cache.update_nodetypes(mac, node_type)
+        await self._network_cache.update_nodetype(mac, node_type)
 
     def update_network_registration(self, mac: str) -> bool:
         """Add a mac to the network registration list return True if it was newly added."""

@@ -69,7 +69,7 @@ class NetworkRegistrationCache(PlugwiseCache):
                 str(node_type),
             )
 
-    async def update_nodetypes(self, mac: str, node_type: NodeType | None) -> None:
+    async def update_nodetype(self, mac: str, node_type: NodeType | None) -> None:
         """Save node information in cache."""
         if node_type is None:
             return
