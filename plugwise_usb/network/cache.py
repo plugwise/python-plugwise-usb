@@ -58,8 +58,10 @@ class NetworkRegistrationCache(PlugwiseCache):
                     node_type = None
 
             if node_type in (None, NodeType.CIRCLE_PLUS):
-                _LOGGER.warning(
-                    "Invalid NodeType in cache for mac %s: %s", mac, node_value
+                _LOGGER.info(
+                    "Invalid NodeType %s found in cache for mac %s, ignoring...",
+                    node_value,
+                    mac,
                 )
                 continue
             self._nodetypes[mac] = node_type
