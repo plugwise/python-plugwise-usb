@@ -1,8 +1,12 @@
 # Changelog
 
+## v0.47.1 - 2025-09-27
+
+- PR [351](https://github.com/plugwise/python-plugwise-usb/pull/351): Avoid unintentional overwrite of nodetype.cache file at start/reload.
+
 ## v0.47.0 - 2025-09-26
 
-- PR [345](https://github.com/plugwise/python-plugwise-usb/pull/345): New Feature: schedule clock synchronization every 3600 seconds
+- PR [345](https://github.com/plugwise/python-plugwise-usb/pull/345): New Feature: schedule clock synchronization every 3600 seconds.
 
 ## v0.46.1 - 2025-09-25
 
