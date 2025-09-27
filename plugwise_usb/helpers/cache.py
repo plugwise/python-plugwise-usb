@@ -64,9 +64,7 @@ class PlugwiseCache:
             cache_dir = self._get_writable_os_dir()
         await makedirs(cache_dir, exist_ok=True)
         self._cache_path = cache_dir
-
         self._cache_file = os_path_join(self._cache_path, self._file_name)
-        self._cache_file_exists = await ospath.exists(self._cache_file)
         self._initialized = True
         _LOGGER.debug("Start using network cache file: %s", self._cache_file)
 
@@ -166,6 +164,7 @@ class PlugwiseCache:
             _LOGGER.debug("Cache file has no name, return empty cache data")
             return current_data
 
+        self._cache_file_exists = await ospath.exists(self._cache_file)
         if not self._cache_file_exists:
             _LOGGER.debug(
                 "Cache file '%s' does not exist, return empty cache data",

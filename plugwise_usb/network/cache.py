@@ -58,8 +58,10 @@ class NetworkRegistrationCache(PlugwiseCache):
                     node_type = None
 
             if node_type in (None, NodeType.CIRCLE_PLUS):
-                _LOGGER.warning(
-                    "Invalid NodeType in cache for mac %s: %s", mac, node_value
+                _LOGGER.info(
+                    "Invalid NodeType %s found in cache for mac %s, ignoring...",
+                    node_value,
+                    mac,
                 )
                 continue
             self._nodetypes[mac] = node_type
@@ -69,9 +71,9 @@ class NetworkRegistrationCache(PlugwiseCache):
                 str(node_type),
             )
 
-    async def update_nodetypes(self, mac: str, node_type: NodeType | None) -> None:
+    async def update_nodetype(self, mac: str, node_type: NodeType | None) -> None:
         """Save node information in cache."""
-        if node_type is None:
+        if node_type in (None, NodeType.CIRCLE_PLUS):
             return
         if (current_node_type := self._nodetypes.get(mac)) is not None:
             if current_node_type == node_type:
