@@ -1,5 +1,9 @@
 # Changelog
 
+## Ongoing
+
+- Test/validate for Python 3.14
+
 ## v0.47.1 - 2025-09-27
 
 - PR [351](https://github.com/plugwise/python-plugwise-usb/pull/351): Avoid unintentional overwrite of nodetype.cache file at start/reload.
