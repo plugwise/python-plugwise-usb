@@ -4,9 +4,9 @@
 name: Latest commit
 
 env:
-  CACHE_VERSION: 6
+  CACHE_VERSION: 1
   DEFAULT_PYTHON: "3.14"
-  PRE_COMMIT_HOME: ${{ github.workspace }}/.cache/pre-commit
+  PRE_COMMIT_HOME: ~/.cache/pre-commit
   VENV: venv
 
 on:
@@ -37,7 +37,7 @@ jobs:
         run: wget -O ha_pyproject.toml "https://raw.githubusercontent.com/home-assistant/core/refs/heads/dev/pyproject.toml"
       - name: Compute cache key
         id: set-key
-        run: echo "cache-key=${{ runner.os }}-venv-cache-${{ env.CACHE_VERSION }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements_test.txt', '.pre-commit-config.yaml') }}" >> "$GITHUB_OUTPUT"
+        run: echo "cache-key=${{ runner.os }}-${{ env.CACHE_VERSION }}-${{ hashFiles('pyproject.toml', 'requirements_test.txt', '.pre-commit-config.yaml') }}" >> "$GITHUB_OUTPUT"
 
   # Prepare default python version environment
   prepare:
@@ -49,8 +49,9 @@ jobs:
         id: cache-reuse
         uses: plugwise/gh-actions/prepare-python-and-code@v1
         with:
+          cache-key: ${{ needs.cache.outputs.cache-key }}
           fail-on-miss: false  # First time create cache (if not already exists)
-          python-version: ${{ needs.python.outputs.python-version }}
+          python-version: ${{ needs.cache.outputs.python-version }}
           venv-dir: ${{ env.VENV }}
           precommit-home: ${{ env.PRE_COMMIT_HOME }}
 
@@ -70,23 +71,23 @@ jobs:
         uses: plugwise/gh-actions/restore-venv@v1
         with:
           cache-key: ${{ needs.cache.outputs.cache-key }}
-          python-version: ${{ needs.python.outputs.python-version }}
+          python-version: ${{ needs.cache.outputs.python-version }}
           venv-dir: ${{ env.VENV }}
           precommit-home: ${{ env.PRE_COMMIT_HOME }}
       - name: Ruff (with fix)
         run: |
-          . venv/bin/activate
+          . venv-${{ needs.cache.outputs.python-version }}/bin/activate
           ruff check plugwise_usb/ tests/
       - name: If needed, commit ruff changes to the pull request
         if: failure()
         run: |
-          . venv/bin/activate
+          . venv-${{ needs.cache.outputs.python-version }}/bin/activate
           ruff format plugwise_usb/ tests/
           git config --global user.name 'autoruff'
           git config --global user.email 'plugwise_usb@users.noreply.github.com'
           git remote set-url origin https://x-access-token:${{ secrets.PAT_CT_PYPLUSB }}@github.com/$GITHUB_REPOSITORY
           git checkout $GITHUB_HEAD_REF
-          git commit -am "fixup: ${GITHUB_REF##*/} Python code reformatted using Ruff"
+          git commit -am "fixup: ${GITHUB_REF##*/} Python code fixed using Ruff"
           git push origin ${GITHUB_REF##*/}
 
   commitcheck:
@@ -103,24 +104,24 @@ jobs:
         uses: actions/checkout@v5
       - name: Restore cached environment
         id: cache-reuse
-        uses: plugwise/ghactions/restore-venv@v1
+        uses: plugwise/gh-actions/restore-venv@v1
         with:
           cache-key: ${{ needs.cache.outputs.cache-key }}
-          python-version: ${{ needs.python.outputs.python-version }}
+          python-version: ${{ needs.cache.outputs.python-version }}
           venv-dir: ${{ env.VENV }}
           precommit-home: ${{ env.PRE_COMMIT_HOME }}
       - name: Verify commit
         run: |
-          . venv/bin/activate
+          . venv-${{ needs.cache.outputs.python-version }}/bin/activate
           pre-commit run --show-diff-on-failure --color=always --all-files --hook-stage manual pylint
 #      - name: Biome lint
 #        run: |
-#          . venv/bin/activate
+#          . venv-${{ needs.cache.outputs.python-version }}/bin/activate
 #          mkdir -p ./tmp && curl -sL "https://github.com/biomejs/biome/releases/latest/download/biome-linux-x64" -o ./tmp/biome && chmod +x ./tmp/biome
 #          pre-commit run --show-diff-on-failure --color=always --all-files --hook-stage manual biome
       - name: Lint markdown files
         run: |
-          . venv/bin/activate
+          . venv-${{ needs.cache.outputs.python-version }}/bin/activate
           pre-commit run --show-diff-on-failure --color=always --all-files --hook-stage manual markdownlint
 
   pytest:
@@ -136,18 +137,23 @@ jobs:
     steps:
       - name: Check out committed code
         uses: actions/checkout@v5
+      - name: Set up Python ${{ matrix.python-version }}
+        id: python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Restore cached environment
         id: cache-reuse
-        uses: plugwise/ghactions/restore-venv@v1
+        uses: plugwise/gh-actions/restore-venv@v1
         with:
           fail-on-miss: false  # First time create cache (if not already exists)
-          cache-key: ${{ needs.cache.outputs.cache-key }}-pytest-matrix-${{ matrix.python-version }}
-          python-version: ${{ matrix.python-version }}  # Force to installed python minor
+          cache-key: ${{ needs.cache.outputs.cache-key }}
+          python-version: ${{ steps.python.outputs.python-version }}  # Force to installed python minor
           venv-dir: ${{ env.VENV }}
           precommit-home: ${{ env.PRE_COMMIT_HOME }}
       - name: Run all tests
         run: |
-          . venv/bin/activate
+          . venv-${{ steps.python.outputs.python-version }}/bin/activate
           pytest --log-level info tests/*.py --cov='.'
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
@@ -172,16 +178,16 @@ jobs:
           persist-credentials: false
       - name: Restore cached environment
         id: cache-reuse
-        uses: ./.github/actions/restore-venv
+        uses: plugwise/gh-actions/restore-venv@v1
         with:
           cache-key: ${{ needs.cache.outputs.cache-key }}
-          python-version: ${{ needs.python.outputs.python-version }}
+          python-version: ${{ needs.cache.outputs.python-version }}
           venv-dir: ${{ env.VENV }}
           precommit-home: ${{ env.PRE_COMMIT_HOME }}
       - name: Run mypy
         run: |
-          . venv/bin/activate
-          uv pip list | grep -i mypy
+          . venv-${{ needs.cache.outputs.python-version }}/bin/activate
+          pip list | grep -i mypy
           mypy plugwise_usb/
 
   # Check shellscripts
@@ -220,7 +226,7 @@ jobs:
         uses: plugwise/gh-actions/restore-venv@v1
         with:
           cache-key: ${{ needs.cache.outputs.cache-key }}
-          python-version: ${{ needs.python.outputs.python-version }}
+          python-version: ${{ needs.cache.outputs.python-version }}
           venv-dir: ${{ env.VENV }}
           precommit-home: ${{ env.PRE_COMMIT_HOME }}
       - name: Download all coverage artifacts
@@ -231,7 +237,7 @@ jobs:
           path: ${{ github.workspace }}/artifacts
       - name: Combine coverage results
         run: |
-          . venv/bin/activate
+          . venv-${{ needs.cache.outputs.python-version }}/bin/activate
           coverage combine artifacts/.coverage*
           #coverage report --fail-under=80  ## plugwise is at 94, set to 80 for plugwise_usb
           echo "***"
@@ -308,11 +314,11 @@ jobs:
         uses: plugwise/gh-actions/restore-venv@v1
         with:
           cache-key: ${{ needs.cache.outputs.cache-key }}
-          python-version: ${{ needs.python.outputs.python-version }}
+          python-version: ${{ needs.cache.outputs.python-version }}
           venv-dir: ${{ env.VENV }}
           precommit-home: ${{ env.PRE_COMMIT_HOME }}
       - name: Run complexity report (click to view details)
         run: |
-          . venv/bin/activate
+          . venv-${{ needs.cache.outputs.python-version }}/bin/activate
           echo "Showing complexity higher or equal to 'C'"
           radon cc plugwise_usb/ tests/ -s -nc --no-assert
