@@ -119,7 +119,7 @@ repos:
         entry: ./tmp/biome check plugwise_usb/ tests/ --files-ignore-unknown=true --no-errors-on-unmatched --json-formatter-indent-width=2 --json-formatter-indent-style=space
         language: script
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.46.0
+    rev: v0.47.0
     hooks:
       - id: markdownlint
         name: "Markdown linting"
