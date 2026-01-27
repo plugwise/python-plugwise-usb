@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from asyncio import CancelledError, Task, create_task, gather, sleep
-import calendar
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
@@ -882,13 +881,9 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         dt_now = datetime.now(tz=UTC)
         days_diff = (response.day_of_week.value - dt_now.weekday()) % 7
-        last_day_of_month = calendar.monthrange(dt_now.year, dt_now.month)[1]
-        days_to_end_of_month = last_day_of_month - dt_now.day
-        corrected_day = dt_now.day + days_diff
-        if (difference := days_diff - days_to_end_of_month) > 0:
-            corrected_day = difference
-        circle_timestamp: datetime = dt_now.replace(
-            day=corrected_day,
+        target_date = dt_now + timedelta(days=days_diff)
+        circle_timestamp = target_date.replace(
+            day=target_date.day,
             hour=response.time.value.hour,
             minute=response.time.value.minute,
             second=response.time.value.second,
