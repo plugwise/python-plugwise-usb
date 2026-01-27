@@ -883,7 +883,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
         days_diff = response.day_of_week.value - dt_now.weekday()
         target_date = dt_now + timedelta(days=days_diff)
         circle_timestamp = target_date.replace(
-            day=target_date.day,
             hour=response.time.value.hour,
             minute=response.time.value.minute,
             second=response.time.value.second,
