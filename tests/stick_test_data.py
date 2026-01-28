@@ -609,10 +609,10 @@ RESPONSE_MESSAGES = {
         b"000000C1",  # Success ack
         b"0000" + b"00D7" + b"0098765432101234",  # msg_id, clock_ack, mac
     ),
-    b"\x05\x05\x03\x0300280098765432101234003010053101261F3D\r\n": (
-        "Circle+ Realtime set clock at month-end for 0098765432101234",
+    b"\x05\x05\x03\x0300281111111111111111003010053101261F3D\r\n": (
+        "Circle+ Realtime set clock at month-end for 1111111111111111",
         b"000000C1",  # Success ack
-        b"0000" + b"00D7" + b"0098765432101234",  # msg_id, clock_ack, mac
+        b"0000" + b"00D7" + b"1111111111111111",  # msg_id, clock_ack, mac
     ),
     b"\x05\x05\x03\x03003E11111111111111111B8A\r\n": (
         "clock for 0011111111111111",

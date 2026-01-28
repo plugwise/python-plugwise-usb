@@ -3067,7 +3067,7 @@ class TestStick:
         await self._wait_for_scan(stick)
 
         # Get a Circle node
-        circle_node = stick.nodes.get("0098765432101234")
+        circle_node = stick.nodes.get("1111111111111111")
         assert circle_node is not None
         await circle_node.load()
 
