@@ -3046,7 +3046,7 @@ class TestStick:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test clock_synchronize handles month-end date rollover correctly.
-        
+
         Regression test for issue `#399`: ensures that when the Circle's day_of_week
         differs from the current weekday near month-end, the date calculation
         doesn't attempt an invalid day value (e.g., Jan 32).
@@ -3065,12 +3065,12 @@ class TestStick:
         await stick.initialize()
         await stick.discover_nodes(load=False)
         await self._wait_for_scan(stick)
-        
+
         # Get a Circle node
         circle_node = stick.nodes.get("0098765432101234")
         assert circle_node is not None
         await circle_node.load()
-        
+
         # Mock CircleClockGetRequest.send() to return a response where
         # day_of_week is Saturday (5) while frozen time is Friday (4), Jan 31
         async def mock_clock_get_send(self):
@@ -3082,15 +3082,15 @@ class TestStick:
             response.day_of_week.value = 5  # Saturday
             response.time.value = dt.now(tz=UTC).time()
             return response
-        
+
         monkeypatch.setattr(
             pw_requests.CircleClockGetRequest,
             "send",
             mock_clock_get_send,
         )
-        
+
         # This should not raise ValueError about invalid day
         result = await circle_node.clock_synchronize()
         assert result is True
-        
+
         await stick.disconnect()
