@@ -3039,3 +3039,58 @@ class TestStick:
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             await stick.disconnect()
         await asyncio.sleep(1)
+
+    @freeze_time("2026-01-31 10:30:00", real_asyncio=True)
+    @pytest.mark.asyncio
+    async def test_clock_synchronize_month_overflow(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test clock_synchronize handles month-end date rollover correctly.
+        
+        Regression test for issue `#399`: ensures that when the Circle's day_of_week
+        differs from the current weekday near month-end, the date calculation
+        doesn't attempt an invalid day value (e.g., Jan 32).
+        """
+        mock_serial = MockSerial(None)
+        monkeypatch.setattr(
+            pw_connection_manager,
+            "create_serial_connection",
+            mock_serial.mock_connection,
+        )
+        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
+        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
+
+        stick = pw_stick.Stick("test_port", cache_enabled=False)
+        await stick.connect()
+        await stick.initialize()
+        await stick.discover_nodes(load=False)
+        await self._wait_for_scan(stick)
+        
+        # Get a Circle node
+        circle_node = stick.nodes.get("0098765432101234")
+        assert circle_node is not None
+        await circle_node.load()
+        
+        # Mock CircleClockGetRequest.send() to return a response where
+        # day_of_week is Saturday (5) while frozen time is Friday (4), Jan 31
+        async def mock_clock_get_send(self):
+            response = pw_responses.CircleClockResponse()
+            response.timestamp = dt.now(tz=UTC)
+            # Set day_of_week to Saturday (5), requiring +1 day from Friday Jan 31
+            # Old code: Jan 31 + 1 = day 32 (ValueError)
+            # New code: Jan 31 + timedelta(days=1) = Feb 1 (correct)
+            response.day_of_week.value = 5  # Saturday
+            response.time.value = dt.now(tz=UTC).time()
+            return response
+        
+        monkeypatch.setattr(
+            pw_requests.CircleClockGetRequest,
+            "send",
+            mock_clock_get_send,
+        )
+        
+        # This should not raise ValueError about invalid day
+        result = await circle_node.clock_synchronize()
+        assert result is True
+        
+        await stick.disconnect()
