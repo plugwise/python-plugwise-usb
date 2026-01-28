@@ -3039,3 +3039,42 @@ class TestStick:
         with patch("aiofiles.threadpool.sync_open", return_value=mock_file_stream):
             await stick.disconnect()
         await asyncio.sleep(1)
+
+    @freeze_time("2026-01-31 10:30:00", real_asyncio=True)
+    @pytest.mark.asyncio
+    async def test_clock_synchronize_month_overflow(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test clock_synchronize handles month-end date rollover correctly.
+
+        Regression test for issue `#399`: ensures that when the Circle's day_of_week
+        differs from the current weekday near month-end, the date calculation
+        doesn't attempt an invalid day value (e.g., Jan 32).
+        """
+        mock_serial = MockSerial(None)
+        monkeypatch.setattr(
+            pw_connection_manager,
+            "create_serial_connection",
+            mock_serial.mock_connection,
+        )
+        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
+        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 2.0)
+
+        stick = pw_stick.Stick("test_port", cache_enabled=False)
+        await stick.connect()
+        await stick.initialize()
+        await stick.discover_nodes(load=False)
+        await self._wait_for_scan(stick)
+
+        # Get a Circle node
+        circle = stick.nodes.get("1111111111111111")
+        assert circle is not None
+        result = True
+        try:
+            await circle.load()
+        except ValueError:
+            result = False
+
+        assert result
+
+        await stick.disconnect()
