@@ -3073,7 +3073,7 @@ class TestStick:
 
         # Mock CircleClockGetRequest.send() to return a response where
         # day_of_week is Saturday (5) while frozen time is Friday (4), Jan 31
-        async def mock_clock_get_send(self):
+        def mock_clock_get_send(self):
             response = pw_responses.CircleClockResponse()
             response.timestamp = dt.now(tz=UTC)
             # Set day_of_week to Saturday (5), requiring +1 day from Friday Jan 31
