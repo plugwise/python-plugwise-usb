@@ -3072,14 +3072,14 @@ class TestStick:
         await circle_node.load()
 
         # Mock CircleClockGetRequest.send() to return a response where
-        # day_of_week is Saturday (5) while frozen time is Friday (4), Jan 31
+        # day_of_week is Sunday (6) while frozen time is Saturday (5), Jan 31
         def mock_clock_get_send(self):
             response = pw_responses.CircleClockResponse()
             response.timestamp = dt.now(tz=UTC)
-            # Set day_of_week to Saturday (5), requiring +1 day from Friday Jan 31
+            # Set day_of_week to Sunday (6), requiring +1 day from Saturday Jan 31
             # Old code: Jan 31 + 1 = day 32 (ValueError)
             # New code: Jan 31 + timedelta(days=1) = Feb 1 (correct)
-            response.day_of_week.value = 5  # Saturday
+            response.day_of_week.value = 6  # Sunday
             response.time.value = dt.now(tz=UTC).time()
             return response
 
