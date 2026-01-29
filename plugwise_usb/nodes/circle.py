@@ -910,7 +910,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         return await self._send_clock_set_req()
 
     async def _send_clock_set_req(self) -> bool:
-        """Send CirclePlusRealTimeClockSetRequest."""
+        """Send CircleClockSetRequest."""
         set_request = CircleClockSetRequest(
             self._send,
             self._mac_in_bytes,
