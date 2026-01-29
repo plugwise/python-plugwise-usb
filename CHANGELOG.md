@@ -1,6 +1,6 @@
 # Changelog
 
-## Ongoing
+## v0.47.2 - 2026-01-29
 
 - PR [400](https://github.com/plugwise/python-plugwise-usb/pull/400): Fix for Issue [#399](https://github.com/plugwise/python-plugwise-usb/issues/399)
 - Test/validate for Python 3.14
