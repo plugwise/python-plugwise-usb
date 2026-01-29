@@ -903,14 +903,15 @@ class PlugwiseCircle(PlugwiseBaseNode):
             self._mac_in_str,
             int(abs(clock_offset.total_seconds())),
         )
-        if self._node_protocols is None:
-            raise NodeError(
-                "Unable to synchronize clock when protocol version is unknown"
-            )
         return await self._send_clock_set_req()
 
     async def _send_clock_set_req(self) -> bool:
         """Send CircleClockSetRequest."""
+        if self._node_protocols is None:
+            raise NodeError(
+                "Unable to synchronize clock when protocol version is unknown"
+            )
+
         set_request = CircleClockSetRequest(
             self._send,
             self._mac_in_bytes,
