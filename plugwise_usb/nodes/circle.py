@@ -880,22 +880,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
             return False
 
         dt_now = datetime.now(tz=UTC)
-        dt_now_date = dt_now.replace(hour=0, minute=0, second=0, microsecond=0)
-        response_date = datetime(
-            response.date.value.year,
-            response.date.value.month,
-            response.date.value.day,
-            hour=0,
-            minute=0,
-            second=0,
-            microsecond=0,
-            tzinfo=UTC,
-        )
-        if dt_now_date != response_date:
+        if dt_now.weekday() != response.day_of_week.value:
             _LOGGER.info(
-                "Sync clock of node %s because time has drifted %s days",
+                "Sync clock of node %s because time has drifted more than 1 day",
                 self._mac_in_str,
-                int(abs((dt_now_date - response_date).days)),
             )
             return await self._send_clock_set_req()
 
