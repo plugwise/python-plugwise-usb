@@ -880,9 +880,26 @@ class PlugwiseCircle(PlugwiseBaseNode):
             return False
 
         dt_now = datetime.now(tz=UTC)
-        days_diff = response.day_of_week.value - dt_now.weekday()
-        target_date = dt_now + timedelta(days=days_diff)
-        circle_timestamp = target_date.replace(
+        dt_now_date = dt_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        response_date = datetime(
+            response.date.value.year,
+            response.date.value.month,
+            response.date.value.day,
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+            tzinfo=UTC,
+        )
+        if dt_now_date != response_date:
+            _LOGGER.info(
+                "Sync clock of node %s because time has drifted %s days",
+                self._mac_in_str,
+                int(abs((dt_now_date - response_date).days)),
+            )
+            return await self._send_clock_set_req()
+
+        circle_timestamp: datetime = dt_now.replace(
             hour=response.time.value.hour,
             minute=response.time.value.minute,
             second=response.time.value.second,
@@ -902,7 +919,10 @@ class PlugwiseCircle(PlugwiseBaseNode):
             raise NodeError(
                 "Unable to synchronize clock when protocol version is unknown"
             )
+        return await self._send_clock_set_req()
 
+    async def _send_clock_set_req(self) -> bool:
+        """Send CirclePlusRealTimeClockSetRequest."""
         set_request = CircleClockSetRequest(
             self._send,
             self._mac_in_bytes,
