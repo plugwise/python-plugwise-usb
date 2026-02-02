@@ -152,6 +152,21 @@ class StickNetwork:
 
     # endregion
 
+    aync def pair_plus_device(self, mac: str) -> bool:
+        """Register node to Plugwise network."""
+        _LOGGER.debug("Pair Plus-device with mac: %s", mac)
+        if not validate_mac(mac):
+            raise NodeError(f"MAC {mac} invalid")
+
+        request = CirclePlusConnectRequest(self._controller.send, bytes(mac, UTF8))
+        if (response := await request.send()) is None:
+            raise NodeError("No response for CirclePlusConnectRequest.")
+
+        # how do we check for a succesfull pairing?
+        # there should be a 0005 wxyz 0001 response
+        # followed by a StickInitResponse (0011)?
+        
+
     async def register_node(self, mac: str) -> bool:
         """Register node to Plugwise network."""
         try:
