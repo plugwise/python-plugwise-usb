@@ -36,7 +36,7 @@ class NodeEvent(Enum):
     JOIN = auto()
 
 
-class NodeFeature(str, Enum):
+class NodeFeature(Enum):
     """USB Stick Node feature."""
 
     AVAILABLE = "available"
