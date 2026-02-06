@@ -234,7 +234,7 @@ class StickController:
             return await self._queue.submit(request)
         try:
             return await self._queue.submit(request)
-        except (NodeError, StickError):
+        except NodeError, StickError:
             return None
 
     def _reset_states(self) -> None:

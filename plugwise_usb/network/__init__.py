@@ -64,7 +64,7 @@ class StickNetwork:
         self._cache_enabled: bool = False
         self._cache_folder_create = False
 
-        self._channel: int | None  = None
+        self._channel: int | None = None
         self._discover: bool = False
         self._nodes: dict[str, PlugwiseNode] = {}
         self._awake_discovery: dict[str, datetime] = {}
