@@ -35,8 +35,11 @@ RESPONSE_MESSAGES = {
         b"0002"  # msg_id
         + b"0F"  # channel
         + b"FFFFFFFFFFFFFFFF"
-        + b"060098765432101234"  # 06 + plus-device mac
+        + b"0698765432101234"  # 06 + plus-device mac
         + b"FFFFFFFFFFFFFFFF"
+        + b"0698765432101234"  # 06 + plus-device mac
+        + b"1606"
+        + b"01"
     ),
     b"\x05\x05\x03\x03000AB43C\r\n": (
         "STICK INIT",

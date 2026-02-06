@@ -355,12 +355,13 @@ class StickNetwork:
 
         # Collect network info
         request = StickNetworkInfoRequest(self._controller.send, None)
-        if (network_info := await request.send()) is not None:
-            if not isinstance(network_info, StickNetworkInfoResponse):
+        if (response := await request.send()) is not None:
+            if not isinstance(response, StickNetworkInfoResponse):
                 raise MessageError(
                     f"Invalid response message type ({response.__class__.__name__}) received, expected StickNetworkInfoResponse"
                 )
-            self._channel = network_info.channel
+            self._channel = response.channel
+            _LOGGER.debug("HOI channel: %s", self._channel)
 
         if await self._discover_node(
             self._controller.mac_coordinator, None, ping_first=False
