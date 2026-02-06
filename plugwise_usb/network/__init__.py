@@ -20,7 +20,11 @@ from ..constants import (
 )
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
 from ..helpers.util import validate_mac
-from ..messages.requests import CircleMeasureIntervalRequest, NodePingRequest
+from ..messages.requests import (
+    CircleMeasureIntervalRequest,
+    NodePingRequest,
+    StickNetworkInfoRequest,
+)
 from ..messages.responses import (
     NODE_AWAKE_RESPONSE_ID,
     NODE_JOIN_ID,
@@ -30,6 +34,7 @@ from ..messages.responses import (
     NodeRejoinResponse,
     NodeResponseType,
     PlugwiseResponse,
+    StickNetworkInfoResponse,
 )
 from ..nodes import get_plugwise_node
 from .registry import StickNetworkRegister
@@ -349,8 +354,12 @@ class StickNetwork:
             return False
 
         # Collect network info
-        request = StickNetworkInfoRequest(self._controller.send)
+        request = StickNetworkInfoRequest(self._controller.send, None)
         if (network_info := await request.send()) is not None:
+            if not isinstance(network_info, StickNetworkInfoResponse):
+                raise MessageError(
+                    f"Invalid response message type ({response.__class__.__name__}) received, expected StickNetworkInfoResponse"
+                )
             self._channel = network_info.channel
 
         if await self._discover_node(
