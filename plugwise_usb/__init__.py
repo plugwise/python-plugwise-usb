@@ -94,10 +94,7 @@ class Stick:
     @property
     def channel(self) -> int | None:
         """Zigbee channel number."""
-        if (
-            not self._controller.is_connected
-            or self._network is None
-        ):
+        if not self._controller.is_connected or self._network is None:
             return None
         return self._network.channel
 
