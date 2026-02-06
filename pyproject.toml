@@ -237,6 +237,7 @@ disable = [
     "ungrouped-imports", # I001
     "unidiomatic-typecheck", # E721
     "unnecessary-direct-lambda-call", # PLC3002
+    "unnecessary-lambda", # PLW0108
     "unnecessary-lambda-assignment", # PLC3001
     "unnecessary-pass", # PIE790
     "unneeded-not", # SIM208
