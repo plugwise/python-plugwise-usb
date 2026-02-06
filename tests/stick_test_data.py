@@ -29,6 +29,15 @@ for x in range(168):
 
 
 RESPONSE_MESSAGES = {
+    b"\x05\x05\x03\x030001CAAB\r\n" :(
+        "Stick network info request",
+        b"000000C1",  # Success ack
+        b"0002"  # msg_id
+        + b"0F"  # channel
+        + b"FFFFFFFFFFFFFFFF"
+        + b"060098765432101234"  # 06 + plus-device mac
+        + b"FFFFFFFFFFFFFFFF"
+    ),
     b"\x05\x05\x03\x03000AB43C\r\n": (
         "STICK INIT",
         b"000000C1",  # Success ack
