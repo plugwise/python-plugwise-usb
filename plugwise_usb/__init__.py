@@ -92,6 +92,11 @@ class Stick:
         self._cache_enabled = enable
 
     @property
+    def channel(self) -> int | None:
+        """Zigbee channel number."""
+        return self._network.channel
+
+    @property
     def nodes(self) -> dict[str, PlugwiseNode]:
         """Dictionary with all discovered and supported plugwise devices with the MAC address as their key."""
         if self._network is None:

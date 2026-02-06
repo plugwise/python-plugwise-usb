@@ -59,6 +59,7 @@ class StickNetwork:
         self._cache_enabled: bool = False
         self._cache_folder_create = False
 
+        self._channel: int | None  = None
         self._discover: bool = False
         self._nodes: dict[str, PlugwiseNode] = {}
         self._awake_discovery: dict[str, datetime] = {}
@@ -125,6 +126,11 @@ class StickNetwork:
         if not self._cache_enabled:
             raise CacheError("Unable to initialize cache, enable cache first.")
         await self._register.initialize_cache(self._cache_folder_create)
+
+    @property
+    def channel(self) -> int | None:
+        """Zigbee channel number."""
+        return self._channel
 
     @property
     def controller_active(self) -> bool:
@@ -341,6 +347,11 @@ class StickNetwork:
             ) from err
         if ping_response is None:
             return False
+
+        # Collect network info
+        request = StickNetworkInfoRequest(self._controller.send)
+        if (network_info := await request.send()) is not None:
+            self._channel = network_info.channel
 
         if await self._discover_node(
             self._controller.mac_coordinator, None, ping_first=False
