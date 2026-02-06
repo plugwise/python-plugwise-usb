@@ -361,7 +361,6 @@ class StickNetwork:
                     f"Invalid response message type ({response.__class__.__name__}) received, expected StickNetworkInfoResponse"
                 )
             self._channel = response.channel
-            _LOGGER.debug("HOI channel: %s", self._channel)
 
         if await self._discover_node(
             self._controller.mac_coordinator, None, ping_first=False
