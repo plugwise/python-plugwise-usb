@@ -21,8 +21,8 @@ from ..constants import (
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
 from ..helpers.util import validate_mac
 from ..messages.requests import (
-    CirclePlusConnectRequest,
     CircleMeasureIntervalRequest,
+    CirclePlusConnectRequest,
     NodePingRequest,
     StickNetworkInfoRequest,
 )
@@ -178,23 +178,29 @@ class StickNetwork:
             request = StickNetworkInfoRequest(self._controller.send, None)
             info_response = await request.send()
         except MessageError as exc:
-            raise NodeError(f"Pairing failed: {exc}")
+            raise NodeError(f"Pairing failed: {exc}") from exc
         if info_response is None:
-            raise NodeError("Pairing failed, StickNetworkInfoResponse is None")
+            raise NodeError(
+                "Pairing failed, StickNetworkInfoResponse is None"
+            ) from None
 
         # Init Stick
         try:
             await self._controller.initialize_stick()
         except StickError as exc:
-            raise NodeError(f"Pairing failed, failed to initialize Stick: {exc}")
+            raise NodeError(
+                f"Pairing failed, failed to initialize Stick: {exc}"
+            ) from exc
 
         try:
             request = CirclePlusConnectRequest(self._controller.send, bytes(mac, UTF8))
             response = await request.send()
         except MessageError as exc:
-            raise NodeError(f"Pairing failed: {exc}")
+            raise NodeError(f"Pairing failed: {exc}") from exc
         if response is None:
-            raise NodeError("Pairing failed, CirclePlusConnectResponse is None")
+            raise NodeError(
+                "Pairing failed, CirclePlusConnectResponse is None"
+            ) from None
         if response.allowed.value != 1:
             raise NodeError("Pairing failed, not allowed")
 
