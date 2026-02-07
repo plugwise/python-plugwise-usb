@@ -153,7 +153,15 @@ class StickNetwork:
     # endregion
 
     aync def pair_plus_device(self, mac: str) -> bool:
-        """Register node to Plugwise network."""
+        """Register node to Plugwise network.
+        
+        According to https://roheve.wordpress.com/author/roheve/page/2/
+        The pairing process should look like:
+        0001 - 0002
+        000A - 0011
+        0004 - 0005 & 0061 (NodeJoinResponse)
+        The NodeJoinRespons should trigger...
+        """
         _LOGGER.debug("Pair Plus-device with mac: %s", mac)
         if not validate_mac(mac):
             raise NodeError(f"MAC {mac} invalid")
