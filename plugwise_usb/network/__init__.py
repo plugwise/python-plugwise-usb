@@ -157,7 +157,7 @@ class StickNetwork:
 
     # endregion
 
-    aync def pair_plus_device(self, mac: str) -> bool:
+    async def pair_plus_device(self, mac: str) -> None:
         """Register node to Plugwise network.
         
         According to https://roheve.wordpress.com/author/roheve/page/2/
@@ -190,7 +190,7 @@ class StickNetwork:
 
         try:
             request = CirclePlusConnectRequest(self._controller.send, bytes(mac, UTF8))
-            response = await request.send())
+            response = await request.send()
         except MessageError as exc:
             raise NodeError(f"Pairing failed: {exc}")
         if response is None:
