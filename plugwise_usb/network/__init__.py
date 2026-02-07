@@ -21,6 +21,7 @@ from ..constants import (
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
 from ..helpers.util import validate_mac
 from ..messages.requests import (
+    CirclePlusConnectRequest,
     CircleMeasureIntervalRequest,
     NodePingRequest,
     StickNetworkInfoRequest,
@@ -34,7 +35,6 @@ from ..messages.responses import (
     NodeRejoinResponse,
     NodeResponseType,
     PlugwiseResponse,
-    StickNetworkInfoResponse,
 )
 from ..nodes import get_plugwise_node
 from .registry import StickNetworkRegister
@@ -158,8 +158,8 @@ class StickNetwork:
     # endregion
 
     async def pair_plus_device(self, mac: str) -> None:
-        """Register node to Plugwise network.
-        
+        """Pair Plus-device to Plugwise Stick.
+
         According to https://roheve.wordpress.com/author/roheve/page/2/
         The pairing process should look like:
         0001 - 0002: StickNetworkInfoRequest - StickNetworkInfoResponse
