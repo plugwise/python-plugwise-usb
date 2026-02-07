@@ -169,41 +169,32 @@ class StickNetwork:
         """
         _LOGGER.debug("Pair Plus-device with mac: %s", mac)
         if not validate_mac(mac):
-            raise NodeError(f"MAC {mac} invalid")
+            raise NodeError(f"Pairing failed: MAC {mac} invalid")
 
         # Collect network info
-        request = StickNetworkInfoRequest(self._controller.send, None)
-        if (info_response := await request.send()) is not None:
-            if not isinstance(info_response, StickNetworkInfoResponse):
-                raise MessageError(
-                    f"Invalid response message type ({info_response.__class__.__name__}) received, expected StickNetworkInfoResponse"
-                )
+        try:
+            request = StickNetworkInfoRequest(self._controller.send, None)
+            info_response = await request.send()
+        except MessageError as exc:
+            raise NodeError(f"Pairing failed: {exc}")
+        if info_response is None:
+            raise NodeError("Pairing failed, StickNetworkInfoResponse is None")
 
         # Init Stick
         try:
-            request = StickInitRequest(self._controller.send)
-            init_response: StickInitResponse | None = await request.send()
-        except StickError as err:
-            raise StickError(
-                "No response from USB-Stick to initialization request."
-                + " Validate USB-stick is connected to port "
-                + f"' {self._manager.serial_path}'"
-            ) from err
-        if init_response is None:
-            raise StickError(
-                "No response from USB-Stick to initialization request."
-                + " Validate USB-stick is connected to port "
-                + f"' {self._manager.serial_path}'"
-            )
+            await self._controller.initialize_stick()
+        except StickError as exc:
+            raise NodeError(f"Pairing failed, failed to initialize Stick: {exc}")
 
-        request = CirclePlusConnectRequest(self._controller.send, bytes(mac, UTF8))
-        if (response := await request.send()) is None:
-            raise NodeError("No response for CirclePlusConnectRequest.")
-
-        # how do we check for a succesfull pairing?
-        # there should be a 0005 wxyz 0001 response
-        # followed by a StickInitResponse (0011)?
-        
+        try:
+            request = CirclePlusConnectRequest(self._controller.send, bytes(mac, UTF8))
+            response = await request.send())
+        except MessageError as exc:
+            raise NodeError(f"Pairing failed: {exc}")
+        if response is None:
+            raise NodeError("Pairing failed, CirclePlusConnectResponse is None")
+        if response.allowed.value != 1:
+            raise NodeError("Pairing failed, not allowed")
 
     async def register_node(self, mac: str) -> bool:
         """Register node to Plugwise network."""
