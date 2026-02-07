@@ -173,11 +173,28 @@ class StickNetwork:
 
         # Collect network info
         request = StickNetworkInfoRequest(self._controller.send, None)
-        if (response := await request.send()) is not None:
-            if not isinstance(response, StickNetworkInfoResponse):
+        if (info_response := await request.send()) is not None:
+            if not isinstance(info_response, StickNetworkInfoResponse):
                 raise MessageError(
-                    f"Invalid response message type ({response.__class__.__name__}) received, expected StickNetworkInfoResponse"
+                    f"Invalid response message type ({info_response.__class__.__name__}) received, expected StickNetworkInfoResponse"
                 )
+
+        # Init Stick
+        try:
+            request = StickInitRequest(self._controller.send)
+            init_response: StickInitResponse | None = await request.send()
+        except StickError as err:
+            raise StickError(
+                "No response from USB-Stick to initialization request."
+                + " Validate USB-stick is connected to port "
+                + f"' {self._manager.serial_path}'"
+            ) from err
+        if init_response is None:
+            raise StickError(
+                "No response from USB-Stick to initialization request."
+                + " Validate USB-stick is connected to port "
+                + f"' {self._manager.serial_path}'"
+            )
 
         request = CirclePlusConnectRequest(self._controller.send, bytes(mac, UTF8))
         if (response := await request.send()) is None:
