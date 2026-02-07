@@ -20,7 +20,11 @@ from ..constants import (
 )
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
 from ..helpers.util import validate_mac
-from ..messages.requests import CircleMeasureIntervalRequest, NodePingRequest
+from ..messages.requests import (
+    CircleMeasureIntervalRequest,
+    NodePingRequest,
+    StickNetworkInfoRequest,
+)
 from ..messages.responses import (
     NODE_AWAKE_RESPONSE_ID,
     NODE_JOIN_ID,
@@ -30,6 +34,7 @@ from ..messages.responses import (
     NodeRejoinResponse,
     NodeResponseType,
     PlugwiseResponse,
+    StickNetworkInfoResponse,
 )
 from ..nodes import get_plugwise_node
 from .registry import StickNetworkRegister
@@ -165,6 +170,14 @@ class StickNetwork:
         _LOGGER.debug("Pair Plus-device with mac: %s", mac)
         if not validate_mac(mac):
             raise NodeError(f"MAC {mac} invalid")
+
+        # Collect network info
+        request = StickNetworkInfoRequest(self._controller.send, None)
+        if (response := await request.send()) is not None:
+            if not isinstance(response, StickNetworkInfoResponse):
+                raise MessageError(
+                    f"Invalid response message type ({response.__class__.__name__}) received, expected StickNetworkInfoResponse"
+                )
 
         request = CirclePlusConnectRequest(self._controller.send, bytes(mac, UTF8))
         if (response := await request.send()) is None:
