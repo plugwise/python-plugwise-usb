@@ -162,10 +162,10 @@ class StickNetwork:
         
         According to https://roheve.wordpress.com/author/roheve/page/2/
         The pairing process should look like:
-        0001 - 0002
-        000A - 0011
-        0004 - 0005 & 0061 (NodeJoinResponse)
-        The NodeJoinRespons should trigger...
+        0001 - 0002: StickNetworkInfoRequest - StickNetworkInfoResponse
+        000A - 0011: StickInitRequest - StickInitResponse
+        0004 - 0005: CirclePlusConnectRequest - CirclePlusConnectResponse
+        The Plus-device will then send a NodeRejoinResponse (0061).
         """
         _LOGGER.debug("Pair Plus-device with mac: %s", mac)
         if not validate_mac(mac):
