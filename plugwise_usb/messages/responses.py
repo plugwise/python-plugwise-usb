@@ -446,7 +446,7 @@ class StickInitShortResponse(PlugwiseResponse):
         return f"{super().__repr__()[:-1]}, network_controller={self.mac_network_controller}, network_online={self.network_online})"
 
 
-class StickInitResponse(PlugwiseResponse):
+class StickInitResponse(StickInitShortResponse):
     """Returns the configuration and status of the USB-Stick - network online.
 
     Optional:
@@ -460,15 +460,11 @@ class StickInitResponse(PlugwiseResponse):
 
     def __init__(self) -> None:
         """Initialize StickInitResponse message object."""
-        super().__init__(b"0011")
-        self._unknown1 = Int(0, length=2)
-        self._network_online = Int(0, length=2)
+        super().__init__()
         self._mac_nc = String(None, length=16)
         self._network_id = Int(0, 4, False)
         self._unknown2 = Int(0, length=2)
         self._params += [
-            self._unknown1,
-            self._network_online,
             self._mac_nc,
             self._network_id,
             self._unknown2,
@@ -484,15 +480,6 @@ class StickInitResponse(PlugwiseResponse):
     def network_id(self) -> int:
         """Return network ID."""
         return self._network_id.value
-
-    @property
-    def network_online(self) -> bool:
-        """Return state of network."""
-        return self._network_online.value == 1
-
-    def __repr__(self) -> str:
-        """Convert request into writable str."""
-        return f"{super().__repr__()[:-1]}, network_controller={self.mac_network_controller}, network_online={self.network_online})"
 
 
 class CirclePowerUsageResponse(PlugwiseResponse):
