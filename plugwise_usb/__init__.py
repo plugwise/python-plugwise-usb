@@ -280,6 +280,15 @@ class Stick:
 
     @raise_not_connected
     @raise_not_initialized
+    async def plus_pair_request(self, mac: str) -> bool:
+        """Send a pair request to a Plus device."""
+        if self._network is None:
+            raise StickError("Cannot pair when network is not initialized")
+
+        return await self._network.pair_plus_device(mac)
+
+    @raise_not_connected
+    @raise_not_initialized
     async def start_network(self) -> None:
         """Start zigbee network."""
         if self._network is None:
