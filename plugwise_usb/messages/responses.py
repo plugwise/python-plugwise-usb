@@ -409,8 +409,45 @@ class NodeImageValidationResponse(PlugwiseResponse):
         self._params += [self.image_timestamp]
 
 
+class StickInitShortResponse(PlugwiseResponse):
+    """Returns the configuration and status of the USB-Stick - no network.
+
+    Supported protocols : 1.0, 2.0
+    Response to request : StickInitRequest
+    """
+
+    def __init__(self) -> None:
+        """Initialize StickInitShortResponse message object."""
+        super().__init__(b"0011")
+        self._unknown1 = Int(0, length=2)
+        self._network_online = Int(0, length=2)
+        self._params += [
+            self._unknown1,
+            self._network_online,
+        ]
+
+    @property
+    def mac_network_controller(self) -> str | None:
+        """Return the mac of the network controller (Circle+)."""
+        return None
+
+    @property
+    def network_id(self) -> int | None:
+        """Return network ID."""
+        return None
+
+    @property
+    def network_online(self) -> bool:
+        """Return state of network."""
+        return self._network_online.value == 1
+
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return f"{super().__repr__()[:-1]}, network_controller={self.mac_network_controller}, network_online={self.network_online})"
+
+
 class StickInitResponse(PlugwiseResponse):
-    """Returns the configuration and status of the USB-Stick.
+    """Returns the configuration and status of the USB-Stick - network online.
 
     Optional:
     - circle_plus_mac
@@ -426,37 +463,26 @@ class StickInitResponse(PlugwiseResponse):
         super().__init__(b"0011")
         self._unknown1 = Int(0, length=2)
         self._network_online = Int(0, length=2)
+        self._mac_nc = String(None, length=16)
+        self._network_id = Int(0, 4, False)
+        self._unknown2 = Int(0, length=2)
         self._params += [
             self._unknown1,
             self._network_online,
+            self._mac_nc,
+            self._network_id,
+            self._unknown2,
         ]
-        self._mac_nc = None
-        self._network_id = None
-#        if self._network_online == 1:
-#            self._mac_nc = String(None, length=16)
-#            self._network_id = Int(0, 4, False)
-#            self._unknown2 = Int(0, length=2)
-#            self._params += [
-#                self._unknown1,
-#                self._network_online,
-#                self._mac_nc,
-#                self._network_id,
-#                self._unknown2,
-#            ]
 
     @property
-    def mac_network_controller(self) -> str | None:
+    def mac_network_controller(self) -> str:
         """Return the mac of the network controller (Circle+)."""
         # Replace first 2 characters by 00 for mac of circle+ node
-        if self._mac_nc is None:
-            return None
         return "00" + self._mac_nc.value[2:]
 
     @property
-    def network_id(self) -> int | None:
+    def network_id(self) -> int:
         """Return network ID."""
-        if self._network_id is None:
-            return None
         return self._network_id.value
 
     @property
@@ -1003,8 +1029,15 @@ def get_message_object(  # noqa: C901 PLR0911 PLR0912
         return NodePingResponse()
     if identifier == b"0010":
         return NodeImageValidationResponse()
+
+    # 0011 has two formats
     if identifier == b"0011":
-        return StickInitResponse()
+        if length == 20:
+            return StickInitShortResponse()
+        if length == 42:
+            return StickInitResponse()
+        return None
+
     if identifier == b"0013":
         return CirclePowerUsageResponse()
     if identifier == b"0015":
