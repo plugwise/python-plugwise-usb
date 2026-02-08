@@ -157,7 +157,7 @@ class StickNetwork:
 
     # endregion
 
-    async def pair_plus_device(self, mac: str) -> None:
+    async def pair_plus_device(self, mac: str) -> bool:
         """Pair Plus-device to Plugwise Stick.
 
         According to https://roheve.wordpress.com/author/roheve/page/2/
@@ -203,6 +203,8 @@ class StickNetwork:
             ) from None
         if response.allowed.value != 1:
             raise NodeError("Pairing failed, not allowed")
+
+        return True
 
     async def register_node(self, mac: str) -> bool:
         """Register node to Plugwise network."""

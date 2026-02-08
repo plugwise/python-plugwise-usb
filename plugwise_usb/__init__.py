@@ -284,11 +284,8 @@ class Stick:
         """Send a pair request to a Plus device."""
         if self._network is None:
             raise StickError("Cannot pair when network is not initialized")
-        try:
-            await self._network.pair_plus_device(mac)
-        except NodeError as exc:
-            raise NodeError(f"{exc}") from exc
-        return True
+
+        return self._network.pair_plus_device(mac)
 
     @raise_not_connected
     @raise_not_initialized
