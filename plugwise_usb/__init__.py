@@ -285,7 +285,7 @@ class Stick:
         if self._network is None:
             raise StickError("Cannot pair when network is not initialized")
 
-        return self._network.pair_plus_device(mac)
+        return await self._network.pair_plus_device(mac)
 
     @raise_not_connected
     @raise_not_initialized
