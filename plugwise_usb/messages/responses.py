@@ -1034,7 +1034,7 @@ def get_message_object(  # noqa: C901 PLR0911 PLR0912
     if identifier == b"0011":
         if length == 36:
             return StickInitShortResponse()
-        if length == 60:
+        if length == 58:
             return StickInitResponse()
         return None
 
