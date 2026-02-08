@@ -162,10 +162,10 @@ class StickNetwork:
 
         According to https://roheve.wordpress.com/author/roheve/page/2/
         The pairing process should look like:
-        0001 - 0002: StickNetworkInfoRequest - StickNetworkInfoResponse
-        000A - 0011: StickInitRequest - StickInitResponse
-        0004 - 0005: CirclePlusConnectRequest - CirclePlusConnectResponse
-        The Plus-device will then send a NodeRejoinResponse (0061).
+        0001 - 0002 (- 0003): StickNetworkInfoRequest - StickNetworkInfoResponse - (PlugwiseQueryCirclePlusEndResponse - @SevenW),
+        000A - 0011: StickInitRequest - StickInitResponse,
+        0004 - 0005: CirclePlusConnectRequest - CirclePlusConnectResponse,
+        the Plus-device will then send a NodeRejoinResponse (0061).
 
         Todo(?): Does this need repeating until pairing is successful?
         """
