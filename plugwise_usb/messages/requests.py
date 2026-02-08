@@ -38,6 +38,7 @@ from ..messages.responses import (
     NodeSpecificResponse,
     PlugwiseResponse,
     StickInitResponse,
+    StickInitShortResponse,
     StickNetworkInfoResponse,
     StickResponse,
     StickResponseType,
@@ -514,7 +515,7 @@ class StickInitRequest(PlugwiseRequest):
     """Initialize USB-Stick.
 
     Supported protocols : 1.0, 2.0
-    Response message    : StickInitResponse
+    Response message    : StickInitResponse or StickInitShortResponse
     """
 
     _identifier = b"000A"
@@ -528,17 +529,17 @@ class StickInitRequest(PlugwiseRequest):
         super().__init__(send_fn, None)
         self._max_retries = 1
 
-    async def send(self) -> StickInitResponse | None:
+    async def send(self) -> StickInitResponse | StickInitShortResponse | None:
         """Send request."""
         if self._send_fn is None:
             raise MessageError("Send function missing")
         result = await self._send_request()
-        if isinstance(result, StickInitResponse):
+        if isinstance(result, StickInitResponse) or isinstance(result, StickInitShortResponse):
             return result
         if result is None:
             return None
         raise MessageError(
-            f"Invalid response message. Received {result.__class__.__name__}, expected StickInitResponse"
+            f"Invalid response message. Received {result.__class__.__name__}, expected StickInitResponse/StickInitShortResponse"
         )
 
 
