@@ -289,6 +289,13 @@ class TestStick:
     test_init_relay_state_off: asyncio.Future[bool]
     test_init_relay_state_on: asyncio.Future[bool]
 
+    async def connected(self, event: pw_api.StickEvent) -> None:  # type: ignore[name-defined]
+        """Set connected state helper."""
+        if event is pw_api.StickEvent.CONNECTED:
+            self.test_connected.set_result(True)
+        else:
+            self.test_connected.set_exception(BaseException("Incorrect event"))
+
     async def dummy_fn(self, request: pw_requests.PlugwiseRequest, test: bool) -> None:  # type: ignore[name-defined]
         """Callable dummy routine."""
         return
