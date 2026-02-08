@@ -22,9 +22,7 @@ from ..exceptions import CacheError, MessageError, NodeError, StickError, StickT
 from ..helpers.util import validate_mac
 from ..messages.requests import (
     CircleMeasureIntervalRequest,
-    CirclePlusConnectRequest,
     NodePingRequest,
-    StickNetworkInfoRequest,
 )
 from ..messages.responses import (
     NODE_AWAKE_RESPONSE_ID,
@@ -156,55 +154,6 @@ class StickNetwork:
         return self._register.registry
 
     # endregion
-
-    async def pair_plus_device(self, mac: str) -> bool:
-        """Pair Plus-device to Plugwise Stick.
-
-        According to https://roheve.wordpress.com/author/roheve/page/2/
-        The pairing process should look like:
-        0001 - 0002 (- 0003): StickNetworkInfoRequest - StickNetworkInfoResponse - (PlugwiseQueryCirclePlusEndResponse - @SevenW),
-        000A - 0011: StickInitRequest - StickInitResponse,
-        0004 - 0005: CirclePlusConnectRequest - CirclePlusConnectResponse,
-        the Plus-device will then send a NodeRejoinResponse (0061).
-
-        Todo(?): Does this need repeating until pairing is successful?
-        """
-        _LOGGER.debug("Pair Plus-device with mac: %s", mac)
-        if not validate_mac(mac):
-            raise NodeError(f"Pairing failed: MAC {mac} invalid")
-
-        # Collect network info
-        try:
-            request = StickNetworkInfoRequest(self._controller.send, None)
-            info_response = await request.send()
-        except MessageError as exc:
-            raise NodeError(f"Pairing failed: {exc}") from exc
-        if info_response is None:
-            raise NodeError(
-                "Pairing failed, StickNetworkInfoResponse is None"
-            ) from None
-
-        # Init Stick
-        try:
-            await self._controller.initialize_stick()
-        except StickError as exc:
-            raise NodeError(
-                f"Pairing failed, failed to initialize Stick: {exc}"
-            ) from exc
-
-        try:
-            request = CirclePlusConnectRequest(self._controller.send, bytes(mac, UTF8))
-            response = await request.send()
-        except MessageError as exc:
-            raise NodeError(f"Pairing failed: {exc}") from exc
-        if response is None:
-            raise NodeError(
-                "Pairing failed, CirclePlusConnectResponse is None"
-            ) from None
-        if response.allowed.value != 1:
-            raise NodeError("Pairing failed, not allowed")
-
-        return True
 
     async def register_node(self, mac: str) -> bool:
         """Register node to Plugwise network."""

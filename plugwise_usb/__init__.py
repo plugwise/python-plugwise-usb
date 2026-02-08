@@ -266,6 +266,10 @@ class Stick:
             self._port,
         )
 
+    async def plus_pair_request(self, mac: str) -> bool:
+        """Send a pair request to a Plus device."""
+        return await self._controller.pair_plus_device(mac)
+
     @raise_not_connected
     async def initialize(self, create_root_cache_folder: bool = False) -> None:
         """Initialize connection to USB-Stick."""
@@ -277,10 +281,6 @@ class Stick:
             self._network.cache_enabled = self._cache_enabled
             if self._cache_enabled:
                 await self._network.initialize_cache()
-
-    async def plus_pair_request(self, mac: str) -> bool:
-        """Send a pair request to a Plus device."""
-        return await self._network.pair_plus_device(mac)
 
     @raise_not_connected
     @raise_not_initialized
