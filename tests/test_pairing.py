@@ -377,8 +377,8 @@ class TestStick:
             await stick.initialize()
         
         await asyncio.sleep(5)
-        # Inject StickNetworkInfoRequest to trigger a pairing
-        mock_serial.inject_message(b"0001", b"1253")  # @bouwew: seq_id is not FFFC!
+        await stick.plus_pair_request("0123456789012345")
+        await asyncio.sleep(5)
 
         await stick.disconnect()
 
