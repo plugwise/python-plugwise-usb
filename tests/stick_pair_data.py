@@ -42,7 +42,7 @@ RESPONSE_MESSAGES = {
         + b"653907008512"  # hw_ver
         + b"4E0843A9"  # fw_ver
         + b"00",  # node_type (Stick)
-    ),    
+    ),
 }
 
 SECOND_RESPONSE_MESSAGES = {
