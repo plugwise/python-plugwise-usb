@@ -176,18 +176,6 @@ class Stick:
 
         self._port = port
 
-    `@raise_not_connected`
-    `@raise_not_initialized`
-    async def plus_pair_request(self, mac: str) -> bool:
-        """Send a pair request to a Plus device."""
-        if self._network is None:
-            raise StickError("Cannot pair when network is not initialized")
-        try:
-            await self._network.pair_plus_device(mac)
-        except NodeError as exc:
-            raise NodeError(f"{exc}") from exc
-        return True
-
     async def set_energy_intervals(
         self, mac: str, cons_interval: int, prod_interval: int
     ) -> bool:
@@ -289,6 +277,18 @@ class Stick:
             self._network.cache_enabled = self._cache_enabled
             if self._cache_enabled:
                 await self._network.initialize_cache()
+
+    @raise_not_connected
+    @raise_not_initialized
+    async def plus_pair_request(self, mac: str) -> bool:
+        """Send a pair request to a Plus device."""
+        if self._network is None:
+            raise StickError("Cannot pair when network is not initialized")
+        try:
+            await self._network.pair_plus_device(mac)
+        except NodeError as exc:
+            raise NodeError(f"{exc}") from exc
+        return True
 
     @raise_not_connected
     @raise_not_initialized
