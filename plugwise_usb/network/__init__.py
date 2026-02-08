@@ -167,7 +167,7 @@ class StickNetwork:
         0004 - 0005: CirclePlusConnectRequest - CirclePlusConnectResponse
         The Plus-device will then send a NodeRejoinResponse (0061).
 
-        Todo(?): Does this need repeating until pairing is succesful?
+        Todo(?): Does this need repeating until pairing is successful?
         """
         _LOGGER.debug("Pair Plus-device with mac: %s", mac)
         if not validate_mac(mac):
