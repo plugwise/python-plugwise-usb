@@ -429,7 +429,9 @@ class StickInitResponse(PlugwiseResponse):
         self._params += [
             self._unknown1,
             self._network_online,
-        ]        
+        ]
+        self._mac_nc = None
+        self._network_id = None
 #        if self._network_online == 1:
 #            self._mac_nc = String(None, length=16)
 #            self._network_id = Int(0, 4, False)
@@ -443,14 +445,18 @@ class StickInitResponse(PlugwiseResponse):
 #            ]
 
     @property
-    def mac_network_controller(self) -> str:
+    def mac_network_controller(self) -> str | None:
         """Return the mac of the network controller (Circle+)."""
         # Replace first 2 characters by 00 for mac of circle+ node
+        if self._mac_nc is None:
+            return None
         return "00" + self._mac_nc.value[2:]
 
     @property
-    def network_id(self) -> int:
+    def network_id(self) -> int | None:
         """Return network ID."""
+        if self._network_id is None:
+            return None
         return self._network_id.value
 
     @property
