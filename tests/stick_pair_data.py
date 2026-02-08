@@ -10,10 +10,8 @@ RESPONSE_MESSAGES = {
         + b"0698765432101234"  # 06 + plus-device mac
         + b"FFFFFFFFFFFFFFFF"
         + b"0698765432101234"  # 06 + plus-device mac
-        + b"1606"
-        + b"01",
-        b"0003"  # response msg_id
-        + b"00CE",  # ?
+        + b"1606"  # pan_id
+        + b"01",  # index
     ),
     b"\x05\x05\x03\x03000AB43C\r\n": (
         "STICK INIT",
