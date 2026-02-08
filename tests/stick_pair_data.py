@@ -22,9 +22,6 @@ RESPONSE_MESSAGES = {
         + b"0123456789012345"  # stick mac
         + b"00"  # unknown1
         + b"00",  # network_is_offline
-        # + b"0098765432101234"  # circle_plus_mac
-        # + b"4321"  # network_id
-        # + b"FF",  # unknown2
     ),
     b"\x05\x05\x03\x0300040000000000000000000098765432101234\r\n": (
         "Pair request of plus-device 0098765432101234",
