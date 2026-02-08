@@ -1032,9 +1032,9 @@ def get_message_object(  # noqa: C901 PLR0911 PLR0912
 
     # 0011 has two formats
     if identifier == b"0011":
-        if length == 20:
+        if length == 36:
             return StickInitShortResponse()
-        if length == 42:
+        if length == 60:
             return StickInitResponse()
         return None
 
