@@ -373,7 +373,8 @@ class TestStick:
         monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 0.5)
         stick = pw_stick.Stick(port="test_port", cache_enabled=False)
         await stick.connect("test_port")
-        await stick.initialize()
+        with pytest.raises(pw_exceptions.StickError):
+            await stick.initialize()
         
         # Inject StickNetworkInfoRequest to trigger a pairing
         mock_serial.inject_message(b"0001", b"1253")  # @bouwew: seq_id is not FFFC!
