@@ -426,16 +426,21 @@ class StickInitResponse(PlugwiseResponse):
         super().__init__(b"0011")
         self._unknown1 = Int(0, length=2)
         self._network_online = Int(0, length=2)
-        self._mac_nc = String(None, length=16)
-        self._network_id = Int(0, 4, False)
-        self._unknown2 = Int(0, length=2)
         self._params += [
             self._unknown1,
             self._network_online,
-            self._mac_nc,
-            self._network_id,
-            self._unknown2,
-        ]
+        ]        
+        if self._network_online == 1:
+            self._mac_nc = String(None, length=16)
+            self._network_id = Int(0, 4, False)
+            self._unknown2 = Int(0, length=2)
+            self._params += [
+                self._unknown1,
+                self._network_online,
+                self._mac_nc,
+                self._network_id,
+                self._unknown2,
+            ]
 
     @property
     def mac_network_controller(self) -> str:
