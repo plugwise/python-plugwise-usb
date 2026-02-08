@@ -48,13 +48,14 @@ RESPONSE_MESSAGES = {
     ),    
 }
 
-FIRST_RESPONSE_MESSAGES = {
-    b"\x05\x05\x03\x03000AB43C\r\n": (
-        "STICK INIT",
+SECOND_RESPONSE_MESSAGES = {
+    b"\x05\x05\x03\x03000D55555555555555555E46\r\n": (
+        "ping reply for 5555555555555555",
         b"000000C1",  # Success ack
-        b"0011"  # msg_id
-        + b"0123456789012345"  # stick mac
-        + b"00"  # unknown1
-        + b"00",  # network_is_offline
-    ),
+        b"000E"
+        + b"5555555555555555"  # mac
+        + b"44"  # rssi in
+        + b"33"  # rssi out
+        + b"0055",  # roundtrip
+    )
 }
