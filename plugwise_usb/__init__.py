@@ -176,8 +176,12 @@ class Stick:
 
         self._port = port
 
+    `@raise_not_connected`
+    `@raise_not_initialized`
     async def plus_pair_request(self, mac: str) -> bool:
         """Send a pair request to a Plus device."""
+        if self._network is None:
+            raise StickError("Cannot pair when network is not initialized")
         try:
             await self._network.pair_plus_device(mac)
         except NodeError as exc:
