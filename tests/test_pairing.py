@@ -376,6 +376,7 @@ class TestStick:
         with pytest.raises(pw_exceptions.StickError):
             await stick.initialize()
         
+        await asyncio.sleep(5)
         # Inject StickNetworkInfoRequest to trigger a pairing
         mock_serial.inject_message(b"0001", b"1253")  # @bouwew: seq_id is not FFFC!
 
