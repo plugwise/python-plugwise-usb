@@ -377,7 +377,7 @@ class TestStick:
             await stick.initialize()
 
         await asyncio.sleep(5)
-        await stick.plus_pair_request("0123456789012345")
+        await stick.plus_pair_request("0098765432101234")
         await asyncio.sleep(5)
 
         await stick.disconnect()
