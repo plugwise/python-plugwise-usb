@@ -300,65 +300,65 @@ class TestStick:
         """Callable dummy routine."""
         return
 
-#    @pytest.mark.asyncio
-#    async def test_stick_connect(self, monkeypatch: pytest.MonkeyPatch) -> None:
-#        """Test connecting to stick."""
-#        monkeypatch.setattr(
-#            pw_connection_manager,
-#            "create_serial_connection",
-#            MockSerial(None).mock_connection,
-#        )
-#        stick = pw_stick.Stick(port="test_port", cache_enabled=False)
+    #    @pytest.mark.asyncio
+    #    async def test_stick_connect(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    #        """Test connecting to stick."""
+    #        monkeypatch.setattr(
+    #            pw_connection_manager,
+    #            "create_serial_connection",
+    #            MockSerial(None).mock_connection,
+    #        )
+    #        stick = pw_stick.Stick(port="test_port", cache_enabled=False)
 
-#        unsub_connect = stick.subscribe_to_stick_events(
-#            stick_event_callback=self.connected,
-#            events=(pw_api.StickEvent.CONNECTED,),
-#        )
-#        self.test_connected = asyncio.Future()
-#        await stick.connect("test_port")
-#        assert await self.test_connected
-#        await stick.initialize()
-#        assert stick.mac_stick == "0123456789012345"
-#        assert stick.name == "Stick 12345"
-#        assert stick.mac_coordinator == "0098765432101234"
-#        assert stick.firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=UTC)
-#        assert stick.hardware == "070085"
-#        assert not stick.network_discovered
-#        assert stick.network_state
-#        assert stick.network_id == 17185
-#        unsub_connect()
-#        await stick.disconnect()
-#        assert not stick.network_state
-#        with pytest.raises(pw_exceptions.StickError):
-#            stick.mac_stick
+    #        unsub_connect = stick.subscribe_to_stick_events(
+    #            stick_event_callback=self.connected,
+    #            events=(pw_api.StickEvent.CONNECTED,),
+    #        )
+    #        self.test_connected = asyncio.Future()
+    #        await stick.connect("test_port")
+    #        assert await self.test_connected
+    #        await stick.initialize()
+    #        assert stick.mac_stick == "0123456789012345"
+    #        assert stick.name == "Stick 12345"
+    #        assert stick.mac_coordinator == "0098765432101234"
+    #        assert stick.firmware == dt(2011, 6, 27, 8, 47, 37, tzinfo=UTC)
+    #        assert stick.hardware == "070085"
+    #        assert not stick.network_discovered
+    #        assert stick.network_state
+    #        assert stick.network_id == 17185
+    #        unsub_connect()
+    #        await stick.disconnect()
+    #        assert not stick.network_state
+    #        with pytest.raises(pw_exceptions.StickError):
+    #            stick.mac_stick
 
-#    @pytest.mark.asyncio
-#    async def test_stick_network_down(self, monkeypatch: pytest.MonkeyPatch) -> None:
-#        """Testing Stick init without paired Circle."""
-#        mock_serial = MockSerial(
-#            {
-#                b"\x05\x05\x03\x03000AB43C\r\n": (
-#                    "STICK INIT",
-#                    b"000000C1",  # Success ack
-#                    b"0011"  # response msg_id
-#                    + b"0123456789012345"  # stick mac
-#                    + b"00"  # unknown1
-#                    + b"00",  # network_is_offline
-#                ),
-#            }
-#        )
-#        monkeypatch.setattr(
-#            pw_connection_manager,
-#            "create_serial_connection",
-#            mock_serial.mock_connection,
-#        )
-#        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
-#        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 1.0)
-#        stick = pw_stick.Stick(port="test_port", cache_enabled=False)
-#        await stick.connect()
-#        with pytest.raises(pw_exceptions.StickError):
-#            await stick.initialize()
-#        await stick.disconnect()
+    #    @pytest.mark.asyncio
+    #    async def test_stick_network_down(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    #        """Testing Stick init without paired Circle."""
+    #        mock_serial = MockSerial(
+    #            {
+    #                b"\x05\x05\x03\x03000AB43C\r\n": (
+    #                    "STICK INIT",
+    #                    b"000000C1",  # Success ack
+    #                    b"0011"  # response msg_id
+    #                    + b"0123456789012345"  # stick mac
+    #                    + b"00"  # unknown1
+    #                    + b"00",  # network_is_offline
+    #                ),
+    #            }
+    #        )
+    #        monkeypatch.setattr(
+    #            pw_connection_manager,
+    #            "create_serial_connection",
+    #            mock_serial.mock_connection,
+    #        )
+    #        monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.2)
+    #        monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 1.0)
+    #        stick = pw_stick.Stick(port="test_port", cache_enabled=False)
+    #        await stick.connect()
+    #        with pytest.raises(pw_exceptions.StickError):
+    #            await stick.initialize()
+    #        await stick.disconnect()
 
     @pytest.mark.asyncio
     async def test_pair_plus(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -375,12 +375,13 @@ class TestStick:
         await stick.connect("test_port")
         with pytest.raises(pw_exceptions.StickError):
             await stick.initialize()
-        
+
         await asyncio.sleep(5)
         await stick.plus_pair_request("0123456789012345")
         await asyncio.sleep(5)
 
         await stick.disconnect()
+
 
 #    async def node_join(self, event: pw_api.NodeEvent, mac: str) -> None:  # type: ignore[name-defined]
 #        """Handle join event callback."""
@@ -393,33 +394,33 @@ class TestStick:
 #                )
 #            )
 
-    # @pytest.mark.asyncio
-    # async def test_stick_node_join_subscription(
-    #    self, monkeypatch: pytest.MonkeyPatch
-    # ) -> None:
-    # """Testing "new_node" subscription."""
-    # mock_serial = MockSerial(None)
-    # monkeypatch.setattr(
-    #    pw_connection_manager,
-    #    "create_serial_connection",
-    #    mock_serial.mock_connection,
-    # )
-    # monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.1)
-    # monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 0.5)
-    # stick = pw_stick.Stick("test_port", cache_enabled=False)
-    # await stick.connect()
-    # await stick.initialize()
-    # await stick.discover_nodes(load=False)
+# @pytest.mark.asyncio
+# async def test_stick_node_join_subscription(
+#    self, monkeypatch: pytest.MonkeyPatch
+# ) -> None:
+# """Testing "new_node" subscription."""
+# mock_serial = MockSerial(None)
+# monkeypatch.setattr(
+#    pw_connection_manager,
+#    "create_serial_connection",
+#    mock_serial.mock_connection,
+# )
+# monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.1)
+# monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 0.5)
+# stick = pw_stick.Stick("test_port", cache_enabled=False)
+# await stick.connect()
+# await stick.initialize()
+# await stick.discover_nodes(load=False)
 
-    # self.test_node_join = asyncio.Future()
-    # unusb_join = stick.subscribe_to_node_events(
-    #    node_event_callback=self.node_join,
-    #    events=(pw_api.NodeEvent.JOIN,),
-    # )
+# self.test_node_join = asyncio.Future()
+# unusb_join = stick.subscribe_to_node_events(
+#    node_event_callback=self.node_join,
+#    events=(pw_api.NodeEvent.JOIN,),
+# )
 
-    ## Inject NodeJoinAvailableResponse
-    # mock_serial.inject_message(b"00069999999999999999", b"1253")  # @bouwew: seq_id is not FFFC!
-    # mac_join_node = await self.test_node_join
-    # assert mac_join_node == "9999999999999999"
-    # unusb_join()
-    # await stick.disconnect()
+## Inject NodeJoinAvailableResponse
+# mock_serial.inject_message(b"00069999999999999999", b"1253")  # @bouwew: seq_id is not FFFC!
+# mac_join_node = await self.test_node_join
+# assert mac_join_node == "9999999999999999"
+# unusb_join()
+# await stick.disconnect()
