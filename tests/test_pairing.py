@@ -103,6 +103,7 @@ SECOND_RESPONSE_MESSAGES = {
     )
 }
 
+
 def inc_seq_id(seq_id: bytes | None) -> bytes:
     """Increment sequence id."""
     if seq_id is None:
@@ -164,9 +165,7 @@ class DummyTransport:
         if log is None and self._first_response is not None:
             log, ack, response = self._first_response.get(data, (None, None, None))
         if log is None:
-            resp = PARTLY_RESPONSE_MESSAGES.get(
-                data[:24], (None, None, None)
-            )
+            resp = PARTLY_RESPONSE_MESSAGES.get(data[:24], (None, None, None))
             if resp is None:
                 _LOGGER.debug("No msg response for %s", str(data))
                 return
