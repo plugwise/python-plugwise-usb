@@ -8,7 +8,7 @@ from typing import Any
 
 from ..api import StickEvent
 from ..constants import UTF8
-from ..exceptions import NodeError, StickError
+from ..exceptions import MessageError, NodeError, StickError
 from ..helpers.util import validate_mac, version_to_model
 from ..messages.requests import (
     CirclePlusConnectRequest,
