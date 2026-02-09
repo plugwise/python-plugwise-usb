@@ -429,7 +429,7 @@ class TestStick:
         monkeypatch.setattr(pw_sender, "STICK_TIME_OUT", 0.1)
         monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 0.5)
         stick = pw_stick.Stick(port="test_port", cache_enabled=False)
-        # await stick.connect("test_port")
+        await stick.connect("test_port")
         # with pytest.raises(pw_exceptions.StickError):
         #     await stick.initialize()
         await stick.plus_pair_request("0098765432101234")
