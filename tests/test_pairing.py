@@ -31,7 +31,6 @@ pw_sender = importlib.import_module("plugwise_usb.connection.sender")
 pw_requests = importlib.import_module("plugwise_usb.messages.requests")
 pw_responses = importlib.import_module("plugwise_usb.messages.responses")
 pw_msg_properties = importlib.import_module("plugwise_usb.messages.properties")
-pw_userdata = importlib.import_module("stick_pair_data")
 pw_node = importlib.import_module("plugwise_usb.nodes.node")
 pw_circle = importlib.import_module("plugwise_usb.nodes.circle")
 pw_sed = importlib.import_module("plugwise_usb.nodes.sed")
@@ -45,6 +44,61 @@ pw_energy_pulses = importlib.import_module("plugwise_usb.nodes.helpers.pulses")
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
 
+RESPONSE_MESSAGES = {
+    b"\x05\x05\x03\x030001CAAB\r\n": (
+        "Stick network info request",
+        b"000000C1",  # Success ack
+        b"0002"  # response msg_id
+        + b"0123456789012345"  # stick-mac
+        + b"0F"  # channel
+        + b"FFFFFFFFFFFFFFFF"
+        + b"0698765432101234"  # 06 + plus-device mac
+        + b"FFFFFFFFFFFFFFFF"
+        + b"0698765432101234"  # 06 + plus-device mac
+        + b"1606"  # pan_id
+        + b"01",  # index
+    ),
+    b"\x05\x05\x03\x03000AB43C\r\n": (
+        "STICK INIT",
+        b"000000C1",  # Success ack
+        b"0011"  # msg_id
+        + b"0123456789012345"  # stick mac
+        + b"00"  # unknown1
+        + b"00",  # network_is_offline
+    ),
+    b"\x05\x05\x03\x0300040000000000000000000098765432101234\r\n": (
+        "Pair request of plus-device 0098765432101234",
+        b"000000C1",  # Success ack
+        b"0005"  # response msg_id
+        + b"00"  # existing
+        + b"01",  # allowed
+    ),
+    b"\x05\x05\x03\x0300230123456789012345A0EC\r\n": (
+        "Node Info of stick 0123456789012345",
+        b"000000C1",  # Success ack
+        b"0024"  # msg_id
+        + b"0123456789012345"  # mac
+        + b"00000000"  # datetime
+        + b"00000000"  # log address 0
+        + b"00"  # relay
+        + b"80"  # hz
+        + b"653907008512"  # hw_ver
+        + b"4E0843A9"  # fw_ver
+        + b"00",  # node_type (Stick)
+    ),
+}
+
+SECOND_RESPONSE_MESSAGES = {
+    b"\x05\x05\x03\x03000D55555555555555555E46\r\n": (
+        "ping reply for 5555555555555555",
+        b"000000C1",  # Success ack
+        b"000E"
+        + b"5555555555555555"  # mac
+        + b"44"  # rssi in
+        + b"33"  # rssi out
+        + b"0055",  # roundtrip
+    )
+}
 
 def inc_seq_id(seq_id: bytes | None) -> bytes:
     """Increment sequence id."""
@@ -88,8 +142,8 @@ class DummyTransport:
         self._first_response = test_data
         self._second_response = test_data
         if test_data is None:
-            self._first_response = pw_userdata.RESPONSE_MESSAGES
-            self._second_response = pw_userdata.SECOND_RESPONSE_MESSAGES
+            self._first_response = RESPONSE_MESSAGES
+            self._second_response = SECOND_RESPONSE_MESSAGES
         self.random_extra_byte = 0
         self._closing = False
 
@@ -107,7 +161,7 @@ class DummyTransport:
         if log is None and self._first_response is not None:
             log, ack, response = self._first_response.get(data, (None, None, None))
         if log is None:
-            resp = pw_userdata.PARTLY_RESPONSE_MESSAGES.get(
+            resp = PARTLY_RESPONSE_MESSAGES.get(
                 data[:24], (None, None, None)
             )
             if resp is None:
@@ -359,6 +413,54 @@ class TestStick:
     #        with pytest.raises(pw_exceptions.StickError):
     #            await stick.initialize()
     #        await stick.disconnect()
+
+    RESPONSE_MESSAGES = {
+        b"\x05\x05\x03\x030001CAAB\r\n": (
+            "Stick network info request",
+            b"000000C1",  # Success ack
+            b"0002"  # response msg_id
+            + b"0123456789012345"  # stick-mac
+            + b"0F"  # channel
+            + b"FFFFFFFFFFFFFFFF"
+            + b"FF98765432101234"  # 06 + plus-device mac
+            + b"FFFFFFFFFFFFFFFF"
+            + b"FF98765432101234"  # 06 + plus-device mac
+            + b"04FF"  # pan_id
+            + b"01",  # index
+        ),
+        b"\x05\x05\x03\x03000AB43C\r\n": (
+            "STICK INIT",
+            b"000000C1",  # Success ack
+            b"0011"  # msg_id
+            + b"0123456789012345"  # stick mac
+            + b"00"  # unknown1
+            + b"01"  # network_is_online
+            + b"FF98765432101234"
+            + b"04FF"
+            + b"FF",
+        ),
+        b"\x05\x05\x03\x0300040000000000000000000098765432101234\r\n": (
+            "Pair request of plus-device 0098765432101234",
+            b"000000C1",  # Success ack
+            b"0005"  # response msg_id
+            + b"00"  # existing
+            + b"01",  # allowed
+        ),
+        b"\x05\x05\x03\x0300230123456789012345A0EC\r\n": (
+            "Node Info of stick 0123456789012345",
+            b"000000C1",  # Success ack
+            b"0024"  # msg_id
+            + b"0123456789012345"  # mac
+            + b"00000000"  # datetime
+            + b"00000000"  # log address 0
+            + b"00"  # relay
+            + b"80"  # hz
+            + b"653907008512"  # hw_ver
+            + b"4E0843A9"  # fw_ver
+            + b"00",  # node_type (Stick)
+        ),
+    }
+
 
     @pytest.mark.asyncio
     async def test_pair_plus(self, monkeypatch: pytest.MonkeyPatch) -> None:
