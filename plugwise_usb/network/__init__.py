@@ -20,10 +20,7 @@ from ..constants import (
 )
 from ..exceptions import CacheError, MessageError, NodeError, StickError, StickTimeout
 from ..helpers.util import validate_mac
-from ..messages.requests import (
-    CircleMeasureIntervalRequest,
-    NodePingRequest,
-)
+from ..messages.requests import CircleMeasureIntervalRequest, NodePingRequest
 from ..messages.responses import (
     NODE_AWAKE_RESPONSE_ID,
     NODE_JOIN_ID,
