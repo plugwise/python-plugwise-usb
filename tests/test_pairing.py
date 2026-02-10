@@ -431,8 +431,10 @@ class TestStick:
         await stick.connect("test_port")
         # with pytest.raises(pw_exceptions.StickError):
         await stick.initialize()
-        # await stick.plus_pair_request("0098765432101234")
-        # await asyncio.sleep(5)
+
+        await asyncio.sleep(2)        
+        await stick.plus_pair_request("0098765432101234")
+        await asyncio.sleep(2)
 
         await stick.disconnect()
 
