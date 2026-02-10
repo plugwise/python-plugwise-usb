@@ -73,8 +73,9 @@ RESPONSE_MESSAGES = {
         "Pair request of plus-device 0098765432101234",
         b"000000C1",  # Success ack
         b"0005"  # response msg_id
+        + b"0123456789012345"  # stick-mac
         + b"00"  # existing
-        + b"000",  # not allowed
+        + b"00",  # not allowed
     ),
     b"\x05\x05\x03\x0300230123456789012345A0EC\r\n": (
         "Node Info of stick 0123456789012345",
