@@ -230,6 +230,7 @@ class StickController:
             raise NodeError(
                 "Pairing failed, StickNetworkInfoResponse is None"
             ) from None
+        _LOGGER.debug("HOI NetworkInfoRequest done")
 
         # Init Stick
         try:
@@ -238,18 +239,19 @@ class StickController:
             raise NodeError(
                 f"Pairing failed, failed to initialize Stick: {exc}"
             ) from exc
+        _LOGGER.debug("HOI Init done")
 
-        try:
-            request = CirclePlusConnectRequest(self.send, bytes(mac, UTF8))
-            response = await request.send()
-        except MessageError as exc:
-            raise NodeError(f"Pairing failed: {exc}") from exc
-        if response is None:
-            raise NodeError(
-                "Pairing failed, CirclePlusConnectResponse is None"
-            ) from None
-        if response.allowed.value != 1:
-            raise NodeError("Pairing failed, not allowed")
+        #try:
+        #    request = CirclePlusConnectRequest(self.send, bytes(mac, UTF8))
+        #    response = await request.send()
+        #except MessageError as exc:
+        #    raise NodeError(f"Pairing failed: {exc}") from exc
+        #if response is None:
+        #    raise NodeError(
+        #        "Pairing failed, CirclePlusConnectResponse is None"
+        #    ) from None
+        #if response.allowed.value != 1:
+        #    raise NodeError("Pairing failed, not allowed")
 
         return True
 
