@@ -73,7 +73,7 @@ RESPONSE_MESSAGES = {
         "Pair request of plus-device 0098765432101234",
         b"000000C1",  # Success ack
         b"0005"  # response msg_id
-        + b"0123456789012345"  # stick-mac
+        + b"0098765432101234"  # circle+ mac
         + b"00"  # existing
         + b"01",  # allowed
     ),
