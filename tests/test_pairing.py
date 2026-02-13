@@ -92,6 +92,29 @@ RESPONSE_MESSAGES = {
     ),
 }
 
+PARTLY_RESPONSE_MESSAGES = {
+    b"\x05\x05\x03\x0300161111111111111111": (
+        "Clock set 1111111111111111",
+        b"000000C1",  # Success ack
+        b"0000" + b"00D7" + b"1111111111111111",  # msg_id, ClockAccepted, mac
+    ),
+    b"\x05\x05\x03\x0300162222222222222222": (
+        "Clock set 2222222222222222",
+        b"000000C1",  # Success ack
+        b"0000" + b"00D7" + b"2222222222222222",  # msg_id, ClockAccepted, mac
+    ),
+    b"\x05\x05\x03\x0300163333333333333333": (
+        "Clock set 3333333333333333",
+        b"000000C1",  # Success ack
+        b"0000" + b"00D7" + b"3333333333333333",  # msg_id, ClockAccepted, mac
+    ),
+    b"\x05\x05\x03\x0300164444444444444444": (
+        "Clock set 4444444444444444",
+        b"000000C1",  # Success ack
+        b"0000" + b"00D7" + b"4444444444444444",  # msg_id, ClockAccepted, mac
+    ),
+}
+
 SECOND_RESPONSE_MESSAGES = {
     b"\x05\x05\x03\x03000D55555555555555555E46\r\n": (
         "ping reply for 5555555555555555",
@@ -420,7 +443,7 @@ class TestStick:
     @pytest.mark.asyncio
     async def test_pair_plus(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test pairing a plus-device."""
-        mock_serial = MockSerial(None)
+        # mock_serial = MockSerial(None)
         monkeypatch.setattr(
             pw_connection_manager,
             "create_serial_connection",
