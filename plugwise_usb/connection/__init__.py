@@ -23,6 +23,7 @@ from ..messages.responses import (
     NodePingResponse,
     PlugwiseResponse,
     StickInitResponse,
+    StickInitShortResponse,
 )
 from .manager import StickConnectionManager
 from .queue import StickQueue
@@ -172,7 +173,9 @@ class StickController:
 
         try:
             request = StickInitRequest(self.send)
-            init_response: StickInitResponse | None = await request.send()
+            init_response: (
+                StickInitResponse | StickInitShortResponse | None
+            ) = await request.send()
         except StickError as err:
             raise StickError(
                 "No response from USB-Stick to initialization request."
@@ -188,10 +191,11 @@ class StickController:
         self._mac_stick = init_response.mac_decoded
         self.stick_name = f"Stick {self._mac_stick[-5:]}"
         self._network_online = init_response.network_online
+        if self._network_online:
+            # Replace first 2 characters by 00 for mac of circle+ node
+            self._mac_nc = init_response.mac_network_controller
+            self._network_id = init_response.network_id
 
-        # Replace first 2 characters by 00 for mac of circle+ node
-        self._mac_nc = init_response.mac_network_controller
-        self._network_id = init_response.network_id
         self._is_initialized = True
 
         # Add Stick NodeInfoRequest
@@ -200,9 +204,6 @@ class StickController:
             self._fw_stick = node_info.firmware
             hardware, _ = version_to_model(node_info.hardware)
             self._hw_stick = hardware
-
-        if not self._network_online:
-            raise StickError("Zigbee network connection to Circle+ is down.")
 
     async def pair_plus_device(self, mac: str) -> bool:
         """Pair Plus-device to Plugwise Stick.
