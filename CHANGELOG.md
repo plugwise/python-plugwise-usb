@@ -2,10 +2,9 @@
 
 ## v0.47.3 - 2026-03-04
 
-- PR [418](https://github.com/plugwise/python-plugwise-usb/pull/418): Improve raise-message for better debugging
-- PR [405](https://github.com/plugwise/python-plugwise-usb/pull/405): Fix recent Ruff errors
-
+- PR [409](https://github.com/plugwise/python-plugwise-usb/pull/409): Fix recent Ruff errors
 - PR [405](https://github.com/plugwise/python-plugwise-usb/pull/405): Try adding plus-device pairing (untested!!)
+
 ## v0.47.2 - 2026-01-29
 
 - PR [400](https://github.com/plugwise/python-plugwise-usb/pull/400): Fix for Issue [#399](https://github.com/plugwise/python-plugwise-usb/issues/399)
