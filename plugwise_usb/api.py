@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum, IntEnum, auto
+from enum import Enum, IntEnum, StrEnum, auto
 import logging
 from typing import Any, Protocol
 
@@ -36,7 +36,7 @@ class NodeEvent(Enum):
     JOIN = auto()
 
 
-class NodeFeature(str, Enum):
+class NodeFeature(StrEnum):
     """USB Stick Node feature."""
 
     AVAILABLE = "available"
