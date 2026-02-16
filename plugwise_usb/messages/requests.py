@@ -534,9 +534,7 @@ class StickInitRequest(PlugwiseRequest):
         if self._send_fn is None:
             raise MessageError("Send function missing")
         result = await self._send_request()
-        if isinstance(result, StickInitResponse) or isinstance(
-            result, StickInitShortResponse
-        ):
+        if isinstance(result, (StickInitResponse, StickInitShortResponse)):
             return result
         if result is None:
             return None
