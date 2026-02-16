@@ -270,7 +270,7 @@ class MockStickController:
 
 
 aiofiles.threadpool.wrap.register(MagicMock)(
-    lambda *args, **kwargs: aiofiles.threadpool.AsyncBufferedIOBase(*args, **kwargs)  # pylint: disable=unnecessary-lambda
+    lambda *args, **kwargs: aiofiles.threadpool.AsyncBufferedIOBase(*args, **kwargs)  # noqa: PLW0108 pylint: disable=unnecessary-lambda
 )
 
 
