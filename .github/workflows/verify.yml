@@ -132,7 +132,7 @@ jobs:
       - commitcheck
     strategy:
       matrix:
-        python-version: ["3.14"]
+        python-version: ["3.13"]
     steps:
       - name: Check out committed code
         uses: actions/checkout@v6
