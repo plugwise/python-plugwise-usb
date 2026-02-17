@@ -276,6 +276,7 @@ class Stick:
         try:
             await self._controller.initialize_stick()
         except StickError as exc:
+            _LOGGER.warning("Cannot initialize Stick-connection: %s", exc)
             raise StickError(f"Cannot initialize Stick-connection: {exc}") from exc
 
         if self._network is None:
