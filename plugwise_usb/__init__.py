@@ -273,12 +273,7 @@ class Stick:
     @raise_not_connected
     async def initialize(self, create_root_cache_folder: bool = False) -> None:
         """Initialize connection to USB-Stick."""
-        try:
-            await self._controller.initialize_stick()
-        except StickError as exc:
-            _LOGGER.warning("Cannot initialize Stick-connection: %s", exc)
-            raise StickError(f"Cannot initialize Stick-connection: {exc}") from exc
-
+        await self._controller.initialize_stick()
         if self._network is None:
             self._network = StickNetwork(self._controller)
             self._network.cache_folder = self._cache_folder
