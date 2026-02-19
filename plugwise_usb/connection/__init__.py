@@ -74,8 +74,8 @@ class StickController:
     @property
     def mac_stick(self) -> str:
         """MAC address of USB-Stick. Raises StickError when not connected."""
+        _LOGGER.debug("mac_stick: %s", self._mac_stick)
         if self._mac_stick is None:
-            _LOGGER.debug("mac_stick: %s", self._mac_stick)
             raise StickError(
                 "No mac address available. Connect and initialize USB-Stick first."
             )
