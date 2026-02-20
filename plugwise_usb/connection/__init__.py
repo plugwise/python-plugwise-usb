@@ -88,7 +88,11 @@ class StickController:
 
     @property
     def network_online(self) -> bool:
-        """Return the network state."""
+        """Return the network state.
+
+        The ZigBee network is online when the Stick is connected and a 
+        StickInitResponse indicates that the ZigBee network is online.
+        """
         if not self._manager.is_connected:
             raise StickError(
                 "Network status not available. Connect and initialize USB-Stick first."
