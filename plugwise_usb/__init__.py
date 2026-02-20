@@ -237,8 +237,8 @@ class Stick:
         if not self.is_connected:
             await self.connect()
         if not self.is_initialized:
-            await self.initialize()
-        if discover:
+            initialized = await self.initialize()
+        if initialized and discover:
             await self.start_network()
             await self.discover_coordinator()
             await self.discover_nodes()
@@ -271,9 +271,13 @@ class Stick:
         return await self._controller.pair_plus_device(mac)
 
     @raise_not_connected
-    async def initialize(self, create_root_cache_folder: bool = False) -> None:
+    async def initialize(self, create_root_cache_folder: bool = False) -> bool:
         """Initialize connection to USB-Stick."""
         await self._controller.initialize_stick()
+        # Check if network is offline = StickInitShortResponse
+        if self._controller.mac_coordinator is None:
+            return False
+
         if self._network is None:
             self._network = StickNetwork(self._controller)
             self._network.cache_folder = self._cache_folder
@@ -281,6 +285,8 @@ class Stick:
             self._network.cache_enabled = self._cache_enabled
             if self._cache_enabled:
                 await self._network.initialize_cache()
+
+        return True
 
     @raise_not_connected
     @raise_not_initialized
