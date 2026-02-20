@@ -90,7 +90,7 @@ class StickController:
     def network_online(self) -> bool:
         """Return the network state.
 
-        The ZigBee network is online when the Stick is connected and a 
+        The ZigBee network is online when the Stick is connected and a
         StickInitResponse indicates that the ZigBee network is online.
         """
         if not self._manager.is_connected:
@@ -279,7 +279,7 @@ class StickController:
             return await self._queue.submit(request)
         try:
             return await self._queue.submit(request)
-        except (NodeError, StickError):
+        except NodeError, StickError:
             return None
 
     def _reset_states(self) -> None:
