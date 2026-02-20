@@ -1532,10 +1532,7 @@ class TestStick:
                     b"0011"  # msg_id
                     + b"0123456789012345"  # stick mac
                     + b"00"  # unknown1
-                    + b"00"  # network_is_online
-                    + b"0098765432101234"  # circle_plus_mac
-                    + b"4321"  # network_id
-                    + b"00",  # unknown2
+                    + b"00",  # network_is_offline
                 ),
             }
         )
@@ -1548,8 +1545,8 @@ class TestStick:
         monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 1.0)
         stick = pw_stick.Stick(port="test_port", cache_enabled=False)
         await stick.connect()
-        with pytest.raises(pw_exceptions.StickError):
-            await stick.initialize()
+        await stick.initialize()
+        assert stick.mac_coordinator is None
         await stick.disconnect()
 
     def fake_env(self, env: str) -> str | None:
