@@ -194,9 +194,12 @@ class MockSerial:
         loop: asyncio.AbstractEventLoop,
         protocol_factory: Callable[[], pw_receiver.StickReceiver],  # type: ignore[name-defined]
         **kwargs: dict[str, Any],
-    ) -> tuple[DummyTransport, pw_receiver.StickReceiver]:  # type: ignore[name-defined]
+    ) -> tuple[DummyTransport, pw_receiver.StickReceiver] | None:  # type: ignore[name-defined]
         """Mock connection with dummy connection."""
         self._protocol = protocol_factory()
+        if self._protocol is None:
+            return None
+
         self._transport = DummyTransport(loop, self.custom_response)
         self._transport.protocol_data_received = self._protocol.data_received
         loop.call_soon_threadsafe(self._protocol.connection_made, self._transport)
