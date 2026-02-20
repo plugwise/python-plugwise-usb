@@ -72,33 +72,18 @@ class StickController:
         return self._hw_stick
 
     @property
-    def mac_stick(self) -> str:
-        """MAC address of USB-Stick. Raises StickError when not connected."""
-        if self._mac_stick is None:
-            raise StickError(
-                "No mac_stick address available. Connect and initialize USB-Stick first."
-            )
+    def mac_stick(self) -> str ? None:
+        """MAC address of USB-Stick."""
         return self._mac_stick
 
     @property
-    def mac_coordinator(self) -> str:
-        """Return MAC address of the Zigbee network coordinator (Circle+).
-
-        Raises StickError when not connected.
-        """
-        if not self._manager.is_connected or self._mac_nc is None:
-            raise StickError(
-                "No mac_nc address available. Connect and initialize USB-Stick first."
-            )
+    def mac_coordinator(self) -> str | None:
+        """Return MAC address of the Zigbee network coordinator (Circle+)."""
         return self._mac_nc
 
     @property
-    def network_id(self) -> int:
-        """Returns the Zigbee network ID. Raises StickError when not connected."""
-        if not self._manager.is_connected or self._network_id is None:
-            raise StickError(
-                "No network ID available. Connect and initialize USB-Stick first."
-            )
+    def network_id(self) -> int | None:
+        """Returns the Zigbee network ID."""
         return self._network_id
 
     @property
