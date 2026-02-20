@@ -72,7 +72,7 @@ class StickController:
         return self._hw_stick
 
     @property
-    def mac_stick(self) -> str ? None:
+    def mac_stick(self) -> str | None:
         """MAC address of USB-Stick."""
         return self._mac_stick
 
@@ -186,7 +186,7 @@ class StickController:
         # Add Stick NodeInfoRequest
         node_info, _ = await self.get_node_details(self._mac_stick, ping_first=False)
         if node_info is not None:
-            self._fw_stick = node_info.firmware
+            self._fw_stick = node_info.firmware  # type: ignore
             hardware, _ = version_to_model(node_info.hardware)
             self._hw_stick = hardware
 
