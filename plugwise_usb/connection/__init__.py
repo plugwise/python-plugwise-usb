@@ -246,7 +246,7 @@ class StickController:
     async def get_node_details(
         self, mac: str, ping_first: bool
     ) -> tuple[NodeInfoResponse | None, NodePingResponse | None]:
-        """Return node discovery type."""
+        """Collect NodeInfo data from the Stick."""
         ping_response: NodePingResponse | None = None
         if ping_first:
             # Define ping request with one retry
