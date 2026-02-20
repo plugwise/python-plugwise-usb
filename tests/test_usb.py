@@ -355,12 +355,9 @@ class TestStick:
         stick = pw_stick.Stick()
         assert stick.nodes == {}
         assert stick.joined_nodes is None
-        with pytest.raises(pw_exceptions.StickError):
-            stick.mac_stick
-        with pytest.raises(pw_exceptions.StickError):
-            stick.mac_coordinator
-        with pytest.raises(pw_exceptions.StickError):
-            stick.network_id
+        assert stick.mac_stick is None
+        assert stick.mac_coordinator is None
+        assert stick.network_id is None
         assert not stick.network_discovered
         assert not stick.network_state
 
@@ -477,8 +474,6 @@ class TestStick:
         unsub_connect()
         await stick.disconnect()
         assert not stick.network_state
-        # with pytest.raises(pw_exceptions.StickError):
-        #     stick.mac_stick
 
     async def disconnected(self, event: pw_api.StickEvent) -> None:  # type: ignore[name-defined]
         """Handle disconnect event callback."""
