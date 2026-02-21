@@ -194,9 +194,12 @@ class MockSerial:
         loop: asyncio.AbstractEventLoop,
         protocol_factory: Callable[[], pw_receiver.StickReceiver],  # type: ignore[name-defined]
         **kwargs: dict[str, Any],
-    ) -> tuple[DummyTransport, pw_receiver.StickReceiver]:  # type: ignore[name-defined]
+    ) -> tuple[DummyTransport, pw_receiver.StickReceiver] | None:  # type: ignore[name-defined]
         """Mock connection with dummy connection."""
         self._protocol = protocol_factory()
+        if self._protocol is None:
+            return None
+
         self._transport = DummyTransport(loop, self.custom_response)
         self._transport.protocol_data_received = self._protocol.data_received
         loop.call_soon_threadsafe(self._protocol.connection_made, self._transport)
@@ -355,12 +358,9 @@ class TestStick:
         stick = pw_stick.Stick()
         assert stick.nodes == {}
         assert stick.joined_nodes is None
-        with pytest.raises(pw_exceptions.StickError):
-            stick.mac_stick
-        with pytest.raises(pw_exceptions.StickError):
-            stick.mac_coordinator
-        with pytest.raises(pw_exceptions.StickError):
-            stick.network_id
+        assert stick.mac_stick is None
+        assert stick.mac_coordinator is None
+        assert stick.network_id is None
         assert not stick.network_discovered
         assert not stick.network_state
 
@@ -477,8 +477,6 @@ class TestStick:
         unsub_connect()
         await stick.disconnect()
         assert not stick.network_state
-        with pytest.raises(pw_exceptions.StickError):
-            stick.mac_stick
 
     async def disconnected(self, event: pw_api.StickEvent) -> None:  # type: ignore[name-defined]
         """Handle disconnect event callback."""
@@ -1537,10 +1535,7 @@ class TestStick:
                     b"0011"  # msg_id
                     + b"0123456789012345"  # stick mac
                     + b"00"  # unknown1
-                    + b"00"  # network_is_online
-                    + b"0098765432101234"  # circle_plus_mac
-                    + b"4321"  # network_id
-                    + b"00",  # unknown2
+                    + b"00",  # network_is_offline
                 ),
             }
         )
@@ -1553,8 +1548,8 @@ class TestStick:
         monkeypatch.setattr(pw_requests, "NODE_TIME_OUT", 1.0)
         stick = pw_stick.Stick(port="test_port", cache_enabled=False)
         await stick.connect()
-        with pytest.raises(pw_exceptions.StickError):
-            await stick.initialize()
+        await stick.initialize()
+        assert stick.mac_coordinator is None
         await stick.disconnect()
 
     def fake_env(self, env: str) -> str | None:

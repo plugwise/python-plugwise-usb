@@ -8,19 +8,22 @@ from typing import Any
 
 from ..api import StickEvent
 from ..constants import UTF8
-from ..exceptions import NodeError, StickError
-from ..helpers.util import version_to_model
+from ..exceptions import MessageError, NodeError, StickError
+from ..helpers.util import validate_mac, version_to_model
 from ..messages.requests import (
+    CirclePlusConnectRequest,
     NodeInfoRequest,
     NodePingRequest,
     PlugwiseRequest,
     StickInitRequest,
+    StickNetworkInfoRequest,
 )
 from ..messages.responses import (
     NodeInfoResponse,
     NodePingResponse,
     PlugwiseResponse,
     StickInitResponse,
+    StickInitShortResponse,
 )
 from .manager import StickConnectionManager
 from .queue import StickQueue
@@ -69,38 +72,27 @@ class StickController:
         return self._hw_stick
 
     @property
-    def mac_stick(self) -> str:
-        """MAC address of USB-Stick. Raises StickError when not connected."""
-        if not self._manager.is_connected or self._mac_stick is None:
-            raise StickError(
-                "No mac address available. Connect and initialize USB-Stick first."
-            )
+    def mac_stick(self) -> str | None:
+        """MAC address of USB-Stick."""
         return self._mac_stick
 
     @property
-    def mac_coordinator(self) -> str:
-        """Return MAC address of the Zigbee network coordinator (Circle+).
-
-        Raises StickError when not connected.
-        """
-        if not self._manager.is_connected or self._mac_nc is None:
-            raise StickError(
-                "No mac address available. Connect and initialize USB-Stick first."
-            )
+    def mac_coordinator(self) -> str | None:
+        """Return MAC address of the Zigbee network coordinator (Circle+)."""
         return self._mac_nc
 
     @property
-    def network_id(self) -> int:
-        """Returns the Zigbee network ID. Raises StickError when not connected."""
-        if not self._manager.is_connected or self._network_id is None:
-            raise StickError(
-                "No network ID available. Connect and initialize USB-Stick first."
-            )
+    def network_id(self) -> int | None:
+        """Returns the Zigbee network ID."""
         return self._network_id
 
     @property
     def network_online(self) -> bool:
-        """Return the network state."""
+        """Return the network state.
+
+        The ZigBee network is online when the Stick is connected and a
+        StickInitResponse indicates that the ZigBee network is online.
+        """
         if not self._manager.is_connected:
             raise StickError(
                 "Network status not available. Connect and initialize USB-Stick first."
@@ -170,7 +162,9 @@ class StickController:
 
         try:
             request = StickInitRequest(self.send)
-            init_response: StickInitResponse | None = await request.send()
+            init_response: (
+                StickInitResponse | StickInitShortResponse | None
+            ) = await request.send()
         except StickError as err:
             raise StickError(
                 "No response from USB-Stick to initialization request."
@@ -186,26 +180,77 @@ class StickController:
         self._mac_stick = init_response.mac_decoded
         self.stick_name = f"Stick {self._mac_stick[-5:]}"
         self._network_online = init_response.network_online
+        if self._network_online:
+            # Replace first 2 characters by 00 for mac of circle+ node
+            self._mac_nc = init_response.mac_network_controller
+            self._network_id = init_response.network_id
 
-        # Replace first 2 characters by 00 for mac of circle+ node
-        self._mac_nc = init_response.mac_network_controller
-        self._network_id = init_response.network_id
         self._is_initialized = True
 
         # Add Stick NodeInfoRequest
         node_info, _ = await self.get_node_details(self._mac_stick, ping_first=False)
         if node_info is not None:
-            self._fw_stick = node_info.firmware
+            self._fw_stick = node_info.firmware  # type: ignore
             hardware, _ = version_to_model(node_info.hardware)
             self._hw_stick = hardware
 
-        if not self._network_online:
-            raise StickError("Zigbee network connection to Circle+ is down.")
+    async def pair_plus_device(self, mac: str) -> bool:
+        """Pair Plus-device to Plugwise Stick.
+
+        According to https://roheve.wordpress.com/author/roheve/page/2/
+        The pairing process should look like:
+        0001 - 0002 (- 0003): StickNetworkInfoRequest - StickNetworkInfoResponse - (PlugwiseQueryCirclePlusEndResponse - @SevenW),
+        000A - 0011: StickInitRequest - StickInitResponse,
+        0004 - 0005: CirclePlusConnectRequest - CirclePlusConnectResponse,
+        the Plus-device will then send a NodeRejoinResponse (0061).
+
+        Todo(?): Does this need repeating until pairing is successful?
+        """
+        _LOGGER.debug("Pair Plus-device with mac: %s", mac)
+        if not validate_mac(mac):
+            raise NodeError(f"Pairing failed: MAC {mac} invalid")
+
+        # Collect network info
+        try:
+            request = StickNetworkInfoRequest(self.send, None)
+            info_response = await request.send()
+        except MessageError as exc:
+            raise NodeError(f"Pairing failed: {exc}") from exc
+        if info_response is None:
+            raise NodeError(
+                "Pairing failed, StickNetworkInfoResponse is None"
+            ) from None
+        _LOGGER.debug("HOI NetworkInfoRequest done")
+
+        # Init Stick
+        try:
+            await self.initialize_stick()
+        except StickError as exc:
+            raise NodeError(
+                f"Pairing failed, failed to initialize Stick: {exc}"
+            ) from exc
+        _LOGGER.debug("HOI Init done")
+
+        try:
+            request = CirclePlusConnectRequest(self.send, bytes(mac, UTF8))
+            response = await request.send()
+        except MessageError as exc:
+            raise NodeError(f"Pairing failed: {exc}") from exc
+        if response is None:
+            raise NodeError(
+                "Pairing failed, CirclePlusConnectResponse is None"
+            ) from None
+        if response.allowed.value != 1:
+            raise NodeError("Pairing failed, not allowed")
+
+        _LOGGER.debug("HOI PlusConnectRequest done")
+
+        return True
 
     async def get_node_details(
         self, mac: str, ping_first: bool
     ) -> tuple[NodeInfoResponse | None, NodePingResponse | None]:
-        """Return node discovery type."""
+        """Collect NodeInfo data from the Stick."""
         ping_response: NodePingResponse | None = None
         if ping_first:
             # Define ping request with one retry
@@ -234,7 +279,7 @@ class StickController:
             return await self._queue.submit(request)
         try:
             return await self._queue.submit(request)
-        except NodeError, StickError:
+        except (NodeError, StickError):
             return None
 
     def _reset_states(self) -> None:
