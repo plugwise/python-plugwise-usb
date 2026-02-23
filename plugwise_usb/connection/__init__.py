@@ -151,7 +151,7 @@ class StickController:
         elif event == StickEvent.DISCONNECTED and self._queue.is_running:
             await self._queue.stop()
 
-    async def initialize_stick(self) -> None:
+    async def initialize_stick(self, node_info=True) -> None:
         """Initialize connection to the USB-stick."""
         if not self._manager.is_connected:
             raise StickError(
@@ -187,7 +187,10 @@ class StickController:
 
         self._is_initialized = True
 
-        # Add Stick NodeInfoRequest
+        if not node_info:
+            return
+
+        # Collect Stick NodeInfo
         node_info, _ = await self.get_node_details(self._mac_stick, ping_first=False)
         if node_info is not None:
             self._fw_stick = node_info.firmware  # type: ignore
@@ -223,7 +226,7 @@ class StickController:
 
         # Init Stick
         try:
-            await self.initialize_stick()
+            await self.initialize_stick(node_info=False)
         except StickError as exc:
             raise NodeError(
                 f"Pairing failed, failed to initialize Stick: {exc}"
