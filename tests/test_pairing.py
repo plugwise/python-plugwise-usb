@@ -47,7 +47,6 @@ RESPONSE_MESSAGES = {
         "Stick network info request",
         b"000000C1",  # Success ack
         b"0002"  # response msg_id
-        + b"0123456789012345"  # stick-mac
         + b"0F"  # channel
         + b"FFFFFFFFFFFFFFFF"
         + b"FF98765432101234"  # 06 + plus-device mac
