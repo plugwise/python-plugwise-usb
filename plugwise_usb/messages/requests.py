@@ -391,15 +391,15 @@ class CirclePlusConnectRequest(PlugwiseRequest):
     # This message has an exceptional format and therefore
     # need to override the serialize method
     def serialize(self) -> bytes:
-        """Convert message to serialized list of bytes."""
-        # This command has
-        # args: byte
-        # key, byte
-        # network info.index, ulong
-        # network key = 0
-        special_id = (
-            b"0001"  # observed sequence with retries: b"0000", b"0001", B"0101"
-        )
+        """Convert message to serialized list of bytes.
+
+        Parameters
+        ----------
+         - special_id: byte - observed sequence with retry: b"0001", B"0101",
+         - and args: byte.
+
+        """
+        special_id = b"0001"
         args = b"0000000000000000"
         msg: bytes = self._identifier + special_id + args
         if self._mac is not None:
