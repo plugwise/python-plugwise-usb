@@ -280,7 +280,7 @@ class StickNetworkInfoResponse(PlugwiseResponse):
 
     def __init__(self) -> None:
         """Initialize NodeNetworkInfoResponse message object."""
-        super().__init__(b"0002")
+        super().__init__(b"0002", decode_mac=False)
         self._channel = Int(0, length=2)
         self._source_mac_id = String(None, length=16)
         self.extended_pan_id = String(None, length=16)
@@ -323,7 +323,7 @@ class NodeSpecificResponse(PlugwiseResponse):
 
     def __init__(self) -> None:
         """Initialize NodeSpecificResponse message object."""
-        super().__init__(b"0003")
+        super().__init__(b"0003", decode_mac=False)
         self.status = Int(0, length=4)
         self._params += [self.status]
 
