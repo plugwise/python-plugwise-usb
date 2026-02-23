@@ -66,7 +66,7 @@ RESPONSE_MESSAGES = {
         + b"04FF"
         + b"FF",
     ),
-    b"\x05\x05\x03\x0300040000000000000000000000987654321012344D73\r\n": (
+    b"\x05\x05\x03\x030004000100000000000000000098765432101234C0AF\r\n": (
         "Pair request of plus-device 0098765432101234",
         b"000000C1",  # Success ack
         b"0005"  # response msg_id
