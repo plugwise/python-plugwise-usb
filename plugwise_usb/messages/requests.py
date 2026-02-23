@@ -397,7 +397,9 @@ class CirclePlusConnectRequest(PlugwiseRequest):
         # key, byte
         # network info.index, ulong
         # network key = 0
-        special_id = b"0001"  # observed sequence with retries: b"0000", b"0001", B"0101"
+        special_id = (
+            b"0001"  # observed sequence with retries: b"0000", b"0001", B"0101"
+        )
         args = b"0000000000000000"
         msg: bytes = self._identifier + special_id + args
         if self._mac is not None:
