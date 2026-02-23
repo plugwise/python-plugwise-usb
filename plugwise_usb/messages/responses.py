@@ -332,7 +332,7 @@ class NodeSpecificResponse(PlugwiseResponse):
     def __init__(self) -> None:
         """Initialize NodeSpecificResponse message object."""
         super().__init__(b"0003")
-        self.status = Int(0, 4)
+        self.status = Int(0, length=4)
         self._params += [self.status]
 
 
@@ -346,8 +346,8 @@ class CirclePlusConnectResponse(PlugwiseResponse):
     def __init__(self) -> None:
         """Initialize CirclePlusConnectResponse message object."""
         super().__init__(b"0005")
-        self.existing = Int(0, 2)
-        self.allowed = Int(0, 2)
+        self.existing = Int(0, length=2)
+        self.allowed = Int(0, length=2)
         self._params += [self.existing, self.allowed]
 
 
@@ -500,13 +500,13 @@ class CirclePowerUsageResponse(PlugwiseResponse):
     def __init__(self, protocol_version: str = "2.3") -> None:
         """Initialize CirclePowerUsageResponse message object."""
         super().__init__(b"0013")
-        self._pulse_1s = Int(0, 4)
-        self._pulse_8s = Int(0, 4)
-        self._nanosecond_offset = Int(0, 4)
+        self._pulse_1s = Int(0, length=4)
+        self._pulse_8s = Int(0, length=4)
+        self._nanosecond_offset = Int(0, length=4)
         self._params += [self._pulse_1s, self._pulse_8s]
         if protocol_version == "2.3":
-            self._pulse_counter_consumed = Int(0, 8)
-            self._pulse_counter_produced = Int(0, 8)
+            self._pulse_counter_consumed = Int(0, length=8)
+            self._pulse_counter_produced = Int(0, length=8)
             self._params += [
                 self._pulse_counter_consumed,
                 self._pulse_counter_produced,
@@ -608,7 +608,7 @@ class NodeRemoveResponse(PlugwiseResponse):
         """Initialize NodeRemoveResponse message object."""
         super().__init__(b"001D")
         self.node_mac_id = String(None, length=16)
-        self.status = Int(0, 2)
+        self.status = Int(0, length=2)
         self._params += [self.node_mac_id, self.status]
 
 
@@ -757,8 +757,8 @@ class CircleClockResponse(PlugwiseResponse):
         super().__init__(b"003F")
         self.time = Time()
         self.day_of_week = Int(0, 2, False)
-        self.unknown = Int(0, 2)
-        self.unknown2 = Int(0, 4)
+        self.unknown = Int(0, length=2)
+        self.unknown2 = Int(0, length=4)
         self._params += [
             self.time,
             self.day_of_week,
@@ -779,13 +779,13 @@ class CircleEnergyLogsResponse(PlugwiseResponse):
         """Initialize CircleEnergyLogsResponse message object."""
         super().__init__(b"0049")
         self.logdate1 = DateTime()
-        self.pulses1 = Int(0, 8)
+        self.pulses1 = Int(0, length=8)
         self.logdate2 = DateTime()
-        self.pulses2 = Int(0, 8)
+        self.pulses2 = Int(0, length=8)
         self.logdate3 = DateTime()
-        self.pulses3 = Int(0, 8)
+        self.pulses3 = Int(0, length=8)
         self.logdate4 = DateTime()
-        self.pulses4 = Int(0, 8)
+        self.pulses4 = Int(0, length=8)
         self._logaddr = LogAddr(0, length=8)
         self._params += [
             self.logdate1,
@@ -969,7 +969,7 @@ class SenseReportResponse(PlugwiseResponse):
     def __init__(self) -> None:
         """Initialize SenseReportResponse message object."""
         super().__init__(SENSE_REPORT_ID)
-        self.humidity = Int(0, length=4, negative=False)
+        self.humidity = Int(0, 4, False)
         self.temperature = Int(0, length=4)
         self._params += [self.humidity, self.temperature]
 
