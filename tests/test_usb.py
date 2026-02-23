@@ -1447,7 +1447,7 @@ class TestStick:
         )
         assert (
             circle_plus_connect_request.serialize()
-            == b"\x05\x05\x03\x030004000000000000000000001111222233334444BDEC\r\n"
+            == b"\x05\x05\x03\x0300040001000000000000000011112222333344443030\r\n"
         )
         node_add_request = pw_requests.NodeAddRequest(
             self.dummy_fn, b"1111222233334444", True
