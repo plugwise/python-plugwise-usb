@@ -50,6 +50,7 @@ class StickResponseType(bytes, Enum):
 
     ACCEPT = b"00C1"
     FAILED = b"00C2"
+    UNKNOWN = b"00C3"
     TIMEOUT = b"00E1"
 
 
