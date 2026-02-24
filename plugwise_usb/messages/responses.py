@@ -337,7 +337,7 @@ class CirclePlusConnectResponse(PlugwiseResponse):
 
     def __init__(self) -> None:
         """Initialize CirclePlusConnectResponse message object."""
-        super().__init__(b"0005")
+        super().__init__(b"0005", decode_mac=False)
         self.existing = Int(0, length=2)
         self.allowed = Int(0, length=2)
         self._params += [self.existing, self.allowed]
