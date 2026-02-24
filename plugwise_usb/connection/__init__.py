@@ -202,12 +202,16 @@ class StickController:
 
         According to https://roheve.wordpress.com/author/roheve/page/2/
         The pairing process should look like:
-        0001 - 0002 (- 0003): StickNetworkInfoRequest - StickNetworkInfoResponse - (PlugwiseQueryCirclePlusEndResponse - @SevenW),
-        000A - 0011: StickInitRequest - StickInitResponse,
+        0001 - 0002 - 0003: StickNetworkInfoRequest - StickNetworkInfoResponse - NodeSpecificResponse,
+        000A - 0011: StickInitRequest - StickInitShortResponse/StickInitResponse,
         0004 - 0005: CirclePlusConnectRequest - CirclePlusConnectResponse,
         the Plus-device will then send a NodeRejoinResponse (0061).
 
-        Todo(?): Does this need repeating until pairing is successful?
+        In the first occurrence of this process a 0004 0001 .... message is sent.
+        A StickInitShortResponse is received indicating the network is offline.
+        In the second occurrence of this process a 0004 0101 .... message is sent.
+        Again a StickInitShortResponse is received.
+        In the third occurrence only 000A is sent and a StickInitResponse indicating the network is online, is received.
         """
         _LOGGER.debug("Pair Plus-device with mac: %s", mac)
         if not validate_mac(mac):
