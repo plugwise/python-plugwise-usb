@@ -355,8 +355,18 @@ class StickNetworkInfoRequest(PlugwiseRequest):
     _identifier = b"0001"
     _reply_identifier = b"0002"
 
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+    ) -> None:
+        """Initialize StickInitRequest message object."""
+        super().__init__(send_fn, None)
+        self._max_retries = 1
+
     async def send(self) -> StickNetworkInfoResponse | None:
         """Send request."""
+        if self._send_fn is None:
+            raise MessageError("Send function missing")
         result = await self._send_request()
         if isinstance(result, StickNetworkInfoResponse):
             return result
