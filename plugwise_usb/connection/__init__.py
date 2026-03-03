@@ -219,7 +219,7 @@ class StickController:
 
         # Collect network info
         try:
-            request = StickNetworkInfoRequest(self.send, None)
+            request = StickNetworkInfoRequest(self.send)
             info_response = await request.send()
         except MessageError as exc:
             raise NodeError(f"Pairing failed: {exc}") from exc
