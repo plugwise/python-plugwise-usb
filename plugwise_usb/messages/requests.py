@@ -742,7 +742,7 @@ class CircleClockSetRequest(PlugwiseRequest):
         self.priority = Priority.HIGH
         if protocol_version < 2.0:
             # FIXME: Define "absoluteHour" variable
-            raise MessageError("Unsupported version of CircleClockSetRequest")
+            raise MessageError(f"Unsupported version ({protocol_version}) of CircleClockSetRequest for {self.mac_decoded}")
 
         passed_days = dt.day - 1
         month_minutes = (
