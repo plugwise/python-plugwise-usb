@@ -50,6 +50,7 @@ class StickResponseType(bytes, Enum):
 
     ACCEPT = b"00C1"
     FAILED = b"00C2"
+    UNKNOWN = b"00C3"
     TIMEOUT = b"00E1"
 
 
@@ -280,7 +281,7 @@ class StickNetworkInfoResponse(PlugwiseResponse):
 
     def __init__(self) -> None:
         """Initialize NodeNetworkInfoResponse message object."""
-        super().__init__(b"0002")
+        super().__init__(b"0002", decode_mac=False)
         self._channel = Int(0, length=2)
         self._source_mac_id = String(None, length=16)
         self.extended_pan_id = String(None, length=16)
@@ -323,8 +324,8 @@ class NodeSpecificResponse(PlugwiseResponse):
 
     def __init__(self) -> None:
         """Initialize NodeSpecificResponse message object."""
-        super().__init__(b"0003")
-        self.status = Int(0, 4)
+        super().__init__(b"0003", decode_mac=False)
+        self.status = Int(0, length=4)
         self._params += [self.status]
 
 
@@ -337,9 +338,9 @@ class CirclePlusConnectResponse(PlugwiseResponse):
 
     def __init__(self) -> None:
         """Initialize CirclePlusConnectResponse message object."""
-        super().__init__(b"0005")
-        self.existing = Int(0, 2)
-        self.allowed = Int(0, 2)
+        super().__init__(b"0005", decode_mac=False)
+        self.existing = Int(0, length=2)
+        self.allowed = Int(0, length=2)
         self._params += [self.existing, self.allowed]
 
 
@@ -409,8 +410,45 @@ class NodeImageValidationResponse(PlugwiseResponse):
         self._params += [self.image_timestamp]
 
 
-class StickInitResponse(PlugwiseResponse):
-    """Returns the configuration and status of the USB-Stick.
+class StickInitShortResponse(PlugwiseResponse):
+    """Returns the configuration and status of the USB-Stick - no network.
+
+    Supported protocols : 1.0, 2.0
+    Response to request : StickInitRequest
+    """
+
+    def __init__(self) -> None:
+        """Initialize StickInitShortResponse message object."""
+        super().__init__(b"0011")
+        self._unknown1 = Int(0, length=2)
+        self._network_online = Int(0, length=2)
+        self._params += [
+            self._unknown1,
+            self._network_online,
+        ]
+
+    @property
+    def mac_network_controller(self) -> str | None:
+        """Return the mac of the network controller (Circle+)."""
+        return None
+
+    @property
+    def network_id(self) -> int | None:
+        """Return network ID."""
+        return None
+
+    @property
+    def network_online(self) -> bool:
+        """Return state of network."""
+        return self._network_online.value == 1
+
+    def __repr__(self) -> str:
+        """Convert request into writable str."""
+        return f"{super().__repr__()[:-1]}, network_controller={self.mac_network_controller}, network_online={self.network_online})"
+
+
+class StickInitResponse(StickInitShortResponse):
+    """Returns the configuration and status of the USB-Stick - network online.
 
     Optional:
     - circle_plus_mac
@@ -423,15 +461,11 @@ class StickInitResponse(PlugwiseResponse):
 
     def __init__(self) -> None:
         """Initialize StickInitResponse message object."""
-        super().__init__(b"0011")
-        self._unknown1 = Int(0, length=2)
-        self._network_online = Int(0, length=2)
+        super().__init__()
         self._mac_nc = String(None, length=16)
         self._network_id = Int(0, 4, False)
         self._unknown2 = Int(0, length=2)
         self._params += [
-            self._unknown1,
-            self._network_online,
             self._mac_nc,
             self._network_id,
             self._unknown2,
@@ -448,15 +482,6 @@ class StickInitResponse(PlugwiseResponse):
         """Return network ID."""
         return self._network_id.value
 
-    @property
-    def network_online(self) -> bool:
-        """Return state of network."""
-        return self._network_online.value == 1
-
-    def __repr__(self) -> str:
-        """Convert request into writable str."""
-        return f"{super().__repr__()[:-1]}, network_controller={self.mac_network_controller}, network_online={self.network_online})"
-
 
 class CirclePowerUsageResponse(PlugwiseResponse):
     """Returns power usage as impulse counters for several different time frames.
@@ -468,13 +493,13 @@ class CirclePowerUsageResponse(PlugwiseResponse):
     def __init__(self, protocol_version: str = "2.3") -> None:
         """Initialize CirclePowerUsageResponse message object."""
         super().__init__(b"0013")
-        self._pulse_1s = Int(0, 4)
-        self._pulse_8s = Int(0, 4)
-        self._nanosecond_offset = Int(0, 4)
+        self._pulse_1s = Int(0, length=4)
+        self._pulse_8s = Int(0, length=4)
+        self._nanosecond_offset = Int(0, length=4)
         self._params += [self._pulse_1s, self._pulse_8s]
         if protocol_version == "2.3":
-            self._pulse_counter_consumed = Int(0, 8)
-            self._pulse_counter_produced = Int(0, 8)
+            self._pulse_counter_consumed = Int(0, length=8)
+            self._pulse_counter_produced = Int(0, length=8)
             self._params += [
                 self._pulse_counter_consumed,
                 self._pulse_counter_produced,
@@ -576,7 +601,7 @@ class NodeRemoveResponse(PlugwiseResponse):
         """Initialize NodeRemoveResponse message object."""
         super().__init__(b"001D")
         self.node_mac_id = String(None, length=16)
-        self.status = Int(0, 2)
+        self.status = Int(0, length=2)
         self._params += [self.node_mac_id, self.status]
 
 
@@ -725,8 +750,8 @@ class CircleClockResponse(PlugwiseResponse):
         super().__init__(b"003F")
         self.time = Time()
         self.day_of_week = Int(0, 2, False)
-        self.unknown = Int(0, 2)
-        self.unknown2 = Int(0, 4)
+        self.unknown = Int(0, length=2)
+        self.unknown2 = Int(0, length=4)
         self._params += [
             self.time,
             self.day_of_week,
@@ -747,13 +772,13 @@ class CircleEnergyLogsResponse(PlugwiseResponse):
         """Initialize CircleEnergyLogsResponse message object."""
         super().__init__(b"0049")
         self.logdate1 = DateTime()
-        self.pulses1 = Int(0, 8)
+        self.pulses1 = Int(0, length=8)
         self.logdate2 = DateTime()
-        self.pulses2 = Int(0, 8)
+        self.pulses2 = Int(0, length=8)
         self.logdate3 = DateTime()
-        self.pulses3 = Int(0, 8)
+        self.pulses3 = Int(0, length=8)
         self.logdate4 = DateTime()
-        self.pulses4 = Int(0, 8)
+        self.pulses4 = Int(0, length=8)
         self._logaddr = LogAddr(0, length=8)
         self._params += [
             self.logdate1,
@@ -937,7 +962,7 @@ class SenseReportResponse(PlugwiseResponse):
     def __init__(self) -> None:
         """Initialize SenseReportResponse message object."""
         super().__init__(SENSE_REPORT_ID)
-        self.humidity = Int(0, length=4, negative=False)
+        self.humidity = Int(0, 4, False)
         self.temperature = Int(0, length=4)
         self._params += [self.humidity, self.temperature]
 
@@ -992,8 +1017,15 @@ def get_message_object(  # noqa: C901 PLR0911 PLR0912
         return NodePingResponse()
     if identifier == b"0010":
         return NodeImageValidationResponse()
+
+    # 0011 has two formats
     if identifier == b"0011":
-        return StickInitResponse()
+        if length == 36:
+            return StickInitShortResponse()
+        if length == 58:
+            return StickInitResponse()
+        return None
+
     if identifier == b"0013":
         return CirclePowerUsageResponse()
     if identifier == b"0015":
