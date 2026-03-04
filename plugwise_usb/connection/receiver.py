@@ -441,11 +441,11 @@ class StickReceiver(Protocol):
 
         notify_tasks: list[Coroutine[Any, Any, bool]] = []
         for node_subscription in self._node_response_subscribers.values():
-            if (
-                node_subscription.mac is not None
-                and node_subscription.mac != node_response.mac
-            ):
-                continue
+            # if (
+            #     node_subscription.mac is not None
+            #     and node_subscription.mac != node_response.mac
+            # ):
+            #     continue
             if (
                 node_subscription.response_ids is not None
                 and node_response.identifier not in node_subscription.response_ids
