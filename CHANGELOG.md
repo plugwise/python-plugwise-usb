@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.47.4 - 2026-03-08
+
+PR [](): Add missing response-types
+
 ## v0.47.3 - 2026-03-04
 
 - PR [418](https://github.com/plugwise/python-plugwise-usb/pull/418): Improve raise-message for better debugging
