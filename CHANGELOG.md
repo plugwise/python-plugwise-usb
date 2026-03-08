@@ -2,7 +2,7 @@
 
 ## v0.47.4 - 2026-03-08
 
-PR [](): Add missing response-types
+PR [422](https://github.com/plugwise/python-plugwise-usb/pull/422): Add missing response-types
 
 ## v0.47.3 - 2026-03-04
 
