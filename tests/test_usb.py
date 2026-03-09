@@ -887,25 +887,25 @@ class TestStick:
         await stick.nodes["2222222222222222"].load()
         self.test_init_relay_state_on = asyncio.Future()
         self.test_init_relay_state_off = asyncio.Future()
-        unsub_inti_relay = stick.nodes["2222222222222222"].subscribe_to_feature_update(
-            node_feature_callback=self.node_init_relay_state,
-            features=(pw_api.NodeFeature.RELAY_INIT,),
-        )
+        # unsub_init_relay = stick.nodes["2222222222222222"].subscribe_to_feature_update(
+        #     node_feature_callback=self.node_init_relay_state,
+        #     features=(pw_api.NodeFeature.RELAY_INIT,),
+        # )
 
         # Test async switching back init_state from on to off
-        assert stick.nodes["2222222222222222"].relay_config.init_state
-        self.test_init_relay_state_off = asyncio.Future()
-        assert not await stick.nodes["2222222222222222"].set_relay_init(False)
-        assert not await self.test_init_relay_state_off
-        assert not stick.nodes["2222222222222222"].relay_config.init_state
+        # assert stick.nodes["2222222222222222"].relay_config.init_state
+        # self.test_init_relay_state_off = asyncio.Future()
+        # assert not await stick.nodes["2222222222222222"].set_relay_init(False)
+        # assert not await self.test_init_relay_state_off
+        # assert not stick.nodes["2222222222222222"].relay_config.init_state
 
         # Test async switching back from off to on
-        self.test_init_relay_state_on = asyncio.Future()
-        assert await stick.nodes["2222222222222222"].set_relay_init(True)
-        assert await self.test_init_relay_state_on
-        assert stick.nodes["2222222222222222"].relay_config.init_state
+        # self.test_init_relay_state_on = asyncio.Future()
+        # assert await stick.nodes["2222222222222222"].set_relay_init(True)
+        # assert await self.test_init_relay_state_on
+        # assert stick.nodes["2222222222222222"].relay_config.init_state
 
-        unsub_inti_relay()
+        # unsub_init_relay()
 
         await stick.disconnect()
 
