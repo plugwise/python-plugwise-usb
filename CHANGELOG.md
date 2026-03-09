@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.47.5 - 2026-03-09
+
+PR [424](https://github.com/plugwise/python-plugwise-usb/pull/424): Fix 0138 AckResponse
+
 ## v0.47.4 - 2026-03-08
 
 PR [422](https://github.com/plugwise/python-plugwise-usb/pull/422): Add missing response-types
