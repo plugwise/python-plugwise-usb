@@ -48,8 +48,8 @@ class StickResponseType(bytes, Enum):
     # Minimal value = b"00C0", maximum value = b"00F3"
     # Below the currently known values:
 
-    ACCEPT = b"00C1"
-    FAILED = b"00C2"
+    ACCEPT = b"00C1"  # HN_OK
+    FAILED = b"00C2"  # HN_COMMAND_INVALID
     COMMAND_NOT_ALLOWED = b"00C3"
     CANNOT_JOIN_NETWORK = b"00C4"
     NODE_CHANGE_ACCEPTED = b"00C7"
@@ -80,8 +80,8 @@ class NodeResponseType(bytes, Enum):
 class NodeAckResponseType(bytes, Enum):
     """Response types of a 'NodeAckResponse' reply message."""
 
-    DEFAULT_ACK= b"00A0"
-    DEFAULT_FAIL = b"00A1"
+    DEFAULT_ACK= b"00A0"  # HN_DEFAULT_ACK
+    DEFAULT_FAIL = b"00A1"  # HN_DEFAULT_NACK
     SENSE_INTERVAL_ACCEPTED = b"00B3"  # HN_ACKSETSENSEINTERVAL_ACK
     SENSE_INTERVAL_FAILED = b"00B4"  # HN_ACKSETSENSEINTERVAL_NACK
     SENSE_BOUNDARIES_ACCEPTED = b"00B5"  # HN_ACKSETSENSEBOUNDARIES_ACK
