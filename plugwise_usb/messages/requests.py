@@ -26,7 +26,6 @@ from ..messages.responses import (
     CirclePlusRealTimeClockResponse,
     CirclePlusScanResponse,
     CirclePowerUsageResponse,
-    CircleRelayInitStateResponse,
     EnergyCalibrationResponse,
     NodeAckResponse,
     NodeFeaturesResponse,
@@ -60,7 +59,7 @@ _LOGGER = logging.getLogger(__name__)
 class PlugwiseRequest(PlugwiseMessage):
     """Base class for request messages to be sent from by USB-Stick."""
 
-    _reply_identifier: bytes = b"0000"
+    _reply_identifier: bytes | None = b"0000"
 
     def __init__(
         self,
@@ -93,7 +92,7 @@ class PlugwiseRequest(PlugwiseMessage):
                 [
                     Callable[[PlugwiseResponse], Coroutine[Any, Any, bool]],
                     bytes | None,
-                    tuple[bytes, ...] | None,
+                    tuple[bytes | None, ...] | None,
                     bytes | None,
                 ],
                 Callable[[], None],
@@ -158,7 +157,7 @@ class PlugwiseRequest(PlugwiseMessage):
             [
                 Callable[[PlugwiseResponse], Coroutine[Any, Any, bool]],
                 bytes | None,
-                tuple[bytes, ...] | None,
+                tuple[bytes | None, ...] | None,
                 bytes | None,
             ],
             Coroutine[Any, Any, Callable[[], None]],
@@ -604,7 +603,6 @@ class NodePingRequest(PlugwiseRequest):
     ) -> None:
         """Initialize NodePingRequest message object."""
         super().__init__(send_fn, mac)
-        self._reply_identifier = b"000E"
         self._max_retries = retries
 
     async def send(self) -> NodePingResponse | None:
