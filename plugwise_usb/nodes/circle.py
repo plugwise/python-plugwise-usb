@@ -1161,8 +1161,6 @@ class PlugwiseCircle(PlugwiseBaseNode):
             await self._relay_init_update_state(state)
             return state
 
-        return None
-
     async def _relay_init_set(self, state: bool) -> None:
         """Configure relay init state."""
         if NodeFeature.RELAY_INIT not in self._features:
@@ -1190,9 +1188,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         if response.node_ack_type == NodeAckResponseType.DEFAULT_ACK:
             _LOGGER.debug("Successful set relay init state for %s", self._mac_in_str)
-            await self._relay_init_update_state(response.relay.value == 1)
-
-        return
+            await self._relay_init_update_state(state)
 
     async def _relay_init_load_from_cache(self) -> bool:
         """Load relay init state from cache. Returns True if retrieval was successful."""
