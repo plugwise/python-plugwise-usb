@@ -1521,7 +1521,7 @@ class CircleRelayInitStateRequest(PlugwiseRequest):
 
     Supported protocols : 2.6
     Response message    : NodeAckResponse for set
-                        : CircleInitRelayStateResponse for get
+                        : CircleRelayInitStateResponse for get
     """
 
     _identifier = b"0138"  # PWCircleGetSetInitialRelaisStateRequestV2_6
