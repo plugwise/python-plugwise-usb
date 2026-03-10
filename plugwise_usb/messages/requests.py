@@ -159,7 +159,7 @@ class PlugwiseRequest(PlugwiseMessage):
             [
                 Callable[[PlugwiseResponse], Coroutine[Any, Any, bool]],
                 bytes | None,
-                tuple[bytes | None, ...] | None,
+                tuple[bytes, ...] | None,
                 bytes | None,
             ],
             Coroutine[Any, Any, Callable[[], None]],
@@ -173,10 +173,15 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_stick_response = await stick_subscription_fn(
             self._process_stick_response, self._seq_id, None
         )
+        reply_identifiers = tuple(
+            reply_id
+            for reply_id in (self._reply_identifier, self._reply_identifier_2)
+            if reply_id is not None
+        ) or None
         self._unsubscribe_node_response = await node_subscription_fn(
             self.process_node_response,
             self._mac,
-            (self._reply_identifier, self._reply_identifier_2),
+            reply_identifiers,
             self._seq_id,
         )
 
