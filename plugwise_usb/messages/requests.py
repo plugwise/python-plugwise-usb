@@ -1517,8 +1517,8 @@ class CircleRelayInitStateRequest(PlugwiseRequest):
     """
 
     _identifier = b"0138"  # PWCircleGetSetInitialRelaisStateRequestV2_6
-    _reply_identifier = b"0139"  # PWCircleGetSetInitialRelaisStateReplyV2_6
-    _reply_identifier_2 = b"0100"
+    _reply_identifier = b"0139"  # CircleRelayInitStateResponse
+    _reply_identifier_2 = b"0100"  # NodeAckResponse
 
     def __init__(
         self,
