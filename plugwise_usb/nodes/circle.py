@@ -1142,24 +1142,23 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 + f"supported for device {self.name}"
             )
 
-        request = CircleRelayInitStateRequest(
-            self._send, self._mac_in_bytes, False, False
-        )
+        try:
+            request = CircleRelayInitStateRequest(
+                self._send, self._mac_in_bytes, False, False
+            )
+        except MessageError as err:
+            raise NodeError(f"{self._mac_in_str} error: {err}")
+
         if (response := await request.send()) is None:
             _LOGGER.warning(
                 "No response from %s to get relay init setting", self._mac_in_str
             )
-            return None
+            return
 
         if isinstance(response, CircleRelayInitStateResponse):
             _LOGGER.debug("Successful get of relay init state for %s", self._mac_in_str)
             await self._relay_init_update_state(response.relay.value == 1)
 
-        _LOGGER.warning(
-            "Unexpected response type %s for %s",
-            response.__class__.__name__,
-            self._mac_in_str,
-        )
         return
 
     async def _relay_init_set(self, state: bool) -> None:
@@ -1170,9 +1169,13 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 + f"supported for device {self.name}"
             )
 
-        request = CircleRelayInitStateRequest(
-            self._send, self._mac_in_bytes, True, state
-        )
+        try:
+            request = CircleRelayInitStateRequest(
+                self._send, self._mac_in_bytes, True, state
+            )
+        except MessageError as err:
+            raise NodeError(f"{self._mac_in_str} error: {err}")
+
         if (response := await request.send()) is None:
             _LOGGER.warning(
                 "No response from %s to configure relay init setting", self._mac_in_str
@@ -1186,13 +1189,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
         if response.node_ack_type == NodeAckResponseType.DEFAULT_ACK:
             _LOGGER.debug("Successful set relay init state for %s", self._mac_in_str)
             await self._relay_init_update_state(response.relay.value == 1)
-            return
 
-        _LOGGER.warning(
-            "Unexpected response ack type %s for %s",
-            response.node_ack_type,
-            self.name,
-        )
         return
 
     async def _relay_init_load_from_cache(self) -> bool:
