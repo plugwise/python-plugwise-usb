@@ -1157,7 +1157,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
 
         _LOGGER.warning(
             "Unexpected response type %s for %s",
-            response_type,
+            response.__class__.__name__,
             self._mac_in_str,
         )
         return
