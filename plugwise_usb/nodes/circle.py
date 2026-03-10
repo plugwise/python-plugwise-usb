@@ -1153,13 +1153,15 @@ class PlugwiseCircle(PlugwiseBaseNode):
             _LOGGER.warning(
                 "No response from %s to get relay init setting", self._mac_in_str
             )
-            return
+            return None
 
         if isinstance(response, CircleRelayInitStateResponse):
             _LOGGER.debug("Successful get of relay init state for %s", self._mac_in_str)
-            await self._relay_init_update_state(response.relay.value == 1)
+            state = response.relay.value == 1
+            await self._relay_init_update_state(state)
+            return state
 
-        return
+        return None
 
     async def _relay_init_set(self, state: bool) -> None:
         """Configure relay init state."""
