@@ -61,6 +61,7 @@ class PlugwiseRequest(PlugwiseMessage):
     """Base class for request messages to be sent from by USB-Stick."""
 
     _reply_identifier: bytes | None = b"0000"
+    _reply_identifier_2: bytes | None = None
 
     def __init__(
         self,
@@ -175,7 +176,7 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_node_response = await node_subscription_fn(
             self.process_node_response,
             self._mac,
-            (self._reply_identifier,),
+            (self._reply_identifier, self._reply_identifier_2),
             self._seq_id,
         )
 
@@ -1516,7 +1517,8 @@ class CircleRelayInitStateRequest(PlugwiseRequest):
     """
 
     _identifier = b"0138"  # PWCircleGetSetInitialRelaisStateRequestV2_6
-    _reply_identifier = b"0139" | b"0100" # PWCircleGetSetInitialRelaisStateReplyV2_6
+    _reply_identifier = b"0139"  # PWCircleGetSetInitialRelaisStateReplyV2_6
+    _reply_identifier_2 = b"0100"
 
     def __init__(
         self,
