@@ -1147,7 +1147,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._send, self._mac_in_bytes, False, False
             )
         except MessageError as err:
-            raise NodeError(f"{self._mac_in_str} error: {err}")
+            raise NodeError(f"{self._mac_in_str} error: {err}") from err
 
         if (response := await request.send()) is None:
             _LOGGER.warning(
@@ -1174,7 +1174,7 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 self._send, self._mac_in_bytes, True, state
             )
         except MessageError as err:
-            raise NodeError(f"{self._mac_in_str} error: {err}")
+            raise NodeError(f"{self._mac_in_str} error: {err}") from err
 
         if (response := await request.send()) is None:
             _LOGGER.warning(
