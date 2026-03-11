@@ -42,12 +42,16 @@ from ..messages.requests import (
     CircleMeasureIntervalRequest,
     CirclePowerUsageRequest,
     CircleRelayInitStateRequest,
-    CircleRelayInitStateResponse,
     CircleRelaySwitchRequest,
     EnergyCalibrationRequest,
     NodeInfoRequest,
 )
-from ..messages.responses import NodeAckResponseType, NodeInfoResponse, NodeResponseType
+from ..messages.responses import (
+    CircleRelayInitStateResponse,
+    NodeAckResponseType,
+    NodeInfoResponse,
+    NodeResponseType,
+)
 from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.counter import EnergyCounters
 from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
