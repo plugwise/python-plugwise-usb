@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.47.6 - 2026-03-11
+
+PR [425](https://github.com/plugwise/python-plugwise-usb/pull/425): More 0138-related improvements
+
 ## v0.47.5 - 2026-03-09
 
 PR [424](https://github.com/plugwise/python-plugwise-usb/pull/424): Fix 0138 AckResponse
