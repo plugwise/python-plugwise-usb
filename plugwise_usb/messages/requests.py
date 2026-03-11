@@ -26,6 +26,7 @@ from ..messages.responses import (
     CirclePlusRealTimeClockResponse,
     CirclePlusScanResponse,
     CirclePowerUsageResponse,
+    CircleRelayInitStateResponse,
     EnergyCalibrationResponse,
     NodeAckResponse,
     NodeFeaturesResponse,
@@ -60,6 +61,7 @@ class PlugwiseRequest(PlugwiseMessage):
     """Base class for request messages to be sent from by USB-Stick."""
 
     _reply_identifier: bytes | None = b"0000"
+    _reply_identifier_2: bytes | None = None
 
     def __init__(
         self,
@@ -157,7 +159,7 @@ class PlugwiseRequest(PlugwiseMessage):
             [
                 Callable[[PlugwiseResponse], Coroutine[Any, Any, bool]],
                 bytes | None,
-                tuple[bytes | None, ...] | None,
+                tuple[bytes, ...] | None,
                 bytes | None,
             ],
             Coroutine[Any, Any, Callable[[], None]],
@@ -171,10 +173,18 @@ class PlugwiseRequest(PlugwiseMessage):
         self._unsubscribe_stick_response = await stick_subscription_fn(
             self._process_stick_response, self._seq_id, None
         )
+        reply_identifiers = (
+            tuple(
+                reply_id
+                for reply_id in (self._reply_identifier, self._reply_identifier_2)
+                if reply_id is not None
+            )
+            or None
+        )
         self._unsubscribe_node_response = await node_subscription_fn(
             self.process_node_response,
             self._mac,
-            (self._reply_identifier,),
+            reply_identifiers,
             self._seq_id,
         )
 
@@ -1510,11 +1520,13 @@ class CircleRelayInitStateRequest(PlugwiseRequest):
     """Get or set initial relay state after power-up of Circle.
 
     Supported protocols : 2.6
-    Response message    : NodeAckResponse  # CircleInitRelayStateResponse
+    Response message    : NodeAckResponse for set
+                        : CircleRelayInitStateResponse for get
     """
 
     _identifier = b"0138"  # PWCircleGetSetInitialRelaisStateRequestV2_6
-    _reply_identifier = b"0100"  # b"0139"  # PWCircleGetSetInitialRelaisStateReplyV2_6
+    _reply_identifier = b"0139"  # CircleRelayInitStateResponse
+    _reply_identifier_2 = b"0100"  # NodeAckResponse
 
     def __init__(
         self,
@@ -1530,13 +1542,13 @@ class CircleRelayInitStateRequest(PlugwiseRequest):
         self.relay = Int(1 if relay_state else 0, length=2)
         self._args += [self.set_or_get, self.relay]
 
-    async def send(self) -> NodeAckResponse | None:
+    async def send(self) -> CircleRelayInitStateResponse | NodeAckResponse | None:
         """Send request."""
         result = await self._send_request()
-        if isinstance(result, NodeAckResponse):
+        if isinstance(result, CircleRelayInitStateResponse | NodeAckResponse):
             return result
         if result is None:
             return None
         raise MessageError(
-            f"Invalid response message. Received {result.__class__.__name__}, expected NodeAckResponse"
+            f"Invalid response message. Received {result.__class__.__name__}, expected CircleRelayInitStateResponse or NodeAckResponse"
         )

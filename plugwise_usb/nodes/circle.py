@@ -46,7 +46,12 @@ from ..messages.requests import (
     EnergyCalibrationRequest,
     NodeInfoRequest,
 )
-from ..messages.responses import NodeInfoResponse, NodeResponseType
+from ..messages.responses import (
+    CircleRelayInitStateResponse,
+    NodeAckResponseType,
+    NodeInfoResponse,
+    NodeResponseType,
+)
 from .helpers import EnergyCalibration, raise_not_loaded
 from .helpers.counter import EnergyCounters
 from .helpers.firmware import CIRCLE_FIRMWARE_SUPPORT
@@ -1140,28 +1145,54 @@ class PlugwiseCircle(PlugwiseBaseNode):
                 "Retrieval of initial state of relay is not "
                 + f"supported for device {self.name}"
             )
-        request = CircleRelayInitStateRequest(
-            self._send, self._mac_in_bytes, False, False
-        )
-        if (response := await request.send()) is not None:
-            await self._relay_init_update_state(response.relay.value == 1)
-            return self._relay_config.init_state
-        return None
 
-    async def _relay_init_set(self, state: bool) -> bool | None:
+        try:
+            request = CircleRelayInitStateRequest(
+                self._send, self._mac_in_bytes, False, False
+            )
+        except MessageError as err:
+            raise NodeError(f"{self._mac_in_str} error: {err}") from err
+
+        if (response := await request.send()) is None:
+            _LOGGER.warning(
+                "No response from %s to get relay init setting", self._mac_in_str
+            )
+            return None
+
+        if isinstance(response, CircleRelayInitStateResponse):
+            _LOGGER.debug("Successful get of relay init state for %s", self._mac_in_str)
+            state = response.relay.value == 1
+            await self._relay_init_update_state(state)
+            return state
+
+    async def _relay_init_set(self, state: bool) -> None:
         """Configure relay init state."""
         if NodeFeature.RELAY_INIT not in self._features:
             raise NodeError(
                 "Configuring of initial state of relay is not"
                 + f"supported for device {self.name}"
             )
-        request = CircleRelayInitStateRequest(
-            self._send, self._mac_in_bytes, True, state
-        )
-        if (response := await request.send()) is not None:
-            await self._relay_init_update_state(response.relay.value == 1)
-            return self._relay_config.init_state
-        return None
+
+        try:
+            request = CircleRelayInitStateRequest(
+                self._send, self._mac_in_bytes, True, state
+            )
+        except MessageError as err:
+            raise NodeError(f"{self._mac_in_str} error: {err}") from err
+
+        if (response := await request.send()) is None:
+            _LOGGER.warning(
+                "No response from %s to configure relay init setting", self._mac_in_str
+            )
+            return None
+
+        if response.node_ack_type == NodeAckResponseType.DEFAULT_FAIL:
+            _LOGGER.warning("Failed to set relay init state for %s", self._mac_in_str)
+            return None
+
+        if response.node_ack_type == NodeAckResponseType.DEFAULT_ACK:
+            _LOGGER.debug("Successful set relay init state for %s", self._mac_in_str)
+            await self._relay_init_update_state(state)
 
     async def _relay_init_load_from_cache(self) -> bool:
         """Load relay init state from cache. Returns True if retrieval was successful."""
