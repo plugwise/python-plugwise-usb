@@ -4,9 +4,8 @@
 name: Latest commit
 
 env:
-  CACHE_VERSION: 1
+  CACHE_VERSION: 2
   DEFAULT_PYTHON: "3.14"
-  PRE_COMMIT_HOME: ~/.cache/pre-commit
   VENV: venv
 
 on:
@@ -45,7 +44,7 @@ jobs:
     needs: cache
     name: Prepare
     steps:
-      - name: Prepare code checkout and python/pre-commit setup
+      - name: Prepare code checkout and python/prek/pre-commit setup
         id: cache-reuse
         uses: plugwise/gh-actions/prepare-python-and-code@v2
         with:
@@ -53,7 +52,7 @@ jobs:
           fail-on-miss: false  # First time create cache (if not already exists)
           python-version: ${{ needs.cache.outputs.python-version }}
           venv-dir: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          prek-home: ${{ env.PREK_HOME }}
 
   ruff:
     runs-on: ubuntu-latest
@@ -73,7 +72,7 @@ jobs:
           cache-key: ${{ needs.cache.outputs.cache-key }}
           python-version: ${{ needs.cache.outputs.python-version }}
           venv-dir: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          prek-home: ${{ env.PREK_HOME }}
       - name: Ruff (with fix)
         run: |
           . venv-${{ needs.cache.outputs.python-version }}/bin/activate
@@ -109,11 +108,11 @@ jobs:
           cache-key: ${{ needs.cache.outputs.cache-key }}
           python-version: ${{ needs.cache.outputs.python-version }}
           venv-dir: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          prek-home: ${{ env.PREK_HOME }}
       - name: Verify commit
         run: |
           . venv-${{ needs.cache.outputs.python-version }}/bin/activate
-          pre-commit run --show-diff-on-failure --color=always --all-files --hook-stage manual pylint
+          prek run --show-diff-on-failure --color=always --all-files --hook-stage manual pylint
 #      - name: Biome lint
 #        run: |
 #          . venv-${{ needs.cache.outputs.python-version }}/bin/activate
@@ -122,7 +121,7 @@ jobs:
       - name: Lint markdown files
         run: |
           . venv-${{ needs.cache.outputs.python-version }}/bin/activate
-          pre-commit run --show-diff-on-failure --color=always --all-files --hook-stage manual markdownlint
+          pre-commit run --show-diff-on-failure --color=always --all-files --hook-stage manual pymarkdown
 
   pytest:
     runs-on: ubuntu-latest
@@ -150,7 +149,7 @@ jobs:
           cache-key: ${{ needs.cache.outputs.cache-key }}
           python-version: ${{ steps.python.outputs.python-version }}  # Force to installed python minor
           venv-dir: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          prek-home: ${{ env.PREK_HOME }}
       - name: Run all tests
         run: |
           . venv-${{ steps.python.outputs.python-version }}/bin/activate
@@ -183,11 +182,11 @@ jobs:
           cache-key: ${{ needs.cache.outputs.cache-key }}
           python-version: ${{ needs.cache.outputs.python-version }}
           venv-dir: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          prek-home: ${{ env.PREK_HOME }}
       - name: Run mypy
         run: |
           . venv-${{ needs.cache.outputs.python-version }}/bin/activate
-          pip list | grep -i mypy
+          uv pip list | grep -i mypy
           mypy plugwise_usb/
 
   # Check shellscripts
@@ -228,7 +227,7 @@ jobs:
           cache-key: ${{ needs.cache.outputs.cache-key }}
           python-version: ${{ needs.cache.outputs.python-version }}
           venv-dir: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          prek-home: ${{ env.PREK_HOME }}
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v8
         with:
@@ -316,7 +315,7 @@ jobs:
           cache-key: ${{ needs.cache.outputs.cache-key }}
           python-version: ${{ needs.cache.outputs.python-version }}
           venv-dir: ${{ env.VENV }}
-          precommit-home: ${{ env.PRE_COMMIT_HOME }}
+          prek-home: ${{ env.PREK_HOME }}
       - name: Run complexity report (click to view details)
         run: |
           . venv-${{ needs.cache.outputs.python-version }}/bin/activate
