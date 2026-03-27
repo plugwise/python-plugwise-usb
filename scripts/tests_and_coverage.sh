@@ -49,9 +49,8 @@ biome_format() {
 }
 
 # Install/update dependencies
-pre-commit install
-pre-commit install-hooks
 uv pip install -r requirements_test.txt -r requirements_commit.txt
+prek install --install-hooks
 
 set +u
 

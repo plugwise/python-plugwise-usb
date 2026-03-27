@@ -36,8 +36,8 @@ curl -sL "https://github.com/biomejs/biome/releases/latest/download/biome-${use_
 # Make biome executable (if necessary)
 chmod +x "${my_path}/tmp/biome"
 
-# Install pre-commit hook unless running from within pre-commit
+# Install prek hook unless running from within pre-commit
 if [ "$#" -eq 0 ]; then
-  pre-commit install
+  prek install --install-hooks
 fi
 

@@ -4,7 +4,7 @@
 # Versioning omitted (leave this up to HA-core)
 coverage
 mypy
-pre-commit
+prek
 pylint
 pylint_strict_informational==0.1
 ruff
