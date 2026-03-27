@@ -517,7 +517,6 @@ class StickNetwork:
         await self._register.start()
         self._subscribe_to_protocol_events()
         await self._subscribe_to_node_events()
-        self._is_running = True
         if len(self._registry_stragglers) > 0 and (
             self._discover_stragglers_task is None
             or self._discover_stragglers_task.done()
@@ -549,7 +548,6 @@ class StickNetwork:
             and not self._discover_stragglers_task.done()
         ):
             self._discover_stragglers_task.cancel()
-        self._is_running = False
         self._unsubscribe_to_protocol_events()
         await self._unload_discovered_nodes()
         self._register.stop()
