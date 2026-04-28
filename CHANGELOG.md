@@ -2,7 +2,7 @@
 
 ## Ongoing
 
-PR []()
+PR [433](https://github.com/plugwise/python-plugwise-usb/pull/443): Migrate to serialx
 
 ## v0.47.6 - 2026-03-11
 
