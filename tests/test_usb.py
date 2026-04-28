@@ -366,7 +366,7 @@ class TestStick:
 
         with pytest.raises(pw_exceptions.StickError):
             await stick.connect()
-        stick.port = "null"
+        stick.port = None
         with pytest.raises(pw_exceptions.StickError):
             await stick.connect()
         await stick.disconnect()
