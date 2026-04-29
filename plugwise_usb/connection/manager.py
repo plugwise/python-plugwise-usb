@@ -134,13 +134,7 @@ class StickConnectionManager:
                 ),
                 timeout=5,
             )
-        except (
-            FileNotFoundError,
-            OSError,
-            TimeoutError,
-            TypeError,
-            ValueError,
-        ) as err:
+        except (OSError, TypeError, ValueError) as err:
             raise StickError(
                 f"Failed to open serial connection to {serial_path}"
             ) from err
