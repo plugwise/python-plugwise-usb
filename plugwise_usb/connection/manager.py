@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable, Coroutine
 import logging
 from typing import Any
 
-from serialx import SerialException, SerialTransport, create_serial_connection
+from serialx import SerialTransport, create_serial_connection
 
 from ..api import StickEvent
 from ..exceptions import StickError
