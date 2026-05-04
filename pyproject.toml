@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "plugwise_usb"
-version         = "0.47.6"
+version         = "0.47.7a1"
 license         = "MIT"
 keywords        = ["home", "automation", "plugwise", "module", "usb"]
 classifiers     = [
@@ -12,7 +12,6 @@ classifiers     = [
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.14",
-    "Programming Language :: Python :: 3.13",
     "Topic :: Home Automation",
 ]
 authors = [
@@ -25,12 +24,12 @@ maintainers = [
         { name = "CoMPaTech" },
         { name = "dirixmjm" }
 ]
-requires-python = ">=3.13.0"
+requires-python = ">=3.14.0"
 dependencies    = [
-        "pyserial-asyncio-fast",
         "aiofiles",
         "crcmod",
         "semver",
+        "serialx",
 ]
 
 [project.urls]
