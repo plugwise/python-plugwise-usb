@@ -38,6 +38,7 @@ from ..messages.responses import (
     NodeSpecificResponse,
     PlugwiseResponse,
     StickInitResponse,
+    StickInitShortResponse,
     StickNetworkInfoResponse,
     StickResponse,
     StickResponseType,
@@ -363,8 +364,18 @@ class StickNetworkInfoRequest(PlugwiseRequest):
     _identifier = b"0001"
     _reply_identifier = b"0002"
 
+    def __init__(
+        self,
+        send_fn: Callable[[PlugwiseRequest, bool], Awaitable[PlugwiseResponse | None]],
+    ) -> None:
+        """Initialize StickInitRequest message object."""
+        super().__init__(send_fn, None)
+        self._max_retries = 1
+
     async def send(self) -> StickNetworkInfoResponse | None:
         """Send request."""
+        if self._send_fn is None:
+            raise MessageError("Send function missing")
         result = await self._send_request()
         if isinstance(result, StickNetworkInfoResponse):
             return result
@@ -399,14 +410,17 @@ class CirclePlusConnectRequest(PlugwiseRequest):
     # This message has an exceptional format and therefore
     # need to override the serialize method
     def serialize(self) -> bytes:
-        """Convert message to serialized list of bytes."""
-        # This command has
-        # args: byte
-        # key, byte
-        # network info.index, ulong
-        # network key = 0
-        args = b"00000000000000000000"
-        msg: bytes = self._identifier + args
+        """Convert message to serialized list of bytes.
+
+        Parameters
+        ----------
+         - special_id: byte - observed sequence with retry: b"0001", B"0101",
+         - and args: byte.
+
+        """
+        special_id = b"0001"
+        args = b"0000000000000000"
+        msg: bytes = self._identifier + special_id + args
         if self._mac is not None:
             msg += self._mac
         checksum = self.calculate_checksum(msg)
@@ -523,7 +537,7 @@ class StickInitRequest(PlugwiseRequest):
     """Initialize USB-Stick.
 
     Supported protocols : 1.0, 2.0
-    Response message    : StickInitResponse
+    Response message    : StickInitResponse or StickInitShortResponse
     """
 
     _identifier = b"000A"
@@ -537,17 +551,17 @@ class StickInitRequest(PlugwiseRequest):
         super().__init__(send_fn, None)
         self._max_retries = 1
 
-    async def send(self) -> StickInitResponse | None:
+    async def send(self) -> StickInitResponse | StickInitShortResponse | None:
         """Send request."""
         if self._send_fn is None:
             raise MessageError("Send function missing")
         result = await self._send_request()
-        if isinstance(result, StickInitResponse):
+        if isinstance(result, StickInitResponse | StickInitShortResponse):
             return result
         if result is None:
             return None
         raise MessageError(
-            f"Invalid response message. Received {result.__class__.__name__}, expected StickInitResponse"
+            f"Invalid response message. Received {result.__class__.__name__}, expected StickInitResponse/StickInitShortResponse"
         )
 
 
