@@ -4,7 +4,7 @@
 pytest-asyncio
 radon==6.0.1
 types-python-dateutil
-pyserial-asyncio-fast
 aiofiles
 freezegun
 pytest-cov
+serialx

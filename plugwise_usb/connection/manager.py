@@ -7,8 +7,7 @@ from collections.abc import Awaitable, Callable, Coroutine
 import logging
 from typing import Any
 
-from serial import EIGHTBITS, PARITY_NONE, STOPBITS_ONE, SerialException
-from serial_asyncio_fast import SerialTransport, create_serial_connection
+from serialx import SerialTransport, create_serial_connection
 
 from ..api import StickEvent
 from ..exceptions import StickError
@@ -132,18 +131,10 @@ class StickConnectionManager:
                     lambda: self._receiver,
                     url=serial_path,
                     baudrate=115200,
-                    bytesize=EIGHTBITS,
-                    stopbits=STOPBITS_ONE,
-                    parity=PARITY_NONE,
-                    xonxoff=False,
                 ),
                 timeout=5,
             )
-        except SerialException as err:
-            raise StickError(
-                f"Failed to open serial connection to {serial_path}"
-            ) from err
-        except TimeoutError as err:
+        except (OSError, TypeError, ValueError) as err:
             raise StickError(
                 f"Failed to open serial connection to {serial_path}"
             ) from err

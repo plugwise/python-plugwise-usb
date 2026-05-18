@@ -33,7 +33,7 @@ from dataclasses import dataclass
 import logging
 from typing import Any, Final
 
-from serial_asyncio_fast import SerialTransport
+from serialx import SerialTransport
 
 from ..api import StickEvent
 from ..constants import MESSAGE_FOOTER, MESSAGE_HEADER
