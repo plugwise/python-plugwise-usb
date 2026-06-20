@@ -357,7 +357,7 @@ class PlugwiseScan(NodeSED):
             raise MessageError(
                 f"Invalid response message type ({response.__class__.__name__}) received, expected NodeSwitchGroupResponse"
             )
-        _LOGGER.warning("%s received %s", self.name, response)
+        _LOGGER.debug("%s received %s", self.name, response)
         await gather(
             self._available_update_state(True, response.timestamp),
             self._motion_state_update(response.switch_state, response.timestamp),
@@ -393,7 +393,7 @@ class PlugwiseScan(NodeSED):
                         )
                         await self._scan_configure_update()
                     elif reset_timer < self._motion_config.reset_timer:
-                        _LOGGER.warning(
+                        _LOGGER.debug(
                             "Adjust reset timer for %s from %s -> %s",
                             self.name,
                             self._motion_config.reset_timer,
