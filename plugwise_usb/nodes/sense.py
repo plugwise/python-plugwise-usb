@@ -619,7 +619,7 @@ class PlugwiseSense(NodeSED):
             raise MessageError(
                 f"Invalid response message type ({response.__class__.__name__}) received, expected NodeSwitchGroupResponse"
             )
-        _LOGGER.warning("%s received %s", self.name, response)
+        _LOGGER.debug("%s received %s", self.name, response)
         await gather(
             self._available_update_state(True, response.timestamp),
             self._hysteresis_state_update(
