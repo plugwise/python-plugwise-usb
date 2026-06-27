@@ -379,7 +379,7 @@ class PlugwiseBaseNode(FeaturePublisher, ABC):
         if self._loaded:
             return True
         if not self._cache_enabled:
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "Unable to load node %s from cache because caching is disabled",
                 self.mac,
             )
