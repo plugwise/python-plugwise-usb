@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.47.8 - 2026-07-01
+
+PR [459](https://github.com/plugwise/python-plugwise-usb/pull/459): Reduce logging for SEDs
+
 ## v0.47.7 - 2026-05-18
 
 PR [443](https://github.com/plugwise/python-plugwise-usb/pull/443): Migrate to serialx
