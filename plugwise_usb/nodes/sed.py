@@ -477,7 +477,7 @@ class NodeSED(PlugwiseBaseNode):
             timestamp - self._last_awake[NodeAwakeResponseType.MAINTENANCE]
         ).seconds
         new_interval_in_min = round(new_interval_in_sec // 60)
-        _LOGGER.warning(
+        _LOGGER.debug(
             "Detect current maintenance interval for %s: %s (seconds), current %s (min)",
             self.name,
             new_interval_in_sec,
@@ -528,7 +528,7 @@ class NodeSED(PlugwiseBaseNode):
         # Mark node as unavailable
         if self._available:
             last_awake = self._last_awake.get(NodeAwakeResponseType.MAINTENANCE)
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "No awake message received from %s | last_maintenance_awake=%s | interval=%s (%s) | Marking node as unavailable",
                 self.name,
                 last_awake,
