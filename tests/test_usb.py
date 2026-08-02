@@ -1503,11 +1503,11 @@ class TestStick:
         node_sleep_config_request = pw_requests.NodeSleepConfigRequest(
             self.dummy_fn,
             b"1111222233334444",
-            5,  # Duration in seconds the SED will be awake for receiving commands
-            360,  # Duration in minutes the SED will be in sleeping mode and not able to respond any command
-            1440,  # Interval in minutes the node will wake up and able to receive commands
-            False,  # Enable/disable clock sync
-            0,  # Duration in minutes the node synchronize its clock
+            awake_duration=5,  # Duration in seconds the SED will be awake for receiving commands
+            maintenance_interval=360,  # Duration in minutes the SED will be in sleeping mode and not able to respond any command
+            sleep_duration=1440,  # Interval in minutes the node will wake up and able to receive commands
+            sync_clock=False,  # Enable/disable clock sync
+            clock_interval=0,  # Duration in minutes the node synchronize its clock
         )
         assert (
             node_sleep_config_request.serialize()

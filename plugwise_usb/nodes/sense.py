@@ -732,10 +732,10 @@ class PlugwiseSense(NodeSED):
         request = SenseConfigureHysteresisRequest(
             self._send,
             self._mac_in_bytes,
-            False,
-            humidity_lower_bound,
-            humidity_upper_bound,
-            self.humidity_direction,
+            temp_hum=False,
+            lower_bound=humidity_lower_bound,
+            upper_bound=humidity_upper_bound,
+            direction=self.humidity_direction,
         )
         if (response := await request.send()) is None:
             self._log_configure_failed("humidity hysteresis")
@@ -777,10 +777,10 @@ class PlugwiseSense(NodeSED):
         request = SenseConfigureHysteresisRequest(
             self._send,
             self._mac_in_bytes,
-            True,
-            temperature_lower_bound,
-            temperature_upper_bound,
-            self.temperature_direction,
+            temp_hum=True,
+            lower_bound=temperature_lower_bound,
+            upper_bound=temperature_upper_bound,
+            direction=self.temperature_direction,
         )
         if (response := await request.send()) is None:
             _LOGGER.warning(
