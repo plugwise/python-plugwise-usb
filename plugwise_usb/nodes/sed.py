@@ -554,11 +554,11 @@ class NodeSED(PlugwiseBaseNode):
         request = NodeSleepConfigRequest(
             self._send,
             self._mac_in_bytes,
-            self._battery_config.awake_duration,
-            self._battery_config.maintenance_interval,
-            self._battery_config.sleep_duration,
-            self._battery_config.clock_sync,
-            self._battery_config.clock_interval,
+            awake_duration=self._battery_config.awake_duration,
+            maintenance_interval=self._battery_config.maintenance_interval,
+            sleep_duration=self._battery_config.sleep_duration,
+            sync_clock=self._battery_config.clock_sync,
+            clock_interval=self._battery_config.clock_interval,
         )
         _LOGGER.debug(
             "sed_configure | Device %s | awake_duration=%s | clock_interval=%s | clock_sync=%s | maintenance_interval=%s | sleep_duration=%s",
