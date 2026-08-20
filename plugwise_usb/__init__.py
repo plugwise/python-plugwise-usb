@@ -130,18 +130,27 @@ class Stick:
         return self._controller.hardware_stick
 
     @property
-    def mac_stick(self) -> str:
-        """MAC address of USB-Stick. Raises StickError is connection is missing."""
+    def mac_stick(self) -> str | None:
+        """MAC address of USB-Stick.
+
+        Returns None when the connection to the Stick fails.
+        """
         return self._controller.mac_stick
 
     @property
-    def mac_coordinator(self) -> str:
-        """MAC address of the network coordinator (Circle+). Raises StickError is connection is missing."""
+    def mac_coordinator(self) -> str | None:
+        """MAC address of the network coordinator (Circle+).
+
+        Returns none when there is no connection, not paired, not present in the network.
+        """
         return self._controller.mac_coordinator
 
     @property
-    def name(self) -> str:
-        """Return name of Stick."""
+    def name(self) -> str | None:
+        """Return name of Stick.
+
+        Returns None when the connection to the Stick fails.
+        """
         return self._controller.stick_name
 
     @property
@@ -237,8 +246,8 @@ class Stick:
         if not self.is_connected:
             await self.connect()
         if not self.is_initialized:
-            await self.initialize()
-        if discover:
+            initialized = await self.initialize()
+        if initialized and discover:
             await self.start_network()
             await self.discover_coordinator()
             await self.discover_nodes()
@@ -266,10 +275,18 @@ class Stick:
             self._port,
         )
 
+    async def plus_pair_request(self, mac: str) -> bool:
+        """Send a pair request to a Plus device."""
+        return await self._controller.pair_plus_device(mac)
+
     @raise_not_connected
-    async def initialize(self, create_root_cache_folder: bool = False) -> None:
+    async def initialize(self, create_root_cache_folder: bool = False) -> bool:
         """Initialize connection to USB-Stick."""
         await self._controller.initialize_stick()
+        # Check if network is offline = StickInitShortResponse
+        if self._controller.mac_coordinator is None:
+            return False
+
         if self._network is None:
             self._network = StickNetwork(self._controller)
             self._network.cache_folder = self._cache_folder
@@ -277,6 +294,8 @@ class Stick:
             self._network.cache_enabled = self._cache_enabled
             if self._cache_enabled:
                 await self._network.initialize_cache()
+
+        return True
 
     @raise_not_connected
     @raise_not_initialized
