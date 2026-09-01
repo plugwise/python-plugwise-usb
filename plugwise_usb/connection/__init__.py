@@ -200,18 +200,18 @@ class StickController:
     async def pair_plus_device(self, mac: str) -> bool:
         """Pair Plus-device to Plugwise Stick.
 
-        According to https://roheve.wordpress.com/author/roheve/page/2/
         The pairing process should look like:
-        0001 - 0002 - 0003: StickNetworkInfoRequest - StickNetworkInfoResponse - NodeSpecificResponse,
-        000A - 0011: StickInitRequest - StickInitShortResponse/StickInitResponse,
-        0004 - 0005: CirclePlusConnectRequest - CirclePlusConnectResponse,
-        the Plus-device will then send a NodeRejoinResponse (0061).
+        Repeat sending 0001 (& 000A) until 0002 response is receiced
+        0001 -> 0003, 000A -> 0011S, 0001 -> 0003, 000A - 0011S, 0001 -> 0002 & 0003, 000A - 0011S
+        After receiving 0002-response, start sending the first 0004-request:
+        0004 00001 -> 0061 & 0005, 0001 -> 0002, 000A -> 0011S
+        After receiving 0061 (NODE_REJOIN_ID), ~30 seconds later, send the 2nd 0004-request:
+        0004 0101 -> 0061 & 0005, 000A -> 0011, receiving a full StickInitResponse means the pairing was succesful.
+        Follow up requesting NodeInfo etc (0023, 0060)
 
-        In the first occurrence of this process a 0004 0001 .... message is sent.
-        A StickInitShortResponse is received indicating the network is offline.
-        In the second occurrence of this process a 0004 0101 .... message is sent.
-        Again a StickInitShortResponse is received.
-        In the third occurrence only 000A is sent and a StickInitResponse indicating the network is online, is received.
+        0001 - 0002 - 0003: StickNetworkInfoRequest - StickNetworkInfoResponse - NodeSpecificResponse
+        000A - 0011S/0011: StickInitRequest - StickInitShortResponse/StickInitResponse
+        0004 - 0005: CirclePlusConnectRequest - CirclePlusConnectResponse, the Plus-device will then send a NodeRejoinResponse (0061).
         """
         _LOGGER.debug("Pair Plus-device with mac: %s", mac)
         if not validate_mac(mac):
