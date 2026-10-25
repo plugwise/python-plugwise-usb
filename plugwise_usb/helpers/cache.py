@@ -11,10 +11,7 @@ from pathlib import Path
 from secrets import token_hex as secrets_token_hex
 
 from aiofiles import open as aiofiles_open, ospath  # type: ignore[import-untyped]
-from aiofiles.os import (  # type: ignore[import-untyped]
-    makedirs,
-    remove as aiofiles_os_remove,
-)
+from aiofiles.os import makedirs, remove as aiofiles_os_remove  # type: ignore[import-untyped]
 
 from ..constants import CACHE_DIR, CACHE_KEY_SEPARATOR, UTF8
 from ..exceptions import CacheError
