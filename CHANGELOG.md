@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.47.9 - 2026-11-18
+
+PR [511](https://github.com/plugwise/python-plugwise-usb/pull/511): remove setting asyncio-loop debug to True
+
 ## v0.47.8 - 2026-07-01
 
 PR [459](https://github.com/plugwise/python-plugwise-usb/pull/459): Reduce logging for SEDs
