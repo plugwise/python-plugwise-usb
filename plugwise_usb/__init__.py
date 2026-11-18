@@ -58,7 +58,6 @@ class Stick:
     def __init__(self, port: str | None = None, cache_enabled: bool = True) -> None:
         """Initialize Stick."""
         self._loop = get_running_loop()
-        self._loop.set_debug(True)
         self._controller = StickController()
         self._network: StickNetwork | None = None
         self._cache_enabled = cache_enabled
